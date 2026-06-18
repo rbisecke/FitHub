@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 app = FastAPI(title="FitHub API", version="0.1.0")
 
@@ -12,6 +13,10 @@ app.add_middleware(
 )
 
 
+class HealthResponse(BaseModel):
+    status: str
+
+
 @app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+async def health() -> HealthResponse:
+    return HealthResponse(status="ok")
