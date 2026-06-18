@@ -10,24 +10,28 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "e2e": "playwright test",
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.108.2",
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "prettier": "^3",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^3",
-    "@vitejs/plugin-react": "^4",
-    "prettier": "^3"
+    "vitest": "^3"
   }
 }

@@ -7,6 +7,8 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
+    // e2e/ uses Playwright — exclude it from Vitest discovery.
+    exclude: ["e2e/**", "**/node_modules/**"],
   },
   resolve: {
     alias: {

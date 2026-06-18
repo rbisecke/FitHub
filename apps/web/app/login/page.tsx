@@ -1,0 +1,99 @@
+"use client";
+
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">(
+    "idle",
+  );
+  const [errorMsg, setErrorMsg] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setStatus("loading");
+    setErrorMsg("");
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        // Invite-only: never auto-create a new user from the magic link.
+        shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      setStatus("error");
+      // Use a single message regardless of the error type — distinguishing
+      // "not invited" from other errors would let callers enumerate the invite list.
+      setErrorMsg(
+        "If that email is on our invite list, you'll receive a magic link.",
+      );
+    } else {
+      setStatus("sent");
+    }
+  }
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4">
+      <div className="w-full max-w-sm space-y-8">
+        {/* Wordmark */}
+        <div className="space-y-1 text-center">
+          <p className="font-mono text-sm text-zinc-500">$ git commit --fit</p>
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-50">
+            FitHub
+          </h1>
+          <p className="text-sm text-zinc-400">Git for your fitness.</p>
+        </div>
+
+        {status === "sent" ? (
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-6 py-8 text-center space-y-2">
+            <p className="text-zinc-50 font-medium">Check your email</p>
+            <p className="text-sm text-zinc-400">
+              We sent a magic link to{" "}
+              <span className="text-zinc-200">{email}</span>.
+            </p>
+          </div>
+        ) : (
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4 rounded-lg border border-zinc-800 bg-zinc-900 px-6 py-8"
+          >
+            <div className="space-y-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-zinc-300"
+              >
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+              />
+            </div>
+
+            {status === "error" && (
+              <p className="text-sm text-red-400">{errorMsg}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={status === "loading"}
+              className="w-full rounded-md bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-900 transition-colors hover:bg-zinc-200 disabled:opacity-50"
+            >
+              {status === "loading" ? "Sending…" : "Send magic link"}
+            </button>
+          </form>
+        )}
+      </div>
+    </main>
+  );
+}
