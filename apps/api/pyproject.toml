@@ -36,6 +36,14 @@ strict = true
 plugins = ["pydantic.mypy"]
 exclude = ["alembic/"]
 
+# pydantic-settings populates BaseSettings fields from env variables, so
+# Settings() is always a valid call.  The pydantic mypy plugin suppresses the
+# call-arg error in some environments but not others; the ignore and this
+# override keep both CI and local mypy happy.
+[[tool.mypy.overrides]]
+module = "app.config"
+warn_unused_ignores = false
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
