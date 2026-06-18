@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 # PreToolUse hook: block dangerous bash commands.
-# Claude Code passes the command in CLAUDE_BASH_COMMAND.
+# Claude Code delivers tool data via stdin as JSON:
+# {"session_id":"…","tool_name":"Bash","tool_input":{"command":"…"}}
+# Exit 0 = allow, non-zero = block.
 
-CMD="${CLAUDE_BASH_COMMAND:-}"
+INPUT=$(cat)
+CMD=$(echo "$INPUT" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+print(d.get('tool_input', {}).get('command', ''))
+" 2>/dev/null || echo "")
 
 # Block hard-delete and force-push patterns
 if echo "$CMD" | grep -qE 'rm\s+-rf|git\s+push\s+--force|git\s+push\s+-f\b'; then
