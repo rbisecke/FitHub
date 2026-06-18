@@ -22,6 +22,19 @@ BEGIN
 END;
 $$;
 
+-- Helper: execute an UPDATE as the calling role, return rows affected.
+-- Created here (as superuser) so it can be called after role impersonation.
+CREATE OR REPLACE FUNCTION _rows_updated_bob()
+RETURNS int LANGUAGE plpgsql SECURITY INVOKER AS $$
+DECLARE n int;
+BEGIN
+  UPDATE public.profiles SET display_name = 'Hacked'
+  WHERE id = '00000002-0000-0000-0000-000000000002';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  RETURN n;
+END;
+$$;
+
 -- ── Impersonate Alice ───────────────────────────────────────────────────────────
 SET LOCAL role = authenticated;
 SET LOCAL "request.jwt.claims" = '{"sub":"00000001-0000-0000-0000-000000000001","role":"authenticated"}';
@@ -53,11 +66,7 @@ SELECT lives_ok(
 
 -- Alice cannot update another user's profile (0 rows affected, not an error)
 SELECT is(
-  (WITH upd AS (
-     UPDATE public.profiles SET display_name = 'Hacked'
-     WHERE id = '00000002-0000-0000-0000-000000000002'
-     RETURNING id
-   ) SELECT count(*)::int FROM upd),
+  _rows_updated_bob(),
   0,
   'Alice cannot update Bob''s profile (0 rows affected)'
 );
@@ -85,12 +94,15 @@ SELECT throws_ok(
 );
 
 -- ── anon role cannot read profiles ─────────────────────────────────────────────
+-- anon has no table-level SELECT grant — expect 42501 (permission denied),
+-- not 0 rows (which would imply table access with RLS filtering it out).
 SET LOCAL role = anon;
 
-SELECT is(
-  (SELECT count(*)::int FROM public.profiles),
-  0,
-  'anon role sees no profiles'
+SELECT throws_ok(
+  $$SELECT count(*)::int FROM public.profiles$$,
+  '42501',
+  NULL,
+  'anon role cannot select from profiles (permission denied)'
 );
 
 SELECT * FROM finish();
