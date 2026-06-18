@@ -3,6 +3,7 @@ claude_docs/
 
 # ── Claude Code (machine-local settings only; settings.json is tracked) ──────
 .claude/settings.local.json
+CLAUDE.local.md
 
 # ── Environment variables ─────────────────────────────────────────────────────
 .env

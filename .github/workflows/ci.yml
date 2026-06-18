@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/**"
+      - "fix/**"
+      - "chore/**"
+      - "refactor/**"
+      - "docs/**"
+      - "test/**"
+      - "hotfix/**"
+  pull_request:
+    branches: [main]
+
+jobs:
+  web:
+    name: Web (typecheck + lint + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm -C apps/web typecheck
+
+      - name: Lint
+        run: pnpm -C apps/web lint
+
+      - name: Test
+        run: pnpm -C apps/web test
+
+  api:
+    name: API (typecheck + lint + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: uv sync --project apps/api --all-groups
+
+      - name: Lint (ruff)
+        run: uv run --project apps/api ruff check apps/api
+
+      - name: Format check (ruff)
+        run: uv run --project apps/api ruff format --check apps/api
+
+      - name: Typecheck (mypy)
+        run: uv run --project apps/api mypy apps/api/app
+
+      - name: Test
+        run: uv run --project apps/api pytest apps/api/tests -v
+
+  shared:
+    name: Shared (typecheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm -C packages/shared typecheck
