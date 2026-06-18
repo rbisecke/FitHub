@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm *)",
+      "Bash(npx *)",
+      "Bash(uv run *)",
+      "Bash(uv add *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git branch *)",
+      "Bash(git checkout *)",
+      "Bash(git -C * status)",
+      "Bash(git -C * diff *)",
+      "Bash(git -C * log *)",
+      "Bash(git -C * add *)",
+      "Bash(git -C * commit *)",
+      "Bash(git -C * branch *)",
+      "Bash(git -C * checkout *)",
+      "Bash(supabase migration *)",
+      "Bash(supabase gen types *)",
+      "Bash(supabase db reset)",
+      "Bash(supabase test db)",
+      "Bash(supabase start)",
+      "Bash(supabase stop)",
+      "Bash(supabase status)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(supabase db push)",
+      "Bash(curl * | bash)",
+      "Bash(curl * | sh)",
+      "Bash(wget * | bash)",
+      "Read(.env)",
+      "Edit(.env)",
+      "Write(.env)"
+    ]
+  }
+}
