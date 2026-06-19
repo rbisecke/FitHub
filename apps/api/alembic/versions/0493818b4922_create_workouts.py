@@ -34,7 +34,8 @@ def upgrade() -> None:
             workout_format text
                 CHECK (workout_format IN (
                     'strength', 'amrap', 'emom', 'for_time',
-                    'tabata', 'intervals', 'chipper', 'benchmark', 'open'
+                    'tabata', 'intervals', 'chipper', 'benchmark', 'open',
+                    'partner', 'team'
                 )),
             time_cap_s    integer,
             location      text,

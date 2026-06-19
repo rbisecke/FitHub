@@ -30,6 +30,8 @@ class WorkoutFormat(StrEnum):
     chipper = "chipper"
     benchmark = "benchmark"
     open = "open"
+    partner = "partner"
+    team = "team"
 
 
 class Workout(BaseModel):
