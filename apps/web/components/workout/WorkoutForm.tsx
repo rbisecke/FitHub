@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   useForm,
@@ -15,6 +16,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  FORMAT_LABELS,
+  SESSION_LABELS,
+  RESULT_TYPE_LABELS,
+} from "@/lib/display";
 import type { ResultType, SessionType, WorkoutFormat } from "@/lib/api/types";
 
 const RESULT_TYPES: ResultType[] = [
@@ -52,6 +58,21 @@ const WORKOUT_FORMATS: WorkoutFormat[] = [
   "partner",
   "team",
 ];
+
+// URL-encoded SVG chevron for custom select arrow (zinc-500 colour)
+const CHEVRON_STYLE: React.CSSProperties = {
+  backgroundImage:
+    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%238b949e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+  backgroundRepeat: "no-repeat",
+  backgroundPosition: "right 0.5rem center",
+  backgroundSize: "1rem 1rem",
+};
+
+const SELECT_BASE =
+  "w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 pr-8 text-sm text-zinc-200 focus:border-zinc-500 focus:outline-none appearance-none";
+
+const SELECT_SM =
+  "rounded border border-zinc-700 bg-zinc-900 px-2 py-1 pr-6 text-xs text-zinc-200 focus:outline-none appearance-none";
 
 const resultSchema = z.object({
   movement_id: z.string().uuid().optional(),
@@ -95,7 +116,6 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 function toISOLocal(dateStr: string): string {
-  // Converts "2026-06-19" → "2026-06-19T00:00:00Z"
   if (dateStr.includes("T")) return dateStr;
   return `${dateStr}T00:00:00Z`;
 }
@@ -110,6 +130,7 @@ export function WorkoutForm({
   workoutId?: string;
 }) {
   const router = useRouter();
+  const [showDetails, setShowDetails] = useState(false);
   const {
     register,
     control,
@@ -215,12 +236,13 @@ export function WorkoutForm({
           <select
             id="session_type"
             {...register("session_type")}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-200 focus:border-zinc-500 focus:outline-none"
+            className={SELECT_BASE}
+            style={CHEVRON_STYLE}
           >
             <option value="">Select…</option>
             {SESSION_TYPES.map((t) => (
               <option key={t} value={t}>
-                {t}
+                {SESSION_LABELS[t]}
               </option>
             ))}
           </select>
@@ -233,96 +255,122 @@ export function WorkoutForm({
           <select
             id="workout_format"
             {...register("workout_format")}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-200 focus:border-zinc-500 focus:outline-none"
+            className={SELECT_BASE}
+            style={CHEVRON_STYLE}
           >
             <option value="">Select…</option>
             {WORKOUT_FORMATS.map((f) => (
               <option key={f} value={f}>
-                {f}
+                {FORMAT_LABELS[f]}
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* RPE + Duration (two-column) */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label htmlFor="session_rpe" className="text-zinc-300 text-xs">
-            Session RPE (0–10)
-          </Label>
-          <Input
-            id="session_rpe"
-            type="number"
-            min={0}
-            max={10}
-            step={0.5}
-            placeholder="7"
-            {...register("session_rpe")}
-            className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
-          />
-          {errors.session_rpe && (
-            <p className="text-xs text-red-400">{errors.session_rpe.message}</p>
-          )}
-        </div>
+      {/* Progressive disclosure — secondary fields */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowDetails((v) => !v)}
+          className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-1"
+        >
+          <span>{showDetails ? "▾" : "▸"}</span>
+          <span>
+            {showDetails
+              ? "Hide details"
+              : "More details (effort, duration, location, bodyweight, notes)"}
+          </span>
+        </button>
 
-        <div className="space-y-1">
-          <Label htmlFor="duration_min" className="text-zinc-300 text-xs">
-            Duration (min)
-          </Label>
-          <Input
-            id="duration_min"
-            type="number"
-            min={1}
-            placeholder="20"
-            {...register("duration_min")}
-            className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
-          />
-        </div>
-      </div>
+        {showDetails && (
+          <div className="mt-4 space-y-5">
+            {/* RPE + Duration */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="session_rpe" className="text-zinc-300 text-xs">
+                  Effort (0–10)
+                </Label>
+                <Input
+                  id="session_rpe"
+                  type="number"
+                  min={0}
+                  max={10}
+                  step={0.5}
+                  placeholder="7"
+                  {...register("session_rpe")}
+                  className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+                />
+                {errors.session_rpe && (
+                  <p className="text-xs text-red-400">
+                    {errors.session_rpe.message}
+                  </p>
+                )}
+              </div>
 
-      {/* Location + bodyweight */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label htmlFor="location" className="text-zinc-300 text-xs">
-            Location
-          </Label>
-          <Input
-            id="location"
-            placeholder="Box, Home gym…"
-            {...register("location")}
-            className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="bodyweight_kg" className="text-zinc-300 text-xs">
-            Bodyweight (kg)
-          </Label>
-          <Input
-            id="bodyweight_kg"
-            type="number"
-            min={30}
-            max={600}
-            step={0.1}
-            placeholder="80"
-            {...register("bodyweight_kg")}
-            className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
-          />
-        </div>
-      </div>
+              <div className="space-y-1">
+                <Label htmlFor="duration_min" className="text-zinc-300 text-xs">
+                  Duration (min)
+                </Label>
+                <Input
+                  id="duration_min"
+                  type="number"
+                  min={1}
+                  placeholder="20"
+                  {...register("duration_min")}
+                  className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+                />
+              </div>
+            </div>
 
-      {/* Notes */}
-      <div className="space-y-1">
-        <Label htmlFor="notes" className="text-zinc-300 text-xs">
-          Notes
-        </Label>
-        <Textarea
-          id="notes"
-          rows={2}
-          placeholder="How did it feel?"
-          {...register("notes")}
-          className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
-        />
+            {/* Location + Bodyweight */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="location" className="text-zinc-300 text-xs">
+                  Location
+                </Label>
+                <Input
+                  id="location"
+                  placeholder="Box, Home gym…"
+                  {...register("location")}
+                  className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label
+                  htmlFor="bodyweight_kg"
+                  className="text-zinc-300 text-xs"
+                >
+                  Bodyweight (kg)
+                </Label>
+                <Input
+                  id="bodyweight_kg"
+                  type="number"
+                  min={30}
+                  max={600}
+                  step={0.1}
+                  placeholder="80"
+                  {...register("bodyweight_kg")}
+                  className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+                />
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-1">
+              <Label htmlFor="notes" className="text-zinc-300 text-xs">
+                Notes
+              </Label>
+              <Textarea
+                id="notes"
+                rows={2}
+                placeholder="How did it feel?"
+                {...register("notes")}
+                className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Results */}
@@ -367,11 +415,12 @@ export function WorkoutForm({
               {/* Result type */}
               <select
                 {...register(`results.${idx}.result_type`)}
-                className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-200 focus:outline-none"
+                className={SELECT_SM}
+                style={CHEVRON_STYLE}
               >
                 {RESULT_TYPES.map((t) => (
                   <option key={t} value={t}>
-                    {t}
+                    {RESULT_TYPE_LABELS[t]}
                   </option>
                 ))}
               </select>

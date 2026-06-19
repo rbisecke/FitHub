@@ -2,6 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import type { WorkoutSummary } from "@/lib/api/types";
+import {
+  sessionLabel,
+  formatLabel,
+  loadDisplay,
+  relativeDate,
+} from "@/lib/display";
 
 const SESSION_COLOURS: Record<string, string> = {
   metcon: "text-orange-400 border-orange-800 bg-orange-950",
@@ -17,14 +23,9 @@ export function WorkoutCard({ workout }: { workout: WorkoutSummary }) {
   const router = useRouter();
   const isPartner =
     workout.workout_format === "partner" || workout.workout_format === "team";
-  // Parse date-only to avoid UTC-midnight → previous-local-day conversion.
-  const dateParts = workout.performed_at.slice(0, 10).split("-").map(Number);
-  const [y, mo, d] = dateParts as [number, number, number];
-  const dateStr = new Date(y, mo - 1, d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+
+  const dateLabel = relativeDate(workout.performed_at.slice(0, 10));
+  const loadAu = loadDisplay(workout.perceived_load_au);
 
   return (
     <div
@@ -46,7 +47,7 @@ export function WorkoutCard({ workout }: { workout: WorkoutSummary }) {
             </span>
           )}
         </div>
-        <span className="text-xs text-zinc-500 shrink-0">{dateStr}</span>
+        <span className="text-xs text-zinc-500 shrink-0">{dateLabel}</span>
       </div>
       <div className="mt-2 flex items-center gap-3 text-xs text-zinc-500">
         {workout.session_type && (
@@ -56,17 +57,21 @@ export function WorkoutCard({ workout }: { workout: WorkoutSummary }) {
               "text-zinc-400 border-zinc-700"
             }`}
           >
-            {workout.session_type}
+            {sessionLabel(workout.session_type)}
           </span>
         )}
         <span>
           {workout.result_count} set{workout.result_count !== 1 ? "s" : ""}
         </span>
-        {workout.perceived_load_au != null && (
-          <span>{workout.perceived_load_au} AU</span>
+        {loadAu && (
+          <span title="Training load (sRPE × duration minutes)">
+            Load: {loadAu}
+          </span>
         )}
         {workout.workout_format && workout.workout_format !== "strength" && (
-          <span className="text-zinc-600">{workout.workout_format}</span>
+          <span className="text-zinc-600">
+            {formatLabel(workout.workout_format)}
+          </span>
         )}
       </div>
     </div>

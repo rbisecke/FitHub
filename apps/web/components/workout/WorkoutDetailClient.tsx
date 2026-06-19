@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { api } from "@/lib/api/client";
 import { WorkoutForm } from "./WorkoutForm";
+import { sessionLabel, formatLabel } from "@/lib/display";
 import type { Workout } from "@/lib/api/types";
 import {
   Dialog,
@@ -21,6 +23,18 @@ function formatTime(seconds: number): string {
   const s = seconds % 60;
   return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `${s}s`;
 }
+
+const RESULT_TYPE_LABELS: Record<string, string> = {
+  weight: "Weight result",
+  reps: "Reps result",
+  time: "Time result",
+  distance: "Distance result",
+  calories: "Calories result",
+  height: "Height result",
+  rounds_reps: "Rounds + reps",
+  pace: "Pace result",
+  watts: "Watts result",
+};
 
 const SESSION_COLOURS: Record<string, string> = {
   metcon: "text-orange-400 border-orange-800 bg-orange-950",
@@ -53,6 +67,9 @@ export function WorkoutDetailClient({
     day: "numeric",
     year: "numeric",
   });
+
+  const isPartner =
+    workout.workout_format === "partner" || workout.workout_format === "team";
 
   async function handleDelete() {
     setDeleting(true);
@@ -102,43 +119,76 @@ export function WorkoutDetailClient({
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="font-mono text-sm text-orange-400">
-            {workout.short_hash}
-          </span>
-          {workout.session_type && (
-            <span
-              className={`text-xs border rounded px-1.5 py-0.5 ${
-                SESSION_COLOURS[workout.session_type] ??
-                "text-zinc-400 border-zinc-700"
-              }`}
-            >
-              {workout.session_type}
+      {/* Breadcrumb */}
+      <Link
+        href="/history"
+        className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+      >
+        ← git log
+      </Link>
+
+      {/* Header — hash + badges row with actions top-right */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-sm text-orange-400">
+              {workout.short_hash}
             </span>
-          )}
-          {workout.workout_format &&
-            (workout.workout_format === "partner" ||
-              workout.workout_format === "team") && (
+            {workout.session_type && (
+              <span
+                className={`text-xs border rounded px-1.5 py-0.5 ${
+                  SESSION_COLOURS[workout.session_type] ??
+                  "text-zinc-400 border-zinc-700"
+                }`}
+              >
+                {sessionLabel(workout.session_type)}
+              </span>
+            )}
+            {workout.workout_format && !isPartner && (
+              <span className="text-xs border border-zinc-700 bg-zinc-900 text-zinc-400 rounded px-1.5 py-0.5">
+                {formatLabel(workout.workout_format)}
+              </span>
+            )}
+            {isPartner && (
               <span className="text-xs font-mono border border-purple-800 bg-purple-950 text-purple-300 px-2 py-0.5 rounded">
                 Co-authored-by
               </span>
             )}
+          </div>
+          <h1 className="text-2xl font-bold text-zinc-50 truncate">
+            {workout.title ?? "Untitled workout"}
+          </h1>
+          <p className="text-sm text-zinc-500">{dateStr}</p>
         </div>
-        <h1 className="text-2xl font-bold text-zinc-50">
-          {workout.title ?? "Untitled workout"}
-        </h1>
-        <p className="text-sm text-zinc-500">{dateStr}</p>
+
+        {/* Actions — top right */}
+        <div className="flex gap-2 shrink-0 mt-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEditing(true)}
+            className="border-zinc-700 text-zinc-300"
+          >
+            Edit
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setShowDeleteDialog(true)}
+            className="border-0"
+          >
+            Delete
+          </Button>
+        </div>
       </div>
 
       {/* Meta */}
       <div className="flex flex-wrap gap-4 text-sm text-zinc-400">
         {workout.session_rpe != null && (
           <div>
-            <span className="text-zinc-600 text-xs">RPE</span>{" "}
+            <span className="text-zinc-600 text-xs">Effort</span>{" "}
             <span className="font-mono text-zinc-200">
-              {workout.session_rpe}
+              {workout.session_rpe} / 10
             </span>
           </div>
         )}
@@ -146,15 +196,18 @@ export function WorkoutDetailClient({
           <div>
             <span className="text-zinc-600 text-xs">Duration</span>{" "}
             <span className="font-mono text-zinc-200">
-              {Math.round(workout.duration_s / 60)}m
+              {Math.round(workout.duration_s / 60)} min
             </span>
           </div>
         )}
         {workout.perceived_load_au != null && (
           <div>
             <span className="text-zinc-600 text-xs">Load</span>{" "}
-            <span className="font-mono text-zinc-200">
-              {workout.perceived_load_au} AU
+            <span
+              className="font-mono text-zinc-200"
+              title="Training load in arbitrary units (sRPE × duration minutes)"
+            >
+              {Math.round(workout.perceived_load_au)}
             </span>
           </div>
         )}
@@ -185,7 +238,11 @@ export function WorkoutDetailClient({
               >
                 <span className="font-mono text-xs text-zinc-600">{i + 1}</span>
                 <span className="text-zinc-300 flex-1">
-                  {r.movement_name ?? "—"}
+                  {r.movement_name ?? (
+                    <span className="text-zinc-500 italic">
+                      {RESULT_TYPE_LABELS[r.result_type] ?? r.result_type}
+                    </span>
+                  )}
                 </span>
                 <div className="flex gap-3 text-zinc-400 font-mono text-xs">
                   {r.load_kg && <span>{r.load_kg}kg</span>}
@@ -205,24 +262,22 @@ export function WorkoutDetailClient({
 
       <Separator className="border-zinc-800" />
 
-      {/* Actions */}
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setEditing(true)}
-          className="border-zinc-700 text-zinc-300"
-        >
-          Edit
-        </Button>
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={() => setShowDeleteDialog(true)}
-          className="border-0"
-        >
-          Delete
-        </Button>
+      {/* Commit info footer */}
+      <div className="text-xs text-zinc-600 space-y-0.5">
+        <p>
+          <span className="font-mono">commit {workout.short_hash}</span>
+        </p>
+        <p>
+          Created{" "}
+          {new Date(workout.created_at).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZoneName: "short",
+          })}
+        </p>
       </div>
 
       {/* Delete confirm dialog */}
