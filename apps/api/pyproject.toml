@@ -29,7 +29,9 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "ANN"]
-ignore = []
+ignore = [
+    "B008",  # FastAPI uses Query/Depends/Body as default values — idiomatic, not a bug
+]
 
 [tool.mypy]
 python_version = "3.14"
