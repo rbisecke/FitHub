@@ -20,6 +20,7 @@ def _fake_settings() -> Settings:
     return Settings(
         supabase_url="http://test.local:54321",
         supabase_service_role_key="test-key",
+        database_url="postgresql+psycopg://postgres:postgres@127.0.0.1:54322/postgres",
     )
 
 
@@ -27,7 +28,7 @@ def _fake_settings() -> Settings:
 def _setup_overrides() -> Generator[None]:
     app.dependency_overrides[get_settings] = _fake_settings
     yield
-    app.dependency_overrides.clear()
+    app.dependency_overrides.pop(get_settings, None)
 
 
 # ── EC key pair shared across JWT-specific tests ───────────────────────────────
@@ -83,10 +84,16 @@ async def test_me_returns_user_id_for_valid_token() -> None:
     def _mock_user() -> UserContext:
         return UserContext(user_id=ALICE_ID)
 
+    previous = app.dependency_overrides.get(get_current_user)
     app.dependency_overrides[get_current_user] = _mock_user
-
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        response = await client.get("/me")
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/me")
+    finally:
+        if previous is None:
+            app.dependency_overrides.pop(get_current_user, None)
+        else:
+            app.dependency_overrides[get_current_user] = previous
 
     assert response.status_code == 200
     assert response.json() == {"user_id": str(ALICE_ID)}

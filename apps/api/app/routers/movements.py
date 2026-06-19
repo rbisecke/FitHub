@@ -1,0 +1,43 @@
+from __future__ import annotations
+
+from typing import Annotated, Any
+
+import psycopg
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from psycopg import errors as pg_errors
+
+from app.auth import UserContext, get_current_user
+from app.db import get_db
+from app.models.movement import CreateMovementRequest, Modality, Movement
+from app.repositories.movements import create_movement, search_movements
+
+router = APIRouter(prefix="/api/v1/movements", tags=["movements"])
+
+Auth = Annotated[UserContext, Depends(get_current_user)]
+DBConn = Annotated[psycopg.AsyncConnection[Any], Depends(get_db)]
+
+
+@router.get("", response_model=list[Movement])
+async def list_movements(
+    user: Auth,
+    conn: DBConn,
+    query: str | None = Query(default=None, max_length=200),
+    modality: Modality | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=100),
+) -> list[Movement]:
+    return await search_movements(conn, query=query, modality=modality, limit=limit)
+
+
+@router.post("", response_model=Movement, status_code=status.HTTP_201_CREATED)
+async def create_movement_route(
+    user: Auth,
+    conn: DBConn,
+    req: CreateMovementRequest,
+) -> Movement:
+    try:
+        return await create_movement(conn, user_id=user.user_id, req=req)
+    except pg_errors.UniqueViolation:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A movement with that name or slug already exists.",
+        ) from None
