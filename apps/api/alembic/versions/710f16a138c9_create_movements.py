@@ -24,13 +24,16 @@ def upgrade() -> None:
             modality             text        NOT NULL
                 CHECK (modality IN (
                     'strength', 'weightlifting', 'gymnastics',
-                    'mono_structural', 'wod'
+                    'mono_structural', 'plyometric', 'carry', 'strongman'
                 )),
             start_position       text,
             catch_position       text,
             pause_position       text,
             tempo                varchar(8)
                 CHECK (tempo ~ '^[0-9X]{1,2}[0-9X]{1,2}[0-9X]{1,2}[0-9X]{1,2}$'),
+            execution_style      text,
+            movement_pattern     text,
+            limb_style           text,
             implement            text,
             default_result_types text[]      NOT NULL DEFAULT '{}',
             is_official          boolean     NOT NULL DEFAULT false,
@@ -79,13 +82,15 @@ def upgrade() -> None:
     op.execute("GRANT SELECT ON public.movements TO authenticated")
     op.execute("""
         GRANT INSERT (name, slug, base_movement, modality, start_position,
-                      catch_position, pause_position, tempo, implement,
+                      catch_position, pause_position, tempo, execution_style,
+                      movement_pattern, limb_style, implement,
                       default_result_types, created_by)
             ON public.movements TO authenticated
     """)
     op.execute("""
         GRANT UPDATE (name, slug, base_movement, modality, start_position,
-                      catch_position, pause_position, tempo, implement,
+                      catch_position, pause_position, tempo, execution_style,
+                      movement_pattern, limb_style, implement,
                       default_result_types)
             ON public.movements TO authenticated
     """)
