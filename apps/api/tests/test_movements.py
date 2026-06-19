@@ -50,6 +50,46 @@ async def test_create_custom_movement(alice_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_movement_with_new_fields(alice_client: AsyncClient) -> None:
+    """New Phase 2 fields (tempo, pause_position, execution_style, etc.) round-trip correctly."""
+    uid = uuid.uuid4().hex[:8]
+    payload = {
+        "name": f"Tempo Pause Squat {uid}",
+        "slug": f"tempo-pause-squat-{uid}",
+        "base_movement": "Back Squat",
+        "modality": "strength",
+        "pause_position": "bottom",
+        "tempo": "5310",
+        "execution_style": "strict",
+        "movement_pattern": "squat",
+        "limb_style": "bilateral",
+    }
+    r = await alice_client.post("/api/v1/movements", json=payload)
+    assert r.status_code == 201
+    body = r.json()
+    assert body["pause_position"] == "bottom"
+    assert body["tempo"] == "5310"
+    assert body["execution_style"] == "strict"
+    assert body["movement_pattern"] == "squat"
+    assert body["limb_style"] == "bilateral"
+
+
+@pytest.mark.asyncio
+async def test_create_movement_invalid_tempo_rejected(alice_client: AsyncClient) -> None:
+    """Tempo must match Poliquin 4-digit pattern; invalid values are rejected at the API."""
+    uid = uuid.uuid4().hex[:8]
+    payload = {
+        "name": f"Bad Tempo Move {uid}",
+        "slug": f"bad-tempo-{uid}",
+        "base_movement": "Squat",
+        "modality": "strength",
+        "tempo": "FAST",  # not a valid Poliquin tempo
+    }
+    r = await alice_client.post("/api/v1/movements", json=payload)
+    assert r.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_create_movement_duplicate_slug_is_conflict(alice_client: AsyncClient) -> None:
     uid = uuid.uuid4().hex[:8]
     payload = {
