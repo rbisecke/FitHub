@@ -2,15 +2,16 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 
-function env(key: string): string {
-  const value = process.env[key];
-  if (!value) throw new Error(`Missing environment variable: ${key}`);
-  return value;
-}
+// NEXT_PUBLIC_* vars must be accessed with a static literal key so Turbopack
+// can inline them at compile time. Dynamic bracket access (process.env[key])
+// defeats static analysis and produces undefined in the browser bundle.
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
+if (!SUPABASE_ANON_KEY)
+  throw new Error("Missing NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
 export function createClient() {
-  return createBrowserClient(
-    env("NEXT_PUBLIC_SUPABASE_URL"),
-    env("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-  );
+  return createBrowserClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
 }
