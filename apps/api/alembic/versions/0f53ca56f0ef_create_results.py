@@ -37,13 +37,33 @@ def upgrade() -> None:
             rounds       integer,
             partial_reps integer,
             watts        integer,
-            pace_s_500m  integer,
+            -- pace_s + pace_distance_m replace the old pace_s_500m column.
+            -- pace_distance_m is the denominator: 500 for row/ski erg, 1000 for run/km,
+            -- 100 for swim, 1609 for mile. Defaults to 500 (rowing).
+            pace_s          integer,
+            pace_distance_m smallint NOT NULL DEFAULT 500,
 
             -- Metadata
             set_index    integer,
             order_index  integer      NOT NULL DEFAULT 0,
             is_pr        boolean      NOT NULL DEFAULT false,
             notes        text,
+
+            -- Autoregulation — CR-10 scale (0–10, 0.5 steps).
+            -- rpe_target is what was prescribed; delta drives the load adjustment rule
+            -- Δload% ≈ (rpe_target − rpe) × 4% in the adaptive engine.
+            rpe        numeric(3,1),
+            rpe_target numeric(3,1),
+            rir        smallint,     -- reps in reserve (0–5); orthogonal to RPE
+            rest_s     integer,      -- rest taken before this set (seconds)
+
+            -- Velocity-based training (VBT) — populated by GymAware / Push / Bar Sensei
+            mean_velocity_ms numeric(5,3),
+            peak_velocity_ms numeric(5,3),
+
+            -- Cached e1RM: load_kg × (1 + reps/30) stored at write time.
+            -- Valid and set when load_kg IS NOT NULL AND reps BETWEEN 1 AND 36.
+            estimated_1rm_kg numeric(8,3),
 
             created_at   timestamptz  NOT NULL DEFAULT now(),
             updated_at   timestamptz  NOT NULL DEFAULT now()

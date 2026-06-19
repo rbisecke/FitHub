@@ -24,6 +24,35 @@ def upgrade() -> None:
             short_hash    text         NOT NULL,
             notes         text,
             bodyweight_kg numeric(6,2),
+
+            -- Session classification
+            session_type  text
+                CHECK (session_type IN (
+                    'strength', 'metcon', 'skill', 'mixed',
+                    'rest', 'deload', 'active_recovery'
+                )),
+            workout_format text
+                CHECK (workout_format IN (
+                    'strength', 'amrap', 'emom', 'for_time',
+                    'tabata', 'intervals', 'chipper', 'benchmark', 'open'
+                )),
+            time_cap_s    integer,
+            location      text,
+
+            -- Tier 0 load (always-on; no wearable required)
+            -- perceived_load_au = session_rpe × (duration_s / 60), stored for fast ACWR queries
+            session_rpe      numeric(3,1),
+            duration_s       integer,
+            perceived_load_au integer,
+
+            -- Mechanical load: Σ sets × reps × load_kg across all results
+            volume_load_kg numeric(12,2),
+
+            -- Tier 2+ wearable-derived; populated by the sync job, null until then
+            avg_hr   smallint,
+            max_hr   smallint,
+            trimp_au numeric(8,2),
+
             created_at    timestamptz  NOT NULL DEFAULT now(),
             updated_at    timestamptz  NOT NULL DEFAULT now(),
             UNIQUE (user_id, short_hash)

@@ -35,11 +35,19 @@ class Result(BaseModel):
     rounds: int | None
     partial_reps: int | None
     watts: int | None
-    pace_s_500m: int | None
+    pace_s: int | None
+    pace_distance_m: int
     set_index: int | None
     order_index: int
     is_pr: bool
     notes: str | None
+    rpe: Decimal | None
+    rpe_target: Decimal | None
+    rir: int | None
+    rest_s: int | None
+    mean_velocity_ms: Decimal | None
+    peak_velocity_ms: Decimal | None
+    estimated_1rm_kg: Decimal | None
     created_at: datetime
     updated_at: datetime
 
@@ -56,8 +64,15 @@ class CreateResultRequest(BaseModel):
     rounds: int | None = None
     partial_reps: int | None = None
     watts: int | None = None
-    pace_s_500m: int | None = None
+    pace_s: int | None = None
+    pace_distance_m: int = Field(default=500, gt=0)
     set_index: int | None = None
     order_index: int = Field(default=0, ge=0)
     is_pr: bool = False
     notes: str | None = None
+    rpe: Decimal | None = Field(default=None, ge=0, le=10)
+    rpe_target: Decimal | None = Field(default=None, ge=0, le=10)
+    rir: int | None = Field(default=None, ge=0, le=10)
+    rest_s: int | None = Field(default=None, ge=0)
+    mean_velocity_ms: Decimal | None = Field(default=None, ge=0)
+    peak_velocity_ms: Decimal | None = Field(default=None, ge=0)
