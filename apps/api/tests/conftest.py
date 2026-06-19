@@ -92,6 +92,15 @@ async def _seed_users(_db_pool: None) -> None:
 async def _clean_data() -> AsyncGenerator[None]:
     yield
     async with await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn:
+        # team_sessions CASCADE deletes participants; notifications are separate.
+        await conn.execute(
+            "DELETE FROM public.team_sessions WHERE created_by = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        await conn.execute(
+            "DELETE FROM public.notifications WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
         # Results cascade from workouts; movements must be cleaned separately.
         await conn.execute(
             "DELETE FROM public.workouts WHERE user_id = ANY(%s::uuid[])",

@@ -10,6 +10,8 @@ from app.auth import UserContext, get_current_user
 from app.config import get_settings
 from app.db import close_pool, init_pool
 from app.routers.movements import router as movements_router
+from app.routers.notifications import router as notifications_router
+from app.routers.team_sessions import router as team_sessions_router
 from app.routers.workouts import router as workouts_router
 
 
@@ -25,6 +27,8 @@ app = FastAPI(title="FitHub API", version="0.1.0", lifespan=lifespan)
 
 app.include_router(movements_router)
 app.include_router(workouts_router)
+app.include_router(team_sessions_router)
+app.include_router(notifications_router)
 
 app.add_middleware(
     CORSMiddleware,

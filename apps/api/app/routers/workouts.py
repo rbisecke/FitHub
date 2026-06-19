@@ -8,12 +8,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.auth import UserContext, get_current_user
 from app.db import get_db
+from app.models.team_session import TeamSession
 from app.models.workout import (
     CreateWorkoutRequest,
     PatchWorkoutRequest,
     Workout,
     WorkoutListResponse,
 )
+from app.repositories.team_sessions import get_workout_team_session
 from app.repositories.workouts import (
     create_workout,
     delete_workout,
@@ -84,3 +86,15 @@ async def delete_workout_route(
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/{workout_id}/team-session", response_model=TeamSession)
+async def get_workout_team_session_route(
+    user: Auth,
+    conn: DBConn,
+    workout_id: uuid.UUID,
+) -> TeamSession:
+    ts = await get_workout_team_session(conn, user_id=user.user_id, workout_id=workout_id)
+    if ts is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return ts
