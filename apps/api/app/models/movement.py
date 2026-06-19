@@ -15,6 +15,9 @@ class Modality(StrEnum):
     wod = "wod"
 
 
+_TEMPO_RE = r"^[0-9X]{1,2}[0-9X]{1,2}[0-9X]{1,2}[0-9X]{1,2}$"
+
+
 class Movement(BaseModel):
     id: uuid.UUID
     name: str
@@ -23,6 +26,8 @@ class Movement(BaseModel):
     modality: Modality
     start_position: str | None
     catch_position: str | None
+    pause_position: str | None
+    tempo: str | None
     implement: str | None
     default_result_types: list[str]
     is_official: bool
@@ -38,5 +43,7 @@ class CreateMovementRequest(BaseModel):
     modality: Modality
     start_position: str | None = None
     catch_position: str | None = None
+    pause_position: str | None = None
+    tempo: str | None = Field(default=None, pattern=_TEMPO_RE)
     implement: str | None = None
     default_result_types: list[str] = Field(default_factory=list)

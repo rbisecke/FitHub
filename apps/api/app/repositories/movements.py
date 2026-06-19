@@ -44,8 +44,9 @@ async def create_movement(
             """
             INSERT INTO public.movements
                 (name, slug, base_movement, modality, start_position,
-                 catch_position, implement, default_result_types, created_by)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 catch_position, pause_position, tempo, implement,
+                 default_result_types, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING *
             """,
             [
@@ -55,6 +56,8 @@ async def create_movement(
                 req.modality,
                 req.start_position,
                 req.catch_position,
+                req.pause_position,
+                req.tempo,
                 req.implement,
                 req.default_result_types,
                 user_id,

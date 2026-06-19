@@ -28,6 +28,9 @@ def upgrade() -> None:
                 )),
             start_position       text,
             catch_position       text,
+            pause_position       text,
+            tempo                varchar(8)
+                CHECK (tempo ~ '^[0-9X]{1,2}[0-9X]{1,2}[0-9X]{1,2}[0-9X]{1,2}$'),
             implement            text,
             default_result_types text[]      NOT NULL DEFAULT '{}',
             is_official          boolean     NOT NULL DEFAULT false,
@@ -76,12 +79,14 @@ def upgrade() -> None:
     op.execute("GRANT SELECT ON public.movements TO authenticated")
     op.execute("""
         GRANT INSERT (name, slug, base_movement, modality, start_position,
-                      catch_position, implement, default_result_types, created_by)
+                      catch_position, pause_position, tempo, implement,
+                      default_result_types, created_by)
             ON public.movements TO authenticated
     """)
     op.execute("""
         GRANT UPDATE (name, slug, base_movement, modality, start_position,
-                      catch_position, implement, default_result_types)
+                      catch_position, pause_position, tempo, implement,
+                      default_result_types)
             ON public.movements TO authenticated
     """)
     op.execute("GRANT DELETE ON public.movements TO authenticated")
