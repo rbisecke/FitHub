@@ -46,12 +46,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Start local Supabase (Postgres + auth schema) before installing Python
+      # deps so image pulls overlap with uv/Python setup time.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase
+        # Exclude services that tests don't need to keep startup fast.
+        # db + auth are always included; rest/realtime/storage are small.
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector
+
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.14"
 
       - name: Install dependencies
         run: uv sync --project apps/api --all-groups
+
+      # Apply schema migrations so the DB has public.profiles / workouts /
+      # results / movements before pytest's session-scoped fixtures seed data.
+      - name: Apply migrations
+        run: uv run --project apps/api alembic -c apps/api/alembic.ini upgrade head
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:54322/postgres
 
       - name: Lint (ruff)
         run: uv run --project apps/api ruff check apps/api
