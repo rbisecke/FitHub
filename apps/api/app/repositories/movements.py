@@ -22,8 +22,8 @@ async def search_movements(
             """
             SELECT *
             FROM   public.movements
-            WHERE  (%s IS NULL OR name ILIKE %s OR slug ILIKE %s)
-              AND  (%s IS NULL OR modality = %s)
+            WHERE  (%s::text IS NULL OR name ILIKE %s OR slug ILIKE %s)
+              AND  (%s::text IS NULL OR modality = %s)
             ORDER  BY is_official DESC, name
             LIMIT  %s
             """,
