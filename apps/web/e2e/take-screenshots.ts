@@ -59,9 +59,12 @@ async function ensureSeededWorkouts(token: string): Promise<void> {
   const res = await fetch(`${API_URL}/api/v1/workouts?limit=5`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  const data = (await res.json()) as { total: number };
-  if (data.total >= 3) {
-    console.log(`  ✓ ${data.total} workouts already seeded`);
+  const data = (await res.json()) as {
+    items: unknown[];
+    next_cursor: string | null;
+  };
+  if (data.items.length >= 3) {
+    console.log(`  ✓ ${data.items.length}+ workouts already seeded`);
     return;
   }
 
