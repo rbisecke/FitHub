@@ -7,13 +7,11 @@ import { ContributionGraph } from "@/components/workout/ContributionGraph";
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
-    data: { user, session },
-  } = await supabase.auth.getUser().then(async (u) => {
-    const s = await supabase.auth.getSession();
-    return { data: { user: u.data.user, session: s.data.session } };
-  });
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!user || !session) redirect("/login");
+  if (!session) redirect("/login");
+  const user = session.user;
 
   // Fetch last 365 days of workouts for the contribution graph (limit=365)
   let workouts: Awaited<ReturnType<typeof api.workouts.list>>["items"] = [];

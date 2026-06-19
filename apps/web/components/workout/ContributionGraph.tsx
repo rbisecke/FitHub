@@ -2,12 +2,19 @@
 
 import type { WorkoutSummary } from "@/lib/api/types";
 
+// Static class names required — Tailwind JIT can't purge dynamically constructed strings.
+const CELL_CLASSES = {
+  empty: "bg-zinc-800",
+  solo: ["bg-green-900", "bg-green-700", "bg-green-500"],
+  partner: ["bg-amber-900", "bg-amber-700", "bg-amber-500"],
+} as const;
+
 function cellClass(count: number, partner: boolean): string {
-  if (count === 0) return "bg-zinc-800";
-  const base = partner ? "amber" : "green";
-  if (count === 1) return `bg-${base}-900`;
-  if (count === 2) return `bg-${base}-700`;
-  return `bg-${base}-500`;
+  if (count === 0) return CELL_CLASSES.empty;
+  const palette = partner ? CELL_CLASSES.partner : CELL_CLASSES.solo;
+  if (count === 1) return palette[0];
+  if (count === 2) return palette[1];
+  return palette[2];
 }
 
 export function ContributionGraph({

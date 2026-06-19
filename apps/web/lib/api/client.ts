@@ -20,6 +20,7 @@ async function apiFetch<T>(
   init?: RequestInit,
 ): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
+    cache: "no-store",
     ...init,
     headers: headers(token),
   });

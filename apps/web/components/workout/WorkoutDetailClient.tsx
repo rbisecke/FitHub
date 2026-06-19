@@ -16,6 +16,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `${s}s`;
+}
+
 const SESSION_COLOURS: Record<string, string> = {
   metcon: "text-orange-400 border-orange-800 bg-orange-950",
   strength: "text-blue-400 border-blue-800 bg-blue-950",
@@ -38,7 +44,10 @@ export function WorkoutDetailClient({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const dateStr = new Date(workout.performed_at).toLocaleDateString("en-US", {
+  // Parse date-only to avoid UTC-midnight → previous-local-day conversion.
+  const dateParts = workout.performed_at.slice(0, 10).split("-").map(Number);
+  const [y, mo, d] = dateParts as [number, number, number];
+  const dateStr = new Date(y, mo - 1, d).toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -186,7 +195,7 @@ export function WorkoutDetailClient({
                       e1RM {Number(r.estimated_1rm_kg).toFixed(1)}kg
                     </span>
                   )}
-                  {r.time_s && <span>{r.time_s}s</span>}
+                  {r.time_s && <span>{formatTime(r.time_s)}</span>}
                 </div>
               </div>
             ))}

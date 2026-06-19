@@ -17,7 +17,10 @@ export function WorkoutCard({ workout }: { workout: WorkoutSummary }) {
   const router = useRouter();
   const isPartner =
     workout.workout_format === "partner" || workout.workout_format === "team";
-  const dateStr = new Date(workout.performed_at).toLocaleDateString("en-US", {
+  // Parse date-only to avoid UTC-midnight → previous-local-day conversion.
+  const dateParts = workout.performed_at.slice(0, 10).split("-").map(Number);
+  const [y, mo, d] = dateParts as [number, number, number];
+  const dateStr = new Date(y, mo - 1, d).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
