@@ -19,7 +19,13 @@ const SESSION_COLOURS: Record<string, string> = {
   active_recovery: "text-green-400 border-green-800 bg-green-950",
 };
 
-export function WorkoutCard({ workout }: { workout: WorkoutSummary }) {
+export function WorkoutCard({
+  workout,
+  hideDate = false,
+}: {
+  workout: WorkoutSummary;
+  hideDate?: boolean;
+}) {
   const router = useRouter();
   const isPartner =
     workout.workout_format === "partner" || workout.workout_format === "team";
@@ -47,7 +53,9 @@ export function WorkoutCard({ workout }: { workout: WorkoutSummary }) {
             </span>
           )}
         </div>
-        <span className="text-xs text-zinc-500 shrink-0">{dateLabel}</span>
+        {!hideDate && (
+          <span className="text-xs text-zinc-500 shrink-0">{dateLabel}</span>
+        )}
       </div>
       <div className="mt-2 flex items-center gap-3 text-xs text-zinc-500">
         {workout.session_type && (
@@ -60,12 +68,14 @@ export function WorkoutCard({ workout }: { workout: WorkoutSummary }) {
             {sessionLabel(workout.session_type)}
           </span>
         )}
-        <span>
-          {workout.result_count} set{workout.result_count !== 1 ? "s" : ""}
-        </span>
+        {workout.result_count > 0 && (
+          <span>
+            {workout.result_count} set{workout.result_count !== 1 ? "s" : ""}
+          </span>
+        )}
         {loadAu && (
           <span title="Training load (sRPE × duration minutes)">
-            Load: {loadAu}
+            Load: {loadAu} AU
           </span>
         )}
         {workout.workout_format && workout.workout_format !== "strength" && (

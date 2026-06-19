@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { api } from "@/lib/api/client";
 import { WorkoutCard } from "@/components/workout/WorkoutCard";
 import { HistoryControls } from "@/components/workout/HistoryControls";
+import { relativeDate } from "@/lib/display";
 import Link from "next/link";
 
 export default async function HistoryPage({
@@ -33,6 +34,25 @@ export default async function HistoryPage({
           )
         : items;
 
+  // Group consecutive workouts by their UTC date so we can render date headers
+  // and suppress the per-card date label within each group.
+  type WorkoutGroup = {
+    date: string;
+    label: string;
+    workouts: typeof filtered;
+  };
+  const groups: WorkoutGroup[] = [];
+  let lastDate = "";
+  for (const w of filtered) {
+    const date = w.performed_at.slice(0, 10);
+    if (date !== lastDate) {
+      groups.push({ date, label: relativeDate(date), workouts: [w] });
+      lastDate = date;
+    } else {
+      groups[groups.length - 1]!.workouts.push(w);
+    }
+  }
+
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -51,9 +71,18 @@ export default async function HistoryPage({
           </Link>
         </p>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((w) => (
-            <WorkoutCard key={w.id} workout={w} />
+        <div className="space-y-6">
+          {groups.map((group) => (
+            <div key={group.date}>
+              <p className="text-xs text-zinc-500 font-mono mb-2">
+                {group.label}
+              </p>
+              <div className="space-y-3">
+                {group.workouts.map((w) => (
+                  <WorkoutCard key={w.id} workout={w} hideDate />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}

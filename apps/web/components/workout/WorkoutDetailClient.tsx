@@ -207,7 +207,7 @@ export function WorkoutDetailClient({
               className="font-mono text-zinc-200"
               title="Training load in arbitrary units (sRPE × duration minutes)"
             >
-              {Math.round(workout.perceived_load_au)}
+              {Math.round(workout.perceived_load_au)} AU
             </span>
           </div>
         )}
@@ -227,9 +227,13 @@ export function WorkoutDetailClient({
       )}
 
       {/* Results */}
-      {workout.results.length > 0 && (
-        <div>
-          <h2 className="text-sm font-medium text-zinc-300 mb-3">Results</h2>
+      <div>
+        <h2 className="text-sm font-medium text-zinc-300 mb-3">Results</h2>
+        {workout.results.length === 0 ? (
+          <p className="text-sm text-zinc-600 font-mono italic">
+            No results logged.
+          </p>
+        ) : (
           <div className="space-y-1">
             {workout.results.map((r, i) => (
               <div
@@ -257,8 +261,8 @@ export function WorkoutDetailClient({
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <Separator className="border-zinc-800" />
 

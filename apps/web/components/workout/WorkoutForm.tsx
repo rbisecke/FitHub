@@ -268,6 +268,42 @@ export function WorkoutForm({
         </div>
       </div>
 
+      {/* Effort + Duration — primary fields (drive the contribution graph load color) */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label htmlFor="session_rpe" className="text-zinc-300 text-xs">
+            Effort (0–10)
+          </Label>
+          <Input
+            id="session_rpe"
+            type="number"
+            min={0}
+            max={10}
+            step={0.5}
+            placeholder="7"
+            {...register("session_rpe")}
+            className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+          />
+          {errors.session_rpe && (
+            <p className="text-xs text-red-400">{errors.session_rpe.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="duration_min" className="text-zinc-300 text-xs">
+            Duration (min)
+          </Label>
+          <Input
+            id="duration_min"
+            type="number"
+            min={1}
+            placeholder="20"
+            {...register("duration_min")}
+            className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+          />
+        </div>
+      </div>
+
       {/* Progressive disclosure — secondary fields */}
       <div>
         <button
@@ -279,50 +315,12 @@ export function WorkoutForm({
           <span>
             {showDetails
               ? "Hide details"
-              : "More details (effort, duration, location, bodyweight, notes)"}
+              : "More details (location, bodyweight, notes)"}
           </span>
         </button>
 
         {showDetails && (
           <div className="mt-4 space-y-5">
-            {/* RPE + Duration */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="session_rpe" className="text-zinc-300 text-xs">
-                  Effort (0–10)
-                </Label>
-                <Input
-                  id="session_rpe"
-                  type="number"
-                  min={0}
-                  max={10}
-                  step={0.5}
-                  placeholder="7"
-                  {...register("session_rpe")}
-                  className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
-                />
-                {errors.session_rpe && (
-                  <p className="text-xs text-red-400">
-                    {errors.session_rpe.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="duration_min" className="text-zinc-300 text-xs">
-                  Duration (min)
-                </Label>
-                <Input
-                  id="duration_min"
-                  type="number"
-                  min={1}
-                  placeholder="20"
-                  {...register("duration_min")}
-                  className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
-                />
-              </div>
-            </div>
-
             {/* Location + Bodyweight */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
