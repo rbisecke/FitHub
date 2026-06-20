@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api/client";
 import { WorkoutForm } from "./WorkoutForm";
 import { sessionLabel, formatLabel } from "@/lib/display";
-import type { Workout } from "@/lib/api/types";
+import type { Workout, PersonalRecord } from "@/lib/api";
+import { MovementTrendChart } from "@/components/analytics/MovementTrendChart";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +58,18 @@ export function WorkoutDetailClient({
   const [editing, setEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [prMap, setPrMap] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    api.analytics
+      .personalRecords(accessToken)
+      .then((prs: PersonalRecord[]) => {
+        const map: Record<string, number> = {};
+        for (const pr of prs) map[pr.movement_id] = pr.best_1rm_kg;
+        setPrMap(map);
+      })
+      .catch(() => {});
+  }, [accessToken]);
 
   // Parse date-only to avoid UTC-midnight → previous-local-day conversion.
   const dateParts = workout.performed_at.slice(0, 10).split("-").map(Number);
@@ -104,9 +117,8 @@ export function WorkoutDetailClient({
             workout.bodyweight_kg != null
               ? Number(workout.bodyweight_kg)
               : undefined,
-          results: workout.results.map((r) => ({
+          results: (workout.results ?? []).map((r) => ({
             movement_id: r.movement_id ?? undefined,
-            movement_name: r.movement_name ?? undefined,
             result_type: r.result_type,
             load_kg: r.load_kg ?? undefined,
             reps: r.reps ?? undefined,
@@ -229,37 +241,67 @@ export function WorkoutDetailClient({
       {/* Results */}
       <div>
         <h2 className="text-sm font-medium text-zinc-300 mb-3">Results</h2>
-        {workout.results.length === 0 ? (
+        {(workout.results ?? []).length === 0 ? (
           <p className="text-sm text-zinc-600 font-mono italic">
             No results logged.
           </p>
         ) : (
           <div className="space-y-1">
-            {workout.results.map((r, i) => (
-              <div
-                key={r.id}
-                className="flex items-center gap-3 rounded px-3 py-2 bg-zinc-900 text-sm"
-              >
-                <span className="font-mono text-xs text-zinc-600">{i + 1}</span>
-                <span className="text-zinc-300 flex-1">
-                  {r.movement_name ?? (
-                    <span className="text-zinc-500 italic">
-                      {RESULT_TYPE_LABELS[r.result_type] ?? r.result_type}
+            {(workout.results ?? []).map((r, i) => {
+              const isPr =
+                r.movement_id !== null &&
+                r.movement_id !== undefined &&
+                r.estimated_1rm_kg !== null &&
+                r.estimated_1rm_kg !== undefined &&
+                prMap[r.movement_id] !== undefined &&
+                Math.abs(Number(r.estimated_1rm_kg) - prMap[r.movement_id]!) <
+                  0.01;
+              return (
+                <div
+                  key={r.id}
+                  className="rounded px-3 py-2 bg-zinc-900 text-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-xs text-zinc-600">
+                      {i + 1}
                     </span>
-                  )}
-                </span>
-                <div className="flex gap-3 text-zinc-400 font-mono text-xs">
-                  {r.load_kg && <span>{r.load_kg}kg</span>}
-                  {r.reps && <span>× {r.reps}</span>}
-                  {r.estimated_1rm_kg && (
-                    <span className="text-zinc-600">
-                      e1RM {Number(r.estimated_1rm_kg).toFixed(1)}kg
+                    <span className="text-zinc-300 flex-1">
+                      <span className="text-zinc-500 italic">
+                        {RESULT_TYPE_LABELS[r.result_type] ?? r.result_type}
+                      </span>
                     </span>
+                    <div className="flex items-center gap-3 text-zinc-400 font-mono text-xs">
+                      {r.load_kg && (
+                        <span>
+                          {parseFloat(Number(r.load_kg).toFixed(3))} kg
+                        </span>
+                      )}
+                      {r.reps && <span>× {r.reps}</span>}
+                      {r.estimated_1rm_kg && (
+                        <span className="text-zinc-600">
+                          e1RM {Number(r.estimated_1rm_kg).toFixed(1)} kg
+                        </span>
+                      )}
+                      {r.time_s && <span>{formatTime(r.time_s)}</span>}
+                      {isPr && (
+                        <span
+                          data-testid="result-pr-label"
+                          className="bg-yellow-500/20 text-yellow-300 rounded px-1.5 py-0.5 font-semibold"
+                        >
+                          PR
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {r.movement_id && r.estimated_1rm_kg && (
+                    <MovementTrendChart
+                      movementId={r.movement_id}
+                      token={accessToken}
+                    />
                   )}
-                  {r.time_s && <span>{formatTime(r.time_s)}</span>}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

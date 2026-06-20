@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { WorkoutSummary } from "@/lib/api/types";
+import type { WorkoutSummary } from "@/lib/api";
 import {
   sessionLabel,
   formatLabel,
@@ -50,6 +50,14 @@ export function WorkoutCard({
           {isPartner && (
             <span className="text-xs font-mono border border-purple-800 bg-purple-950 text-purple-300 px-2 py-0.5 rounded">
               Co-authored-by
+            </span>
+          )}
+          {workout.has_pr && (
+            <span
+              className="text-xs font-semibold px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300"
+              data-testid="pr-badge"
+            >
+              PR
             </span>
           )}
         </div>

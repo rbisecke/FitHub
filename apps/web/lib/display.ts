@@ -1,4 +1,4 @@
-import type { ResultType, SessionType, WorkoutFormat } from "@/lib/api/types";
+import type { ResultType, SessionType, WorkoutFormat } from "@/lib/api";
 
 export const FORMAT_LABELS: Record<WorkoutFormat, string> = {
   strength: "Strength",

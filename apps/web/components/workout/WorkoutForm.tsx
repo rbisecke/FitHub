@@ -21,7 +21,7 @@ import {
   SESSION_LABELS,
   RESULT_TYPE_LABELS,
 } from "@/lib/display";
-import type { ResultType, SessionType, WorkoutFormat } from "@/lib/api/types";
+import type { ResultType, SessionType, WorkoutFormat } from "@/lib/api";
 
 const RESULT_TYPES: ResultType[] = [
   "weight",
@@ -179,6 +179,8 @@ export function WorkoutForm({
         time_s: r.time_s,
         notes: r.notes || undefined,
         order_index: i,
+        pace_distance_m: 500,
+        is_pr: false,
       })),
     };
 

@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { ContributionGraph } from "@/components/workout/ContributionGraph";
+import { ACWRWidget } from "@/components/analytics/ACWRWidget";
+import { TrainingPartnersPanel } from "@/components/analytics/TrainingPartnersPanel";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -13,14 +15,21 @@ export default async function DashboardPage() {
   if (!session) redirect("/login");
   const user = session.user;
 
-  // Fetch last 365 days of workouts for the contribution graph (limit=365)
+  const token = session.access_token;
+
+  // Fetch in parallel — each degrades gracefully on error
   let workouts: Awaited<ReturnType<typeof api.workouts.list>>["items"] = [];
-  try {
-    const res = await api.workouts.list(session.access_token, { limit: 365 });
-    workouts = res.items;
-  } catch {
-    // Contribution graph degrades gracefully if API is down
-  }
+  let loadData: Awaited<ReturnType<typeof api.analytics.load>> | null = null;
+  let partners: Awaited<ReturnType<typeof api.trainingPartners>> = [];
+
+  const [workoutRes, loadRes, partnersRes] = await Promise.allSettled([
+    api.workouts.list(token, { limit: 365 }),
+    api.analytics.load(token, 14),
+    api.trainingPartners(token),
+  ]);
+  if (workoutRes.status === "fulfilled") workouts = workoutRes.value.items;
+  if (loadRes.status === "fulfilled") loadData = loadRes.value;
+  if (partnersRes.status === "fulfilled") partners = partnersRes.value;
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -41,7 +50,7 @@ export default async function DashboardPage() {
         <ContributionGraph workouts={workouts} />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-4">
         <Link
           href="/log/new"
           className="group rounded-lg border border-zinc-800 bg-zinc-900 px-5 py-4 hover:border-zinc-700 transition-colors"
@@ -67,6 +76,17 @@ export default async function DashboardPage() {
             {workouts.length} commit{workouts.length !== 1 ? "s" : ""} logged
           </p>
         </Link>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {loadData && (
+          <ACWRWidget
+            series={loadData.series}
+            acwrNow={loadData.acwr_now}
+            acwrZone={loadData.acwr_zone}
+          />
+        )}
+        <TrainingPartnersPanel partners={partners} />
       </div>
     </div>
   );
