@@ -19,3 +19,4 @@ export type E1RMPoint = components["schemas"]["E1RMPoint"];
 export type VolumeTrendResponse = components["schemas"]["VolumeTrendResponse"];
 export type WeeklyVolume = components["schemas"]["WeeklyVolume"];
 export type ReadinessResponse = components["schemas"]["ReadinessResponse"];
+export type TrainingPartner = components["schemas"]["TrainingPartner"];

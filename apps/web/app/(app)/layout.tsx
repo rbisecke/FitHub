@@ -23,9 +23,9 @@ export default async function AppLayout({
           <p className="text-lg font-bold text-zinc-50">FitHub</p>
         </div>
         <nav className="space-y-0.5">
+          <NavLink href="/dashboard" label="$ status" />
           <NavLink href="/log/new" label="$ commit" />
           <NavLink href="/history" label="$ git log" />
-          <NavLink href="/dashboard" label="$ status" />
           <NavLink href="/analytics" label="$ git diff" />
         </nav>
         <div className="mt-auto px-2 text-xs text-zinc-600">{user.email}</div>
@@ -35,14 +35,14 @@ export default async function AppLayout({
       <div className="fixed inset-x-0 top-0 z-10 flex h-10 items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4 md:hidden">
         <p className="font-bold text-zinc-50">FitHub</p>
         <nav className="flex gap-3">
+          <Link href="/dashboard" className="font-mono text-xs text-zinc-400">
+            status
+          </Link>
           <Link href="/log/new" className="font-mono text-xs text-zinc-400">
             commit
           </Link>
           <Link href="/history" className="font-mono text-xs text-zinc-400">
             log
-          </Link>
-          <Link href="/dashboard" className="font-mono text-xs text-zinc-400">
-            status
           </Link>
           <Link href="/analytics" className="font-mono text-xs text-zinc-400">
             diff

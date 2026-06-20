@@ -7,6 +7,7 @@ import type {
   PersonalRecord,
   VolumeTrendResponse,
   ReadinessResponse,
+  TrainingPartner,
 } from "./index";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -82,4 +83,6 @@ export const api = {
     readiness: (token: string) =>
       apiFetch<ReadinessResponse>("/api/v1/analytics/readiness", token),
   },
+  trainingPartners: (token: string) =>
+    apiFetch<TrainingPartner[]>("/api/v1/training-partners", token),
 };
