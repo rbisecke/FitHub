@@ -6,7 +6,7 @@ import Link from "next/link";
 import { api } from "@/lib/api/client";
 import { WorkoutForm } from "./WorkoutForm";
 import { sessionLabel, formatLabel } from "@/lib/display";
-import type { Workout } from "@/lib/api/types";
+import type { Workout } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -104,9 +104,8 @@ export function WorkoutDetailClient({
             workout.bodyweight_kg != null
               ? Number(workout.bodyweight_kg)
               : undefined,
-          results: workout.results.map((r) => ({
+          results: (workout.results ?? []).map((r) => ({
             movement_id: r.movement_id ?? undefined,
-            movement_name: r.movement_name ?? undefined,
             result_type: r.result_type,
             load_kg: r.load_kg ?? undefined,
             reps: r.reps ?? undefined,
@@ -229,24 +228,22 @@ export function WorkoutDetailClient({
       {/* Results */}
       <div>
         <h2 className="text-sm font-medium text-zinc-300 mb-3">Results</h2>
-        {workout.results.length === 0 ? (
+        {(workout.results ?? []).length === 0 ? (
           <p className="text-sm text-zinc-600 font-mono italic">
             No results logged.
           </p>
         ) : (
           <div className="space-y-1">
-            {workout.results.map((r, i) => (
+            {(workout.results ?? []).map((r, i) => (
               <div
                 key={r.id}
                 className="flex items-center gap-3 rounded px-3 py-2 bg-zinc-900 text-sm"
               >
                 <span className="font-mono text-xs text-zinc-600">{i + 1}</span>
                 <span className="text-zinc-300 flex-1">
-                  {r.movement_name ?? (
-                    <span className="text-zinc-500 italic">
-                      {RESULT_TYPE_LABELS[r.result_type] ?? r.result_type}
-                    </span>
-                  )}
+                  <span className="text-zinc-500 italic">
+                    {RESULT_TYPE_LABELS[r.result_type] ?? r.result_type}
+                  </span>
                 </span>
                 <div className="flex gap-3 text-zinc-400 font-mono text-xs">
                   {r.load_kg && <span>{r.load_kg}kg</span>}

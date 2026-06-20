@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { WorkoutSummary } from "@/lib/api/types";
+import type { WorkoutSummary } from "@/lib/api";
 import {
   sessionLabel,
   formatLabel,

@@ -1,6 +1,6 @@
 "use client";
 
-import type { WorkoutSummary } from "@/lib/api/types";
+import type { WorkoutSummary } from "@/lib/api";
 
 // Static class names required — Tailwind JIT won't emit dynamically constructed strings.
 // Hue = session type, lightness bucket = perceived load AU:

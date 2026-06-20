@@ -14,7 +14,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { api } from "@/lib/api/client";
-import type { Movement } from "@/lib/api/types";
+import type { Movement } from "@/lib/api";
 
 const MODALITY_COLOUR: Record<string, string> = {
   strength: "text-blue-400",
