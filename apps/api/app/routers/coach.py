@@ -54,6 +54,26 @@ async def chat(
     user: Annotated[UserContext, Depends(get_current_user)],
     db: _Db,
 ) -> ChatResponse:
+    from app.engine.safety import SafetyTier, classify_safety
+
+    tier, _ = classify_safety(body.question)
+
+    if tier == SafetyTier.STOP:
+        await db.execute(
+            "INSERT INTO coach_interactions (user_id, role, content, stub)"
+            " VALUES (%s, 'user', %s, false)",
+            [str(user.user_id), body.question],
+        )
+        return ChatResponse(
+            answer=(
+                "Please stop your workout and consult a medical professional immediately. "
+                "This situation is beyond the scope of AI coaching."
+            ),
+            citations=[],
+            stub=False,
+            safety_tier="stop",
+        )
+
     from app.ai.stub import is_stubbed
 
     if is_stubbed():
@@ -64,6 +84,7 @@ async def chat(
             ),
             citations=[],
             stub=True,
+            safety_tier=tier.value,
         )
 
     from app.ai.rag import hybrid_retrieve
@@ -95,4 +116,4 @@ async def chat(
         Citation(title=str(c["title"]), source_type=str(c["source_type"]), score=float(c["score"]))  # type: ignore[arg-type]
         for c in chunks
     ]
-    return ChatResponse(answer=answer_text, citations=citations, stub=False)
+    return ChatResponse(answer=answer_text, citations=citations, stub=False, safety_tier=tier.value)

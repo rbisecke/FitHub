@@ -55,3 +55,4 @@ class ChatResponse(BaseModel):
     answer: str
     citations: list[Citation] = []
     stub: bool = False
+    safety_tier: str | None = None

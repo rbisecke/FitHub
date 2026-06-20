@@ -1059,6 +1059,272 @@
         }
       }
     },
+    "/api/v1/plans/{plan_id}/adaptations/detect": {
+      "post": {
+        "tags": [
+          "adaptations"
+        ],
+        "summary": "Detect Plan Adaptations",
+        "operationId": "detect_plan_adaptations_api_v1_plans__plan_id__adaptations_detect_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectTriggersResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans/{plan_id}/adaptations": {
+      "get": {
+        "tags": [
+          "adaptations"
+        ],
+        "summary": "List Adaptations",
+        "operationId": "list_adaptations_api_v1_plans__plan_id__adaptations_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdaptationOut"
+                  },
+                  "title": "Response List Adaptations Api V1 Plans  Plan Id  Adaptations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/adaptations/{adaptation_id}/merge": {
+      "post": {
+        "tags": [
+          "adaptations"
+        ],
+        "summary": "Merge Adaptation",
+        "operationId": "merge_adaptation_api_v1_adaptations__adaptation_id__merge_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "adaptation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Adaptation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdaptationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/adaptations/{adaptation_id}/reject": {
+      "post": {
+        "tags": [
+          "adaptations"
+        ],
+        "summary": "Reject Adaptation",
+        "operationId": "reject_adaptation_api_v1_adaptations__adaptation_id__reject_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "adaptation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Adaptation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdaptationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/injuries": {
+      "get": {
+        "tags": [
+          "injuries"
+        ],
+        "summary": "List Injuries",
+        "operationId": "list_injuries_api_v1_injuries_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InjuryOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Injuries Api V1 Injuries Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "injuries"
+        ],
+        "summary": "Report Injury",
+        "operationId": "report_injury_api_v1_injuries_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportInjuryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InjuryOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/team-sessions/role-suggestions": {
       "get": {
         "tags": [
@@ -1688,6 +1954,100 @@
   },
   "components": {
     "schemas": {
+      "AdaptationOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "trigger_type": {
+            "type": "string",
+            "title": "Trigger Type"
+          },
+          "trigger_data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Trigger Data"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rationale"
+          },
+          "diff_json": {
+            "title": "Diff Json"
+          },
+          "stub": {
+            "type": "boolean",
+            "title": "Stub",
+            "default": false
+          },
+          "proposed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed At"
+          },
+          "merged_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merged At"
+          },
+          "rejected_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "plan_id",
+          "user_id",
+          "trigger_type",
+          "trigger_data",
+          "status"
+        ],
+        "title": "AdaptationOut"
+      },
       "AddParticipantRequest": {
         "properties": {
           "user_id": {
@@ -1785,6 +2145,17 @@
             "type": "boolean",
             "title": "Stub",
             "default": false
+          },
+          "safety_tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safety Tier"
           }
         },
         "type": "object",
@@ -2644,6 +3015,36 @@
         ],
         "title": "DailyLoadPoint"
       },
+      "DetectTriggersResponse": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id"
+          },
+          "triggers": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Triggers"
+          },
+          "proposed_adaptations": {
+            "items": {
+              "$ref": "#/components/schemas/AdaptationOut"
+            },
+            "type": "array",
+            "title": "Proposed Adaptations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id",
+          "triggers",
+          "proposed_adaptations"
+        ],
+        "title": "DetectTriggersResponse"
+      },
       "E1RMPoint": {
         "properties": {
           "day": {
@@ -2705,6 +3106,106 @@
           "status"
         ],
         "title": "HealthResponse"
+      },
+      "InjuryOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "body_region": {
+            "type": "string",
+            "title": "Body Region"
+          },
+          "pain_level": {
+            "type": "integer",
+            "title": "Pain Level"
+          },
+          "mechanism": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mechanism"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "requires_referral": {
+            "type": "boolean",
+            "title": "Requires Referral"
+          },
+          "substitutions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Substitutions",
+            "default": []
+          },
+          "contraindicated": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Contraindicated",
+            "default": []
+          },
+          "reported_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported At"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "body_region",
+          "pain_level",
+          "active",
+          "requires_referral"
+        ],
+        "title": "InjuryOut"
       },
       "LimbStyle": {
         "type": "string",
@@ -3989,6 +4490,65 @@
           "factors_available"
         ],
         "title": "ReadinessResponse"
+      },
+      "ReportInjuryRequest": {
+        "properties": {
+          "body_region": {
+            "type": "string",
+            "enum": [
+              "shoulder",
+              "knee",
+              "hip",
+              "lower_back",
+              "wrist",
+              "elbow",
+              "ankle",
+              "neck",
+              "other"
+            ],
+            "title": "Body Region"
+          },
+          "pain_level": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Pain Level"
+          },
+          "mechanism": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "overuse",
+                  "acute",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mechanism"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "body_region",
+          "pain_level"
+        ],
+        "title": "ReportInjuryRequest"
       },
       "Result": {
         "properties": {

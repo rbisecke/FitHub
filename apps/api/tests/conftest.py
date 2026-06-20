@@ -115,6 +115,20 @@ async def _clean_data() -> AsyncGenerator[None]:
             "DELETE FROM public.movements WHERE created_by = ANY(%s::uuid[])",
             [[str(ALICE_ID), str(BOB_ID)]],
         )
+        # Plans cascade: plan_tasks → plans → mesocycles/sessions/adaptations
+        await conn.execute(
+            "DELETE FROM public.plan_tasks WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        await conn.execute(
+            "DELETE FROM public.plans WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        # Injuries
+        await conn.execute(
+            "DELETE FROM public.injuries WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
         # AI / wearable tables
         await conn.execute(
             "DELETE FROM public.coach_interactions WHERE user_id = ANY(%s::uuid[])",
