@@ -115,6 +115,23 @@ async def _clean_data() -> AsyncGenerator[None]:
             "DELETE FROM public.movements WHERE created_by = ANY(%s::uuid[])",
             [[str(ALICE_ID), str(BOB_ID)]],
         )
+        # AI / wearable tables
+        await conn.execute(
+            "DELETE FROM public.coach_interactions WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        await conn.execute(
+            "DELETE FROM public.derived_metrics WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        await conn.execute(
+            "DELETE FROM public.metric_samples WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        await conn.execute(
+            "DELETE FROM public.data_connections WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
 
 
 # ── Authenticated HTTP clients ─────────────────────────────────────────────────

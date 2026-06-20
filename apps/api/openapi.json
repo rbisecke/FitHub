@@ -305,6 +305,104 @@
         ]
       }
     },
+    "/api/v1/integrations/apple-health/connect": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Connect Apple Health",
+        "description": "Generate a bearer token for HAE (dev-only endpoint). Returns plaintext once.",
+        "operationId": "connect_apple_health_api_v1_integrations_apple_health_connect_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/integrations/apple-health/token": {
+      "delete": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Revoke Apple Health Token",
+        "operationId": "revoke_apple_health_token_api_v1_integrations_apple_health_token_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/integrations": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "List Integrations",
+        "operationId": "list_integrations_api_v1_integrations_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectionStatus"
+                  },
+                  "type": "array",
+                  "title": "Response List Integrations Api V1 Integrations Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/integrations/apple-health/sync": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Apple Health Sync",
+        "description": "Accept an HAE payload authenticated by a dev ingest bearer token.",
+        "operationId": "apple_health_sync_api_v1_integrations_apple_health_sync_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/movements": {
       "get": {
         "tags": [
@@ -1494,6 +1592,59 @@
           "score"
         ],
         "title": "Citation"
+      },
+      "ConnectResponse": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "token_prefix": {
+            "type": "string",
+            "title": "Token Prefix"
+          },
+          "ingest_url": {
+            "type": "string",
+            "title": "Ingest Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "token_prefix",
+          "ingest_url"
+        ],
+        "title": "ConnectResponse"
+      },
+      "ConnectionStatus": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "sync_status": {
+            "type": "string",
+            "title": "Sync Status"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "sync_status",
+          "last_synced_at"
+        ],
+        "title": "ConnectionStatus"
       },
       "CreateMovementRequest": {
         "properties": {
@@ -3145,6 +3296,50 @@
           "factors_available": {
             "type": "integer",
             "title": "Factors Available"
+          },
+          "recovery_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recovery Score"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
+          },
+          "confidence_tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence Tier"
+          },
+          "hrv_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hrv Type"
           }
         },
         "type": "object",
@@ -3521,6 +3716,24 @@
           "active_recovery"
         ],
         "title": "SessionType"
+      },
+      "SyncResponse": {
+        "properties": {
+          "rows_inserted": {
+            "type": "integer",
+            "title": "Rows Inserted"
+          },
+          "recovery_computed": {
+            "type": "boolean",
+            "title": "Recovery Computed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rows_inserted",
+          "recovery_computed"
+        ],
+        "title": "SyncResponse"
       },
       "TeamSession": {
         "properties": {

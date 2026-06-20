@@ -89,6 +89,114 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/coach/parse-log": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Parse Log */
+    post: operations["parse_log_api_v1_coach_parse_log_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/coach/chat": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Chat */
+    post: operations["chat_api_v1_coach_chat_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/integrations/apple-health/connect": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Connect Apple Health
+     * @description Generate a bearer token for HAE (dev-only endpoint). Returns plaintext once.
+     */
+    post: operations["connect_apple_health_api_v1_integrations_apple_health_connect_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/integrations/apple-health/token": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Revoke Apple Health Token */
+    delete: operations["revoke_apple_health_token_api_v1_integrations_apple_health_token_delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/integrations": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Integrations */
+    get: operations["list_integrations_api_v1_integrations_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/integrations/apple-health/sync": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Apple Health Sync
+     * @description Accept an HAE payload authenticated by a dev ingest bearer token.
+     */
+    post: operations["apple_health_sync_api_v1_integrations_apple_health_sync_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/movements": {
     parameters: {
       query?: never;
@@ -349,6 +457,55 @@ export interface components {
       guest_name?: string | null;
       /** Role */
       role?: string | null;
+    };
+    /** ChatRequest */
+    ChatRequest: {
+      /** Question */
+      question: string;
+      /** Session Id */
+      session_id?: string | null;
+    };
+    /** ChatResponse */
+    ChatResponse: {
+      /** Answer */
+      answer: string;
+      /**
+       * Citations
+       * @default []
+       */
+      citations: components["schemas"]["Citation"][];
+      /**
+       * Stub
+       * @default false
+       */
+      stub: boolean;
+    };
+    /** Citation */
+    Citation: {
+      /** Title */
+      title: string;
+      /** Source Type */
+      source_type: string;
+      /** Score */
+      score: number;
+    };
+    /** ConnectResponse */
+    ConnectResponse: {
+      /** Token */
+      token: string;
+      /** Token Prefix */
+      token_prefix: string;
+      /** Ingest Url */
+      ingest_url: string;
+    };
+    /** ConnectionStatus */
+    ConnectionStatus: {
+      /** Provider */
+      provider: string;
+      /** Sync Status */
+      sync_status: string;
+      /** Last Synced At */
+      last_synced_at: string | null;
     };
     /** CreateMovementRequest */
     CreateMovementRequest: {
@@ -641,6 +798,35 @@ export interface components {
       | "carry"
       | "rotation"
       | "locomotion";
+    /** MovementResult */
+    MovementResult: {
+      /** Movement Name */
+      movement_name: string;
+      /**
+       * Result Type
+       * @enum {string}
+       */
+      result_type:
+        | "reps"
+        | "time_s"
+        | "distance_m"
+        | "weight_kg"
+        | "rounds"
+        | "calories";
+      /** Reps */
+      reps?: number | null;
+      /** Load Kg */
+      load_kg?: number | null;
+      /** Time S */
+      time_s?: number | null;
+      /**
+       * Scaled
+       * @default false
+       */
+      scaled: boolean;
+      /** Notes */
+      notes?: string | null;
+    };
     /** Notification */
     Notification: {
       /**
@@ -674,6 +860,65 @@ export interface components {
       | "team_session_linked"
       | "team_session_updated"
       | "workout_link_pending";
+    /** ParseLogRequest */
+    ParseLogRequest: {
+      /** Text */
+      text: string;
+    };
+    /** ParseLogResponse */
+    ParseLogResponse: {
+      parsed: components["schemas"]["ParsedLogEntry"];
+      /** Confidence */
+      confidence: number;
+      /**
+       * Stub
+       * @default false
+       */
+      stub: boolean;
+    };
+    /** ParsedLogEntry */
+    ParsedLogEntry: {
+      /** Title */
+      title?: string | null;
+      /**
+       * Session Type
+       * @enum {string}
+       */
+      session_type:
+        | "metcon"
+        | "strength"
+        | "skill"
+        | "cardio"
+        | "mixed"
+        | "rest"
+        | "unknown";
+      /** Workout Format */
+      workout_format?:
+        | (
+            | "amrap"
+            | "for_time"
+            | "emom"
+            | "tabata"
+            | "rft"
+            | "straight_sets"
+            | "other"
+          )
+        | null;
+      /** Duration S */
+      duration_s?: number | null;
+      /** Session Rpe */
+      session_rpe?: number | null;
+      /**
+       * Results
+       * @default []
+       */
+      results: components["schemas"]["MovementResult"][];
+      /**
+       * Parsing Notes
+       * @default
+       */
+      parsing_notes: string;
+    };
     /** PatchParticipantRequest */
     PatchParticipantRequest: {
       /** Workout Id */
@@ -751,6 +996,14 @@ export interface components {
       sleep_avg: number | null;
       /** Factors Available */
       factors_available: number;
+      /** Recovery Score */
+      recovery_score?: number | null;
+      /** Coverage */
+      coverage?: number | null;
+      /** Confidence Tier */
+      confidence_tier?: string | null;
+      /** Hrv Type */
+      hrv_type?: string | null;
     };
     /** Result */
     Result: {
@@ -869,6 +1122,13 @@ export interface components {
       | "rest"
       | "deload"
       | "active_recovery";
+    /** SyncResponse */
+    SyncResponse: {
+      /** Rows Inserted */
+      rows_inserted: number;
+      /** Recovery Computed */
+      recovery_computed: boolean;
+    };
     /** TeamSession */
     TeamSession: {
       /**
@@ -1313,6 +1573,150 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ReadinessResponse"];
+        };
+      };
+    };
+  };
+  parse_log_api_v1_coach_parse_log_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ParseLogRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ParseLogResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  chat_api_v1_coach_chat_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChatRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChatResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  connect_apple_health_api_v1_integrations_apple_health_connect_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConnectResponse"];
+        };
+      };
+    };
+  };
+  revoke_apple_health_token_api_v1_integrations_apple_health_token_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  list_integrations_api_v1_integrations_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConnectionStatus"][];
+        };
+      };
+    };
+  };
+  apple_health_sync_api_v1_integrations_apple_health_sync_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SyncResponse"];
         };
       };
     };

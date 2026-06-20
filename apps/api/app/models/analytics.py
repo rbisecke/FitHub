@@ -57,3 +57,8 @@ class ReadinessResponse(BaseModel):
     energy_avg: float | None
     sleep_avg: float | None
     factors_available: int
+    # Wearable-derived fields (populated from derived_metrics when available)
+    recovery_score: float | None = None
+    coverage: float | None = None
+    confidence_tier: str | None = None
+    hrv_type: str | None = None

@@ -97,5 +97,40 @@ async def readiness(
     user: UserContext = Depends(get_current_user),
     conn: psycopg.AsyncConnection[Any] = Depends(get_db),
 ) -> ReadinessResponse:
+    from datetime import date
+
     data = await get_readiness(conn, user.user_id)
+
+    # Merge today's wearable-derived metrics if available
+    async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT recovery_score::float, coverage::float,
+                   confidence_tier, baseline_days
+            FROM derived_metrics
+            WHERE user_id = %s AND date = %s
+            """,
+            [user.user_id, date.today()],
+        )
+        dm = await cur.fetchone()
+
+    if dm:
+        # Infer hrv_type from which metric_samples type has data today
+        async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT type FROM metric_samples
+                WHERE user_id = %s AND type IN ('hrv_sdnn', 'hrv_rmssd')
+                  AND started_at::date = %s
+                ORDER BY source_priority ASC LIMIT 1
+                """,
+                [user.user_id, date.today()],
+            )
+            hrv_row = await cur.fetchone()
+
+        data["recovery_score"] = dm["recovery_score"]
+        data["coverage"] = dm["coverage"]
+        data["confidence_tier"] = dm["confidence_tier"]
+        data["hrv_type"] = hrv_row["type"] if hrv_row else None
+
     return ReadinessResponse(**data)
