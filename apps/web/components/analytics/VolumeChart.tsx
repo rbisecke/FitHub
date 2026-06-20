@@ -76,6 +76,7 @@ export function VolumeChart({ weeks }: Props) {
               dataKey={st}
               stackId="a"
               fill={defaultColor(st === "other" ? null : st)}
+              minPointSize={3}
             />
           ))}
         </BarChart>

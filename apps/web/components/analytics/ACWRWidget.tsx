@@ -31,15 +31,17 @@ export function ACWRWidget({ series, acwrNow, acwrZone }: Props) {
       data-testid="dashboard-acwr-widget"
       className="group block rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3 hover:border-zinc-700 transition-colors"
     >
-      <div className="flex items-baseline justify-between mb-1">
-        <p className="font-mono text-xs text-zinc-500">ACWR</p>
-        <span className={`text-xs font-medium ${cfg.color}`}>{cfg.text}</span>
-      </div>
+      <p className="font-mono text-xs text-zinc-500 mb-2">ACWR</p>
       <div className="flex items-end gap-3">
-        <p className="text-2xl font-semibold text-zinc-100">
-          {acwrNow !== null ? acwrNow.toFixed(2) : "—"}
-        </p>
-        <div className="flex-1 h-10">
+        <div>
+          <p className="text-2xl font-semibold text-zinc-100 leading-none">
+            {acwrNow !== null ? acwrNow.toFixed(2) : "—"}
+          </p>
+          <span className={`text-xs font-medium mt-1 block ${cfg.color}`}>
+            {cfg.text}
+          </span>
+        </div>
+        <div className="flex-1 h-10 mb-5">
           {data.length >= 3 && (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
@@ -61,7 +63,7 @@ export function ACWRWidget({ series, acwrNow, acwrZone }: Props) {
           )}
         </div>
       </div>
-      <p className="font-mono text-xs text-zinc-600 mt-1 group-hover:text-zinc-500">
+      <p className="font-mono text-xs text-zinc-600 mt-2 group-hover:text-zinc-500">
         → git diff --stat
       </p>
     </Link>

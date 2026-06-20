@@ -270,19 +270,23 @@ export function WorkoutDetailClient({
                         {RESULT_TYPE_LABELS[r.result_type] ?? r.result_type}
                       </span>
                     </span>
-                    <div className="flex gap-3 text-zinc-400 font-mono text-xs">
-                      {r.load_kg && <span>{r.load_kg}kg</span>}
+                    <div className="flex items-center gap-3 text-zinc-400 font-mono text-xs">
+                      {r.load_kg && (
+                        <span>
+                          {parseFloat(Number(r.load_kg).toFixed(3))} kg
+                        </span>
+                      )}
                       {r.reps && <span>× {r.reps}</span>}
                       {r.estimated_1rm_kg && (
                         <span className="text-zinc-600">
-                          e1RM {Number(r.estimated_1rm_kg).toFixed(1)}kg
+                          e1RM {Number(r.estimated_1rm_kg).toFixed(1)} kg
                         </span>
                       )}
                       {r.time_s && <span>{formatTime(r.time_s)}</span>}
                       {isPr && (
                         <span
                           data-testid="result-pr-label"
-                          className="text-yellow-300 font-semibold"
+                          className="bg-yellow-500/20 text-yellow-300 rounded px-1.5 py-0.5 font-semibold"
                         >
                           PR
                         </span>

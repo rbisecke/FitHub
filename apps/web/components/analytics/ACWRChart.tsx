@@ -20,13 +20,19 @@ function fmtDay(day: string): string {
 }
 
 export function ACWRChart({ series }: Props) {
-  const data = series
-    .filter((_, i) => i % 3 === 0 || i === series.length - 1)
+  // Trim leading days with no ACWR data so the chart doesn't show weeks of blank space.
+  const firstNonNull = series.findIndex(
+    (pt) => pt.acwr !== null && pt.acwr !== undefined,
+  );
+  const trimmed =
+    firstNonNull > 0 ? series.slice(Math.max(0, firstNonNull - 3)) : series;
+
+  const data = trimmed
+    .filter((_, i) => i % 2 === 0 || i === trimmed.length - 1)
     .map((pt) => ({
       day: fmtDay(pt.day),
       acwr:
         pt.acwr !== null && pt.acwr !== undefined ? +pt.acwr.toFixed(2) : null,
-      atl: +pt.atl.toFixed(1),
     }));
 
   return (
@@ -41,13 +47,16 @@ export function ACWRChart({ series }: Props) {
             tick={{ fill: "#71717a", fontSize: 10 }}
             tickLine={false}
             axisLine={false}
-            interval={6}
+            interval="preserveStartEnd"
           />
           <YAxis
             tick={{ fill: "#71717a", fontSize: 10 }}
             tickLine={false}
             axisLine={false}
-            domain={[0, 2]}
+            domain={([dataMin, dataMax]: readonly [number, number]) => [
+              Math.max(0, +(dataMin * 0.85).toFixed(2)),
+              +Math.max(dataMax * 1.15, 1.6).toFixed(2),
+            ]}
           />
           <Tooltip
             contentStyle={{

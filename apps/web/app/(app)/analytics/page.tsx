@@ -38,31 +38,28 @@ export default async function AnalyticsPage() {
         <EmptyAnalyticsState />
       ) : (
         <>
-          <ReadinessCard data={readiness} />
+          <ReadinessCard data={readiness} acwr={load.acwr_now} />
 
-          <section>
-            <p className="mb-2 font-mono text-xs text-zinc-500">
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 space-y-3">
+            <p className="text-sm font-medium text-zinc-300">
               Acute:Chronic Workload Ratio
             </p>
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-              <ACWRChart series={load.series} />
-            </div>
-          </section>
+            <ACWRChart series={load.series} />
+          </div>
 
           <FitnessCard
             ctl={load.ctl_now}
             atl={load.atl_now}
             tsb={load.tsb_now}
+            isCalibrating={nonZeroDays < 14}
           />
 
-          <section>
-            <p className="mb-2 font-mono text-xs text-zinc-500">
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 space-y-3">
+            <p className="text-sm font-medium text-zinc-300">
               Weekly volume by session type
             </p>
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-              <VolumeChart weeks={volume.weeks} />
-            </div>
-          </section>
+            <VolumeChart weeks={volume.weeks} />
+          </div>
         </>
       )}
     </div>

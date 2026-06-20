@@ -61,6 +61,8 @@ export function MovementTrendChart({ movementId, token }: Props) {
             tick={{ fill: "#52525b", fontSize: 9 }}
             tickLine={false}
             axisLine={false}
+            domain={["auto", "auto"]}
+            tickFormatter={(v: number) => `${v.toFixed(0)}`}
           />
           <Tooltip
             contentStyle={{

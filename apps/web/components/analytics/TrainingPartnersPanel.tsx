@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { TrainingPartner } from "@/lib/api";
 
 interface Props {
@@ -12,10 +13,19 @@ export function TrainingPartnersPanel({ partners }: Props) {
       data-testid="training-partners-panel"
       className="rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3"
     >
-      <p className="font-mono text-xs text-zinc-500 mb-3">training partners</p>
+      <p className="text-xs font-medium text-zinc-400 mb-3">
+        Training Partners
+      </p>
       {partners.length === 0 ? (
-        <p className="text-xs text-zinc-600 font-mono italic">
-          No partners yet. Log a partner or team workout.
+        <p className="text-xs text-zinc-500">
+          No partners yet.{" "}
+          <Link
+            href="/log/new"
+            className="text-cyan-500 hover:text-cyan-400 transition-colors"
+          >
+            Log a partner workout
+          </Link>{" "}
+          to see who you train with most.
         </p>
       ) : (
         <ul className="space-y-2">
