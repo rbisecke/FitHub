@@ -137,7 +137,9 @@ async def get_readiness(
 ) -> dict[str, Any]:
     """Compute readiness: derive ATL/CTL/ACWR from workouts, fetch checkins."""
     series = await get_load_series(conn, user_id, days=14)
-    last = series[-1] if series else {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "acwr": None}
+    last: dict[str, Any] = (
+        series[-1] if series else {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "acwr": None}
+    )
 
     acwr: float | None = last["acwr"]
     tsb: float = last["tsb"]

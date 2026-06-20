@@ -50,7 +50,9 @@ async def load_model(
     conn: psycopg.AsyncConnection[Any] = Depends(get_db),
 ) -> LoadModelResponse:
     series = await get_load_series(conn, user.user_id, days)
-    last = series[-1] if series else {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "acwr": None}
+    last: dict[str, Any] = (
+        series[-1] if series else {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "acwr": None}
+    )
     return LoadModelResponse(
         series=[DailyLoadPoint(**p) for p in series],
         acwr_now=last["acwr"],
