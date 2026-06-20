@@ -146,7 +146,8 @@ test.describe("Magic-link full E2E", () => {
     await expect(
       page.getByRole("heading", { name: "Dashboard" }),
     ).toBeVisible();
-    await expect(page.getByText(E2E_EMAIL)).toBeVisible();
+    // Email appears in both the sidebar and the main content; scope to main.
+    await expect(page.getByRole("main").getByText(E2E_EMAIL)).toBeVisible();
 
     // ── Step 7: call FastAPI /me with the real session JWT ────────────────────
     // @supabase/ssr stores the session in cookies named sb-<ref>-auth-token.

@@ -38,7 +38,13 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4">
+    <main
+      className="flex min-h-screen flex-col items-center justify-center px-4"
+      style={{
+        background:
+          "radial-gradient(600px 400px at 50% 40%, rgba(88,166,255,0.08), #09090b 70%)",
+      }}
+    >
       <div className="w-full max-w-sm space-y-8">
         {/* Wordmark */}
         <div className="space-y-1 text-center">
@@ -46,7 +52,9 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold tracking-tight text-zinc-50">
             FitHub
           </h1>
-          <p className="text-sm text-zinc-400">Git for your fitness.</p>
+          <p className="text-sm text-zinc-400">
+            Training history for people who think in commits.
+          </p>
         </div>
 
         {status === "sent" ? (
@@ -91,6 +99,10 @@ export default function LoginPage() {
             >
               {status === "loading" ? "Sending…" : "Send magic link"}
             </button>
+
+            <p className="text-center text-xs text-zinc-600">
+              Access by invitation only · Ask your host for an invite
+            </p>
           </form>
         )}
       </div>

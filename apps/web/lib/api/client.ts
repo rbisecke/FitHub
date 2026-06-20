@@ -1,0 +1,68 @@
+import type {
+  Movement,
+  Workout,
+  WorkoutListResponse,
+  CreateWorkoutBody,
+} from "./types";
+
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+function headers(token: string): HeadersInit {
+  return {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+}
+
+async function apiFetch<T>(
+  path: string,
+  token: string,
+  init?: RequestInit,
+): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    cache: "no-store",
+    ...init,
+    headers: headers(token),
+  });
+  if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+  if (res.status === 204) return undefined as T;
+  return res.json();
+}
+
+export const api = {
+  workouts: {
+    list: (token: string, params?: { beforeId?: string; limit?: number }) => {
+      const qs = new URLSearchParams();
+      if (params?.beforeId) qs.set("before_id", params.beforeId);
+      if (params?.limit) qs.set("limit", String(params.limit));
+      return apiFetch<WorkoutListResponse>(`/api/v1/workouts?${qs}`, token);
+    },
+    create: (token: string, body: CreateWorkoutBody) =>
+      apiFetch<Workout>("/api/v1/workouts", token, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    get: (token: string, id: string) =>
+      apiFetch<Workout>(`/api/v1/workouts/${id}`, token),
+    patch: (token: string, id: string, body: Partial<CreateWorkoutBody>) =>
+      apiFetch<Workout>(`/api/v1/workouts/${id}`, token, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    del: (token: string, id: string) =>
+      apiFetch<void>(`/api/v1/workouts/${id}`, token, { method: "DELETE" }),
+  },
+  movements: {
+    search: (token: string, params: { q?: string; modality?: string }) => {
+      const qs = new URLSearchParams();
+      if (params.q) qs.set("q", params.q);
+      if (params.modality) qs.set("modality", params.modality);
+      return apiFetch<Movement[]>(`/api/v1/movements?${qs}`, token);
+    },
+    create: (token: string, body: { name: string; modality: string }) =>
+      apiFetch<Movement>("/api/v1/movements", token, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+  },
+};

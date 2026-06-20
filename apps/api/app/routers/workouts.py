@@ -35,7 +35,7 @@ async def list_workouts_route(
     user: Auth,
     conn: DBConn,
     before_id: uuid.UUID | None = Query(default=None),
-    limit: int = Query(default=20, ge=1, le=100),
+    limit: int = Query(default=20, ge=1, le=365),
 ) -> WorkoutListResponse:
     items = await list_workouts(conn, user_id=user.user_id, before_id=before_id, limit=limit)
     next_cursor = str(items[-1].id) if len(items) == limit else None
