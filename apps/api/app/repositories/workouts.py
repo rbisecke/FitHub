@@ -158,10 +158,26 @@ async def list_workouts(
     limit: int = 20,
 ) -> list[WorkoutSummary]:
     async with conn.cursor(row_factory=dict_row) as cur:
+        _has_pr_subquery = """
+            EXISTS (
+              SELECT 1 FROM public.results r2
+              WHERE r2.workout_id = w.id
+                AND r2.estimated_1rm_kg IS NOT NULL
+                AND r2.movement_id IS NOT NULL
+                AND r2.estimated_1rm_kg = (
+                  SELECT MAX(r3.estimated_1rm_kg)
+                  FROM public.results r3
+                  JOIN public.workouts w3 ON r3.workout_id = w3.id
+                  WHERE w3.user_id = w.user_id
+                    AND r3.movement_id = r2.movement_id
+                )
+            ) AS has_pr
+        """
         if before_id is None:
             await cur.execute(
-                """
-                SELECT w.*, COALESCE(COUNT(r.id), 0) AS result_count
+                f"""
+                SELECT w.*, COALESCE(COUNT(r.id), 0) AS result_count,
+                       {_has_pr_subquery}
                 FROM   public.workouts w
                 LEFT JOIN public.results r
                        ON r.workout_id = w.id AND r.user_id = w.user_id
@@ -174,8 +190,9 @@ async def list_workouts(
             )
         else:
             await cur.execute(
-                """
-                SELECT w.*, COALESCE(COUNT(r.id), 0) AS result_count
+                f"""
+                SELECT w.*, COALESCE(COUNT(r.id), 0) AS result_count,
+                       {_has_pr_subquery}
                 FROM   public.workouts w
                 LEFT JOIN public.results r
                        ON r.workout_id = w.id AND r.user_id = w.user_id

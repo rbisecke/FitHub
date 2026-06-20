@@ -80,6 +80,7 @@ class WorkoutSummary(BaseModel):
     created_at: datetime
     updated_at: datetime
     result_count: int = 0
+    has_pr: bool = False
 
 
 class CreateWorkoutRequest(BaseModel):
