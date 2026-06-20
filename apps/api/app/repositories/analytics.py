@@ -142,51 +142,39 @@ async def get_readiness(
     acwr: float | None = last["acwr"]
     tsb: float = last["tsb"]
 
-    # Fetch last 3 days of daily_checkins — graceful if table doesn't exist yet
+    # Fetch last 3 days of daily_checkins
+    # Columns: motivation (1=low, 7=high — good), sleep_quality (1=very bad, 7=very good)
     mood_avg: float | None = None
     energy_avg: float | None = None
     sleep_avg: float | None = None
-    factors_available = 0
 
-    # Check if daily_checkins table exists before querying
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT EXISTS (
-                SELECT 1 FROM information_schema.tables
-                WHERE table_name = 'daily_checkins'
-            ) AS exists
-            """
+            SELECT
+                AVG(motivation)    AS mood_avg,
+                AVG(motivation)    AS energy_avg,
+                AVG(sleep_quality) AS sleep_avg
+            FROM public.daily_checkins
+            WHERE user_id = %s
+              AND date >= CURRENT_DATE - INTERVAL '3 days'
+            """,
+            (user_id,),
         )
         row = await cur.fetchone()
-        checkins_exist = row["exists"] if row else False
-
-    if checkins_exist:
-        async with conn.cursor(row_factory=dict_row) as cur:
-            await cur.execute(
-                """
-                SELECT
-                    AVG(mood)   AS mood_avg,
-                    AVG(energy) AS energy_avg,
-                    AVG(sleep)  AS sleep_avg
-                FROM daily_checkins
-                WHERE user_id  = %s
-                  AND checked_at >= NOW() - INTERVAL '3 days'
-                """,
-                (user_id,),
-            )
-            row = await cur.fetchone()
-            if row:
-                mood_avg = float(row["mood_avg"]) if row["mood_avg"] is not None else None
-                energy_avg = float(row["energy_avg"]) if row["energy_avg"] is not None else None
-                sleep_avg = float(row["sleep_avg"]) if row["sleep_avg"] is not None else None
+        if row:
+            mood_avg = float(row["mood_avg"]) if row["mood_avg"] is not None else None
+            energy_avg = float(row["energy_avg"]) if row["energy_avg"] is not None else None
+            sleep_avg = float(row["sleep_avg"]) if row["sleep_avg"] is not None else None
 
     factors_available = sum(1 for v in (mood_avg, energy_avg, sleep_avg) if v is not None)
+
+    has_training_data = any(r["load_au"] > 0 for r in series)
 
     # Compute composite score: average available normalized factors
     # ACWR sweet spot (0.8–1.3) maps to good score
     acwr_score: float | None = None
-    if acwr is not None:
+    if acwr is not None and has_training_data:
         if 0.8 <= acwr <= 1.3:
             acwr_score = 0.8
         elif acwr < 0.8:
@@ -196,8 +184,10 @@ async def get_readiness(
         else:
             acwr_score = 0.2
 
-    # TSB score: positive = fresh (good), very negative = fatigued
-    tsb_score = min(1.0, max(0.0, (tsb + 20) / 40))
+    # TSB score: only meaningful when training data exists
+    tsb_score: float | None = None
+    if has_training_data:
+        tsb_score = min(1.0, max(0.0, (tsb + 20) / 40))
 
     available_scores = [s for s in [acwr_score, tsb_score] if s is not None]
     if factors_available + len(available_scores) < 1:
