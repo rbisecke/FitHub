@@ -36,6 +36,8 @@ def upgrade() -> None:
         CREATE POLICY "benchmarks_select_authenticated"
             ON public.benchmarks FOR SELECT
             TO authenticated USING (true);
+
+        GRANT SELECT ON public.benchmarks TO authenticated;
     """)
 
 
