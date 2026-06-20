@@ -4,6 +4,91 @@
  */
 
 export interface paths {
+  "/api/v1/analytics/load": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Load Model */
+    get: operations["load_model_api_v1_analytics_load_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/analytics/personal-records": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Personal Records */
+    get: operations["personal_records_api_v1_analytics_personal_records_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/analytics/movement-trend/{movement_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Movement Trend */
+    get: operations["movement_trend_api_v1_analytics_movement_trend__movement_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/analytics/volume-trend": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Volume Trend */
+    get: operations["volume_trend_api_v1_analytics_volume_trend_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/analytics/readiness": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Readiness */
+    get: operations["readiness_api_v1_analytics_readiness_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/movements": {
     parameters: {
       query?: never;
@@ -410,6 +495,36 @@ export interface components {
       /** Results */
       results?: components["schemas"]["CreateResultRequest"][];
     };
+    /** DailyLoadPoint */
+    DailyLoadPoint: {
+      /**
+       * Day
+       * Format: date
+       */
+      day: string;
+      /** Load Au */
+      load_au: number;
+      /** Atl */
+      atl: number;
+      /** Ctl */
+      ctl: number;
+      /** Tsb */
+      tsb: number;
+      /** Acwr */
+      acwr: number | null;
+    };
+    /** E1RMPoint */
+    E1RMPoint: {
+      /**
+       * Day
+       * Format: date
+       */
+      day: string;
+      /** Estimated 1Rm Kg */
+      estimated_1rm_kg: number;
+      /** Workout Id */
+      workout_id: string;
+    };
     /**
      * ExecutionStyle
      * @enum {string}
@@ -436,6 +551,21 @@ export interface components {
      * @enum {string}
      */
     LimbStyle: "bilateral" | "unilateral" | "alternating";
+    /** LoadModelResponse */
+    LoadModelResponse: {
+      /** Series */
+      series: components["schemas"]["DailyLoadPoint"][];
+      /** Acwr Now */
+      acwr_now: number | null;
+      /** Ctl Now */
+      ctl_now: number;
+      /** Atl Now */
+      atl_now: number;
+      /** Tsb Now */
+      tsb_now: number;
+      /** Acwr Zone */
+      acwr_zone: string;
+    };
     /** MeResponse */
     MeResponse: {
       /** User Id */
@@ -586,6 +716,41 @@ export interface components {
       session_rpe?: number | string | null;
       /** Duration S */
       duration_s?: number | null;
+    };
+    /** PersonalRecord */
+    PersonalRecord: {
+      /** Movement Id */
+      movement_id: string;
+      /** Movement Name */
+      movement_name: string;
+      /** Best 1Rm Kg */
+      best_1rm_kg: number;
+      /**
+       * Achieved At
+       * Format: date
+       */
+      achieved_at: string;
+      /** Workout Id */
+      workout_id: string;
+    };
+    /** ReadinessResponse */
+    ReadinessResponse: {
+      /** Score */
+      score: number;
+      /** Label */
+      label: string;
+      /** Acwr */
+      acwr: number | null;
+      /** Tsb */
+      tsb: number;
+      /** Mood Avg */
+      mood_avg: number | null;
+      /** Energy Avg */
+      energy_avg: number | null;
+      /** Sleep Avg */
+      sleep_avg: number | null;
+      /** Factors Available */
+      factors_available: number;
     };
     /** Result */
     Result: {
@@ -844,6 +1009,25 @@ export interface components {
       /** Context */
       ctx?: Record<string, never>;
     };
+    /** VolumeTrendResponse */
+    VolumeTrendResponse: {
+      /** Weeks */
+      weeks: components["schemas"]["WeeklyVolume"][];
+    };
+    /** WeeklyVolume */
+    WeeklyVolume: {
+      /**
+       * Week Start
+       * Format: date
+       */
+      week_start: string;
+      /** Session Type */
+      session_type: string | null;
+      /** Total Load */
+      total_load: number;
+      /** Workout Count */
+      workout_count: number;
+    };
     /** Workout */
     Workout: {
       /**
@@ -985,6 +1169,11 @@ export interface components {
        * @default 0
        */
       result_count: number;
+      /**
+       * Has Pr
+       * @default false
+       */
+      has_pr: boolean;
     };
   };
   responses: never;
@@ -995,6 +1184,139 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  load_model_api_v1_analytics_load_get: {
+    parameters: {
+      query?: {
+        days?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LoadModelResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  personal_records_api_v1_analytics_personal_records_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PersonalRecord"][];
+        };
+      };
+    };
+  };
+  movement_trend_api_v1_analytics_movement_trend__movement_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        movement_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["E1RMPoint"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  volume_trend_api_v1_analytics_volume_trend_get: {
+    parameters: {
+      query?: {
+        weeks?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["VolumeTrendResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  readiness_api_v1_analytics_readiness_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReadinessResponse"];
+        };
+      };
+    };
+  };
   list_movements_api_v1_movements_get: {
     parameters: {
       query?: {

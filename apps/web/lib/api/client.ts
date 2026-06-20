@@ -3,6 +3,10 @@ import type {
   Workout,
   WorkoutListResponse,
   CreateWorkoutBody,
+  LoadModelResponse,
+  PersonalRecord,
+  VolumeTrendResponse,
+  ReadinessResponse,
 } from "./index";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -64,5 +68,18 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+  },
+  analytics: {
+    load: (token: string, days = 90) =>
+      apiFetch<LoadModelResponse>(`/api/v1/analytics/load?days=${days}`, token),
+    personalRecords: (token: string) =>
+      apiFetch<PersonalRecord[]>("/api/v1/analytics/personal-records", token),
+    volumeTrend: (token: string, weeks = 12) =>
+      apiFetch<VolumeTrendResponse>(
+        `/api/v1/analytics/volume-trend?weeks=${weeks}`,
+        token,
+      ),
+    readiness: (token: string) =>
+      apiFetch<ReadinessResponse>("/api/v1/analytics/readiness", token),
   },
 };
