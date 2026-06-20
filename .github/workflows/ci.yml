@@ -83,6 +83,45 @@ jobs:
       - name: Test
         run: uv run --project apps/api pytest apps/api/tests -v
 
+  contract:
+    name: Contract (openapi spec + TS types drift)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.14"
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install Python deps
+        run: uv sync --project apps/api --all-groups
+
+      - name: Install Node deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Export OpenAPI spec
+        run: uv run --project apps/api python apps/api/scripts/export_openapi.py
+
+      - name: Regenerate TypeScript types
+        run: pnpm -C apps/web generate-types
+
+      - name: Check for spec drift
+        run: |
+          git diff --exit-code apps/api/openapi.json \
+            || { echo "❌ apps/api/openapi.json is stale — run: uv run --project apps/api python apps/api/scripts/export_openapi.py"; exit 1; }
+
+      - name: Check for types drift
+        run: |
+          git diff --exit-code apps/web/lib/api/generated.ts \
+            || { echo "❌ apps/web/lib/api/generated.ts is stale — run: pnpm -C apps/web generate-types"; exit 1; }
+
   shared:
     name: Shared (typecheck)
     runs-on: ubuntu-latest

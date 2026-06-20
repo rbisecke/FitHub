@@ -27,4 +27,15 @@ repos:
     hooks:
       - id: prettier
         files: \.(ts|tsx|js|jsx|json|css|md)$
-        exclude: ^(pnpm-lock\.yaml|apps/web/app/globals\.css)$
+        exclude: ^(pnpm-lock\.yaml|apps/web/app/globals\.css|apps/api/openapi\.json)$
+
+  # Sync FastAPI OpenAPI spec on every Python change in apps/api.
+  # If openapi.json drifts the commit will fail; re-stage the updated file.
+  - repo: local
+    hooks:
+      - id: export-openapi
+        name: Export OpenAPI spec
+        language: system
+        entry: uv run --project apps/api python apps/api/scripts/export_openapi.py
+        files: ^apps/api/.*\.py$
+        pass_filenames: false
