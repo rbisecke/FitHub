@@ -52,6 +52,14 @@ export function WorkoutCard({
               Co-authored-by
             </span>
           )}
+          {workout.has_pr && (
+            <span
+              className="text-xs font-semibold px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300"
+              data-testid="pr-badge"
+            >
+              PR
+            </span>
+          )}
         </div>
         {!hideDate && (
           <span className="text-xs text-zinc-500 shrink-0">{dateLabel}</span>
