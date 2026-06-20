@@ -10,6 +10,7 @@ from app.auth import UserContext, get_current_user
 from app.config import get_settings
 from app.db import close_pool, init_pool
 from app.routers.analytics import router as analytics_router
+from app.routers.coach import router as coach_router
 from app.routers.movements import router as movements_router
 from app.routers.notifications import router as notifications_router
 from app.routers.team_sessions import router as team_sessions_router
@@ -27,6 +28,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 app = FastAPI(title="FitHub API", version="0.1.0", lifespan=lifespan)
 
 app.include_router(analytics_router)
+app.include_router(coach_router)
 app.include_router(movements_router)
 app.include_router(workouts_router)
 app.include_router(team_sessions_router)

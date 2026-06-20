@@ -8,6 +8,8 @@ import type {
   VolumeTrendResponse,
   ReadinessResponse,
   TrainingPartner,
+  ParseLogResponse,
+  ChatResponse,
 } from "./index";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -85,4 +87,16 @@ export const api = {
   },
   trainingPartners: (token: string) =>
     apiFetch<TrainingPartner[]>("/api/v1/training-partners", token),
+  coach: {
+    parseLog: (token: string, text: string) =>
+      apiFetch<ParseLogResponse>("/api/v1/coach/parse-log", token, {
+        method: "POST",
+        body: JSON.stringify({ text }),
+      }),
+    chat: (token: string, question: string, sessionId?: string | null) =>
+      apiFetch<ChatResponse>("/api/v1/coach/chat", token, {
+        method: "POST",
+        body: JSON.stringify({ question, session_id: sessionId ?? null }),
+      }),
+  },
 };

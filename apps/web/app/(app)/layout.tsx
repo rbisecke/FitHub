@@ -27,6 +27,7 @@ export default async function AppLayout({
           <NavLink href="/log/new" label="$ commit" />
           <NavLink href="/history" label="$ git log" />
           <NavLink href="/analytics" label="$ git diff" />
+          <NavLink href="/coach" label="$ git coach" />
         </nav>
         <div className="mt-auto px-2 text-xs text-zinc-600">{user.email}</div>
       </aside>
@@ -46,6 +47,9 @@ export default async function AppLayout({
           </Link>
           <Link href="/analytics" className="font-mono text-xs text-zinc-400">
             diff
+          </Link>
+          <Link href="/coach" className="font-mono text-xs text-zinc-400">
+            coach
           </Link>
         </nav>
       </div>

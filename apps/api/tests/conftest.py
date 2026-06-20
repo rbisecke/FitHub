@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import os
+
+# Ensure LLM calls are never made during tests unless explicitly opted in
+os.environ.setdefault("STUB_LLM", "true")
+
 import uuid
 from collections.abc import AsyncGenerator, Generator
 
