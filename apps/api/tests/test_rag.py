@@ -32,7 +32,7 @@ async def test_hybrid_retrieve_score_ordering() -> None:
         results = await hybrid_retrieve("pull-up", db, top_k=10)
 
     if len(results) >= 2:
-        scores = [r["score"] for r in results]
+        scores: list[float] = [float(r["score"]) for r in results]  # type: ignore[arg-type]
         assert scores == sorted(scores, reverse=True), "results must be sorted by score DESC"
 
 

@@ -43,7 +43,9 @@ async def hybrid_retrieve(
     """
     async with db.cursor() as cur:  # type: ignore[attr-defined]
         await cur.execute(sql, [q_vec, q_vec, query, top_k])
+        if cur.description is None:
+            return []
         cols = [d.name for d in cur.description]
         rows = await cur.fetchall()
 
-    return [dict(zip(cols, row, strict=False)) for row in rows]
+    return [dict(zip(cols, row, strict=False)) for row in rows]  # type: ignore[call-overload]

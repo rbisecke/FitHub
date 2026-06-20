@@ -32,7 +32,7 @@ DB_DSN = os.environ.get("DATABASE_URL", "postgresql://postgres:postgres@127.0.0.
 def chunk_text(text: str, title: str, chunk_size: int = CHUNK_SIZE) -> list[tuple[str, str]]:
     """Split text into ~chunk_size-token chunks with overlap. Returns (chunk_title, body) pairs."""
     words = text.split()
-    chunks = []
+    chunks: list[tuple[str, str]] = []
     step = chunk_size - CHUNK_OVERLAP
     for i in range(0, len(words), step):
         chunk = " ".join(words[i : i + chunk_size])

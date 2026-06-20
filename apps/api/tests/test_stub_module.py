@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import os
 
+import pytest
+
 
 def test_stub_env_default() -> None:
     """conftest sets STUB_LLM=true by default."""
@@ -25,15 +27,15 @@ def test_stub_decorator_returns_fixture() -> None:
     async def my_fn() -> Foo:
         return Foo(x=99)  # never reached when STUB_LLM=true
 
-    result = asyncio.run(my_fn())
+    result: Foo = asyncio.run(my_fn())  # type: ignore[arg-type]
     assert result.x == 42
     assert result is fixture
 
 
-def test_stub_decorator_calls_real_when_not_stubbed(monkeypatch: object) -> None:
+def test_stub_decorator_calls_real_when_not_stubbed(monkeypatch: pytest.MonkeyPatch) -> None:
     from app.ai.stub import stubbed
 
-    monkeypatch.setenv("STUB_LLM", "false")  # type: ignore[arg-type]
+    monkeypatch.setenv("STUB_LLM", "false")
 
     from pydantic import BaseModel
 
@@ -46,8 +48,8 @@ def test_stub_decorator_calls_real_when_not_stubbed(monkeypatch: object) -> None
     async def real_fn() -> Foo:
         return Foo(x=99)
 
-    result = asyncio.run(real_fn())
+    result: Foo = asyncio.run(real_fn())  # type: ignore[arg-type]
     assert result.x == 99
 
     # Restore so subsequent tests in session still see STUB_LLM=true
-    monkeypatch.setenv("STUB_LLM", "true")  # type: ignore[arg-type]
+    monkeypatch.setenv("STUB_LLM", "true")
