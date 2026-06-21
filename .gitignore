@@ -53,6 +53,9 @@ venv/
 htmlcov/
 .hypothesis/
 
+# ── Corpus PDF source files (large; documented in corpus/pdf/SOURCES.md) ─────
+apps/api/corpus/pdf/*.pdf
+
 # ── Supabase local dev ────────────────────────────────────────────────────────
 # keep supabase/config.toml and supabase/migrations/ tracked
 supabase/.branches/

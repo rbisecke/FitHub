@@ -1,0 +1,102 @@
+[
+  {
+    "question": "What is the standard squat depth requirement in CrossFit?",
+    "expected_source_type": "crossfit_standard",
+    "expected_title_contains": "squat"
+  },
+  {
+    "question": "What are the elite Fran times for men and women?",
+    "expected_source_type": "crossfit_standard",
+    "expected_title_contains": "fran"
+  },
+  {
+    "question": "How is ACWR calculated for CrossFit?",
+    "expected_source_type": "programming_doc",
+    "expected_title_contains": "acwr"
+  },
+  {
+    "question": "What ACWR range indicates danger zone for injury?",
+    "expected_source_type": "programming_doc",
+    "expected_title_contains": "acwr"
+  },
+  {
+    "question": "What does HRV more than 2 SD below baseline mean for training?",
+    "expected_source_type": "programming_doc",
+    "expected_title_contains": "hrv"
+  },
+  {
+    "question": "How do I scale pull-ups for a beginner?",
+    "expected_source_type": "coaching_note",
+    "expected_title_contains": "pull-up"
+  },
+  {
+    "question": "What is the deadlift lockout standard?",
+    "expected_source_type": "crossfit_standard",
+    "expected_title_contains": "deadlift"
+  },
+  {
+    "question": "How should I scale thrusters if I cannot reach full overhead position?",
+    "expected_source_type": "coaching_note",
+    "expected_title_contains": "thruster"
+  },
+  {
+    "question": "What is block periodization and how does it apply to CrossFit?",
+    "expected_source_type": "programming_doc",
+    "expected_title_contains": "periodization"
+  },
+  {
+    "question": "What is the deload protocol and how often should I deload?",
+    "expected_source_type": "programming_doc",
+    "expected_title_contains": "deload"
+  },
+  {
+    "question": "How many hours of sleep do performance athletes need?",
+    "expected_source_type": "programming_doc",
+    "expected_title_contains": "sleep"
+  },
+  {
+    "question": "What is kipping pull-up technique?",
+    "expected_source_type": "coaching_note",
+    "expected_title_contains": "pull-up"
+  },
+  {
+    "question": "What are the snatch movement standards?",
+    "expected_source_type": "crossfit_standard",
+    "expected_title_contains": "snatch"
+  },
+  {
+    "question": "How do I progress from single-unders to double-unders?",
+    "expected_source_type": "coaching_note",
+    "expected_title_contains": "double-under"
+  },
+  {
+    "question": "What resting heart rate elevation indicates incomplete recovery?",
+    "expected_source_type": "programming_doc",
+    "expected_title_contains": "resting heart rate"
+  },
+  {
+    "question": "What is Murph and how long does it take?",
+    "expected_source_type": "crossfit_standard",
+    "expected_title_contains": "murph"
+  },
+  {
+    "question": "What is the Cindy benchmark WOD?",
+    "expected_source_type": "crossfit_standard",
+    "expected_title_contains": "cindy"
+  },
+  {
+    "question": "How do I progress handstand push-ups from beginner to advanced?",
+    "expected_source_type": "coaching_note",
+    "expected_title_contains": "handstand"
+  },
+  {
+    "question": "What is an appropriate scaling philosophy for WODs?",
+    "expected_source_type": "coaching_note",
+    "expected_title_contains": "scaling"
+  },
+  {
+    "question": "What is the cue for keeping the bar close during a snatch?",
+    "expected_source_type": "coaching_note",
+    "expected_title_contains": "snatch"
+  }
+]
