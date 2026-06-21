@@ -176,8 +176,11 @@ jobs:
 
       - name: Secret scan (git history)
         run: |
+          # Match KEY= only when followed by ≥8 non-bracket, non-whitespace chars.
+          # This skips empty assignments (ANTHROPIC_API_KEY=) and placeholder
+          # values (<local-service-role-key-from-supabase-start>) in .env.example.
           count=$(git log --all -p -- '*.env' '*.env.*' \
-            | grep -cE '(SERVICE_ROLE_KEY|ANTHROPIC_API_KEY)=' || true)
+            | grep -cE '(SERVICE_ROLE_KEY|ANTHROPIC_API_KEY)=[^<[:space:]]{8,}' || true)
           echo "Secret pattern matches in git history: $count"
           [ "$count" -eq "0" ] || { echo "❌ Secrets found in git history"; exit 1; }
           echo "✓ No secrets in history"
