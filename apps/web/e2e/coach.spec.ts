@@ -162,7 +162,7 @@ test.describe("multi-turn chat", () => {
     const token = await loginAndSetSession(page);
 
     const intercepted: string[] = [];
-    await page.route(`${API_URL}/api/v1/coach/chat`, async (route) => {
+    await page.route("**/api/v1/coach/chat", async (route) => {
       const body = route.request().postDataJSON() as Record<string, unknown>;
       if (typeof body["session_id"] === "string") {
         intercepted.push(body["session_id"]);

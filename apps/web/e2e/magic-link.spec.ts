@@ -28,7 +28,7 @@ import { expect, test } from "@playwright/test";
 const E2E_EMAIL = "e2e@test.local";
 const SUPABASE_URL = "http://127.0.0.1:54321";
 const MAILPIT_URL = "http://127.0.0.1:54324";
-const API_URL = process.env.E2E_API_URL ?? "http://127.0.0.1:8001";
+const API_URL = process.env.E2E_API_URL ?? "http://127.0.0.1:8000";
 const SERVICE_ROLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
