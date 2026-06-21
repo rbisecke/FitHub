@@ -45,20 +45,21 @@ function MesocycleSection({
         <span className="font-mono text-xs font-semibold text-zinc-300">
           {meso.name}
         </span>
-        <span className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-xs text-zinc-500">
-          {meso.phase}
-        </span>
-        <span className="font-mono text-xs text-zinc-600">
-          wk {meso.week_start}–{meso.week_end}
+        <span className="font-mono text-xs text-zinc-500">
+          · wk {meso.week_start}–{meso.week_end}
         </span>
       </div>
       {meso.focus && (
         <p className="mb-2 font-mono text-xs text-zinc-600"># {meso.focus}</p>
       )}
-      <div className="flex flex-wrap gap-1.5">
-        {mesoSessions.map((s) => (
-          <SessionDot key={s.id} session={s} />
-        ))}
+      <div className="flex min-h-4 flex-wrap gap-1.5">
+        {mesoSessions.length === 0 ? (
+          <p className="font-mono text-xs text-zinc-700">
+            # no sessions scheduled
+          </p>
+        ) : (
+          mesoSessions.map((s) => <SessionDot key={s.id} session={s} />)
+        )}
       </div>
     </div>
   );
@@ -103,10 +104,12 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
       className="rounded-lg border border-zinc-800 bg-zinc-900 p-6"
     >
       <div className="mb-6">
-        <div className="mb-3 flex flex-wrap gap-3 text-xs text-zinc-500">
+        <div className="mb-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-zinc-500">
           {Object.entries(SESSION_COLORS).map(([type, color]) => (
-            <span key={type} className="flex items-center gap-1">
-              <span className={`inline-block h-3 w-3 rounded-full ${color}`} />
+            <span key={type} className="flex items-center gap-1.5">
+              <span
+                className={`inline-block h-2.5 w-2.5 rounded-full ${color}`}
+              />
               {type.replace("_", " ")}
             </span>
           ))}
@@ -123,8 +126,8 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
         </p>
       )}
 
-      <div className="mt-8 border-t border-zinc-800 pt-6">
-        <h2 className="mb-3 font-mono text-sm font-semibold text-zinc-300">
+      <div className="mt-8 rounded-md border-t border-zinc-600 bg-zinc-800/40 px-5 pb-5 pt-5">
+        <h2 className="mb-3 font-mono text-xs text-zinc-400">
           $ git request-changes
         </h2>
         <textarea
@@ -132,10 +135,20 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
           value={feedback}
           onChange={(e) => setFeedback(e.target.value)}
           disabled={revising}
+          maxLength={1000}
           placeholder="Describe what you'd like changed (e.g. reduce squat volume, I have a knee issue)…"
-          rows={3}
-          className="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-200 placeholder-zinc-600 focus:border-zinc-500 focus:outline-none disabled:opacity-50"
+          rows={5}
+          className="w-full min-h-[120px] resize-y rounded border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-200 placeholder-zinc-600 focus:border-zinc-500 focus:outline-none disabled:opacity-50"
         />
+        <div className="mt-1 flex justify-end">
+          <span
+            className={`font-mono text-xs ${
+              feedback.length > 800 ? "text-amber-400" : "text-zinc-600"
+            }`}
+          >
+            {feedback.length} / 1000
+          </span>
+        </div>
         {error && (
           <p className="mt-2 font-mono text-xs text-red-400">{error}</p>
         )}
@@ -149,9 +162,13 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
             data-testid="revise-plan-submit"
             onClick={handleRevise}
             disabled={revising || feedback.trim().length < 5}
-            className="rounded bg-zinc-700 px-4 py-2 font-mono text-sm text-zinc-200 hover:bg-zinc-600 disabled:cursor-not-allowed disabled:opacity-40"
+            className={`rounded px-4 py-2 font-mono text-sm transition-colors disabled:cursor-not-allowed ${
+              revising || feedback.trim().length < 5
+                ? "bg-zinc-800 text-zinc-600"
+                : "border border-zinc-500 bg-zinc-700 text-zinc-200 hover:bg-zinc-600"
+            }`}
           >
-            {revising ? "revising…" : "request changes"}
+            {revising ? "revising…" : "$ commit revision"}
           </button>
         </div>
       </div>
