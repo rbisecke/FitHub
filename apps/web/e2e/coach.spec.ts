@@ -5,6 +5,8 @@
 
 import { type Page, expect, test } from "@playwright/test";
 
+const LIVE_LLM = process.env.LIVE_LLM === "true";
+
 const E2E_EMAIL = "e2e-coach@test.local";
 const E2E_PASSWORD = "E2eTestFitHub!2026";
 const SUPABASE_URL = "http://127.0.0.1:54321";
@@ -97,7 +99,9 @@ test("NL log parse returns parsed result (stub mode)", async ({ page }) => {
   expect(res.status).toBe(200);
   const data = (await res.json()) as Record<string, unknown>;
   expect(data).toHaveProperty("parsed");
-  expect(data["stub"]).toBe(true);
+  if (!LIVE_LLM) {
+    expect(data["stub"]).toBe(true);
+  }
 });
 
 test("chat endpoint returns answer with safety_tier (stub mode)", async ({

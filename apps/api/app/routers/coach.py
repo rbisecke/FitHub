@@ -92,25 +92,39 @@ async def chat(
     chunks = await hybrid_retrieve(body.question, db, top_k=5)
 
     from app.ai.client import get_client
-    from app.models.coach import Citation
+    from app.ai.errors import call_llm
+    from app.models.coach import Citation, _ChatAnswer
 
     context = "\n\n".join(str(c["body"]) for c in chunks)
-    client = get_client()
+    llm = get_client()
 
-    answer_text: str = client.chat.completions.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=512,
-        messages=[
-            {
-                "role": "user",
-                "content": (
-                    f"Context:\n{context}\n\nQuestion: {body.question}\n"
-                    "Answer concisely using only the provided context."
-                ),
-            }
-        ],
-        response_model=str,
+    chat_result: _ChatAnswer = await call_llm(
+        llm.client.chat.completions.create(
+            model=llm.model,
+            max_tokens=512,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a knowledgeable CrossFit and functional fitness coach. "
+                        "Answer the question using ONLY the provided context. "
+                        "Be concise and practical. "
+                        'Respond with JSON: {"answer": "<your answer here>"}.'
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Context:\n{context}\n\nQuestion: {body.question}\n"
+                        "Answer concisely using only the provided context."
+                    ),
+                },
+            ],
+            response_model=_ChatAnswer,
+        ),
+        context="coach_chat",
     )
+    answer_text = chat_result.answer
 
     citations = [
         Citation(title=str(c["title"]), source_type=str(c["source_type"]), score=float(c["score"]))  # type: ignore[arg-type]

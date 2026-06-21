@@ -9,6 +9,7 @@ const E2E_EMAIL = "e2e-plans@test.local";
 const E2E_PASSWORD = "E2eTestFitHub!2026";
 const SUPABASE_URL = "http://127.0.0.1:54321";
 const API_URL = process.env.E2E_API_URL ?? "http://127.0.0.1:8000";
+const LIVE_LLM = process.env.LIVE_LLM === "true";
 
 const ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
@@ -71,6 +72,8 @@ async function loginAndSetSession(page: Page): Promise<string> {
 }
 
 async function createPlanAndWait(token: string): Promise<string> {
+  // Use a 4-week plan in live-LLM mode to reduce Ollama generation time (min weeks=4)
+  const weeks = LIVE_LLM ? 4 : 8;
   const createRes = await fetch(`${API_URL}/api/v1/plans`, {
     method: "POST",
     headers: {
@@ -81,26 +84,48 @@ async function createPlanAndWait(token: string): Promise<string> {
       goal: "general_fitness",
       title: "E2E Test Plan",
       start_date: "2026-07-01",
-      weeks: 8,
+      weeks,
       training_age: "intermediate",
     }),
   });
   expect(createRes.status).toBe(202);
   const { task_id } = (await createRes.json()) as { task_id: string };
 
-  for (let i = 0; i < 20; i++) {
+  // Stub mode completes in <1s; live-LLM mode can take 60-120s
+  const maxPolls = LIVE_LLM ? 500 : 20;
+  const pollInterval = LIVE_LLM ? 500 : 200;
+  for (let i = 0; i < maxPolls; i++) {
     const tr = await fetch(`${API_URL}/api/v1/plans/tasks/${task_id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = (await tr.json()) as { status: string; plan_id?: string };
     if (data.status === "complete" && data.plan_id) return data.plan_id;
-    await new Promise((r) => setTimeout(r, 200));
+    if (data.status === "failed") throw new Error("Plan generation failed");
+    await new Promise((r) => setTimeout(r, pollInterval));
   }
   throw new Error("Plan generation timed out");
 }
 
+let sharedToken = "";
+let sharedPlanId = "";
+
 test.beforeAll(async () => {
   await ensureTestUser();
+  if (LIVE_LLM) {
+    // Create one shared plan for tests that need a plan_id, avoiding redundant
+    // Ollama calls (each call takes 1-3 min; back-to-back calls risk timeouts).
+    const res = await fetch(
+      `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
+      {
+        method: "POST",
+        headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ email: E2E_EMAIL, password: E2E_PASSWORD }),
+      },
+    );
+    const session = (await res.json()) as { access_token: string };
+    sharedToken = session.access_token;
+    sharedPlanId = await createPlanAndWait(sharedToken);
+  }
 });
 
 test("plans list page loads with empty state", async ({ page }) => {
@@ -113,7 +138,7 @@ test("plans list page loads with empty state", async ({ page }) => {
 
 test("plan API creates plan and returns detail", async ({ page }) => {
   const token = await loginAndSetSession(page);
-  const planId = await createPlanAndWait(token);
+  const planId = LIVE_LLM ? sharedPlanId : await createPlanAndWait(token);
 
   const detailRes = await fetch(`${API_URL}/api/v1/plans/${planId}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -127,7 +152,7 @@ test("plan API creates plan and returns detail", async ({ page }) => {
 
 test("plan detail page shows branch view", async ({ page }) => {
   const token = await loginAndSetSession(page);
-  const planId = await createPlanAndWait(token);
+  const planId = LIVE_LLM ? sharedPlanId : await createPlanAndWait(token);
 
   await page.goto(`http://localhost:3000/plans/${planId}`);
   await expect(page.locator('[data-testid="plan-branch-view"]')).toBeVisible({

@@ -56,3 +56,9 @@ class ChatResponse(BaseModel):
     citations: list[Citation] = []
     stub: bool = False
     safety_tier: str | None = None
+
+
+class _ChatAnswer(BaseModel):
+    """Internal instructor response model for chat — required by Mode.JSON providers (Ollama)."""
+
+    answer: str

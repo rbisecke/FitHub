@@ -8,8 +8,8 @@ FastAPI · Python 3.14 · uv · Pydantic v2 · Alembic (Phase 2+) · pytest + ht
 
 ```bash
 uv run uvicorn app.main:app --reload   # dev server (localhost:8000)
-uv run pytest                          # all tests
-uv run pytest --cov=app --cov-report=term-missing  # with coverage
+uv run pytest /Users/rbisecke/FitHub/apps/api/tests/   # all tests (abs path → rootdir = apps/api)
+uv run pytest /Users/rbisecke/FitHub/apps/api/tests/ --cov=app --cov-report=term-missing  # with coverage
 uv run ruff check .                    # lint
 uv run ruff format .                   # format
 uv run mypy .                          # type check

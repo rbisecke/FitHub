@@ -9,6 +9,7 @@ const E2E_EMAIL = "e2e-adaptations@test.local";
 const E2E_PASSWORD = "E2eTestFitHub!2026";
 const SUPABASE_URL = "http://127.0.0.1:54321";
 const API_URL = process.env.E2E_API_URL ?? "http://127.0.0.1:8000";
+const LIVE_LLM = process.env.LIVE_LLM === "true";
 
 const ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
@@ -73,6 +74,8 @@ async function loginAndSetSession(
 }
 
 async function createPlanAndWait(token: string): Promise<string> {
+  // Use a 4-week plan in live-LLM mode to reduce Ollama generation time (min weeks=4)
+  const weeks = LIVE_LLM ? 4 : 8;
   const createRes = await fetch(`${API_URL}/api/v1/plans`, {
     method: "POST",
     headers: {
@@ -83,18 +86,22 @@ async function createPlanAndWait(token: string): Promise<string> {
       goal: "general_fitness",
       title: "Adaptation E2E Plan",
       start_date: "2026-07-01",
-      weeks: 8,
+      weeks,
       training_age: "intermediate",
     }),
   });
   const { task_id } = (await createRes.json()) as { task_id: string };
-  for (let i = 0; i < 20; i++) {
+  // Stub mode completes in <1s; live-LLM mode can take 60-120s
+  const maxPolls = LIVE_LLM ? 500 : 20;
+  const pollInterval = LIVE_LLM ? 500 : 300;
+  for (let i = 0; i < maxPolls; i++) {
     const tr = await fetch(`${API_URL}/api/v1/plans/tasks/${task_id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = (await tr.json()) as { status: string; plan_id?: string };
     if (data.status === "complete" && data.plan_id) return data.plan_id;
-    await new Promise((r) => setTimeout(r, 300));
+    if (data.status === "failed") throw new Error("Plan generation failed");
+    await new Promise((r) => setTimeout(r, pollInterval));
   }
   throw new Error("Plan generation timed out");
 }
@@ -121,8 +128,9 @@ async function seedAdaptation(planId: string, userId: string): Promise<string> {
     throw new Error(
       `seed adaptation failed: ${res.status} ${await res.text()}`,
     );
-  const [row] = (await res.json()) as Array<{ id: string }>;
-  return row.id;
+  const rows = (await res.json()) as Array<{ id: string }>;
+  if (!rows[0]) throw new Error("seed adaptation returned no row");
+  return rows[0].id;
 }
 
 test.beforeAll(async () => {

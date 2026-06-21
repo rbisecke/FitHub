@@ -2,13 +2,105 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
+from typing import Literal
 
 import psycopg
 import psycopg.rows
+from pydantic import BaseModel, Field, field_validator
 
 from app.ai.stub import stubbed
 from app.engine.programming import validate_plan
+
+log = logging.getLogger(__name__)
+
+# ── Structured output models for instructor ───────────────────────────────────
+
+
+class PlannedItem(BaseModel):
+    movement_name: str
+    sets: int | None = None
+    reps: str | None = None
+    load_pct_1rm: float | None = None
+    load_kg: float | None = None
+    movement_pattern: str | None = None
+    notes: str | None = None
+
+
+class PlannedSession(BaseModel):
+    day_offset: int = Field(ge=0, le=6)
+    session_type: Literal["strength", "metcon", "skill", "mixed", "active_recovery", "rest"]
+    title: str
+    intensity_level: Literal["easy", "moderate", "hard"] = "moderate"
+    items: list[PlannedItem] = []
+    notes: str | None = None
+
+    @field_validator("session_type", mode="before")
+    @classmethod
+    def coerce_session_type(cls, v: object) -> str:
+        if not isinstance(v, str):
+            return "mixed"
+        v_lower = v.lower().strip()
+        valid = {"strength", "metcon", "skill", "mixed", "active_recovery", "rest"}
+        if v_lower in valid:
+            return v_lower
+        if "cardio" in v_lower or "run" in v_lower or "row" in v_lower or "bike" in v_lower:
+            return "metcon"
+        if "recover" in v_lower or "walk" in v_lower or "mob" in v_lower:
+            return "active_recovery"
+        if "rest" in v_lower:
+            return "rest"
+        return "mixed"
+
+    @field_validator("intensity_level", mode="before")
+    @classmethod
+    def coerce_intensity_level(cls, v: object) -> str:
+        if not isinstance(v, str):
+            return "moderate"
+        v_lower = v.lower().strip()
+        if "hard" in v_lower or "high" in v_lower or "heavy" in v_lower:
+            return "hard"
+        if "easy" in v_lower or "light" in v_lower or "low" in v_lower:
+            return "easy"
+        return "moderate"
+
+
+class PlanWeek(BaseModel):
+    week: int = Field(ge=1)
+    sessions: list[PlannedSession]
+
+
+class Mesocycle(BaseModel):
+    name: str
+    phase: Literal["accumulation", "intensification", "deload", "peak", "test"]
+    week_start: int = Field(ge=1)
+    week_end: int = Field(ge=1)
+    focus: str | None = None
+
+    @field_validator("phase", mode="before")
+    @classmethod
+    def coerce_phase(cls, v: object) -> str:
+        if not isinstance(v, str):
+            return "accumulation"
+        v_lower = v.lower().strip()
+        if v_lower in ("accumulation", "intensification", "deload", "peak", "test"):
+            return v_lower
+        if "peak" in v_lower or "taper" in v_lower:
+            return "peak"
+        if "intensity" in v_lower or "intensif" in v_lower:
+            return "intensification"
+        if "deload" in v_lower or "recovery" in v_lower or "rest" in v_lower:
+            return "deload"
+        if "test" in v_lower or "assess" in v_lower:
+            return "test"
+        return "accumulation"
+
+
+class PlanDraft(BaseModel):
+    mesocycles: list[Mesocycle]
+    weeks: list[PlanWeek]
+
 
 # ── Stub fixture ──────────────────────────────────────────────────────────────
 
@@ -219,7 +311,7 @@ async def build_user_history(
     return history
 
 
-# ── Generator (stubbed) ───────────────────────────────────────────────────────
+# ── Generator ─────────────────────────────────────────────────────────────────
 
 
 @stubbed(STUB_PLAN)
@@ -227,7 +319,84 @@ async def generate_plan(
     req: object,
     user_history: dict[str, object],
 ) -> dict[str, object]:
-    raise NotImplementedError("Real LLM plan generation not implemented — run with STUB_LLM=true")
+    """Generate a periodised training plan via LLM + instructor.
+
+    The @stubbed decorator short-circuits this when STUB_LLM=true, returning
+    STUB_PLAN immediately. This body only runs in real (STUB_LLM=false) mode.
+    """
+    from app.ai.client import get_client
+    from app.ai.errors import call_llm
+
+    req_dict = req if isinstance(req, dict) else vars(req)  # type: ignore[arg-type]
+    goal = req_dict.get("goal", "general_fitness")
+    weeks = req_dict.get("weeks", 8)
+    training_age = req_dict.get("training_age", "intermediate")
+    days_per_week = req_dict.get("days_per_week", 3)
+
+    history_summary = (
+        f"Recent sessions (last 6 weeks): {len(user_history.get('recent_sessions', []))} logged. "
+        f"Top movements: {list(user_history.get('movement_frequency', {}).keys())[:5]}."
+    )
+    readiness = user_history.get("readiness_trend")
+    if readiness:
+        history_summary += f" Recovery trend: {readiness}."
+
+    llm = get_client()
+    # Ollama/local models have limited context windows; expanding num_ctx per-request
+    # lets them generate the full plan JSON without truncation (ignored by cloud providers).
+    draft: PlanDraft = await call_llm(
+        llm.client.chat.completions.create(
+            model=llm.model,
+            max_tokens=8192,
+            extra_body={"options": {"num_ctx": 8192}},
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a CrossFit programming coach. "
+                        "Return a JSON training plan with REAL DATA — not a schema. "
+                        "Never use $defs, properties, enum, required, or type keys.\n\n"
+                        "Example:\n"
+                        '{"mesocycles":['
+                        '{"name":"Base","phase":"accumulation",'
+                        '"week_start":1,"week_end":2,"focus":"technique"}],'
+                        '"weeks":[{"week":1,"sessions":['
+                        '{"day_offset":0,"session_type":"strength","title":"Squat",'
+                        '"intensity_level":"moderate","items":['
+                        '{"movement_name":"Back Squat","sets":3,"reps":"5",'
+                        '"load_pct_1rm":70.0,"notes":null}]},'
+                        '{"day_offset":3,"session_type":"metcon","title":"Fran",'
+                        '"intensity_level":"hard","items":['
+                        '{"movement_name":"Thruster","sets":1,"reps":"21-15-9",'
+                        '"load_pct_1rm":null,"notes":null}]},'
+                        '{"day_offset":6,"session_type":"rest","title":"Rest",'
+                        '"intensity_level":"easy","items":[]}]}]}\n\n'
+                        "Rules: session_type: strength|metcon|skill|mixed|active_recovery|rest. "
+                        "phase: accumulation|intensification|deload|peak|test. "
+                        "intensity_level: easy|moderate|hard. "
+                        "day_offset 0-6 (Mon=0). reps is a string. sets is an integer. "
+                        "Max 2 items per session. Keep titles under 30 chars. "
+                        "Every week needs at least one rest or active_recovery session."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Goal:{goal} Weeks:{weeks} Age:{training_age} "
+                        f"Days/week:{days_per_week}\n"
+                        "Generate training plan."
+                    ),
+                },
+            ],
+            response_model=PlanDraft,
+        ),
+        context="generate_plan",
+    )
+
+    result = draft.model_dump()
+    # Validate against sports-science KB after generation (not inside retry loop)
+    validate_plan(result, str(training_age))
+    return result
 
 
 # ── DB helpers ────────────────────────────────────────────────────────────────
@@ -418,6 +587,7 @@ async def run_plan_generation(
                 [plan_id, task_id],
             )
     except Exception as exc:
+        log.exception("Plan generation failed [task=%s]: %s", task_id, exc)
         try:
             async with pool.connection() as db:
                 await db.execute(

@@ -4,9 +4,14 @@ import { defineConfig, devices } from "@playwright/test";
 // Start Supabase first (`supabase start`) then run `pnpm e2e`.
 export default defineConfig({
   testDir: "./e2e",
-  fullyParallel: true,
+  // In live-LLM mode, Ollama is single-threaded — run tests sequentially
+  // to avoid saturating the inference queue.
+  fullyParallel: process.env.LIVE_LLM !== "true",
+  workers: process.env.LIVE_LLM === "true" ? 1 : undefined,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  // Ollama LLM calls can take 60-120s; use a longer timeout in live-LLM mode
+  timeout: process.env.LIVE_LLM === "true" ? 300_000 : 30_000,
   reporter: "list",
   use: {
     baseURL: "http://localhost:3000",
