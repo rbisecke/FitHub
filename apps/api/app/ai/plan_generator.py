@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.ai.stub import stubbed
 from app.engine.programming import validate_plan
+from app.models.plan import PlanRevisionDiff, SessionPatch  # noqa: F401
 
 log = logging.getLogger(__name__)
 
@@ -598,3 +599,65 @@ async def run_plan_generation(
                 )
         except Exception:
             pass
+
+
+# ── Plan revision ─────────────────────────────────────────────────────────────
+
+STUB_PLAN_REVISION = PlanRevisionDiff(
+    rationale="Week 1 volume reduced ~20% based on your feedback.",
+    changed_sessions=[],
+)
+
+
+def _format_sessions_for_prompt(sessions: list[dict[str, object]]) -> str:
+    lines = []
+    for s in sessions:
+        items_str = ", ".join(
+            f"{it['movement_name']} {it.get('sets', '')}×{it.get('reps', '')}"
+            for it in cast(list[dict[str, object]], s.get("items", []))
+        )
+        lines.append(
+            f"[{s['id']}] {s['scheduled_date']} — {s['session_type']}: {s['title']}"
+            f" ({items_str or 'no items'})"
+        )
+    return "\n".join(lines)
+
+
+@stubbed(STUB_PLAN_REVISION)
+async def generate_plan_revision(
+    prescribed_sessions: list[dict[str, object]],
+    feedback: str,
+) -> PlanRevisionDiff:
+    from app.ai.client import get_client  # noqa: PLC0415
+    from app.ai.errors import call_llm  # noqa: PLC0415
+
+    llm = get_client()
+    sessions_text = _format_sessions_for_prompt(prescribed_sessions)
+    return await call_llm(  # type: ignore[return-value]
+        llm.client.chat.completions.create(
+            model=llm.model,
+            max_tokens=2048,
+            messages=[  # type: ignore[arg-type]
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a CrossFit coach revising a training plan. "
+                        "Return ONLY the sessions you want to change — not the whole plan. "
+                        "You MUST use existing session_id values from the provided list. "
+                        "Do not modify sessions with status != 'prescribed'. "
+                        "Be conservative: adjust, don't rebuild."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Prescribed sessions:\n{sessions_text}\n\n"
+                        f"Athlete feedback: {feedback}\n\n"
+                        "Return a PlanRevisionDiff with only the sessions you are changing."
+                    ),
+                },
+            ],
+            response_model=PlanRevisionDiff,
+        ),
+        context="plan_revision",
+    )

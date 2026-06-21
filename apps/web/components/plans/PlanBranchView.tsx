@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import type {
   PlanDetail,
   MesocycleOut,
   PlannedSessionOut,
 } from "@/lib/api/plans";
+import { api } from "@/lib/api/client";
 
 const SESSION_COLORS: Record<string, string> = {
   strength: "bg-indigo-500",
@@ -62,7 +64,39 @@ function MesocycleSection({
   );
 }
 
-export function PlanBranchView({ plan }: { plan: PlanDetail }) {
+interface Props {
+  plan: PlanDetail;
+  accessToken: string;
+}
+
+export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
+  const [plan, setPlan] = useState(initialPlan);
+  const [feedback, setFeedback] = useState("");
+  const [revising, setRevising] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  async function handleRevise() {
+    if (feedback.trim().length < 5) return;
+    setRevising(true);
+    setError(null);
+    setSuccess(false);
+    try {
+      const updated = await api.plans.revise(
+        accessToken,
+        plan.id,
+        feedback.trim(),
+      );
+      setPlan(updated);
+      setFeedback("");
+      setSuccess(true);
+    } catch {
+      setError("Revision failed — please try again.");
+    } finally {
+      setRevising(false);
+    }
+  }
+
   return (
     <div
       data-testid="plan-branch-view"
@@ -88,6 +122,39 @@ export function PlanBranchView({ plan }: { plan: PlanDetail }) {
           # plan is still being generated…
         </p>
       )}
+
+      <div className="mt-8 border-t border-zinc-800 pt-6">
+        <h2 className="mb-3 font-mono text-sm font-semibold text-zinc-300">
+          $ git request-changes
+        </h2>
+        <textarea
+          data-testid="revision-feedback-input"
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          disabled={revising}
+          placeholder="Describe what you'd like changed (e.g. reduce squat volume, I have a knee issue)…"
+          rows={3}
+          className="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-200 placeholder-zinc-600 focus:border-zinc-500 focus:outline-none disabled:opacity-50"
+        />
+        {error && (
+          <p className="mt-2 font-mono text-xs text-red-400">{error}</p>
+        )}
+        {success && (
+          <p className="mt-2 font-mono text-xs text-green-400">
+            ✓ plan revised
+          </p>
+        )}
+        <div className="mt-3 flex justify-end">
+          <button
+            data-testid="revise-plan-submit"
+            onClick={handleRevise}
+            disabled={revising || feedback.trim().length < 5}
+            className="rounded bg-zinc-700 px-4 py-2 font-mono text-sm text-zinc-200 hover:bg-zinc-600 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {revising ? "revising…" : "request changes"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

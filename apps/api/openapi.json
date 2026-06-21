@@ -1122,6 +1122,63 @@
         }
       }
     },
+    "/api/v1/plans/{plan_id}/revise": {
+      "post": {
+        "tags": [
+          "plans"
+        ],
+        "summary": "Revise Plan",
+        "operationId": "revise_plan_api_v1_plans__plan_id__revise_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanRevisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/plans/{plan_id}/adaptations/detect": {
       "post": {
         "tags": [
@@ -4220,6 +4277,21 @@
           "sessions"
         ],
         "title": "PlanDetail"
+      },
+      "PlanRevisionRequest": {
+        "properties": {
+          "feedback": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 5,
+            "title": "Feedback"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feedback"
+        ],
+        "title": "PlanRevisionRequest"
       },
       "PlanSummary": {
         "properties": {

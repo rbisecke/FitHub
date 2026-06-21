@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import uuid
 from datetime import date
 from typing import Annotated
@@ -11,6 +12,7 @@ import psycopg
 import psycopg.rows
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.ai.stub import is_stubbed
 from app.auth import UserContext, get_current_user
 from app.db import get_db
 from app.models.plan import (
@@ -19,8 +21,10 @@ from app.models.plan import (
     PlanDetail,
     PlannedItemOut,
     PlannedSessionOut,
+    PlanRevisionRequest,
     PlanSummary,
     PlanTaskResponse,
+    SessionPatch,
 )
 
 router = APIRouter(prefix="/api/v1/plans", tags=["plans"])
@@ -134,6 +138,88 @@ async def _get_plan_detail(
             for s in sessions_raw
         ],
     )
+
+
+async def _load_prescribed_sessions(
+    plan_id: str,
+    user_id: str,
+    db: psycopg.AsyncConnection[object],
+) -> list[dict[str, object]]:
+    """Return prescribed sessions with items for the revision prompt."""
+    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT ps.id::text, ps.scheduled_date::text, ps.session_type,
+                   ps.title, ps.notes, ps.status,
+                   COALESCE(
+                       json_agg(
+                           json_build_object(
+                               'id', pi.id::text,
+                               'movement_name', pi.movement_name,
+                               'sets', pi.sets,
+                               'reps', pi.reps,
+                               'item_order', pi.item_order
+                           ) ORDER BY pi.item_order
+                       ) FILTER (WHERE pi.id IS NOT NULL),
+                       '[]'
+                   ) AS items
+            FROM planned_sessions ps
+            LEFT JOIN planned_items pi ON pi.session_id = ps.id
+            JOIN plans p ON p.id = ps.plan_id
+            WHERE ps.plan_id = %s AND p.user_id = %s AND ps.status = 'prescribed'
+            GROUP BY ps.id, ps.scheduled_date, ps.session_type,
+                     ps.title, ps.notes, ps.status
+            ORDER BY ps.scheduled_date
+            """,
+            [plan_id, user_id],
+        )
+        rows = await cur.fetchall()
+    return [dict(r) for r in rows]
+
+
+async def _apply_session_patch(
+    patch: SessionPatch,
+    plan_id: str,
+    user_id: str,
+    db: psycopg.AsyncConnection[object],
+) -> None:
+    """Update title/notes and replace items for a single prescribed session."""
+    async with db.cursor() as cur:
+        if patch.new_title is not None or patch.new_notes is not None:
+            await cur.execute(
+                """
+                UPDATE planned_sessions SET
+                    title = COALESCE(%s, title),
+                    notes = COALESCE(%s, notes)
+                WHERE id = %s::uuid AND plan_id = %s::uuid
+                """,
+                [patch.new_title, patch.new_notes, patch.session_id, plan_id],
+            )
+        if patch.modified_items:
+            await cur.execute(
+                "DELETE FROM planned_items WHERE session_id = %s::uuid",
+                [patch.session_id],
+            )
+            for item in patch.modified_items:
+                await cur.execute(
+                    """
+                    INSERT INTO planned_items
+                        (session_id, user_id, movement_name, sets, reps,
+                         load_pct_1rm, load_kg, notes, item_order)
+                    VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    [
+                        patch.session_id,
+                        user_id,
+                        item.movement_name,
+                        item.sets,
+                        item.reps,
+                        item.load_pct_1rm,
+                        item.load_kg,
+                        item.notes,
+                        item.item_order,
+                    ],
+                )
 
 
 @router.post("", status_code=202, response_model=PlanTaskResponse)
@@ -257,3 +343,64 @@ async def today_session(
         if s.id == str(row["id"]):
             return s
     return None
+
+
+@router.post("/{plan_id}/revise", response_model=PlanDetail)
+async def revise_plan(
+    plan_id: str,
+    req: PlanRevisionRequest,
+    user: Annotated[UserContext, Depends(get_current_user)],
+    db: _Db,
+) -> PlanDetail:
+    # 1. Verify plan ownership
+    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            "SELECT id FROM plans WHERE id = %s::uuid AND user_id = %s",
+            [plan_id, str(user.user_id)],
+        )
+        if await cur.fetchone() is None:
+            raise HTTPException(status_code=404, detail="Plan not found")
+
+    # 2. Load prescribed sessions — 422 if none remain
+    prescribed = await _load_prescribed_sessions(plan_id, str(user.user_id), db)
+    if not prescribed:
+        raise HTTPException(status_code=422, detail="No prescribed sessions to revise")
+
+    # 3. Generate revision diff
+    from app.ai.plan_generator import generate_plan_revision  # noqa: PLC0415
+
+    diff = await generate_plan_revision(prescribed, req.feedback)
+
+    # 4. Validate that all changed sessions are prescribed
+    prescribed_ids = {str(s["id"]) for s in prescribed}
+    for patch in diff.changed_sessions:
+        if patch.session_id not in prescribed_ids:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Session {patch.session_id} is not a prescribed session",
+            )
+
+    # 5. Apply patches + write audit row in one transaction
+    async with db.transaction():
+        for patch in diff.changed_sessions:
+            await _apply_session_patch(patch, plan_id, str(user.user_id), db)
+
+        await db.execute(
+            """
+            INSERT INTO adaptations
+                (plan_id, user_id, trigger_type, trigger_data,
+                 rationale, status, stub, merged_at)
+            VALUES (%s::uuid, %s, 'manual', %s::jsonb,
+                    %s, 'merged', %s, now())
+            """,
+            [
+                plan_id,
+                str(user.user_id),
+                json.dumps({"feedback": req.feedback}),
+                diff.rationale,
+                is_stubbed(),
+            ],
+        )
+
+    # 6. Return updated plan detail
+    return await _get_plan_detail(plan_id, str(user.user_id), db)

@@ -79,3 +79,30 @@ class PlanDetail(BaseModel):
     created_at: str
     mesocycles: list[MesocycleOut]
     sessions: list[PlannedSessionOut]
+
+
+class PlannedItemPatch(BaseModel):
+    item_id: str | None = None
+    movement_name: str
+    sets: int | None = None
+    reps: str | None = None
+    load_pct_1rm: float | None = None
+    load_kg: float | None = None
+    notes: str | None = None
+    item_order: int = 0
+
+
+class SessionPatch(BaseModel):
+    session_id: str
+    new_title: str | None = None
+    new_notes: str | None = None
+    modified_items: list[PlannedItemPatch] = []
+
+
+class PlanRevisionDiff(BaseModel):
+    rationale: str = Field(..., min_length=10, max_length=800)
+    changed_sessions: list[SessionPatch]
+
+
+class PlanRevisionRequest(BaseModel):
+    feedback: str = Field(..., min_length=5, max_length=1000)

@@ -33,7 +33,7 @@ export default async function PlanDetailPage({ params }: Props) {
         {plan.goal.replace("_", " ")} · {plan.weeks} weeks · starts{" "}
         {plan.start_date}
       </p>
-      <PlanBranchView plan={plan} />
+      <PlanBranchView plan={plan} accessToken={session.access_token} />
     </div>
   );
 }

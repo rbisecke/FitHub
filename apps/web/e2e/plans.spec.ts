@@ -179,3 +179,86 @@ test("unauthenticated plan list returns 401", async () => {
   const res = await fetch(`${API_URL}/api/v1/plans`);
   expect(res.status).toBe(401);
 });
+
+test.describe("plan revision", () => {
+  test("revise plan API returns updated plan detail", async ({ page }) => {
+    const token = await loginAndSetSession(page);
+    const planId = LIVE_LLM ? sharedPlanId : await createPlanAndWait(token);
+
+    const res = await fetch(`${API_URL}/api/v1/plans/${planId}/revise`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        feedback: "My knees have been bothering me — reduce squat volume.",
+      }),
+    });
+    expect(res.status).toBe(200);
+    const plan = (await res.json()) as Record<string, unknown>;
+    expect(plan["id"]).toBe(planId);
+    expect(Array.isArray(plan["sessions"])).toBe(true);
+    expect(Array.isArray(plan["mesocycles"])).toBe(true);
+  });
+
+  test("revise plan rejects short feedback", async ({ page }) => {
+    const token = await loginAndSetSession(page);
+    const planId = LIVE_LLM ? sharedPlanId : await createPlanAndWait(token);
+
+    const res = await fetch(`${API_URL}/api/v1/plans/${planId}/revise`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ feedback: "hi" }),
+    });
+    expect(res.status).toBe(422);
+  });
+
+  test("revise plan shows form in UI", async ({ page }) => {
+    const token = await loginAndSetSession(page);
+    const planId = LIVE_LLM ? sharedPlanId : await createPlanAndWait(token);
+
+    await page.goto(`http://localhost:3000/plans/${planId}`);
+    await expect(
+      page.locator('[data-testid="revision-feedback-input"]'),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.locator('[data-testid="revise-plan-submit"]'),
+    ).toBeVisible();
+    // Submit button disabled until feedback is long enough
+    await expect(
+      page.locator('[data-testid="revise-plan-submit"]'),
+    ).toBeDisabled();
+  });
+
+  test("revise plan UI submits and updates plan", async ({ page }) => {
+    const token = await loginAndSetSession(page);
+    const planId = LIVE_LLM ? sharedPlanId : await createPlanAndWait(token);
+
+    await page.goto(`http://localhost:3000/plans/${planId}`);
+    await expect(
+      page.locator('[data-testid="revision-feedback-input"]'),
+    ).toBeVisible({ timeout: 10000 });
+
+    await page.fill(
+      '[data-testid="revision-feedback-input"]',
+      "My knees have been bothering me — reduce squat volume please.",
+    );
+    await expect(
+      page.locator('[data-testid="revise-plan-submit"]'),
+    ).toBeEnabled();
+    await page.click('[data-testid="revise-plan-submit"]');
+
+    // Wait for success indicator or plan to remain visible
+    await expect(page.locator('[data-testid="plan-branch-view"]')).toBeVisible({
+      timeout: 15000,
+    });
+    // Feedback textarea should be cleared on success
+    await expect(
+      page.locator('[data-testid="revision-feedback-input"]'),
+    ).toHaveValue("");
+  });
+});

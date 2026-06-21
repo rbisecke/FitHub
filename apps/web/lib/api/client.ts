@@ -133,6 +133,11 @@ export const api = {
         `/api/v1/plans/${planId}/today`,
         token,
       ),
+    revise: (token: string, planId: string, feedback: string) =>
+      apiFetch<PlanDetail>(`/api/v1/plans/${planId}/revise`, token, {
+        method: "POST",
+        body: JSON.stringify({ feedback }),
+      }),
   },
   adaptations: {
     list: (token: string, planId: string) =>
