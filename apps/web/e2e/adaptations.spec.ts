@@ -214,3 +214,104 @@ test("adaptations page renders adaptation cards", async ({ page }) => {
     timeout: 10000,
   });
 });
+
+test.describe("rejection with feedback", () => {
+  test("reject with reason stores it via API", async ({ page }) => {
+    const { token, userId } = await loginAndSetSession(page);
+    const planId = await createPlanAndWait(token);
+    const adaptationId = await seedAdaptation(planId, userId);
+
+    const res = await fetch(
+      `${API_URL}/api/v1/adaptations/${adaptationId}/reject`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          rejection_reason: "Prefer volume reduction over intensity.",
+        }),
+      },
+    );
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as {
+      status: string;
+      rejection_reason: string | null;
+    };
+    expect(data.status).toBe("rejected");
+    expect(data.rejection_reason).toBe(
+      "Prefer volume reduction over intensity.",
+    );
+  });
+
+  test("reject without body is backward compatible", async ({ page }) => {
+    const { token, userId } = await loginAndSetSession(page);
+    const planId = await createPlanAndWait(token);
+    const adaptationId = await seedAdaptation(planId, userId);
+
+    const res = await fetch(
+      `${API_URL}/api/v1/adaptations/${adaptationId}/reject`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as { rejection_reason: string | null };
+    expect(data.rejection_reason).toBeNull();
+  });
+
+  test("adjust returns new proposed adaptation", async ({ page }) => {
+    const { token, userId } = await loginAndSetSession(page);
+    const planId = await createPlanAndWait(token);
+    const adaptationId = await seedAdaptation(planId, userId);
+
+    const res = await fetch(
+      `${API_URL}/api/v1/adaptations/${adaptationId}/adjust`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          feedback: "Please reduce volume instead of intensity here.",
+        }),
+      },
+    );
+    expect(res.status).toBe(200);
+    const newAdaptation = (await res.json()) as {
+      id: string;
+      status: string;
+      plan_id: string;
+    };
+    expect(newAdaptation.id).not.toBe(adaptationId);
+    expect(newAdaptation.status).toBe("proposed");
+    expect(newAdaptation.plan_id).toBe(planId);
+  });
+
+  test("revision form appears and submits via UI", async ({ page }) => {
+    const { token, userId } = await loginAndSetSession(page);
+    const planId = await createPlanAndWait(token);
+    await seedAdaptation(planId, userId);
+
+    await page.goto(`http://localhost:3000/plans/${planId}/adaptations`);
+    const card = page.locator('[data-testid="adaptation-card"]').first();
+    await expect(card).toBeVisible({ timeout: 10000 });
+
+    // Open revision form
+    await card.getByRole("button", { name: "request revision" }).click();
+    const form = page.locator('[data-testid="revision-form"]');
+    await expect(form).toBeVisible();
+
+    // Fill in feedback and submit
+    await form.locator("textarea").fill("Please be less aggressive this week.");
+    await form.getByRole("button", { name: "$ commit revision" }).click();
+
+    // A new proposed card should appear at the top
+    await expect(
+      page.locator('[data-testid="adaptation-card"]').first(),
+    ).toBeVisible({ timeout: 10000 });
+  });
+});

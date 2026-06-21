@@ -13,3 +13,5 @@ export type AdaptationOut = components["schemas"]["AdaptationOut"];
 export type InjuryOut = components["schemas"]["InjuryOut"];
 export type DetectTriggersResponse =
   components["schemas"]["DetectTriggersResponse"];
+export type AdjustAdaptationRequest =
+  components["schemas"]["AdjustAdaptationRequest"];

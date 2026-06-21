@@ -440,6 +440,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/adaptations/{adaptation_id}/adjust": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Adjust Adaptation
+     * @description Reject the existing adaptation and propose a revised one in one atomic step.
+     */
+    post: operations["adjust_adaptation_api_v1_adaptations__adaptation_id__adjust_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/injuries": {
     parameters: {
       query?: never;
@@ -654,6 +674,8 @@ export interface components {
       status: string;
       /** Rationale */
       rationale?: string | null;
+      /** Rejection Reason */
+      rejection_reason?: string | null;
       /** Diff Json */
       diff_json?: unknown;
       /**
@@ -678,6 +700,11 @@ export interface components {
       guest_name?: string | null;
       /** Role */
       role?: string | null;
+    };
+    /** AdjustAdaptationRequest */
+    AdjustAdaptationRequest: {
+      /** Feedback */
+      feedback: string;
     };
     /** ChatRequest */
     ChatRequest: {
@@ -1440,6 +1467,11 @@ export interface components {
       confidence_tier?: string | null;
       /** Hrv Type */
       hrv_type?: string | null;
+    };
+    /** RejectAdaptationRequest */
+    RejectAdaptationRequest: {
+      /** Rejection Reason */
+      rejection_reason?: string | null;
     };
     /** ReportInjuryRequest */
     ReportInjuryRequest: {
@@ -2752,7 +2784,48 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody?: {
+      content: {
+        "application/json":
+          | components["schemas"]["RejectAdaptationRequest"]
+          | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AdaptationOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  adjust_adaptation_api_v1_adaptations__adaptation_id__adjust_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        adaptation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AdjustAdaptationRequest"];
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {

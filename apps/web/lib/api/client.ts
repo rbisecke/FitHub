@@ -21,6 +21,7 @@ import type {
   AdaptationOut,
   InjuryOut,
   DetectTriggersResponse,
+  AdjustAdaptationRequest,
 } from "./plans";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -152,9 +153,17 @@ export const api = {
       apiFetch<AdaptationOut>(`/api/v1/adaptations/${id}/merge`, token, {
         method: "POST",
       }),
-    reject: (token: string, id: string) =>
+    reject: (token: string, id: string, rejectionReason?: string) =>
       apiFetch<AdaptationOut>(`/api/v1/adaptations/${id}/reject`, token, {
         method: "POST",
+        body: rejectionReason
+          ? JSON.stringify({ rejection_reason: rejectionReason })
+          : undefined,
+      }),
+    adjust: (token: string, id: string, body: AdjustAdaptationRequest) =>
+      apiFetch<AdaptationOut>(`/api/v1/adaptations/${id}/adjust`, token, {
+        method: "POST",
+        body: JSON.stringify(body),
       }),
   },
   injuries: {
