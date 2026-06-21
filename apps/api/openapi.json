@@ -1347,6 +1347,81 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RejectAdaptationRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdaptationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/adaptations/{adaptation_id}/adjust": {
+      "post": {
+        "tags": [
+          "adaptations"
+        ],
+        "summary": "Adjust Adaptation",
+        "description": "Reject the existing adaptation and propose a revised one in one atomic step.",
+        "operationId": "adjust_adaptation_api_v1_adaptations__adaptation_id__adjust_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "adaptation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Adaptation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdjustAdaptationRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2112,6 +2187,17 @@
             ],
             "title": "Rationale"
           },
+          "rejection_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Reason"
+          },
           "diff_json": {
             "title": "Diff Json"
           },
@@ -2219,6 +2305,21 @@
         },
         "type": "object",
         "title": "AddParticipantRequest"
+      },
+      "AdjustAdaptationRequest": {
+        "properties": {
+          "feedback": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 5,
+            "title": "Feedback"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feedback"
+        ],
+        "title": "AdjustAdaptationRequest"
       },
       "ChatRequest": {
         "properties": {
@@ -4649,6 +4750,24 @@
           "factors_available"
         ],
         "title": "ReadinessResponse"
+      },
+      "RejectAdaptationRequest": {
+        "properties": {
+          "rejection_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Reason"
+          }
+        },
+        "type": "object",
+        "title": "RejectAdaptationRequest"
       },
       "ReportInjuryRequest": {
         "properties": {

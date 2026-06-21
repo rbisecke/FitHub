@@ -51,6 +51,8 @@ async def generate_adaptation(
     trigger: dict[str, object],
     affected_sessions: list[dict[str, object]],
     rationale_only: bool = False,
+    rejection_context: str | None = None,
+    prior_rationale: str | None = None,
 ) -> dict[str, object]:
     """Generate a plan adaptation for the given trigger via LLM + instructor."""
     from app.ai.client import get_client
@@ -67,32 +69,54 @@ async def generate_adaptation(
         for s in affected_sessions[:10]
     )
 
+    messages: list[dict[str, str]] = [
+        {
+            "role": "system",
+            "content": (
+                "You are a CrossFit coach adapting a training plan. "
+                "Be conservative: prefer reducing intensity over skipping sessions. "
+                "Rationale must be under 500 characters and athlete-friendly. "
+                "Diff entries must reference actual session titles from the input. "
+                "Valid change values: reduce_intensity, reduce_volume, "
+                "swap_session, add_rest, skip."
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                f"Trigger: {trigger_type}\n"
+                f"Trigger data: {trigger_data}\n\n"
+                f"Upcoming sessions:\n{sessions_text}\n\n"
+                "Propose adaptations."
+            ),
+        },
+    ]
+
+    if prior_rationale:
+        messages.append(
+            {
+                "role": "assistant",
+                "content": prior_rationale,
+            }
+        )
+
+    if rejection_context:
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    f"The athlete rejected that suggestion with this feedback: "
+                    f"{rejection_context}\n\n"
+                    "Please revise your adaptation to address their concern."
+                ),
+            }
+        )
+
     output: AdaptationOutput = await call_llm(
         llm.client.chat.completions.create(
             model=llm.model,
             max_tokens=1024,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a CrossFit coach adapting a training plan. "
-                        "Be conservative: prefer reducing intensity over skipping sessions. "
-                        "Rationale must be under 500 characters and athlete-friendly. "
-                        "Diff entries must reference actual session titles from the input. "
-                        "Valid change values: reduce_intensity, reduce_volume, "
-                        "swap_session, add_rest, skip."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f"Trigger: {trigger_type}\n"
-                        f"Trigger data: {trigger_data}\n\n"
-                        f"Upcoming sessions:\n{sessions_text}\n\n"
-                        "Propose adaptations."
-                    ),
-                },
-            ],
+            messages=messages,  # type: ignore[arg-type]
             response_model=AdaptationOutput,
         ),
         context=f"generate_adaptation:{trigger_type}",
