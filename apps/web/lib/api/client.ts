@@ -10,6 +10,7 @@ import type {
   TrainingPartner,
   ParseLogResponse,
   ChatResponse,
+  HistoryMessage,
 } from "./index";
 import type {
   PlanDetail,
@@ -108,6 +109,13 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ question, session_id: sessionId ?? null }),
       }),
+    history: (token: string, sessionId: string, limit = 20) =>
+      apiFetch<HistoryMessage[]>(
+        `/api/v1/coach/history?session_id=${encodeURIComponent(
+          sessionId,
+        )}&limit=${limit}`,
+        token,
+      ),
   },
   plans: {
     list: (token: string) => apiFetch<PlanSummary[]>("/api/v1/plans", token),

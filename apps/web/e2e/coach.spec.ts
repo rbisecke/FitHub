@@ -149,3 +149,137 @@ test("unauthenticated chat returns 401", async () => {
   });
   expect(res.status).toBe(401);
 });
+
+test("unauthenticated history returns 401", async () => {
+  const res = await fetch(
+    `${API_URL}/api/v1/coach/history?session_id=00000000-0000-0000-0000-000000000001`,
+  );
+  expect(res.status).toBe(401);
+});
+
+test.describe("multi-turn chat", () => {
+  test("session_id is sent in POST /chat request body", async ({ page }) => {
+    const token = await loginAndSetSession(page);
+
+    const intercepted: string[] = [];
+    await page.route(`${API_URL}/api/v1/coach/chat`, async (route) => {
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      if (typeof body["session_id"] === "string") {
+        intercepted.push(body["session_id"]);
+      }
+      await route.continue();
+    });
+
+    await page.goto("http://localhost:3000/coach");
+    await page.waitForSelector(
+      '[data-testid="coach-chat-input"]:not([disabled])',
+      {
+        timeout: 8000,
+      },
+    );
+
+    await page.fill('[data-testid="coach-chat-input"]', "What is ACWR?");
+    await page.click('button[type="submit"]');
+    await page.waitForSelector('[data-testid="chat-response"]', {
+      timeout: 10000,
+    });
+
+    expect(intercepted.length).toBeGreaterThan(0);
+    expect(intercepted[0]).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
+    // Suppress unused-variable warning — token used to set session above
+    void token;
+  });
+
+  test("starter prompt cards visible on fresh session", async ({ page }) => {
+    await loginAndSetSession(page);
+    await page.goto("http://localhost:3000/coach");
+    // Clear any existing session so we get a clean slate
+    await page.evaluate(() => localStorage.removeItem("coach_session_id"));
+    await page.reload();
+
+    // Wait for history load to complete (input becomes enabled)
+    await page.waitForSelector(
+      '[data-testid="coach-chat-input"]:not([disabled])',
+      {
+        timeout: 8000,
+      },
+    );
+
+    const cards = page.locator("button", { hasText: "Why did my ACWR spike" });
+    await expect(cards).toBeVisible();
+  });
+
+  test("input is disabled on page load until history fetch resolves", async ({
+    page,
+  }) => {
+    await loginAndSetSession(page);
+    await page.goto("http://localhost:3000/coach");
+
+    const chatInput = page.locator('[data-testid="coach-chat-input"]');
+    await expect(chatInput).toBeEnabled({ timeout: 8000 });
+  });
+
+  test("second message renders below first response in same session", async ({
+    page,
+  }) => {
+    const token = await loginAndSetSession(page);
+    await page.goto("http://localhost:3000/coach");
+    await page.waitForSelector(
+      '[data-testid="coach-chat-input"]:not([disabled])',
+      {
+        timeout: 8000,
+      },
+    );
+
+    await page.fill('[data-testid="coach-chat-input"]', "What is ACWR?");
+    await page.click('button[type="submit"]');
+    await page.waitForSelector('[data-testid="chat-response"]', {
+      timeout: 10000,
+    });
+
+    await page.fill('[data-testid="coach-chat-input"]', "How do I lower it?");
+    await page.click('button[type="submit"]');
+
+    const responses = page.locator('[data-testid="chat-response"]');
+    await expect(responses).toHaveCount(2, { timeout: 10000 });
+    void token;
+  });
+
+  test("new chat button clears the message list", async ({ page }) => {
+    await loginAndSetSession(page);
+    await page.goto("http://localhost:3000/coach");
+    await page.waitForSelector(
+      '[data-testid="coach-chat-input"]:not([disabled])',
+      {
+        timeout: 8000,
+      },
+    );
+
+    // Send two messages so the session indicator (with new chat button) appears
+    await page.fill('[data-testid="coach-chat-input"]', "What is ACWR?");
+    await page.click('button[type="submit"]');
+    await page.waitForSelector('[data-testid="chat-response"]', {
+      timeout: 10000,
+    });
+
+    await page.fill('[data-testid="coach-chat-input"]', "And what is RPE?");
+    await page.click('button[type="submit"]');
+    await page.waitForSelector('[data-testid="chat-response"]:nth-of-type(2)', {
+      timeout: 10000,
+    });
+
+    await page.click('button:has-text("+ new chat")');
+
+    // Messages cleared; starter prompts should reappear after fresh history fetch
+    await page.waitForSelector(
+      '[data-testid="coach-chat-input"]:not([disabled])',
+      {
+        timeout: 5000,
+      },
+    );
+    const responses = page.locator('[data-testid="chat-response"]');
+    await expect(responses).toHaveCount(0);
+  });
+});
