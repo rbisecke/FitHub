@@ -8,7 +8,19 @@ import type {
   VolumeTrendResponse,
   ReadinessResponse,
   TrainingPartner,
+  ParseLogResponse,
+  ChatResponse,
 } from "./index";
+import type {
+  PlanDetail,
+  PlanSummary,
+  PlanTaskResponse,
+  PlannedSessionOut,
+  CreatePlanRequest,
+  AdaptationOut,
+  InjuryOut,
+  DetectTriggersResponse,
+} from "./plans";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -85,4 +97,67 @@ export const api = {
   },
   trainingPartners: (token: string) =>
     apiFetch<TrainingPartner[]>("/api/v1/training-partners", token),
+  coach: {
+    parseLog: (token: string, text: string) =>
+      apiFetch<ParseLogResponse>("/api/v1/coach/parse-log", token, {
+        method: "POST",
+        body: JSON.stringify({ text }),
+      }),
+    chat: (token: string, question: string, sessionId?: string | null) =>
+      apiFetch<ChatResponse>("/api/v1/coach/chat", token, {
+        method: "POST",
+        body: JSON.stringify({ question, session_id: sessionId ?? null }),
+      }),
+  },
+  plans: {
+    list: (token: string) => apiFetch<PlanSummary[]>("/api/v1/plans", token),
+    get: (token: string, id: string) =>
+      apiFetch<PlanDetail>(`/api/v1/plans/${id}`, token),
+    create: (token: string, body: CreatePlanRequest) =>
+      apiFetch<PlanTaskResponse>("/api/v1/plans", token, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    pollTask: (token: string, taskId: string) =>
+      apiFetch<PlanTaskResponse>(`/api/v1/plans/tasks/${taskId}`, token),
+    today: (token: string, planId: string) =>
+      apiFetch<PlannedSessionOut | null>(
+        `/api/v1/plans/${planId}/today`,
+        token,
+      ),
+  },
+  adaptations: {
+    list: (token: string, planId: string) =>
+      apiFetch<AdaptationOut[]>(`/api/v1/plans/${planId}/adaptations`, token),
+    detect: (token: string, planId: string) =>
+      apiFetch<DetectTriggersResponse>(
+        `/api/v1/plans/${planId}/adaptations/detect`,
+        token,
+        { method: "POST" },
+      ),
+    merge: (token: string, id: string) =>
+      apiFetch<AdaptationOut>(`/api/v1/adaptations/${id}/merge`, token, {
+        method: "POST",
+      }),
+    reject: (token: string, id: string) =>
+      apiFetch<AdaptationOut>(`/api/v1/adaptations/${id}/reject`, token, {
+        method: "POST",
+      }),
+  },
+  injuries: {
+    report: (
+      token: string,
+      body: {
+        body_region: string;
+        pain_level: number;
+        mechanism?: string | null;
+        notes?: string | null;
+      },
+    ) =>
+      apiFetch<InjuryOut>("/api/v1/injuries", token, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    list: (token: string) => apiFetch<InjuryOut[]>("/api/v1/injuries", token),
+  },
 };

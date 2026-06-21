@@ -20,3 +20,10 @@ export type VolumeTrendResponse = components["schemas"]["VolumeTrendResponse"];
 export type WeeklyVolume = components["schemas"]["WeeklyVolume"];
 export type ReadinessResponse = components["schemas"]["ReadinessResponse"];
 export type TrainingPartner = components["schemas"]["TrainingPartner"];
+
+// Coach types — from generated OpenAPI schema
+export type MovementResult = components["schemas"]["MovementResult"];
+export type ParsedLogEntry = components["schemas"]["ParsedLogEntry"];
+export type ParseLogResponse = components["schemas"]["ParseLogResponse"];
+export type Citation = components["schemas"]["Citation"];
+export type ChatResponse = components["schemas"]["ChatResponse"];

@@ -213,6 +213,196 @@
         ]
       }
     },
+    "/api/v1/coach/parse-log": {
+      "post": {
+        "tags": [
+          "coach"
+        ],
+        "summary": "Parse Log",
+        "operationId": "parse_log_api_v1_coach_parse_log_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParseLogRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseLogResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/coach/chat": {
+      "post": {
+        "tags": [
+          "coach"
+        ],
+        "summary": "Chat",
+        "operationId": "chat_api_v1_coach_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/integrations/apple-health/connect": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Connect Apple Health",
+        "description": "Generate a bearer token for HAE (dev-only endpoint). Returns plaintext once.",
+        "operationId": "connect_apple_health_api_v1_integrations_apple_health_connect_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/integrations/apple-health/token": {
+      "delete": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Revoke Apple Health Token",
+        "operationId": "revoke_apple_health_token_api_v1_integrations_apple_health_token_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/integrations": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "List Integrations",
+        "operationId": "list_integrations_api_v1_integrations_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectionStatus"
+                  },
+                  "type": "array",
+                  "title": "Response List Integrations Api V1 Integrations Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/integrations/apple-health/sync": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Apple Health Sync",
+        "description": "Accept an HAE payload authenticated by a dev ingest bearer token.",
+        "operationId": "apple_health_sync_api_v1_integrations_apple_health_sync_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/movements": {
       "get": {
         "tags": [
@@ -644,6 +834,495 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/plans": {
+      "get": {
+        "tags": [
+          "plans"
+        ],
+        "summary": "List Plans",
+        "operationId": "list_plans_api_v1_plans_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlanSummary"
+                  },
+                  "type": "array",
+                  "title": "Response List Plans Api V1 Plans Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "plans"
+        ],
+        "summary": "Create Plan",
+        "operationId": "create_plan_api_v1_plans_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanTaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/plans/tasks/{task_id}": {
+      "get": {
+        "tags": [
+          "plans"
+        ],
+        "summary": "Get Task",
+        "operationId": "get_task_api_v1_plans_tasks__task_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanTaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans/{plan_id}": {
+      "get": {
+        "tags": [
+          "plans"
+        ],
+        "summary": "Get Plan",
+        "operationId": "get_plan_api_v1_plans__plan_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans/{plan_id}/today": {
+      "get": {
+        "tags": [
+          "plans"
+        ],
+        "summary": "Today Session",
+        "operationId": "today_session_api_v1_plans__plan_id__today_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/PlannedSessionOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Today Session Api V1 Plans  Plan Id  Today Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans/{plan_id}/adaptations/detect": {
+      "post": {
+        "tags": [
+          "adaptations"
+        ],
+        "summary": "Detect Plan Adaptations",
+        "operationId": "detect_plan_adaptations_api_v1_plans__plan_id__adaptations_detect_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectTriggersResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans/{plan_id}/adaptations": {
+      "get": {
+        "tags": [
+          "adaptations"
+        ],
+        "summary": "List Adaptations",
+        "operationId": "list_adaptations_api_v1_plans__plan_id__adaptations_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdaptationOut"
+                  },
+                  "title": "Response List Adaptations Api V1 Plans  Plan Id  Adaptations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/adaptations/{adaptation_id}/merge": {
+      "post": {
+        "tags": [
+          "adaptations"
+        ],
+        "summary": "Merge Adaptation",
+        "operationId": "merge_adaptation_api_v1_adaptations__adaptation_id__merge_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "adaptation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Adaptation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdaptationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/adaptations/{adaptation_id}/reject": {
+      "post": {
+        "tags": [
+          "adaptations"
+        ],
+        "summary": "Reject Adaptation",
+        "operationId": "reject_adaptation_api_v1_adaptations__adaptation_id__reject_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "adaptation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Adaptation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdaptationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/injuries": {
+      "get": {
+        "tags": [
+          "injuries"
+        ],
+        "summary": "List Injuries",
+        "operationId": "list_injuries_api_v1_injuries_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InjuryOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Injuries Api V1 Injuries Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "injuries"
+        ],
+        "summary": "Report Injury",
+        "operationId": "report_injury_api_v1_injuries_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportInjuryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InjuryOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v1/team-sessions/role-suggestions": {
@@ -1275,6 +1954,100 @@
   },
   "components": {
     "schemas": {
+      "AdaptationOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "trigger_type": {
+            "type": "string",
+            "title": "Trigger Type"
+          },
+          "trigger_data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Trigger Data"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rationale"
+          },
+          "diff_json": {
+            "title": "Diff Json"
+          },
+          "stub": {
+            "type": "boolean",
+            "title": "Stub",
+            "default": false
+          },
+          "proposed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed At"
+          },
+          "merged_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merged At"
+          },
+          "rejected_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "plan_id",
+          "user_id",
+          "trigger_type",
+          "trigger_data",
+          "status"
+        ],
+        "title": "AdaptationOut"
+      },
       "AddParticipantRequest": {
         "properties": {
           "user_id": {
@@ -1326,6 +2099,146 @@
         },
         "type": "object",
         "title": "AddParticipantRequest"
+      },
+      "ChatRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Question"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "ChatRequest"
+      },
+      "ChatResponse": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "title": "Citations",
+            "default": []
+          },
+          "stub": {
+            "type": "boolean",
+            "title": "Stub",
+            "default": false
+          },
+          "safety_tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safety Tier"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer"
+        ],
+        "title": "ChatResponse"
+      },
+      "Citation": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "source_type": {
+            "type": "string",
+            "title": "Source Type"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "source_type",
+          "score"
+        ],
+        "title": "Citation"
+      },
+      "ConnectResponse": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "token_prefix": {
+            "type": "string",
+            "title": "Token Prefix"
+          },
+          "ingest_url": {
+            "type": "string",
+            "title": "Ingest Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "token_prefix",
+          "ingest_url"
+        ],
+        "title": "ConnectResponse"
+      },
+      "ConnectionStatus": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "sync_status": {
+            "type": "string",
+            "title": "Sync Status"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "sync_status",
+          "last_synced_at"
+        ],
+        "title": "ConnectionStatus"
       },
       "CreateMovementRequest": {
         "properties": {
@@ -1505,6 +2418,53 @@
         },
         "type": "object",
         "title": "CreateParticipantRequest"
+      },
+      "CreatePlanRequest": {
+        "properties": {
+          "goal": {
+            "type": "string",
+            "enum": [
+              "general_fitness",
+              "strength",
+              "endurance",
+              "competition_prep"
+            ],
+            "title": "Goal"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "weeks": {
+            "type": "integer",
+            "maximum": 24.0,
+            "minimum": 4.0,
+            "title": "Weeks"
+          },
+          "training_age": {
+            "type": "string",
+            "enum": [
+              "beginner",
+              "intermediate",
+              "advanced"
+            ],
+            "title": "Training Age"
+          }
+        },
+        "type": "object",
+        "required": [
+          "goal",
+          "title",
+          "start_date",
+          "weeks",
+          "training_age"
+        ],
+        "title": "CreatePlanRequest"
       },
       "CreateResultRequest": {
         "properties": {
@@ -2055,6 +3015,36 @@
         ],
         "title": "DailyLoadPoint"
       },
+      "DetectTriggersResponse": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id"
+          },
+          "triggers": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Triggers"
+          },
+          "proposed_adaptations": {
+            "items": {
+              "$ref": "#/components/schemas/AdaptationOut"
+            },
+            "type": "array",
+            "title": "Proposed Adaptations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id",
+          "triggers",
+          "proposed_adaptations"
+        ],
+        "title": "DetectTriggersResponse"
+      },
       "E1RMPoint": {
         "properties": {
           "day": {
@@ -2116,6 +3106,106 @@
           "status"
         ],
         "title": "HealthResponse"
+      },
+      "InjuryOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "body_region": {
+            "type": "string",
+            "title": "Body Region"
+          },
+          "pain_level": {
+            "type": "integer",
+            "title": "Pain Level"
+          },
+          "mechanism": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mechanism"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "requires_referral": {
+            "type": "boolean",
+            "title": "Requires Referral"
+          },
+          "substitutions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Substitutions",
+            "default": []
+          },
+          "contraindicated": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Contraindicated",
+            "default": []
+          },
+          "reported_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported At"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "body_region",
+          "pain_level",
+          "active",
+          "requires_referral"
+        ],
+        "title": "InjuryOut"
       },
       "LimbStyle": {
         "type": "string",
@@ -2186,6 +3276,51 @@
           "user_id"
         ],
         "title": "MeResponse"
+      },
+      "MesocycleOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phase": {
+            "type": "string",
+            "title": "Phase"
+          },
+          "week_start": {
+            "type": "integer",
+            "title": "Week Start"
+          },
+          "week_end": {
+            "type": "integer",
+            "title": "Week End"
+          },
+          "focus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Focus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "phase",
+          "week_start",
+          "week_end",
+          "focus"
+        ],
+        "title": "MesocycleOut"
       },
       "Modality": {
         "type": "string",
@@ -2379,6 +3514,81 @@
         ],
         "title": "MovementPattern"
       },
+      "MovementResult": {
+        "properties": {
+          "movement_name": {
+            "type": "string",
+            "title": "Movement Name"
+          },
+          "result_type": {
+            "type": "string",
+            "enum": [
+              "reps",
+              "time_s",
+              "distance_m",
+              "weight_kg",
+              "rounds",
+              "calories"
+            ],
+            "title": "Result Type"
+          },
+          "reps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reps"
+          },
+          "load_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Kg"
+          },
+          "time_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time S"
+          },
+          "scaled": {
+            "type": "boolean",
+            "title": "Scaled",
+            "default": false
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "movement_name",
+          "result_type"
+        ],
+        "title": "MovementResult"
+      },
       "Notification": {
         "properties": {
           "id": {
@@ -2436,6 +3646,135 @@
           "workout_link_pending"
         ],
         "title": "NotificationType"
+      },
+      "ParseLogRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "ParseLogRequest"
+      },
+      "ParseLogResponse": {
+        "properties": {
+          "parsed": {
+            "$ref": "#/components/schemas/ParsedLogEntry"
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence"
+          },
+          "stub": {
+            "type": "boolean",
+            "title": "Stub",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "parsed",
+          "confidence"
+        ],
+        "title": "ParseLogResponse"
+      },
+      "ParsedLogEntry": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "session_type": {
+            "type": "string",
+            "enum": [
+              "metcon",
+              "strength",
+              "skill",
+              "cardio",
+              "mixed",
+              "rest",
+              "unknown"
+            ],
+            "title": "Session Type"
+          },
+          "workout_format": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "amrap",
+                  "for_time",
+                  "emom",
+                  "tabata",
+                  "rft",
+                  "straight_sets",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workout Format"
+          },
+          "duration_s": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration S"
+          },
+          "session_rpe": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Rpe"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/MovementResult"
+            },
+            "type": "array",
+            "title": "Results",
+            "default": []
+          },
+          "parsing_notes": {
+            "type": "string",
+            "title": "Parsing Notes",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_type"
+        ],
+        "title": "ParsedLogEntry"
       },
       "PatchParticipantRequest": {
         "properties": {
@@ -2712,6 +4051,326 @@
         ],
         "title": "PersonalRecord"
       },
+      "PlanDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "goal": {
+            "type": "string",
+            "title": "Goal"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "branch_name": {
+            "type": "string",
+            "title": "Branch Name"
+          },
+          "weeks": {
+            "type": "integer",
+            "title": "Weeks"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "title": "End Date"
+          },
+          "training_age": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Age"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "mesocycles": {
+            "items": {
+              "$ref": "#/components/schemas/MesocycleOut"
+            },
+            "type": "array",
+            "title": "Mesocycles"
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/PlannedSessionOut"
+            },
+            "type": "array",
+            "title": "Sessions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "goal",
+          "title",
+          "branch_name",
+          "weeks",
+          "status",
+          "start_date",
+          "end_date",
+          "training_age",
+          "created_at",
+          "mesocycles",
+          "sessions"
+        ],
+        "title": "PlanDetail"
+      },
+      "PlanSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "goal": {
+            "type": "string",
+            "title": "Goal"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "branch_name": {
+            "type": "string",
+            "title": "Branch Name"
+          },
+          "weeks": {
+            "type": "integer",
+            "title": "Weeks"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "title": "End Date"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "goal",
+          "title",
+          "branch_name",
+          "weeks",
+          "status",
+          "start_date",
+          "end_date",
+          "created_at"
+        ],
+        "title": "PlanSummary"
+      },
+      "PlanTaskResponse": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "status"
+        ],
+        "title": "PlanTaskResponse"
+      },
+      "PlannedItemOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "movement_name": {
+            "type": "string",
+            "title": "Movement Name"
+          },
+          "sets": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sets"
+          },
+          "reps": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reps"
+          },
+          "load_pct_1rm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Pct 1Rm"
+          },
+          "load_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Kg"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "item_order": {
+            "type": "integer",
+            "title": "Item Order"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "movement_name",
+          "sets",
+          "reps",
+          "load_pct_1rm",
+          "load_kg",
+          "notes",
+          "item_order"
+        ],
+        "title": "PlannedItemOut"
+      },
+      "PlannedSessionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "mesocycle_id": {
+            "type": "string",
+            "title": "Mesocycle Id"
+          },
+          "scheduled_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Scheduled Date"
+          },
+          "session_type": {
+            "type": "string",
+            "title": "Session Type"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PlannedItemOut"
+            },
+            "type": "array",
+            "title": "Items",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "mesocycle_id",
+          "scheduled_date",
+          "session_type",
+          "title",
+          "notes",
+          "status"
+        ],
+        "title": "PlannedSessionOut"
+      },
       "ReadinessResponse": {
         "properties": {
           "score": {
@@ -2773,6 +4432,50 @@
           "factors_available": {
             "type": "integer",
             "title": "Factors Available"
+          },
+          "recovery_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recovery Score"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
+          },
+          "confidence_tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence Tier"
+          },
+          "hrv_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hrv Type"
           }
         },
         "type": "object",
@@ -2787,6 +4490,65 @@
           "factors_available"
         ],
         "title": "ReadinessResponse"
+      },
+      "ReportInjuryRequest": {
+        "properties": {
+          "body_region": {
+            "type": "string",
+            "enum": [
+              "shoulder",
+              "knee",
+              "hip",
+              "lower_back",
+              "wrist",
+              "elbow",
+              "ankle",
+              "neck",
+              "other"
+            ],
+            "title": "Body Region"
+          },
+          "pain_level": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Pain Level"
+          },
+          "mechanism": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "overuse",
+                  "acute",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mechanism"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "body_region",
+          "pain_level"
+        ],
+        "title": "ReportInjuryRequest"
       },
       "Result": {
         "properties": {
@@ -3149,6 +4911,24 @@
           "active_recovery"
         ],
         "title": "SessionType"
+      },
+      "SyncResponse": {
+        "properties": {
+          "rows_inserted": {
+            "type": "integer",
+            "title": "Rows Inserted"
+          },
+          "recovery_computed": {
+            "type": "boolean",
+            "title": "Recovery Computed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rows_inserted",
+          "recovery_computed"
+        ],
+        "title": "SyncResponse"
       },
       "TeamSession": {
         "properties": {

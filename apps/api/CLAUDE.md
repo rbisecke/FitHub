@@ -8,12 +8,22 @@ FastAPI · Python 3.14 · uv · Pydantic v2 · Alembic (Phase 2+) · pytest + ht
 
 ```bash
 uv run uvicorn app.main:app --reload   # dev server (localhost:8000)
-uv run pytest                          # all tests
-uv run pytest --cov=app --cov-report=term-missing  # with coverage
+uv run pytest /Users/rbisecke/FitHub/apps/api/tests/   # all tests (abs path → rootdir = apps/api)
+uv run pytest /Users/rbisecke/FitHub/apps/api/tests/ --cov=app --cov-report=term-missing  # with coverage
 uv run ruff check .                    # lint
 uv run ruff format .                   # format
 uv run mypy .                          # type check
 ```
+
+## OpenAPI type sync (mandatory)
+
+Whenever you **add a route** or **change a `response_model`**, regenerate the frontend types immediately:
+
+```bash
+pnpm -C apps/web generate-types
+```
+
+This re-runs `openapi-typescript` against `openapi.json` and writes `apps/web/lib/api/generated.ts`. Commit the updated file alongside the route change — skipping it causes TypeScript errors in the frontend and silently breaks type safety across the stack.
 
 ## Key conventions
 

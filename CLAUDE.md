@@ -39,6 +39,20 @@ The `.html` docs are large self-contained references — open them in a browser,
 - **Local-first, money-last:** build + validate everything on a local Supabase (CLI/Docker) stack for $0; don't deploy to paid cloud until the final deployment phase. Stub the LLM / use Haiku + a local embedding model during AI dev.
 - Per-package `CLAUDE.md` (apps/web, apps/api), hooks, skills, and the MCP set (context7 + Playwright + Supabase) are in `.claude/`.
 
+## UI/UX validation rule (mandatory for frontend rendering changes)
+
+Any change that affects how something is **rendered for a user** must go through this loop before the PR is merged:
+
+1. **Screenshot with Playwright** — capture the changed page/component at real viewport size.
+2. **UI/UX critique agent** — send the screenshot(s) to a `frontend-architect` agent with the prompt: _"Act as a senior UI/UX designer. FitHub is a dark, git-themed CrossFit app with monospace typography. Critique this screenshot: visual hierarchy, spacing, readability, mobile responsiveness, contrast, git-theme adherence. Return specific actionable fixes."_
+3. **Apply every fix** the agent returns, then re-screenshot to confirm.
+4. **Include before+after screenshots** in the PR description as the paper trail.
+
+This applies to: new pages, new components, layout/spacing/colour changes, typography changes.
+This does NOT apply to: API-only changes, refactors with identical visual output, copy-only edits.
+
+Full procedure in `claude_docs/phases/phase5/E2E-Testing.md` § Layer 5.
+
 ## Git workflow
 
 - **Branch naming:** use conventional prefixes — `feat/`, `fix/`, `chore/`, `refactor/`, `docs/`, `test/`, `hotfix/`. Follow the prefix with a short kebab-case description of the change (e.g. `feat/user-profile-api`, `fix/jwt-expiry-check`).

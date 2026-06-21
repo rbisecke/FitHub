@@ -89,6 +89,114 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/coach/parse-log": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Parse Log */
+    post: operations["parse_log_api_v1_coach_parse_log_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/coach/chat": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Chat */
+    post: operations["chat_api_v1_coach_chat_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/integrations/apple-health/connect": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Connect Apple Health
+     * @description Generate a bearer token for HAE (dev-only endpoint). Returns plaintext once.
+     */
+    post: operations["connect_apple_health_api_v1_integrations_apple_health_connect_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/integrations/apple-health/token": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Revoke Apple Health Token */
+    delete: operations["revoke_apple_health_token_api_v1_integrations_apple_health_token_delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/integrations": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Integrations */
+    get: operations["list_integrations_api_v1_integrations_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/integrations/apple-health/sync": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Apple Health Sync
+     * @description Accept an HAE payload authenticated by a dev ingest bearer token.
+     */
+    post: operations["apple_health_sync_api_v1_integrations_apple_health_sync_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/movements": {
     parameters: {
       query?: never;
@@ -155,6 +263,161 @@ export interface paths {
     get: operations["get_workout_team_session_route_api_v1_workouts__workout_id__team_session_get"];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/plans": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Plans */
+    get: operations["list_plans_api_v1_plans_get"];
+    put?: never;
+    /** Create Plan */
+    post: operations["create_plan_api_v1_plans_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/plans/tasks/{task_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Task */
+    get: operations["get_task_api_v1_plans_tasks__task_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/plans/{plan_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Plan */
+    get: operations["get_plan_api_v1_plans__plan_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/plans/{plan_id}/today": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Today Session */
+    get: operations["today_session_api_v1_plans__plan_id__today_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/plans/{plan_id}/adaptations/detect": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Detect Plan Adaptations */
+    post: operations["detect_plan_adaptations_api_v1_plans__plan_id__adaptations_detect_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/plans/{plan_id}/adaptations": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Adaptations */
+    get: operations["list_adaptations_api_v1_plans__plan_id__adaptations_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/adaptations/{adaptation_id}/merge": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Merge Adaptation */
+    post: operations["merge_adaptation_api_v1_adaptations__adaptation_id__merge_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/adaptations/{adaptation_id}/reject": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Reject Adaptation */
+    post: operations["reject_adaptation_api_v1_adaptations__adaptation_id__reject_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/injuries": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Injuries */
+    get: operations["list_injuries_api_v1_injuries_get"];
+    put?: never;
+    /** Report Injury */
+    post: operations["report_injury_api_v1_injuries_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -339,6 +602,38 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** AdaptationOut */
+    AdaptationOut: {
+      /** Id */
+      id: string;
+      /** Plan Id */
+      plan_id: string;
+      /** User Id */
+      user_id: string;
+      /** Trigger Type */
+      trigger_type: string;
+      /** Trigger Data */
+      trigger_data: {
+        [key: string]: unknown;
+      };
+      /** Status */
+      status: string;
+      /** Rationale */
+      rationale?: string | null;
+      /** Diff Json */
+      diff_json?: unknown;
+      /**
+       * Stub
+       * @default false
+       */
+      stub: boolean;
+      /** Proposed At */
+      proposed_at?: string | null;
+      /** Merged At */
+      merged_at?: string | null;
+      /** Rejected At */
+      rejected_at?: string | null;
+    };
     /** AddParticipantRequest */
     AddParticipantRequest: {
       /** User Id */
@@ -349,6 +644,57 @@ export interface components {
       guest_name?: string | null;
       /** Role */
       role?: string | null;
+    };
+    /** ChatRequest */
+    ChatRequest: {
+      /** Question */
+      question: string;
+      /** Session Id */
+      session_id?: string | null;
+    };
+    /** ChatResponse */
+    ChatResponse: {
+      /** Answer */
+      answer: string;
+      /**
+       * Citations
+       * @default []
+       */
+      citations: components["schemas"]["Citation"][];
+      /**
+       * Stub
+       * @default false
+       */
+      stub: boolean;
+      /** Safety Tier */
+      safety_tier?: string | null;
+    };
+    /** Citation */
+    Citation: {
+      /** Title */
+      title: string;
+      /** Source Type */
+      source_type: string;
+      /** Score */
+      score: number;
+    };
+    /** ConnectResponse */
+    ConnectResponse: {
+      /** Token */
+      token: string;
+      /** Token Prefix */
+      token_prefix: string;
+      /** Ingest Url */
+      ingest_url: string;
+    };
+    /** ConnectionStatus */
+    ConnectionStatus: {
+      /** Provider */
+      provider: string;
+      /** Sync Status */
+      sync_status: string;
+      /** Last Synced At */
+      last_synced_at: string | null;
     };
     /** CreateMovementRequest */
     CreateMovementRequest: {
@@ -385,6 +731,28 @@ export interface components {
       guest_name?: string | null;
       /** Role */
       role?: string | null;
+    };
+    /** CreatePlanRequest */
+    CreatePlanRequest: {
+      /**
+       * Goal
+       * @enum {string}
+       */
+      goal: "general_fitness" | "strength" | "endurance" | "competition_prep";
+      /** Title */
+      title: string;
+      /**
+       * Start Date
+       * Format: date
+       */
+      start_date: string;
+      /** Weeks */
+      weeks: number;
+      /**
+       * Training Age
+       * @enum {string}
+       */
+      training_age: "beginner" | "intermediate" | "advanced";
     };
     /** CreateResultRequest */
     CreateResultRequest: {
@@ -513,6 +881,17 @@ export interface components {
       /** Acwr */
       acwr: number | null;
     };
+    /** DetectTriggersResponse */
+    DetectTriggersResponse: {
+      /** Plan Id */
+      plan_id: string;
+      /** Triggers */
+      triggers: {
+        [key: string]: unknown;
+      }[];
+      /** Proposed Adaptations */
+      proposed_adaptations: components["schemas"]["AdaptationOut"][];
+    };
     /** E1RMPoint */
     E1RMPoint: {
       /**
@@ -546,6 +925,39 @@ export interface components {
       /** Status */
       status: string;
     };
+    /** InjuryOut */
+    InjuryOut: {
+      /** Id */
+      id: string;
+      /** User Id */
+      user_id: string;
+      /** Body Region */
+      body_region: string;
+      /** Pain Level */
+      pain_level: number;
+      /** Mechanism */
+      mechanism?: string | null;
+      /** Notes */
+      notes?: string | null;
+      /** Active */
+      active: boolean;
+      /** Requires Referral */
+      requires_referral: boolean;
+      /**
+       * Substitutions
+       * @default []
+       */
+      substitutions: string[];
+      /**
+       * Contraindicated
+       * @default []
+       */
+      contraindicated: string[];
+      /** Reported At */
+      reported_at?: string | null;
+      /** Resolved At */
+      resolved_at?: string | null;
+    };
     /**
      * LimbStyle
      * @enum {string}
@@ -570,6 +982,21 @@ export interface components {
     MeResponse: {
       /** User Id */
       user_id: string;
+    };
+    /** MesocycleOut */
+    MesocycleOut: {
+      /** Id */
+      id: string;
+      /** Name */
+      name: string;
+      /** Phase */
+      phase: string;
+      /** Week Start */
+      week_start: number;
+      /** Week End */
+      week_end: number;
+      /** Focus */
+      focus: string | null;
     };
     /**
      * Modality
@@ -641,6 +1068,35 @@ export interface components {
       | "carry"
       | "rotation"
       | "locomotion";
+    /** MovementResult */
+    MovementResult: {
+      /** Movement Name */
+      movement_name: string;
+      /**
+       * Result Type
+       * @enum {string}
+       */
+      result_type:
+        | "reps"
+        | "time_s"
+        | "distance_m"
+        | "weight_kg"
+        | "rounds"
+        | "calories";
+      /** Reps */
+      reps?: number | null;
+      /** Load Kg */
+      load_kg?: number | null;
+      /** Time S */
+      time_s?: number | null;
+      /**
+       * Scaled
+       * @default false
+       */
+      scaled: boolean;
+      /** Notes */
+      notes?: string | null;
+    };
     /** Notification */
     Notification: {
       /**
@@ -674,6 +1130,65 @@ export interface components {
       | "team_session_linked"
       | "team_session_updated"
       | "workout_link_pending";
+    /** ParseLogRequest */
+    ParseLogRequest: {
+      /** Text */
+      text: string;
+    };
+    /** ParseLogResponse */
+    ParseLogResponse: {
+      parsed: components["schemas"]["ParsedLogEntry"];
+      /** Confidence */
+      confidence: number;
+      /**
+       * Stub
+       * @default false
+       */
+      stub: boolean;
+    };
+    /** ParsedLogEntry */
+    ParsedLogEntry: {
+      /** Title */
+      title?: string | null;
+      /**
+       * Session Type
+       * @enum {string}
+       */
+      session_type:
+        | "metcon"
+        | "strength"
+        | "skill"
+        | "cardio"
+        | "mixed"
+        | "rest"
+        | "unknown";
+      /** Workout Format */
+      workout_format?:
+        | (
+            | "amrap"
+            | "for_time"
+            | "emom"
+            | "tabata"
+            | "rft"
+            | "straight_sets"
+            | "other"
+          )
+        | null;
+      /** Duration S */
+      duration_s?: number | null;
+      /** Session Rpe */
+      session_rpe?: number | null;
+      /**
+       * Results
+       * @default []
+       */
+      results: components["schemas"]["MovementResult"][];
+      /**
+       * Parsing Notes
+       * @default
+       */
+      parsing_notes: string;
+    };
     /** PatchParticipantRequest */
     PatchParticipantRequest: {
       /** Workout Id */
@@ -733,6 +1248,121 @@ export interface components {
       /** Workout Id */
       workout_id: string;
     };
+    /** PlanDetail */
+    PlanDetail: {
+      /** Id */
+      id: string;
+      /** Goal */
+      goal: string;
+      /** Title */
+      title: string;
+      /** Branch Name */
+      branch_name: string;
+      /** Weeks */
+      weeks: number;
+      /** Status */
+      status: string;
+      /**
+       * Start Date
+       * Format: date
+       */
+      start_date: string;
+      /**
+       * End Date
+       * Format: date
+       */
+      end_date: string;
+      /** Training Age */
+      training_age: string | null;
+      /** Created At */
+      created_at: string;
+      /** Mesocycles */
+      mesocycles: components["schemas"]["MesocycleOut"][];
+      /** Sessions */
+      sessions: components["schemas"]["PlannedSessionOut"][];
+    };
+    /** PlanSummary */
+    PlanSummary: {
+      /** Id */
+      id: string;
+      /** Goal */
+      goal: string;
+      /** Title */
+      title: string;
+      /** Branch Name */
+      branch_name: string;
+      /** Weeks */
+      weeks: number;
+      /** Status */
+      status: string;
+      /**
+       * Start Date
+       * Format: date
+       */
+      start_date: string;
+      /**
+       * End Date
+       * Format: date
+       */
+      end_date: string;
+      /** Created At */
+      created_at: string;
+    };
+    /** PlanTaskResponse */
+    PlanTaskResponse: {
+      /** Task Id */
+      task_id: string;
+      /** Status */
+      status: string;
+      /** Plan Id */
+      plan_id?: string | null;
+      /** Error */
+      error?: string | null;
+    };
+    /** PlannedItemOut */
+    PlannedItemOut: {
+      /** Id */
+      id: string;
+      /** Movement Name */
+      movement_name: string;
+      /** Sets */
+      sets: number | null;
+      /** Reps */
+      reps: string | null;
+      /** Load Pct 1Rm */
+      load_pct_1rm: number | null;
+      /** Load Kg */
+      load_kg: number | null;
+      /** Notes */
+      notes: string | null;
+      /** Item Order */
+      item_order: number;
+    };
+    /** PlannedSessionOut */
+    PlannedSessionOut: {
+      /** Id */
+      id: string;
+      /** Mesocycle Id */
+      mesocycle_id: string;
+      /**
+       * Scheduled Date
+       * Format: date
+       */
+      scheduled_date: string;
+      /** Session Type */
+      session_type: string;
+      /** Title */
+      title: string;
+      /** Notes */
+      notes: string | null;
+      /** Status */
+      status: string;
+      /**
+       * Items
+       * @default []
+       */
+      items: components["schemas"]["PlannedItemOut"][];
+    };
     /** ReadinessResponse */
     ReadinessResponse: {
       /** Score */
@@ -751,6 +1381,37 @@ export interface components {
       sleep_avg: number | null;
       /** Factors Available */
       factors_available: number;
+      /** Recovery Score */
+      recovery_score?: number | null;
+      /** Coverage */
+      coverage?: number | null;
+      /** Confidence Tier */
+      confidence_tier?: string | null;
+      /** Hrv Type */
+      hrv_type?: string | null;
+    };
+    /** ReportInjuryRequest */
+    ReportInjuryRequest: {
+      /**
+       * Body Region
+       * @enum {string}
+       */
+      body_region:
+        | "shoulder"
+        | "knee"
+        | "hip"
+        | "lower_back"
+        | "wrist"
+        | "elbow"
+        | "ankle"
+        | "neck"
+        | "other";
+      /** Pain Level */
+      pain_level: number;
+      /** Mechanism */
+      mechanism?: ("overuse" | "acute" | "unknown") | null;
+      /** Notes */
+      notes?: string | null;
     };
     /** Result */
     Result: {
@@ -869,6 +1530,13 @@ export interface components {
       | "rest"
       | "deload"
       | "active_recovery";
+    /** SyncResponse */
+    SyncResponse: {
+      /** Rows Inserted */
+      rows_inserted: number;
+      /** Recovery Computed */
+      recovery_computed: boolean;
+    };
     /** TeamSession */
     TeamSession: {
       /**
@@ -1317,6 +1985,150 @@ export interface operations {
       };
     };
   };
+  parse_log_api_v1_coach_parse_log_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ParseLogRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ParseLogResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  chat_api_v1_coach_chat_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChatRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChatResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  connect_apple_health_api_v1_integrations_apple_health_connect_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConnectResponse"];
+        };
+      };
+    };
+  };
+  revoke_apple_health_token_api_v1_integrations_apple_health_token_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  list_integrations_api_v1_integrations_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConnectionStatus"][];
+        };
+      };
+    };
+  };
+  apple_health_sync_api_v1_integrations_apple_health_sync_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SyncResponse"];
+        };
+      };
+    };
+  };
   list_movements_api_v1_movements_get: {
     parameters: {
       query?: {
@@ -1561,6 +2373,329 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["TeamSession"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_plans_api_v1_plans_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlanSummary"][];
+        };
+      };
+    };
+  };
+  create_plan_api_v1_plans_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreatePlanRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlanTaskResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_task_api_v1_plans_tasks__task_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlanTaskResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_plan_api_v1_plans__plan_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        plan_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlanDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  today_session_api_v1_plans__plan_id__today_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        plan_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlannedSessionOut"] | null;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  detect_plan_adaptations_api_v1_plans__plan_id__adaptations_detect_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        plan_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DetectTriggersResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_adaptations_api_v1_plans__plan_id__adaptations_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        plan_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AdaptationOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  merge_adaptation_api_v1_adaptations__adaptation_id__merge_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        adaptation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AdaptationOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reject_adaptation_api_v1_adaptations__adaptation_id__reject_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        adaptation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AdaptationOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_injuries_api_v1_injuries_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InjuryOut"][];
+        };
+      };
+    };
+  };
+  report_injury_api_v1_injuries_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReportInjuryRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InjuryOut"];
         };
       };
       /** @description Validation Error */

@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
+
+# Ensure LLM calls are never made during tests unless explicitly opted in
+os.environ.setdefault("STUB_LLM", "true")
+
 import uuid
 from collections.abc import AsyncGenerator, Generator
 
@@ -13,6 +19,42 @@ from httpx import ASGITransport, AsyncClient
 from app.auth import UserContext, get_current_user
 from app.db import close_pool, init_pool
 from app.main import app
+
+# ── Ollama helpers ─────────────────────────────────────────────────────────────
+
+
+def _ollama_running() -> bool:
+    """Return True if a local Ollama server is reachable."""
+    try:
+        result = subprocess.run(
+            ["curl", "-sf", "http://localhost:11434/api/tags"],
+            capture_output=True,
+            timeout=2,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
+requires_ollama = pytest.mark.skipif(
+    not _ollama_running(),
+    reason="Ollama not running — start with `ollama serve` and pull mistral:7b",
+)
+
+
+@pytest.fixture
+def ollama_env(monkeypatch: pytest.MonkeyPatch) -> Generator[None]:
+    """Configure the process to use Ollama for LLM calls and reset after."""
+    from app.ai import client as ai_client
+
+    monkeypatch.setenv("STUB_LLM", "false")
+    monkeypatch.setenv("LLM_BACKEND", "ollama")
+    monkeypatch.setenv("OLLAMA_MODEL", "mistral:7b")
+    monkeypatch.setenv("LLM_TIMEOUT_S", "300")  # plan generation can take 1-3 min on local Ollama
+    ai_client.reset_client()
+    yield
+    ai_client.reset_client()
+
 
 # ── Fixed test-user IDs (also used in pgTAP tests) ────────────────────────────
 ALICE_ID = uuid.UUID("00000001-0000-0000-0000-000000000001")
@@ -108,6 +150,37 @@ async def _clean_data() -> AsyncGenerator[None]:
         )
         await conn.execute(
             "DELETE FROM public.movements WHERE created_by = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        # Plans cascade: plan_tasks → plans → mesocycles/sessions/adaptations
+        await conn.execute(
+            "DELETE FROM public.plan_tasks WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        await conn.execute(
+            "DELETE FROM public.plans WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        # Injuries
+        await conn.execute(
+            "DELETE FROM public.injuries WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        # AI / wearable tables
+        await conn.execute(
+            "DELETE FROM public.coach_interactions WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        await conn.execute(
+            "DELETE FROM public.derived_metrics WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        await conn.execute(
+            "DELETE FROM public.metric_samples WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        await conn.execute(
+            "DELETE FROM public.data_connections WHERE user_id = ANY(%s::uuid[])",
             [[str(ALICE_ID), str(BOB_ID)]],
         )
 

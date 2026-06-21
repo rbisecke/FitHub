@@ -21,6 +21,13 @@ async def close_pool() -> None:
         _pool = None
 
 
+def pool_connection() -> AsyncConnectionPool[psycopg.AsyncConnection[object]]:
+    """Return the pool for use in background tasks (not a FastAPI dependency)."""
+    if _pool is None:
+        raise RuntimeError("DB pool not initialised — did the lifespan run?")
+    return _pool
+
+
 async def get_db() -> AsyncGenerator[psycopg.AsyncConnection[object]]:
     if _pool is None:
         raise RuntimeError("DB pool not initialised — did the lifespan run?")

@@ -9,9 +9,14 @@ from pydantic import BaseModel
 from app.auth import UserContext, get_current_user
 from app.config import get_settings
 from app.db import close_pool, init_pool
+from app.routers.adaptations import router as adaptations_router  # noqa: F401
 from app.routers.analytics import router as analytics_router
+from app.routers.coach import router as coach_router
+from app.routers.injuries import router as injuries_router  # noqa: F401
+from app.routers.integrations import router as integrations_router  # noqa: F401
 from app.routers.movements import router as movements_router
 from app.routers.notifications import router as notifications_router
+from app.routers.plans import router as plans_router  # noqa: F401
 from app.routers.team_sessions import router as team_sessions_router
 from app.routers.workouts import router as workouts_router
 
@@ -27,8 +32,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 app = FastAPI(title="FitHub API", version="0.1.0", lifespan=lifespan)
 
 app.include_router(analytics_router)
+app.include_router(coach_router)
+app.include_router(integrations_router)
 app.include_router(movements_router)
 app.include_router(workouts_router)
+app.include_router(plans_router)
+app.include_router(adaptations_router)
+app.include_router(injuries_router)
 app.include_router(team_sessions_router)
 app.include_router(notifications_router)
 
