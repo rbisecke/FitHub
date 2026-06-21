@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Annotated
+from typing import Annotated, Any
 
 import psycopg
 import psycopg.rows
@@ -148,7 +148,7 @@ async def chat(
     llm = get_client()
 
     user_content = f"Context:\n{context}\n\nQuestion: {body.question}"
-    messages = list(history) + [{"role": "user", "content": user_content}]
+    messages: list[Any] = list(history) + [{"role": "user", "content": user_content}]
 
     backend = os.getenv("LLM_BACKEND", "anthropic").lower()
     if backend == "anthropic":
@@ -173,7 +173,7 @@ async def chat(
             llm.client.chat.completions.create(
                 model=llm.model,
                 max_tokens=512,
-                messages=[{"role": "system", "content": COACH_SYSTEM_PROMPT}] + messages,
+                messages=[{"role": "system", "content": COACH_SYSTEM_PROMPT}] + messages,  # type: ignore[arg-type]
                 response_model=_ChatAnswer,
             ),
             context="coach_chat",
