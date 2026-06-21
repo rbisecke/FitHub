@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AdaptationOut(BaseModel):
@@ -15,6 +15,7 @@ class AdaptationOut(BaseModel):
     trigger_data: dict[str, object]
     status: str
     rationale: str | None = None
+    rejection_reason: str | None = None
     diff_json: object = None
     stub: bool = False
     proposed_at: datetime | None = None
@@ -26,3 +27,11 @@ class DetectTriggersResponse(BaseModel):
     plan_id: str
     triggers: list[dict[str, object]]
     proposed_adaptations: list[AdaptationOut]
+
+
+class RejectAdaptationRequest(BaseModel):
+    rejection_reason: str | None = Field(default=None, max_length=1000)
+
+
+class AdjustAdaptationRequest(BaseModel):
+    feedback: str = Field(..., min_length=5, max_length=1000)
