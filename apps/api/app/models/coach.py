@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
@@ -56,6 +57,12 @@ class ChatResponse(BaseModel):
     citations: list[Citation] = []
     stub: bool = False
     safety_tier: str | None = None
+
+
+class HistoryMessage(BaseModel):
+    role: str
+    content: str
+    created_at: datetime
 
 
 class _ChatAnswer(BaseModel):
