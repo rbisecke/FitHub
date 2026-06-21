@@ -105,4 +105,4 @@ class PlanRevisionDiff(BaseModel):
 
 
 class PlanRevisionRequest(BaseModel):
-    feedback: str = Field(..., min_length=5, max_length=1000)
+    feedback: str = Field(..., min_length=5, max_length=500)

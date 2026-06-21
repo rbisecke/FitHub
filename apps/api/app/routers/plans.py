@@ -12,6 +12,7 @@ import psycopg
 import psycopg.rows
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.ai.kill_switch import require_llm_enabled
 from app.ai.stub import is_stubbed
 from app.auth import UserContext, get_current_user
 from app.db import get_db
@@ -230,6 +231,7 @@ async def create_plan(
     req: CreatePlanRequest,
     user: Annotated[UserContext, Depends(get_current_user)],
     db: _Db,
+    _kill: Annotated[None, Depends(require_llm_enabled)],
 ) -> PlanTaskResponse:
     task_id = str(uuid.uuid4())
     await db.execute(
@@ -354,6 +356,7 @@ async def revise_plan(
     req: PlanRevisionRequest,
     user: Annotated[UserContext, Depends(get_current_user)],
     db: _Db,
+    _kill: Annotated[None, Depends(require_llm_enabled)],
 ) -> PlanDetail:
     # 1. Verify plan ownership
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:

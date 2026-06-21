@@ -50,7 +50,7 @@ async def parse_log_text(text: str) -> ParseLogResponse:
     result: ParsedLogEntry = await call_llm(
         llm.client.chat.completions.create(
             model=llm.model,
-            max_tokens=1024,
+            max_tokens=512,
             messages=[
                 {
                     "role": "system",
