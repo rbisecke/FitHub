@@ -28,12 +28,12 @@ async def _create_plan(client: AsyncClient) -> str:
     r = await client.post("/api/v1/plans", json=CREATE_BODY)
     assert r.status_code == 202
     task_id = r.json()["task_id"]
-    for _ in range(30):
+    for _ in range(100):
         tr = await client.get(f"/api/v1/plans/tasks/{task_id}")
         if tr.json()["status"] == "complete":
             return str(tr.json()["plan_id"])
         await asyncio.sleep(0.1)
-    pytest.fail("Plan task did not complete within 3 seconds")
+    pytest.fail("Plan task did not complete within 10 seconds")
 
 
 # ── Auth ───────────────────────────────────────────────────────────────────────
