@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import date, timedelta
-from typing import Literal
+from typing import Literal, cast
 
 import psycopg
 import psycopg.rows
@@ -333,9 +333,11 @@ async def generate_plan(
     training_age = req_dict.get("training_age", "intermediate")
     days_per_week = req_dict.get("days_per_week", 3)
 
+    recent_sessions = cast(list[object], user_history.get("recent_sessions", []))
+    movement_freq = cast(dict[str, object], user_history.get("movement_frequency", {}))
     history_summary = (
-        f"Recent sessions (last 6 weeks): {len(user_history.get('recent_sessions', []))} logged. "
-        f"Top movements: {list(user_history.get('movement_frequency', {}).keys())[:5]}."
+        f"Recent sessions (last 6 weeks): {len(recent_sessions)} logged. "
+        f"Top movements: {list(movement_freq.keys())[:5]}."
     )
     readiness = user_history.get("readiness_trend")
     if readiness:
