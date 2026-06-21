@@ -5,10 +5,16 @@ from typing import Annotated
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.auth import UserContext, get_current_user
 from app.config import get_settings
 from app.db import close_pool, init_pool
+from app.logging_config import configure_logging
+from app.middleware.logging import RequestLoggingMiddleware
+from app.middleware.rate_limit import limiter
 from app.routers.adaptations import router as adaptations_router  # noqa: F401
 from app.routers.analytics import router as analytics_router
 from app.routers.coach import router as coach_router
@@ -20,6 +26,8 @@ from app.routers.plans import router as plans_router  # noqa: F401
 from app.routers.team_sessions import router as team_sessions_router
 from app.routers.workouts import router as workouts_router
 
+configure_logging()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
@@ -30,6 +38,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
 
 app = FastAPI(title="FitHub API", version="0.1.0", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 app.include_router(analytics_router)
 app.include_router(coach_router)
@@ -42,6 +52,10 @@ app.include_router(injuries_router)
 app.include_router(team_sessions_router)
 app.include_router(notifications_router)
 
+# Middleware registration order: last add_middleware() runs first (outermost).
+# CORS runs outermost; SlowAPI and RequestLogging run inside.
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],

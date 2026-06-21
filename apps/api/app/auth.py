@@ -5,7 +5,7 @@ from functools import lru_cache
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, Security, status
+from fastapi import Depends, HTTPException, Request, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
 from pydantic import BaseModel
@@ -39,6 +39,7 @@ def verify_jwt(token: str, settings: Settings) -> UserContext:
 
 
 async def get_current_user(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Security(_bearer)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> UserContext:
@@ -49,7 +50,9 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     try:
-        return verify_jwt(credentials.credentials, settings)
+        user = verify_jwt(credentials.credentials, settings)
+        request.state.user_id = str(user.user_id)
+        return user
     except (jwt.PyJWTError, jwt.PyJWKClientError, ValueError, KeyError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

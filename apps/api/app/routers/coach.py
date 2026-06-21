@@ -7,12 +7,13 @@ from typing import Annotated, Any
 
 import psycopg
 import psycopg.rows
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.ai.chat_history import fetch_session_history, rag_query_text
 from app.ai.parse_log import parse_log_text
 from app.auth import UserContext, get_current_user
 from app.db import get_db
+from app.middleware.rate_limit import limiter
 from app.models.coach import (
     ChatRequest,
     ChatResponse,
@@ -41,7 +42,9 @@ _STUB_ANSWER = (
 
 
 @router.post("/parse-log", response_model=ParseLogResponse)
+@limiter.limit("10/minute")
 async def parse_log(
+    request: Request,
     body: ParseLogRequest,
     user: Annotated[UserContext, Depends(get_current_user)],
     db: _Db,
@@ -86,7 +89,9 @@ async def get_history(
 
 
 @router.post("/chat", response_model=ChatResponse)
+@limiter.limit("10/minute")
 async def chat(
+    request: Request,
     body: ChatRequest,
     user: Annotated[UserContext, Depends(get_current_user)],
     db: _Db,

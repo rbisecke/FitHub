@@ -140,3 +140,47 @@ jobs:
 
       - name: Typecheck
         run: pnpm -C packages/shared typecheck
+
+  security:
+    name: Security audit (pip-audit + npm audit + secret scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.14"
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install Python deps
+        run: uv sync --project apps/api --all-groups
+
+      - name: Install Node deps
+        run: pnpm install --frozen-lockfile
+
+      - name: pip-audit
+        run: uv tool run pip-audit apps/api
+        # Use --ignore-vuln GHSA-XXXX for accepted exceptions; document in HANDOVER.md
+
+      - name: npm audit
+        run: pnpm -C apps/web audit --audit-level=high
+        # Fails on high+critical only; low/moderate acceptable for invite-only MVP
+
+      - name: Secret scan (git history)
+        run: |
+          # Match KEY= only when followed by ≥8 non-bracket, non-whitespace chars.
+          # This skips empty assignments (ANTHROPIC_API_KEY=) and placeholder
+          # values (<local-service-role-key-from-supabase-start>) in .env.example.
+          count=$(git log --all -p -- '*.env' '*.env.*' \
+            | grep -cE '(SERVICE_ROLE_KEY|ANTHROPIC_API_KEY)=[^<[:space:]]{8,}' || true)
+          echo "Secret pattern matches in git history: $count"
+          [ "$count" -eq "0" ] || { echo "❌ Secrets found in git history"; exit 1; }
+          echo "✓ No secrets in history"
