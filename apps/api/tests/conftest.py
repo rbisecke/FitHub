@@ -7,6 +7,9 @@ import subprocess
 
 # Ensure LLM calls are never made during tests unless explicitly opted in
 os.environ.setdefault("STUB_LLM", "true")
+# Disable rate limiting in tests — must be set before any app import so the
+# limiter module reads the env var at import time with enabled=False.
+os.environ["RATE_LIMIT_ENABLED"] = "false"
 
 import uuid
 from collections.abc import AsyncGenerator, Generator

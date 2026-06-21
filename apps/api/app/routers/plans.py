@@ -10,11 +10,12 @@ from typing import Annotated
 
 import psycopg
 import psycopg.rows
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.ai.stub import is_stubbed
 from app.auth import UserContext, get_current_user
 from app.db import get_db
+from app.middleware.rate_limit import limiter
 from app.models.plan import (
     CreatePlanRequest,
     MesocycleOut,
@@ -223,7 +224,9 @@ async def _apply_session_patch(
 
 
 @router.post("", status_code=202, response_model=PlanTaskResponse)
+@limiter.limit("3/hour")
 async def create_plan(
+    request: Request,
     req: CreatePlanRequest,
     user: Annotated[UserContext, Depends(get_current_user)],
     db: _Db,
