@@ -13,7 +13,10 @@ pnpm typecheck        # tsc --noEmit
 pnpm lint             # eslint
 pnpm test             # vitest run
 pnpm test:watch       # vitest (watch mode)
+pnpm generate-types   # regenerate lib/api/generated.ts from openapi.json
 ```
+
+**Run `pnpm generate-types` whenever the FastAPI `response_model` for any route changes.** Commit `lib/api/generated.ts` alongside the API change.
 
 ## Key conventions
 

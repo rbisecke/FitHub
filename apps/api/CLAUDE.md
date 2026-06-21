@@ -15,6 +15,16 @@ uv run ruff format .                   # format
 uv run mypy .                          # type check
 ```
 
+## OpenAPI type sync (mandatory)
+
+Whenever you **add a route** or **change a `response_model`**, regenerate the frontend types immediately:
+
+```bash
+pnpm -C apps/web generate-types
+```
+
+This re-runs `openapi-typescript` against `openapi.json` and writes `apps/web/lib/api/generated.ts`. Commit the updated file alongside the route change — skipping it causes TypeScript errors in the frontend and silently breaks type safety across the stack.
+
 ## Key conventions
 
 - **FastAPI is the only API** — no direct Supabase calls from the frontend for data.
