@@ -15,8 +15,11 @@ import type {
   PlanDetail,
   PlanSummary,
   PlanTaskResponse,
+  PlannedSessionOut,
   CreatePlanRequest,
   AdaptationOut,
+  InjuryOut,
+  DetectTriggersResponse,
 } from "./plans";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -118,19 +121,20 @@ export const api = {
     pollTask: (token: string, taskId: string) =>
       apiFetch<PlanTaskResponse>(`/api/v1/plans/tasks/${taskId}`, token),
     today: (token: string, planId: string) =>
-      apiFetch<unknown>(`/api/v1/plans/${planId}/today`, token),
+      apiFetch<PlannedSessionOut | null>(
+        `/api/v1/plans/${planId}/today`,
+        token,
+      ),
   },
   adaptations: {
     list: (token: string, planId: string) =>
       apiFetch<AdaptationOut[]>(`/api/v1/plans/${planId}/adaptations`, token),
     detect: (token: string, planId: string) =>
-      apiFetch<{
-        plan_id: string;
-        triggers: unknown[];
-        proposed_adaptations: AdaptationOut[];
-      }>(`/api/v1/plans/${planId}/adaptations/detect`, token, {
-        method: "POST",
-      }),
+      apiFetch<DetectTriggersResponse>(
+        `/api/v1/plans/${planId}/adaptations/detect`,
+        token,
+        { method: "POST" },
+      ),
     merge: (token: string, id: string) =>
       apiFetch<AdaptationOut>(`/api/v1/adaptations/${id}/merge`, token, {
         method: "POST",
@@ -150,27 +154,10 @@ export const api = {
         notes?: string | null;
       },
     ) =>
-      apiFetch<{
-        id: string;
-        body_region: string;
-        pain_level: number;
-        requires_referral: boolean;
-        substitutions: string[];
-        contraindicated: string[];
-        active: boolean;
-      }>("/api/v1/injuries", token, {
+      apiFetch<InjuryOut>("/api/v1/injuries", token, {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    list: (token: string) =>
-      apiFetch<
-        {
-          id: string;
-          body_region: string;
-          pain_level: number;
-          requires_referral: boolean;
-          active: boolean;
-        }[]
-      >("/api/v1/injuries", token),
+    list: (token: string) => apiFetch<InjuryOut[]>("/api/v1/injuries", token),
   },
 };

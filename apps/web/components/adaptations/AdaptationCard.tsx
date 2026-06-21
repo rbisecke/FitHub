@@ -69,7 +69,9 @@ export function AdaptationCard({ adaptation, accessToken }: Props) {
           )}
         </div>
         <span className="font-mono text-xs text-zinc-600">
-          {new Date(adaptation.proposed_at).toLocaleDateString()}
+          {adaptation.proposed_at
+            ? new Date(adaptation.proposed_at).toLocaleDateString()
+            : ""}
         </span>
       </div>
 

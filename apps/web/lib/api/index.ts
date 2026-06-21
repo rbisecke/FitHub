@@ -21,41 +21,9 @@ export type WeeklyVolume = components["schemas"]["WeeklyVolume"];
 export type ReadinessResponse = components["schemas"]["ReadinessResponse"];
 export type TrainingPartner = components["schemas"]["TrainingPartner"];
 
-// Coach types — defined locally since not yet in OpenAPI schema
-export interface MovementResult {
-  movement_name: string;
-  result_type: string;
-  reps?: number | null;
-  load_kg?: number | null;
-  time_s?: number | null;
-  scaled: boolean;
-  notes?: string | null;
-}
-
-export interface ParsedLogEntry {
-  title?: string | null;
-  session_type: string;
-  workout_format?: string | null;
-  duration_s?: number | null;
-  session_rpe?: number | null;
-  results: MovementResult[];
-  parsing_notes: string;
-}
-
-export interface ParseLogResponse {
-  parsed: ParsedLogEntry;
-  confidence: number;
-  stub: boolean;
-}
-
-export interface Citation {
-  title: string;
-  source_type: string;
-  score: number;
-}
-
-export interface ChatResponse {
-  answer: string;
-  citations: Citation[];
-  stub: boolean;
-}
+// Coach types — from generated OpenAPI schema
+export type MovementResult = components["schemas"]["MovementResult"];
+export type ParsedLogEntry = components["schemas"]["ParsedLogEntry"];
+export type ParseLogResponse = components["schemas"]["ParseLogResponse"];
+export type Citation = components["schemas"]["Citation"];
+export type ChatResponse = components["schemas"]["ChatResponse"];

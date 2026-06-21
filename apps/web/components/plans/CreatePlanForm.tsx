@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
+import type { CreatePlanRequest } from "@/lib/api/plans";
 
 const GOALS = [
   { value: "general_fitness", label: "General Fitness" },
@@ -24,15 +25,20 @@ interface Props {
 export function CreatePlanForm({ accessToken }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [goal, setGoal] = useState<string>("");
+  const [goal, setGoal] = useState<CreatePlanRequest["goal"] | "">("");
   const [title, setTitle] = useState<string>("");
   const [weeks, setWeeks] = useState<number>(8);
-  const [trainingAge, setTrainingAge] = useState<string>("");
+  const [trainingAge, setTrainingAge] = useState<
+    CreatePlanRequest["training_age"] | ""
+  >("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit() {
     if (!goal || !trainingAge) return;
+    // Narrowed: goal and trainingAge are non-empty after the guard above
+    const safeGoal = goal as CreatePlanRequest["goal"];
+    const safeTrainingAge = trainingAge as CreatePlanRequest["training_age"];
     setLoading(true);
     setError(null);
     try {
@@ -41,11 +47,11 @@ export function CreatePlanForm({ accessToken }: Props) {
       const startDateStr = startDate.toISOString().split("T")[0] ?? "";
 
       const task = await api.plans.create(accessToken, {
-        goal,
-        title: title || `${goal.replace("_", " ")} plan`,
+        goal: safeGoal,
+        title: title || `${safeGoal.replace("_", " ")} plan`,
         start_date: startDateStr,
         weeks,
-        training_age: trainingAge,
+        training_age: safeTrainingAge,
       });
 
       const taskId = task.task_id;
