@@ -135,7 +135,7 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
           value={feedback}
           onChange={(e) => setFeedback(e.target.value)}
           disabled={revising}
-          maxLength={1000}
+          maxLength={500}
           placeholder="Describe what you'd like changed (e.g. reduce squat volume, I have a knee issue)…"
           rows={5}
           className="w-full min-h-[120px] resize-y rounded border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-200 placeholder-zinc-600 focus:border-zinc-500 focus:outline-none disabled:opacity-50"
@@ -143,10 +143,10 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
         <div className="mt-1 flex justify-end">
           <span
             className={`font-mono text-xs ${
-              feedback.length > 800 ? "text-amber-400" : "text-zinc-600"
+              feedback.length > 400 ? "text-amber-400" : "text-zinc-600"
             }`}
           >
-            {feedback.length} / 1000
+            {feedback.length} / 500
           </span>
         </div>
         {error && (

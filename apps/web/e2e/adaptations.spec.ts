@@ -81,6 +81,8 @@ async function createPlanAndWait(token: string): Promise<string> {
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
+      // Bypass per-IP rate limit in E2E tests (server generates unique bucket per request)
+      "X-Test-User-Id": "e2e-adaptations",
     },
     body: JSON.stringify({
       goal: "general_fitness",
@@ -90,6 +92,8 @@ async function createPlanAndWait(token: string): Promise<string> {
       training_age: "intermediate",
     }),
   });
+  if (!createRes.ok)
+    throw new Error(`Plan creation failed: ${createRes.status}`);
   const { task_id } = (await createRes.json()) as { task_id: string };
   // Stub mode completes in <1s; live-LLM mode can take 60-120s
   const maxPolls = LIVE_LLM ? 500 : 20;
