@@ -50,7 +50,7 @@ jobs:
       # deps so image pulls overlap with uv/Python setup time.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.107.0
 
       - name: Start local Supabase
         # Exclude services that tests don't need to keep startup fast.
