@@ -43,7 +43,7 @@ export function VolumeChart({ weeks }: Props) {
   const data = Object.values(weekMap);
 
   return (
-    <div data-testid="volume-chart" className="h-52 w-full">
+    <div data-testid="volume-chart" className="h-52 w-full min-w-0">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
