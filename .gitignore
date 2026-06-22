@@ -72,4 +72,5 @@ coverage/
 test-results/
 playwright-report/
 .playwright-mcp/
-screenshots/
+screenshots/*
+!screenshots/readme/
