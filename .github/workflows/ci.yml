@@ -1,5 +1,10 @@
 name: CI
 
+# Cancel superseded runs on the same branch (preserves all runs on main).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 on:
   push:
     branches:
@@ -15,15 +20,51 @@ on:
     branches: [main]
 
 jobs:
+  # ── Path detection ────────────────────────────────────────────────────────
+  # Determines which areas changed so downstream jobs can skip when irrelevant.
+  # Skipped jobs satisfy branch-protection required status checks on GitHub.
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+      shared: ${{ steps.filter.outputs.shared }}
+      contract: ${{ steps.filter.outputs.contract }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+              - 'supabase/**'
+              - '.github/workflows/ci.yml'
+            web:
+              - 'apps/web/**'
+              - 'packages/shared/**'
+              - '.github/workflows/ci.yml'
+            shared:
+              - 'packages/shared/**'
+              - '.github/workflows/ci.yml'
+            contract:
+              - 'apps/api/**'
+              - 'apps/web/lib/api/**'
+              - '.github/workflows/ci.yml'
+
+  # ── Web ───────────────────────────────────────────────────────────────────
   web:
     name: Web (typecheck + lint + test)
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
           cache: "pnpm"
@@ -40,15 +81,18 @@ jobs:
       - name: Test
         run: pnpm -C apps/web test
 
+  # ── API ───────────────────────────────────────────────────────────────────
   api:
     name: API (typecheck + lint + test)
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       # Start local Supabase (Postgres + auth schema) before installing Python
       # deps so image pulls overlap with uv/Python setup time.
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1 # v1.7.1
         with:
           version: 2.107.0
 
@@ -57,7 +101,7 @@ jobs:
         # db + auth are always included; rest/realtime/storage are small.
         run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           python-version: "3.14"
 
@@ -83,19 +127,22 @@ jobs:
       - name: Test
         run: uv run --project apps/api pytest apps/api/tests -v
 
+  # ── Contract ──────────────────────────────────────────────────────────────
   contract:
     name: Contract (openapi spec + TS types drift)
+    needs: changes
+    if: needs.changes.outputs.contract == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           python-version: "3.14"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
           cache: "pnpm"
@@ -122,15 +169,18 @@ jobs:
           git diff --exit-code apps/web/lib/api/generated.ts \
             || { echo "❌ apps/web/lib/api/generated.ts is stale — run: pnpm -C apps/web generate-types"; exit 1; }
 
+  # ── Shared ────────────────────────────────────────────────────────────────
   shared:
     name: Shared (typecheck)
+    needs: changes
+    if: needs.changes.outputs.shared == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
           cache: "pnpm"
@@ -141,21 +191,23 @@ jobs:
       - name: Typecheck
         run: pnpm -C packages/shared typecheck
 
+  # ── Security ──────────────────────────────────────────────────────────────
+  # Always runs — dependency vulnerabilities and secret leaks are not path-gated.
   security:
     name: Security audit (pip-audit + npm audit + secret scan)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           python-version: "3.14"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
           cache: "pnpm"
@@ -184,3 +236,16 @@ jobs:
           echo "Secret pattern matches in git history: $count"
           [ "$count" -eq "0" ] || { echo "❌ Secrets found in git history"; exit 1; }
           echo "✓ No secrets in history"
+
+  # ── Commit lint ───────────────────────────────────────────────────────────
+  # Enforces conventional commits on PRs; informational only (not a required
+  # status check) so it never blocks a merge on its own.
+  commitlint:
+    name: Commit message lint
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+      - uses: webiny/action-conventional-commits@8bc41ff4e7d423d56fa4905f6ff79209a78776c7 # v1.3.0
