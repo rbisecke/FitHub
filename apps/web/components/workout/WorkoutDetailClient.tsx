@@ -99,6 +99,10 @@ export function WorkoutDetailClient({
       <WorkoutForm
         accessToken={accessToken}
         workoutId={workout.id}
+        onSaved={() => {
+          setEditing(false);
+          router.refresh();
+        }}
         initialValues={{
           performed_at: workout.performed_at.slice(0, 10),
           title: workout.title ?? undefined,
@@ -119,6 +123,7 @@ export function WorkoutDetailClient({
               : undefined,
           results: (workout.results ?? []).map((r) => ({
             movement_id: r.movement_id ?? undefined,
+            movement_name: r.movement_name ?? undefined,
             result_type: r.result_type,
             load_kg: r.load_kg ?? undefined,
             reps: r.reps ?? undefined,
@@ -266,9 +271,13 @@ export function WorkoutDetailClient({
                       {i + 1}
                     </span>
                     <span className="text-zinc-300 flex-1">
-                      <span className="text-zinc-500 italic">
-                        {RESULT_TYPE_LABELS[r.result_type] ?? r.result_type}
-                      </span>
+                      {r.movement_name ? (
+                        <span>{r.movement_name}</span>
+                      ) : (
+                        <span className="text-zinc-500 italic">
+                          {RESULT_TYPE_LABELS[r.result_type] ?? r.result_type}
+                        </span>
+                      )}
                     </span>
                     <div className="flex items-center gap-3 text-zinc-400 font-mono text-xs">
                       {r.load_kg && (
