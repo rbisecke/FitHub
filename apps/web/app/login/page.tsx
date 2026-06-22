@@ -58,12 +58,19 @@ export default function LoginPage() {
         </div>
 
         {status === "sent" ? (
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-6 py-8 text-center space-y-2">
+          <div className="rounded-lg border border-zinc-600 bg-zinc-900 px-6 py-8 text-center space-y-3">
+            <p className="text-2xl">✓</p>
             <p className="text-zinc-50 font-medium">Check your email</p>
             <p className="text-sm text-zinc-400">
-              We sent a magic link to{" "}
-              <span className="text-zinc-200">{email}</span>.
+              Magic link sent to{" "}
+              <span className="font-mono text-zinc-200">{email}</span>
             </p>
+            <button
+              onClick={() => setStatus("idle")}
+              className="mt-2 text-xs text-zinc-500 underline underline-offset-2 hover:text-zinc-300"
+            >
+              Use a different email
+            </button>
           </div>
         ) : (
           <form
