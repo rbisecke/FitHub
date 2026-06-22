@@ -4857,6 +4857,17 @@
             ],
             "title": "Movement Id"
           },
+          "movement_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Movement Name"
+          },
           "result_type": {
             "$ref": "#/components/schemas/ResultType"
           },
