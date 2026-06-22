@@ -25,6 +25,7 @@ class Result(BaseModel):
     user_id: uuid.UUID
     workout_id: uuid.UUID
     movement_id: uuid.UUID | None
+    movement_name: str | None = None
     result_type: ResultType
     load_kg: Decimal | None
     reps: int | None

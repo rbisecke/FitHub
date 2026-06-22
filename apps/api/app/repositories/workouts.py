@@ -229,9 +229,11 @@ async def get_workout(
 
         await cur.execute(
             """
-            SELECT * FROM public.results
-            WHERE  workout_id = %s AND user_id = %s
-            ORDER  BY order_index, id
+            SELECT r.*, m.name AS movement_name
+            FROM   public.results r
+            LEFT JOIN public.movements m ON m.id = r.movement_id
+            WHERE  r.workout_id = %s AND r.user_id = %s
+            ORDER  BY r.order_index, r.id
             """,
             [workout_id, user_id],
         )
@@ -300,9 +302,11 @@ async def patch_workout(
 
         await cur.execute(
             """
-            SELECT * FROM public.results
-            WHERE  workout_id = %s AND user_id = %s
-            ORDER  BY order_index, id
+            SELECT r.*, m.name AS movement_name
+            FROM   public.results r
+            LEFT JOIN public.movements m ON m.id = r.movement_id
+            WHERE  r.workout_id = %s AND r.user_id = %s
+            ORDER  BY r.order_index, r.id
             """,
             [workout_id, user_id],
         )
