@@ -124,10 +124,12 @@ export function WorkoutForm({
   accessToken,
   initialValues,
   workoutId,
+  onSaved,
 }: {
   accessToken: string;
   initialValues?: Partial<FormValues>;
   workoutId?: string;
+  onSaved?: () => void;
 }) {
   const router = useRouter();
   const [showDetails, setShowDetails] = useState(false);
@@ -184,10 +186,13 @@ export function WorkoutForm({
       })),
     };
 
-    const workout = workoutId
-      ? await api.workouts.patch(accessToken, workoutId, body)
-      : await api.workouts.create(accessToken, body);
-    router.push(`/history/${workout.id}`);
+    if (workoutId) {
+      await api.workouts.patch(accessToken, workoutId, body);
+      onSaved?.();
+    } else {
+      const workout = await api.workouts.create(accessToken, body);
+      router.push(`/history/${workout.id}`);
+    }
   }
 
   return (
