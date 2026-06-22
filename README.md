@@ -220,7 +220,7 @@ Phases 0–7b are merged. Deployment (Phase 7c — Railway + Vercel + Supabase p
 Near-term:
 
 - **Wearable data sync** — schema is wearable-ready; Oura / Apple Health pipeline not yet wired
-- **Nutrition tracking** — designed in `claude_docs/planning/`; deferred post-deployment
+- **Nutrition tracking** — schema and feature design complete; deferred post-deployment
 - **Mobile PWA** — manifest and offline strategy planned; not yet implemented
 
 **Access:** Email [rbisecke@gmail.com](mailto:rbisecke@gmail.com) to request an invite, or clone and [run locally](#getting-started).
