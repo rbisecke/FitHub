@@ -1515,6 +1515,8 @@ export interface components {
       workout_id: string;
       /** Movement Id */
       movement_id: string | null;
+      /** Movement Name */
+      movement_name?: string | null;
       result_type: components["schemas"]["ResultType"];
       /** Load Kg */
       load_kg: string | null;
