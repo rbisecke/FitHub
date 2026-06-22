@@ -1,0 +1,49 @@
+version: 2
+updates:
+  # GitHub Actions — update monthly (security-critical; pin to SHA digests)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "chore"
+
+  # Python (apps/api)
+  - package-ecosystem: "pip"
+    directory: "/apps/api"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "python"
+    open-pull-requests-limit: 5
+
+  # npm / pnpm workspace (root + apps/web + packages/shared)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "javascript"
+    open-pull-requests-limit: 5
+    groups:
+      # Batch Next.js ecosystem updates into one PR
+      nextjs:
+        patterns:
+          - "next"
+          - "@next/*"
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      # Batch shadcn / Radix / Tailwind into one PR
+      ui:
+        patterns:
+          - "@radix-ui/*"
+          - "tailwindcss"
+          - "@tailwindcss/*"
+          - "class-variance-authority"
+          - "clsx"
+          - "tailwind-merge"
