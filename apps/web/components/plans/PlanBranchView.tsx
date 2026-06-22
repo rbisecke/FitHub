@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type {
   PlanDetail,
   MesocycleOut,
@@ -76,6 +77,25 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
   const [revising, setRevising] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [detecting, setDetecting] = useState(false);
+  const [detectResult, setDetectResult] = useState<{
+    count: number;
+  } | null>(null);
+  const [detectError, setDetectError] = useState<string | null>(null);
+
+  async function handleDetect() {
+    setDetecting(true);
+    setDetectError(null);
+    setDetectResult(null);
+    try {
+      const res = await api.adaptations.detect(accessToken, plan.id);
+      setDetectResult({ count: res.proposed_adaptations.length });
+    } catch {
+      setDetectError("Detection failed — please try again.");
+    } finally {
+      setDetecting(false);
+    }
+  }
 
   async function handleRevise() {
     if (feedback.trim().length < 5) return;
@@ -126,7 +146,49 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
         </p>
       )}
 
-      <div className="mt-8 rounded-md border-t border-zinc-600 bg-zinc-800/40 px-5 pb-5 pt-5">
+      <div className="mt-6 rounded-md border border-zinc-800 bg-zinc-800/30 px-5 py-4">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-mono text-xs text-zinc-400">
+              $ git detect --adaptations
+            </p>
+            <p className="mt-0.5 font-mono text-xs text-zinc-600">
+              # check if training load or trends warrant a plan update
+            </p>
+          </div>
+          <button
+            data-testid="detect-adaptations-btn"
+            onClick={handleDetect}
+            disabled={detecting}
+            className="shrink-0 rounded border border-zinc-600 bg-zinc-700 px-3 py-1.5 font-mono text-xs text-zinc-200 transition-colors hover:bg-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {detecting ? "detecting…" : "detect"}
+          </button>
+        </div>
+        {detectError && (
+          <p className="mt-2 font-mono text-xs text-red-400">{detectError}</p>
+        )}
+        {detectResult !== null && (
+          <p className="mt-2 font-mono text-xs text-zinc-400">
+            {detectResult.count === 0 ? (
+              "# no adaptations triggered — plan looks good"
+            ) : (
+              <>
+                ✓ {detectResult.count} adaptation
+                {detectResult.count !== 1 ? "s" : ""} proposed —{" "}
+                <Link
+                  href={`/plans/${plan.id}/adaptations`}
+                  className="text-indigo-400 hover:text-indigo-300 underline"
+                >
+                  review now
+                </Link>
+              </>
+            )}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-6 rounded-md border-t border-zinc-600 bg-zinc-800/40 px-5 pb-5 pt-5">
         <h2 className="mb-3 font-mono text-xs text-zinc-400">
           $ git request-changes
         </h2>
