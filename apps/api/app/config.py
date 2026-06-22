@@ -12,7 +12,6 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_service_role_key: str
     database_url: str  # postgresql+psycopg://... (Alembic/SQLAlchemy format)
-    cors_origin: str = "http://localhost:3000"  # set CORS_ORIGIN in Railway env
 
     model_config = SettingsConfigDict(env_file=(_ENV_FILE, ".env"), extra="ignore")
 
