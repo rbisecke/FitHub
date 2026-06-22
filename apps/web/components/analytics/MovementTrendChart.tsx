@@ -45,7 +45,10 @@ export function MovementTrendChart({ movementId, token }: Props) {
   }));
 
   return (
-    <div data-testid="movement-trend-chart" className="h-20 w-full mt-2">
+    <div
+      data-testid="movement-trend-chart"
+      className="h-20 w-full mt-2 min-w-0"
+    >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={data}

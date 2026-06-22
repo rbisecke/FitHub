@@ -41,7 +41,7 @@ export function ACWRWidget({ series, acwrNow, acwrZone }: Props) {
             {cfg.text}
           </span>
         </div>
-        <div className="flex-1 h-10 mb-5">
+        <div className="flex-1 h-10 mb-5 min-w-0">
           {data.length >= 3 && (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
