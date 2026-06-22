@@ -36,7 +36,7 @@ export function ACWRChart({ series }: Props) {
     }));
 
   return (
-    <div data-testid="acwr-chart" className="h-52 w-full">
+    <div data-testid="acwr-chart" className="h-52 w-full min-w-0">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={data}
