@@ -6,9 +6,14 @@ import { NLLogInput } from "@/components/coach/NLLogInput";
 export default async function CoachPage() {
   const supabase = await createClient();
   const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const {
     data: { session },
   } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
+  const token = session!.access_token;
 
   return (
     <div className="flex h-full flex-col mx-auto max-w-2xl px-4 py-8">
@@ -25,14 +30,14 @@ export default async function CoachPage() {
         <h2 className="mb-3 font-mono text-sm font-semibold text-zinc-300">
           natural-language log
         </h2>
-        <NLLogInput accessToken={session.access_token} />
+        <NLLogInput accessToken={token} />
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col">
         <h2 className="mb-3 shrink-0 font-mono text-sm font-semibold text-zinc-300">
           ask the coach
         </h2>
-        <CoachChat accessToken={session.access_token} />
+        <CoachChat accessToken={token} />
       </div>
     </div>
   );

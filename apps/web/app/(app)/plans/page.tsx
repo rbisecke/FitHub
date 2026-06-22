@@ -7,13 +7,17 @@ import type { PlanSummary } from "@/lib/api/plans";
 export default async function PlansPage() {
   const supabase = await createClient();
   const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const {
     data: { session },
   } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
 
   let plans: PlanSummary[] = [];
   try {
-    plans = await api.plans.list(session.access_token);
+    plans = await api.plans.list(session!.access_token);
   } catch {
     // degrade gracefully
   }

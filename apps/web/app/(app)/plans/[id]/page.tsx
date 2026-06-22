@@ -11,13 +11,18 @@ export default async function PlanDetailPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
   const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const {
     data: { session },
   } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
+  const token = session!.access_token;
 
   let plan: Awaited<ReturnType<typeof api.plans.get>> | null = null;
   try {
-    plan = await api.plans.get(session.access_token, id);
+    plan = await api.plans.get(token, id);
   } catch {
     notFound();
   }
@@ -35,7 +40,7 @@ export default async function PlanDetailPage({ params }: Props) {
         {plan.goal.replace("_", " ")} · {plan.weeks} weeks · starts{" "}
         {plan.start_date}
       </p>
-      <PlanBranchView plan={plan} accessToken={session.access_token} />
+      <PlanBranchView plan={plan} accessToken={token} />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { api } from "@/lib/api/client";
 import { ACWRChart } from "@/components/analytics/ACWRChart";
@@ -9,6 +10,11 @@ import { EmptyAnalyticsState } from "@/components/analytics/EmptyAnalyticsState"
 
 export default async function AnalyticsPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
   const {
     data: { session },
   } = await supabase.auth.getSession();

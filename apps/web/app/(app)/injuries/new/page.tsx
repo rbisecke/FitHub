@@ -5,9 +5,13 @@ import { InjuryReportForm } from "@/components/injuries/InjuryReportForm";
 export default async function NewInjuryPage() {
   const supabase = await createClient();
   const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const {
     data: { session },
   } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
@@ -17,7 +21,7 @@ export default async function NewInjuryPage() {
       <p className="mb-8 font-mono text-xs text-zinc-500">
         # report an injury — we&apos;ll suggest safe alternatives
       </p>
-      <InjuryReportForm accessToken={session.access_token} />
+      <InjuryReportForm accessToken={session!.access_token} />
     </div>
   );
 }
