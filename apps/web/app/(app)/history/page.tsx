@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { api } from "@/lib/api/client";
 import { WorkoutCard } from "@/components/workout/WorkoutCard";
@@ -11,6 +12,11 @@ export default async function HistoryPage({
   searchParams: Promise<{ cursor?: string; filter?: string }>;
 }) {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
   const {
     data: { session },
   } = await supabase.auth.getSession();

@@ -5,9 +5,13 @@ import { CreatePlanForm } from "@/components/plans/CreatePlanForm";
 export default async function NewPlanPage() {
   const supabase = await createClient();
   const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const {
     data: { session },
   } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
@@ -17,7 +21,7 @@ export default async function NewPlanPage() {
       <p className="mb-8 font-mono text-xs text-zinc-500">
         # generate a new training plan
       </p>
-      <CreatePlanForm accessToken={session.access_token} />
+      <CreatePlanForm accessToken={session!.access_token} />
     </div>
   );
 }
