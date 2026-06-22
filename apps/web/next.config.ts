@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV === "development";
 
+const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host
+  : "your-project.supabase.co";
+
+const apiHost = process.env.NEXT_PUBLIC_API_URL
+  ? new URL(process.env.NEXT_PUBLIC_API_URL).host
+  : "api.fithub.app";
+
 const cspDirectives = [
   "default-src 'self'",
   // Next.js requires 'unsafe-inline' for server-injected style tags and hydration scripts
@@ -11,7 +19,7 @@ const cspDirectives = [
   "font-src 'self'",
   isDev
     ? "connect-src 'self' http://localhost:54321 http://127.0.0.1:54321 http://localhost:8000 http://127.0.0.1:8000 ws://localhost:3000"
-    : "connect-src 'self' https://your-project.supabase.co wss://your-project.supabase.co https://api.fithub.app",
+    : `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://${apiHost}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

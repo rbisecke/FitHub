@@ -48,6 +48,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Authenticated users visiting /login are sent straight to the dashboard.
+  if (user && request.nextUrl.pathname.startsWith("/login")) {
+    const dashboardUrl = request.nextUrl.clone();
+    dashboardUrl.pathname = "/dashboard";
+    return NextResponse.redirect(dashboardUrl);
+  }
+
   return response;
 }
 
