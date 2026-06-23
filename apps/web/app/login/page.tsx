@@ -19,8 +19,10 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        // Invite-only: never auto-create a new user from the magic link.
-        shouldCreateUser: false,
+        // New-user creation is gated by the before_user_created_hook in Supabase
+        // (checks public.invited_emails). shouldCreateUser must be true so the hook
+        // runs; with it false, Supabase silently skips the email for unknown addresses.
+        shouldCreateUser: true,
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
