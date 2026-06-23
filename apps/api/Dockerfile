@@ -24,8 +24,9 @@ RUN uv sync --frozen --no-dev
 
 # Pre-download embedding model into the image layer to avoid cold-start
 # timeouts (~130 MB). HF_HOME makes the cache location explicit.
+# Use the venv python directly — uv run would trigger a dev-dep sync here.
 ENV HF_HOME=/root/.cache/huggingface
-RUN uv run python -c \
+RUN .venv/bin/python -c \
     "from sentence_transformers import SentenceTransformer; \
      SentenceTransformer('BAAI/bge-small-en-v1.5')"
 
@@ -35,7 +36,11 @@ COPY apps/api/app ./app
 COPY apps/api/alembic ./alembic
 COPY apps/api/alembic.ini .
 
-# `uv run` on Linux calls execvp internally, replacing itself with uvicorn so
-# uvicorn becomes PID 1 and receives SIGTERM directly (graceful shutdown).
-# `exec` replaces sh with uv first; shell form is required for $PORT expansion.
-CMD ["sh", "-c", "exec uv run uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Use the venv's uvicorn directly so there is no uv-run sync step at container
+# startup — sync overhead causes Railway's health-check to time out and marks
+# the deploy as failed even though the container recovers.
+# PYTHONPATH=/app makes `app.main` importable (equivalent to what uv run adds).
+# exec replaces sh so uvicorn is PID 1 and receives SIGTERM for graceful shutdown.
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH=/app
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
