@@ -3,6 +3,12 @@ builder = "dockerfile"
 dockerfilePath = "apps/api/Dockerfile"
 
 [deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 60
+# Keep old container alive until new one passes healthcheck (zero-downtime swap).
+overlapSeconds = 20
+# Graceful shutdown window: time between SIGTERM and SIGKILL on the old container.
+drainingSeconds = 10
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
