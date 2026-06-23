@@ -3,8 +3,11 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Resolve .env from the repo root regardless of the process cwd.
-_REPO_ROOT = Path(__file__).parents[3]
+# In the monorepo .env lives 4 levels up (repo/apps/api/app/config.py).
+# In Docker the file is only 3 levels deep (/app/app/config.py); fall back
+# gracefully — Railway injects env vars directly so no .env is needed.
+_THIS = Path(__file__)
+_REPO_ROOT = _THIS.parents[3] if len(_THIS.parents) > 3 else _THIS.parent
 _ENV_FILE = str(_REPO_ROOT / ".env")
 
 
