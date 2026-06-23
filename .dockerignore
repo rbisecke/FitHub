@@ -1,0 +1,58 @@
+# Version control
+.git
+.github
+
+# Node.js (Turborepo / Next.js — not needed for API Docker build)
+node_modules
+apps/web/.next
+apps/web/node_modules
+packages/*/node_modules
+
+# Python virtual environments (platform-specific binaries must not be copied)
+.venv
+apps/api/.venv
+**/.venv
+
+# Python artifacts
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# HuggingFace / sentence-transformers model cache (built inside Docker)
+**/.cache/huggingface
+**/huggingface_cache
+
+# Build outputs
+dist
+build
+*.egg-info
+
+# Local environment files (secrets must never enter the build context)
+.env
+.env.*
+!.env.example
+apps/api/.env
+apps/api/.env.docker
+apps/web/.env.local
+
+# Supabase local stack
+supabase/.branches
+supabase/.temp
+
+# Test artifacts
+coverage
+*.coverage
+htmlcov
+claude_docs/qa-reports
+
+# Editor and OS
+.DS_Store
+*.swp
+*.swo
+.idea
+.vscode

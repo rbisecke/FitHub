@@ -1,22 +1,49 @@
+# Pin uv to a specific version — :latest silently upgrades, can bust the
+# layer cache unexpectedly, and makes builds non-reproducible.
+FROM ghcr.io/astral-sh/uv:0.11.23 AS uv
+
 FROM python:3.14-slim
 
-# Install uv from official image
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=uv /uv /uvx /bin/
+
+# UV_COMPILE_BYTECODE: pre-compile .py → .pyc at install time; ~20% faster
+#   imports on cold start.
+# UV_LINK_MODE=copy: required when the uv cache mount and the venv target
+#   are on different filesystems (common in Docker).
+# UV_PYTHON_DOWNLOADS=0: use the system Python from the base image only.
+# UV_NO_DEV=1: skip the [dev] dependency group.
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0 \
+    UV_NO_DEV=1
 
 WORKDIR /app
 
-# Copy dependency manifests first for layer caching
-COPY apps/api/pyproject.toml apps/api/uv.lock ./
+# Install dependencies with BuildKit cache mount so packages are not
+# re-downloaded from PyPI when the lockfile hasn't changed.
+# Bind mounts make the lockfiles available without baking them into the layer.
+# --no-install-project: install deps only; source code isn't present yet.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=apps/api/uv.lock,target=uv.lock \
+    --mount=type=bind,source=apps/api/pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project
 
-# Install production dependencies only
-RUN uv sync --frozen --no-dev
+# Pre-download embedding model into the image layer to avoid cold-start
+# timeouts (~130 MB). HF_HOME makes the cache location explicit.
+ENV HF_HOME=/root/.cache/huggingface
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv run python -c \
+    "from sentence_transformers import SentenceTransformer; \
+     SentenceTransformer('BAAI/bge-small-en-v1.5')"
 
-# Pre-download embedding model to avoid cold-start timeout (~130 MB, cached in layer)
-RUN uv run python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-small-en-v1.5')"
-
-# Copy application source
+# Copy source last — source-only changes skip the expensive dep + model layers.
 COPY apps/api/app ./app
 COPY apps/api/alembic ./alembic
 COPY apps/api/alembic.ini .
 
-CMD ["sh", "-c", "uv run uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Add .venv/bin to PATH so uvicorn is available without `uv run`.
+ENV PATH="/app/.venv/bin:$PATH"
+
+# `exec` replaces sh with uvicorn as PID 1 so SIGTERM is delivered directly,
+# enabling graceful shutdown. Shell form is still required for $PORT expansion.
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
