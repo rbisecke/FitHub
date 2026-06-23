@@ -30,9 +30,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Pre-download embedding model into the image layer to avoid cold-start
 # timeouts (~130 MB). HF_HOME makes the cache location explicit.
+# Call the venv Python directly (not via `uv run`) to avoid uv's implicit
+# re-sync, which would otherwise pull in dev dependencies at build time.
 ENV HF_HOME=/root/.cache/huggingface
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv run python -c \
+RUN /app/.venv/bin/python -c \
     "from sentence_transformers import SentenceTransformer; \
      SentenceTransformer('BAAI/bge-small-en-v1.5')"
 
@@ -41,9 +42,7 @@ COPY apps/api/app ./app
 COPY apps/api/alembic ./alembic
 COPY apps/api/alembic.ini .
 
-# Add .venv/bin to PATH so uvicorn is available without `uv run`.
-ENV PATH="/app/.venv/bin:$PATH"
-
-# `exec` replaces sh with uvicorn as PID 1 so SIGTERM is delivered directly,
-# enabling graceful shutdown. Shell form is still required for $PORT expansion.
-CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# `uv run` on Linux calls execvp internally, replacing itself with uvicorn so
+# uvicorn becomes PID 1 and receives SIGTERM directly (graceful shutdown).
+# Shell form is required for $PORT expansion; `exec` replaces sh with uv first.
+CMD ["sh", "-c", "exec uv run uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
