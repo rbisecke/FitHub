@@ -6,6 +6,11 @@ FROM python:3.14-slim
 
 COPY --from=uv /uv /uvx /bin/
 
+# Cache-bust marker: creates a layer whose content has never appeared in
+# Railway's image cache, forcing all downstream layers to rebuild fresh.
+# Remove once Railway successfully builds and deploys this Dockerfile.
+RUN echo "fithub-api-v0.2.0" > /etc/fithub-version
+
 # UV_COMPILE_BYTECODE: pre-compile .py → .pyc at install time; faster imports.
 # UV_LINK_MODE=copy: prevents hard-link failures across filesystems in Docker.
 # UV_PYTHON_DOWNLOADS=0: use the system Python from the base image only.
