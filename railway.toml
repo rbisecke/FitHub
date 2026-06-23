@@ -11,7 +11,3 @@ overlapSeconds = 20
 drainingSeconds = 10
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
-
-[[services]]
-name = "api"
-source = "apps/api"
