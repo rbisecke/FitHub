@@ -20,6 +20,20 @@ export type VolumeTrendResponse = components["schemas"]["VolumeTrendResponse"];
 export type WeeklyVolume = components["schemas"]["WeeklyVolume"];
 export type ReadinessResponse = components["schemas"]["ReadinessResponse"];
 export type TrainingPartner = components["schemas"]["TrainingPartner"];
+export type BenchmarkAttempt = components["schemas"]["BenchmarkAttempt"];
+export type BenchmarkEntry = components["schemas"]["BenchmarkEntry"];
+export type BenchmarkResponse = components["schemas"]["BenchmarkResponse"];
+
+// Training balance — endpoint not yet in generated types; defined locally
+export interface TrainingBalanceBreakdown {
+  category: string;
+  volume_pct: number;
+  load_au: number;
+}
+export interface TrainingBalanceResponse {
+  breakdown: TrainingBalanceBreakdown[];
+  period_days: number;
+}
 
 // Coach types — from generated OpenAPI schema
 export type MovementResult = components["schemas"]["MovementResult"];

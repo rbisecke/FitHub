@@ -89,6 +89,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/analytics/benchmarks": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Benchmarks */
+    get: operations["benchmarks_api_v1_analytics_benchmarks_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/coach/parse-log": {
     parameters: {
       query?: never;
@@ -705,6 +722,34 @@ export interface components {
     AdjustAdaptationRequest: {
       /** Feedback */
       feedback: string;
+    };
+    /** BenchmarkAttempt */
+    BenchmarkAttempt: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Result Display */
+      result_display: string;
+      /** Result Seconds */
+      result_seconds: number;
+    };
+    /** BenchmarkEntry */
+    BenchmarkEntry: {
+      /** Name */
+      name: string;
+      /** Attempts */
+      attempts: components["schemas"]["BenchmarkAttempt"][];
+      /** Pr Display */
+      pr_display: string;
+      /** Improvement Display */
+      improvement_display: string;
+    };
+    /** BenchmarkResponse */
+    BenchmarkResponse: {
+      /** Benchmarks */
+      benchmarks: components["schemas"]["BenchmarkEntry"][];
     };
     /** ChatRequest */
     ChatRequest: {
@@ -2066,6 +2111,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ReadinessResponse"];
+        };
+      };
+    };
+  };
+  benchmarks_api_v1_analytics_benchmarks_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BenchmarkResponse"];
         };
       };
     };

@@ -11,6 +11,8 @@ import type {
   ParseLogResponse,
   ChatResponse,
   HistoryMessage,
+  TrainingBalanceResponse,
+  BenchmarkResponse,
 } from "./index";
 import type {
   PlanDetail,
@@ -112,6 +114,13 @@ export const api = {
       ),
     readiness: (token: string) =>
       apiFetch<ReadinessResponse>("/api/v1/analytics/readiness", token),
+    trainingBalance: (token: string, days = 28) =>
+      apiFetch<TrainingBalanceResponse>(
+        `/api/v1/analytics/training-balance?days=${days}`,
+        token,
+      ),
+    benchmarks: (token: string) =>
+      apiFetch<BenchmarkResponse>("/api/v1/analytics/benchmarks", token),
   },
   trainingPartners: (token: string) =>
     apiFetch<TrainingPartner[]>("/api/v1/training-partners", token),

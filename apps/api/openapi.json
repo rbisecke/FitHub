@@ -213,6 +213,32 @@
         ]
       }
     },
+    "/api/v1/analytics/benchmarks": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Benchmarks",
+        "operationId": "benchmarks_api_v1_analytics_benchmarks_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/coach/parse-log": {
       "post": {
         "tags": [
@@ -2320,6 +2346,77 @@
           "feedback"
         ],
         "title": "AdjustAdaptationRequest"
+      },
+      "BenchmarkAttempt": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "result_display": {
+            "type": "string",
+            "title": "Result Display"
+          },
+          "result_seconds": {
+            "type": "integer",
+            "title": "Result Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "result_display",
+          "result_seconds"
+        ],
+        "title": "BenchmarkAttempt"
+      },
+      "BenchmarkEntry": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/BenchmarkAttempt"
+            },
+            "type": "array",
+            "title": "Attempts"
+          },
+          "pr_display": {
+            "type": "string",
+            "title": "Pr Display"
+          },
+          "improvement_display": {
+            "type": "string",
+            "title": "Improvement Display"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "attempts",
+          "pr_display",
+          "improvement_display"
+        ],
+        "title": "BenchmarkEntry"
+      },
+      "BenchmarkResponse": {
+        "properties": {
+          "benchmarks": {
+            "items": {
+              "$ref": "#/components/schemas/BenchmarkEntry"
+            },
+            "type": "array",
+            "title": "Benchmarks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "benchmarks"
+        ],
+        "title": "BenchmarkResponse"
       },
       "ChatRequest": {
         "properties": {

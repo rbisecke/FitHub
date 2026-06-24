@@ -10,11 +10,11 @@ interface Props {
 }
 
 const volumeConfig = {
-  strength: { label: "Strength", color: "hsl(var(--chart-1))" },
-  metcon: { label: "Metcon", color: "hsl(var(--chart-2))" },
-  endurance: { label: "Endurance", color: "hsl(var(--chart-3))" },
-  skill: { label: "Skill", color: "hsl(var(--chart-4))" },
-  recovery: { label: "Recovery", color: "hsl(var(--chart-5))" },
+  strength: { label: "Strength", color: "#3fb950" },
+  metcon: { label: "Metcon", color: "#d29922" },
+  endurance: { label: "Endurance", color: "#bc8cff" },
+  skill: { label: "Skill", color: "#58a6ff" },
+  recovery: { label: "Recovery", color: "#39d353" },
   other: { label: "Other", color: "var(--chart-axis)" },
 } satisfies ChartConfig;
 

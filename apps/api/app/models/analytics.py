@@ -48,6 +48,23 @@ class VolumeTrendResponse(BaseModel):
     weeks: list[WeeklyVolume]
 
 
+class BenchmarkAttempt(BaseModel):
+    date: date
+    result_display: str
+    result_seconds: int
+
+
+class BenchmarkEntry(BaseModel):
+    name: str
+    attempts: list[BenchmarkAttempt]
+    pr_display: str
+    improvement_display: str
+
+
+class BenchmarkResponse(BaseModel):
+    benchmarks: list[BenchmarkEntry]
+
+
 class ReadinessResponse(BaseModel):
     score: float
     label: str
