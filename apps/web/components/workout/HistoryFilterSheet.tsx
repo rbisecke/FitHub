@@ -72,7 +72,7 @@ export function HistoryFilterSheet({
                 <button
                   key={label}
                   onClick={() => setLocal({ ...local, sessionType: value })}
-                  className={`px-3 py-1.5 rounded-full text-xs font-mono border transition-colors ${
+                  className={`px-3 py-3 rounded-full text-xs font-mono border transition-colors ${
                     local.sessionType === value
                       ? "bg-[#21262d] border-[#58a6ff] text-[#e6edf3]"
                       : "border-[#30363d] text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3]"
@@ -94,7 +94,7 @@ export function HistoryFilterSheet({
                 <button
                   key={v}
                   onClick={() => setLocal({ ...local, partnerFilter: v })}
-                  className={`px-3 py-1.5 rounded-full text-xs font-mono border capitalize transition-colors ${
+                  className={`px-3 py-3 rounded-full text-xs font-mono border capitalize transition-colors ${
                     local.partnerFilter === v
                       ? "bg-[#21262d] border-[#58a6ff] text-[#e6edf3]"
                       : "border-[#30363d] text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3]"

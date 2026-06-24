@@ -126,21 +126,40 @@ export function HistoryPage({
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      {/* Heading row */}
+      {/* Heading row: h1 + mobile-only filter trigger */}
       <div className="flex items-start justify-between gap-3 mb-1">
-        <h1 className="text-xl font-semibold text-[#e6edf3]">
-          <span className="font-mono text-[#8b949e] mr-2 text-sm">$</span>
+        <h1
+          className="text-xl font-semibold text-[#e6edf3] whitespace-nowrap"
+          aria-label="$ git log"
+        >
+          <span
+            aria-hidden="true"
+            className="font-mono text-[#8b949e] mr-2 text-sm"
+          >
+            $
+          </span>
           git log
         </h1>
+        {/* Mobile trigger only — desktop row is below the subtitle */}
         <HistoryControls
           filters={filters}
           onFiltersChange={setFilters}
           onClear={() => setFilters(DEFAULT_FILTERS)}
+          showDesktopRow={false}
         />
       </div>
-      <p className="text-xs font-mono text-[#8b949e] mb-6">
+      <p className="text-xs font-mono text-[#8b949e] mb-3">
         Your workout history
       </p>
+      {/* Desktop filter row — full-width below subtitle, hidden on mobile */}
+      <div className="hidden md:block mb-6">
+        <HistoryControls
+          filters={filters}
+          onFiltersChange={setFilters}
+          onClear={() => setFilters(DEFAULT_FILTERS)}
+          showMobileTrigger={false}
+        />
+      </div>
 
       {/* Empty: clean slate */}
       {isEmptyCleanSlate && (

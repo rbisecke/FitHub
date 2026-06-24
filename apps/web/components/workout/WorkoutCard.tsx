@@ -130,13 +130,19 @@ export function WorkoutCard({
           </div>
         </div>
 
-        {/* Row 2: date */}
+        {/* Row 2: date — omit the dot+absolute when relativeDate returns same string */}
         <div className="mt-1 font-mono text-xs text-[#8b949e]">
-          <span>{relativeDateLabel}</span>
-          <span aria-hidden="true" className="mx-1">
-            ·
-          </span>
-          <span>{absoluteDateLabel}</span>
+          {relativeDateLabel !== absoluteDateLabel ? (
+            <>
+              <span>{relativeDateLabel}</span>
+              <span aria-hidden="true" className="mx-1">
+                ·
+              </span>
+              <span>{absoluteDateLabel}</span>
+            </>
+          ) : (
+            <span>{absoluteDateLabel}</span>
+          )}
         </div>
 
         {/* Row 3: movement summary (count fallback until API adds movement_names[]) */}
@@ -240,9 +246,11 @@ function ExpandedContent({
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[#e6edf3]">
-                        {r.movement_name ?? "—"}
-                      </span>
+                      {r.movement_name && (
+                        <span className="text-[#e6edf3]">
+                          {r.movement_name}
+                        </span>
+                      )}
                       <span className="font-mono text-[#8b949e]">
                         {r.load_kg &&
                           `${parseFloat(Number(r.load_kg).toFixed(3))} kg`}
@@ -324,7 +332,7 @@ function ExpandedContent({
                   Effort (RPE)
                 </span>
                 <span className="font-mono text-[#e6edf3]">
-                  {workout.session_rpe} / 10
+                  {Number(workout.session_rpe)} / 10
                 </span>
               </div>
             )}
