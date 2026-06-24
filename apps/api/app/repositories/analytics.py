@@ -216,3 +216,28 @@ async def get_readiness(
         "sleep_avg": sleep_avg,
         "factors_available": factors_available,
     }
+
+
+async def get_benchmark_attempts(
+    conn: psycopg.AsyncConnection[Any],
+    user_id: uuid.UUID,
+) -> list[dict[str, Any]]:
+    """Return all timed benchmark WOD attempts for a user, oldest first."""
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT
+                b.name,
+                w.performed_at::date AS day,
+                r.time_s,
+                w.id AS workout_id
+            FROM workouts w
+            JOIN benchmarks b ON b.id = w.benchmark_id
+            LEFT JOIN results r ON r.workout_id = w.id AND r.result_type = 'time'
+            WHERE w.user_id = %s
+              AND w.benchmark_id IS NOT NULL
+            ORDER BY b.name, w.performed_at ASC
+            """,
+            (user_id,),
+        )
+        return await cur.fetchall()

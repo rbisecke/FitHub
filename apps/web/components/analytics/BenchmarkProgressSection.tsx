@@ -42,7 +42,7 @@ function BenchmarkSparkline({ attempts }: { attempts: BenchmarkAttempt[] }) {
             dataKey="v"
             stroke="#bc8cff"
             dot={false}
-            strokeWidth={1.5}
+            strokeWidth={2}
           />
         </LineChart>
       </ResponsiveContainer>

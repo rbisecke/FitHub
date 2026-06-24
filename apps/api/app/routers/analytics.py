@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from collections import defaultdict
 from typing import Any
 
 import psycopg
@@ -9,6 +10,9 @@ from fastapi import APIRouter, Depends, Query
 from app.auth import UserContext, get_current_user
 from app.db import get_db
 from app.models.analytics import (
+    BenchmarkAttempt,
+    BenchmarkEntry,
+    BenchmarkResponse,
     DailyLoadPoint,
     E1RMPoint,
     LoadModelResponse,
@@ -18,6 +22,7 @@ from app.models.analytics import (
     WeeklyVolume,
 )
 from app.repositories.analytics import (
+    get_benchmark_attempts,
     get_load_series,
     get_movement_trend,
     get_personal_records,
@@ -41,6 +46,14 @@ def _acwr_zone(acwr: float | None) -> str:
     if acwr <= 1.5:
         return "caution"
     return "overreaching"
+
+
+def _fmt_time(seconds: int) -> str:
+    return f"{seconds // 60}:{seconds % 60:02d}"
+
+
+def _fmt_improvement(seconds: int) -> str:
+    return f"{seconds}s" if seconds < 60 else _fmt_time(seconds)
 
 
 @router.get("/load", response_model=LoadModelResponse)
@@ -134,3 +147,45 @@ async def readiness(
         data["hrv_type"] = hrv_row["type"] if hrv_row else None
 
     return ReadinessResponse(**data)
+
+
+@router.get("/benchmarks", response_model=BenchmarkResponse)
+async def benchmarks(
+    user: UserContext = Depends(get_current_user),
+    conn: psycopg.AsyncConnection[Any] = Depends(get_db),
+) -> BenchmarkResponse:
+    rows = await get_benchmark_attempts(conn, user.user_id)
+
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        if row["time_s"] is not None:
+            grouped[row["name"]].append(row)
+
+    entries: list[BenchmarkEntry] = []
+    for name, attempts in grouped.items():
+        pr_seconds = min(a["time_s"] for a in attempts)
+        first_seconds = attempts[0]["time_s"]
+        improvement_s = first_seconds - pr_seconds
+        n = len(attempts)
+        improvement_display = (
+            f"{_fmt_improvement(improvement_s)} improvement over {n} attempts"
+            if improvement_s > 0 and n > 1
+            else ""
+        )
+        entries.append(
+            BenchmarkEntry(
+                name=name,
+                attempts=[
+                    BenchmarkAttempt(
+                        date=a["day"],
+                        result_display=_fmt_time(a["time_s"]),
+                        result_seconds=a["time_s"],
+                    )
+                    for a in attempts
+                ],
+                pr_display=_fmt_time(pr_seconds),
+                improvement_display=improvement_display,
+            )
+        )
+
+    return BenchmarkResponse(benchmarks=entries)
