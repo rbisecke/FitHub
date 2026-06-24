@@ -1,94 +1,102 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { api } from "@/lib/api/client";
-import { ContributionGraph } from "@/components/workout/ContributionGraph";
-import { ACWRWidget } from "@/components/analytics/ACWRWidget";
-import { TrainingPartnersPanel } from "@/components/analytics/TrainingPartnersPanel";
+import type {
+  PersonalRecord,
+  TrainingPartner,
+  WorkoutSummary,
+} from "@/lib/api";
+import type { ReadinessResponse } from "@/lib/api";
 
-export default async function DashboardPage() {
+import { readinessSentence } from "@/lib/dashboard/readinessSentence";
+import { streakCalc } from "@/lib/dashboard/streakCalc";
+import { prDelta } from "@/lib/dashboard/prDelta";
+
+import { HeroBlock } from "@/components/dashboard/HeroBlock";
+import { StreakWidget } from "@/components/dashboard/StreakWidget";
+import { WeekMiniGraph } from "@/components/dashboard/WeekMiniGraph";
+import { ContributionGraphRevamp } from "@/components/dashboard/ContributionGraphRevamp";
+import { RecentPRsStrip } from "@/components/dashboard/RecentPRsStrip";
+import { TrainingPartnersSummary } from "@/components/dashboard/TrainingPartnersSummary";
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pr?: string }>;
+}) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  const token = session!.access_token;
+  if (!session) redirect("/login");
 
-  // Fetch in parallel — each degrades gracefully on error
-  let workouts: Awaited<ReturnType<typeof api.workouts.list>>["items"] = [];
-  let loadData: Awaited<ReturnType<typeof api.analytics.load>> | null = null;
-  let partners: Awaited<ReturnType<typeof api.trainingPartners>> = [];
+  const token = session.access_token;
 
-  const [workoutRes, loadRes, partnersRes] = await Promise.allSettled([
-    api.workouts.list(token, { limit: 365 }),
-    api.analytics.load(token, 14),
-    api.trainingPartners(token),
-  ]);
-  if (workoutRes.status === "fulfilled") workouts = workoutRes.value.items;
-  if (loadRes.status === "fulfilled") loadData = loadRes.value;
-  if (partnersRes.status === "fulfilled") partners = partnersRes.value;
+  const [workoutRes, partnersRes, prRes, readinessRes] =
+    await Promise.allSettled([
+      api.workouts.list(token, { limit: 365 }),
+      api.trainingPartners(token),
+      api.analytics.personalRecords(token),
+      api.analytics.readiness(token),
+    ]);
+
+  const workouts: WorkoutSummary[] =
+    workoutRes.status === "fulfilled" ? workoutRes.value.items : [];
+  const partners: TrainingPartner[] =
+    partnersRes.status === "fulfilled" ? partnersRes.value : [];
+  const prs: PersonalRecord[] = prRes.status === "fulfilled" ? prRes.value : [];
+  const readiness: ReadinessResponse | null =
+    readinessRes.status === "fulfilled" ? readinessRes.value : null;
+
+  const sentence = readinessSentence(readiness);
+  const readinessLabel = readiness?.label ?? "unknown";
+  const streak = streakCalc(workouts);
+  const recentPRs = prDelta(prs);
+
+  const params = await searchParams;
+  const isNewPR = params.pr === "1";
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <div className="mb-8">
-        <p className="font-mono text-xs text-zinc-500 mb-1">$ fithub status</p>
-        <h1 className="text-2xl font-bold text-zinc-50">Dashboard</h1>
-        <p className="text-zinc-400 text-sm mt-1">
-          Signed in as{" "}
-          <span className="text-zinc-200 font-mono">{user.email}</span>
-        </p>
+    <div className="p-4 md:p-6 max-w-5xl mx-auto">
+      <header className="mb-6">
+        <p className="font-mono text-xs text-[--muted] mb-1">$ fithub status</p>
+        <h1 className="text-2xl font-bold text-[--text]">Dashboard</h1>
+      </header>
+
+      <HeroBlock sentence={sentence} readinessLabel={readinessLabel} />
+
+      {/* Mobile: stack vertically. Desktop (lg:): two-column grid */}
+      <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-6">
+        {/* Left column — streak, week, partners */}
+        <aside className="flex flex-col gap-3 mb-6 lg:mb-0">
+          {/* Mobile: streak + week side-by-side */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+            <StreakWidget streak={streak} />
+            <WeekMiniGraph workouts={workouts} />
+          </div>
+
+          {partners.length > 0 && (
+            <div className="hidden md:block">
+              <TrainingPartnersSummary partners={partners} />
+            </div>
+          )}
+        </aside>
+
+        {/* Right column — contribution graph */}
+        <section>
+          <ContributionGraphRevamp workouts={workouts} />
+        </section>
       </div>
 
-      {/* Contribution graph */}
-      <div className="mb-8 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-        <p className="font-mono text-xs text-zinc-500 mb-3">
-          contributions in the last year
-        </p>
-        <ContributionGraph workouts={workouts} />
-      </div>
+      {/* Recent PRs — full width below the grid */}
+      <RecentPRsStrip prs={recentPRs} isNewPR={isNewPR} />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-4">
-        <Link
-          href="/log/new"
-          className="group rounded-lg border border-zinc-800 bg-zinc-900 px-5 py-4 hover:border-zinc-700 transition-colors"
-        >
-          <p className="font-mono text-xs text-zinc-500 mb-1">$ git commit</p>
-          <p className="font-semibold text-zinc-100 group-hover:text-white">
-            Log a workout
-          </p>
-          <p className="text-xs text-zinc-500 mt-1">
-            Record today&apos;s training session
-          </p>
-        </Link>
-
-        <Link
-          href="/history"
-          className="group rounded-lg border border-zinc-800 bg-zinc-900 px-5 py-4 hover:border-zinc-700 transition-colors"
-        >
-          <p className="font-mono text-xs text-zinc-500 mb-1">$ git log</p>
-          <p className="font-semibold text-zinc-100 group-hover:text-white">
-            Workout history
-          </p>
-          <p className="text-xs text-zinc-500 mt-1">
-            {workouts.length} commit{workouts.length !== 1 ? "s" : ""} logged
-          </p>
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {loadData && (
-          <ACWRWidget
-            series={loadData.series}
-            acwrNow={loadData.acwr_now}
-            acwrZone={loadData.acwr_zone}
-          />
-        )}
-        <TrainingPartnersPanel partners={partners} />
-      </div>
+      {/* Training partners on mobile (low priority, after PRs) */}
+      {partners.length > 0 && (
+        <div className="mt-4 md:hidden">
+          <TrainingPartnersSummary partners={partners} />
+        </div>
+      )}
     </div>
   );
 }
