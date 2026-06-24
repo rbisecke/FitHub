@@ -53,7 +53,7 @@ export function ACWRWidget({ series, acwrNow, acwrZone }: Props) {
                 <Line
                   type="monotone"
                   dataKey="acwr"
-                  stroke="#06b6d4"
+                  stroke="hsl(var(--chart-1))"
                   dot={false}
                   strokeWidth={1.5}
                   isAnimationActive={false}
