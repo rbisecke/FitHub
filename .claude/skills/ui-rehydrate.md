@@ -10,11 +10,13 @@ This skill loads the two additional files needed for the session.
 ## Usage
 
 ```
-/ui-rehydrate <page>
+/ui-rehydrate           ← auto-selects next unblocked PR from the handover tracker
+/ui-rehydrate <page>    ← override: jump to a specific page
 ```
 
-**`<page>`** — one of: `dashboard`, `history`, `logger`, `progress`, `records`,
-`coach`, `profile`, `onboarding`, `navigation`, `library`, `gamification`
+**`<page>`** (optional override) — one of: `dashboard`, `history`, `logger`,
+`progress`, `records`, `coach`, `profile`, `onboarding`, `navigation`, `library`,
+`gamification`
 
 ## Steps
 
@@ -24,12 +26,52 @@ Read `claude_docs/planning/frontend-revamp/FRONTEND-REVAMP-HANDOVER.md` in full.
 
 From it, extract:
 
-- Current base branch (`feat/ui-revamp`)
-- Which PRs are ✅ Done, 🔄 In Progress, 🔲 Not Started
-- The sub-branch name for today's target page (from the Progress Tracker table)
-- Any backend blockers that affect today's page
+- Which PRs are ✅ Done, 🔄 In Progress, 🔲 Not Started (Progress Tracker table)
+- The dependency graph (Implementation Sequence tables — "Depends on" column)
+- Any backend PRs (B1–B6) that are blocking frontend work
 
-### 2. Read the target design doc
+### 2. Determine the target page
+
+**If the user passed a `<page>` argument:** use it directly — skip the auto-select
+logic and go to Step 3.
+
+**If no argument was given:** auto-select using this logic:
+
+1. Start with the ordered frontend PR list from the handover: F1, F2, F3, F4, F5,
+   F6, F7, F8, F9, F10, F11, F12.
+2. Skip any PR marked ✅ Done.
+3. For each remaining PR, check its "Depends on" column:
+   - If all dependencies are ✅ Done → this PR is **unblocked**
+   - If any dependency is 🔲 Not Started or 🔄 In Progress → this PR is **blocked**
+4. Select the **first unblocked PR** in the list. That is the target for this session.
+5. If everything is blocked (all unblocked PRs have outstanding backend dependencies),
+   select the first unblocked **backend PR** (B1–B6) instead and note that backend
+   work is needed before frontend can continue.
+6. If everything is ✅ Done, report that the revamp is complete and stop.
+
+Map the selected PR to a `<page>` argument using this table:
+
+| PR  | Maps to argument                         |
+| --- | ---------------------------------------- |
+| F1  | `setup` (no design doc — see note below) |
+| F2  | `navigation`                             |
+| F3  | `dashboard`                              |
+| F4  | `library`                                |
+| F5  | `history`                                |
+| F6  | `logger`                                 |
+| F7  | `progress`                               |
+| F8  | `records`                                |
+| F9  | `coach`                                  |
+| F10 | `onboarding`                             |
+| F11 | `profile`                                |
+| F12 | `gamification`                           |
+
+> **F1 special case:** F1 is the setup PR (install shadcn components, motion, sonner,
+> viewport fix, CSS vars). There is no page-level design doc for it. If F1 is the
+> selected target, skip Step 3 (no doc to load) and output the session brief with
+> a summary drawn from the "Packages to Install in F1" section of the HANDOVER doc.
+
+### 3. Read the target design doc
 
 Use this map to find the right file:
 
@@ -50,7 +92,7 @@ Use this map to find the right file:
 Read the design doc. Do NOT read any other design docs — they are not needed for
 this session and will fill context unnecessarily.
 
-### 3. Check git state
+### 4. Check git state
 
 Run:
 
@@ -62,30 +104,32 @@ git log feat/ui-revamp..HEAD --oneline
 Report whether you are already on the correct sub-branch for today's work,
 or still on `feat/ui-revamp` (in which case a new branch needs to be created).
 
-### 4. Output a session brief
+### 5. Output a session brief
 
 Respond with exactly these sections:
 
 ---
 
-**Session: `<page>`**
+**Session: `<page>`** _(auto-selected: next unblocked PR is `<PR label>`)_
+or
+**Session: `<page>`** _(override: user requested this page)_
 
 **Branch:** `<current branch>` → working branch should be `feat/ui-<page>`
-_(create with: `git checkout -b feat/ui-<page>` if not already on it)_
+_(create with: `git -C /Users/rbisecke/FitHub checkout -b feat/ui-<page>` if not already on it)_
 
-**Status:** `<what the HANDOVER tracker says for this PR — Not Started / In Progress>`
+**Status:** `<what the HANDOVER tracker says — Not Started / In Progress>`
 
 **Backend blockers:**
 
 - `<list any blockers from the design doc's Accuracy Review or blockers section>`
-- _(or "None — this page can be fully built and tested without waiting on backend PRs")_
+- _(or "None — this page can be fully built and tested now")_
 
 **What this session will build:**
-`<2–3 sentence summary of what the design doc specifies for this page — the core layout change, key components, biggest design decision>`
+`<2–3 sentence summary of the core layout change, key components, biggest design decision>`
 
 **Key constraints to keep in mind:**
 
-- `<up to 4 bullets — the most important non-obvious facts from the design doc's Accuracy Review that would trip up implementation>`
+- `<up to 4 bullets — the most important non-obvious facts from the Accuracy Review that would trip up implementation>`
 
 **When implementation is done, run:**
 
@@ -96,9 +140,9 @@ _(create with: `git checkout -b feat/ui-<page>` if not already on it)_
 ---
 
 Does this match what you want to work on today? Confirm and I'll get started,
-or correct me if the target or branch is wrong.
+or say `skip` to auto-select the next PR after this one.
 
-### 5. Stop and wait
+### 6. Stop and wait
 
 Do not open any other files, write any code, or run any commands until the user
 explicitly confirms.
