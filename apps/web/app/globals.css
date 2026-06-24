@@ -145,3 +145,10 @@
     @apply font-sans;
   }
 }
+
+@layer utilities {
+  /* Bottom padding that clears the fixed mobile nav bar + safe area + breathing room */
+  .pb-nav-safe {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom) + 16px);
+  }
+}
