@@ -10,14 +10,14 @@ import type { WorkoutSummary } from "@/lib/api";
 
 type ColourMode = "intensity" | "volume";
 
-// 4 levels from low → high matching the GitHub green scale in globals.css.
+// 4 levels from low → high using --heatmap-* CSS variables.
 // DayPicker v10 in no-selection mode renders day cells as plain <td> elements
 // (no inner button), so modifier classes are applied directly to the <td>.
 const VARIANT_CLASSNAMES = [
-  "!bg-[#0e4429]", // level 1 — very low
-  "!bg-[#006d32]", // level 2
-  "!bg-[#26a641]", // level 3
-  "!bg-[#39d353]", // level 4 — high
+  "!bg-[var(--heatmap-1)]", // level 1 — low
+  "!bg-[var(--heatmap-2)]", // level 2 — moderate
+  "!bg-[var(--heatmap-3)]", // level 3 — hard
+  "!bg-[var(--heatmap-4)]", // level 4 — peak
 ];
 
 function avgIntensityLabel(workouts: WorkoutSummary[]): string {

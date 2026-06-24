@@ -70,11 +70,11 @@
   --border: #d0d7de;
   --input: #d0d7de;
   --ring: #0969da;
-  --chart-1: #39d353;
-  --chart-2: #26a641;
-  --chart-3: #006d32;
-  --chart-4: #0e4429;
-  --chart-5: #ebedf0;
+  --chart-1: oklch(0.715 0.143 215.2);  /* cyan-500 — primary line/bar */
+  --chart-2: oklch(0.705 0.191 47.6);   /* orange-500 — secondary */
+  --chart-3: oklch(0.702 0.14 295.7);   /* violet-400 — tertiary */
+  --chart-4: oklch(0.795 0.157 161.6);  /* emerald-400 — positive */
+  --chart-5: oklch(0.665 0.025 247.8);  /* slate-400 — neutral */
   --radius: 0.375rem;
   --sidebar: #f6f8fa;
   --sidebar-foreground: #1f2328;
@@ -106,12 +106,29 @@
   --border: #30363d;
   --input: #30363d;
   --ring: #58a6ff;
-  /* Contribution graph green scale (chart-1 = max density → chart-5 = empty) */
-  --chart-1: #39d353;
-  --chart-2: #26a641;
-  --chart-3: #006d32;
-  --chart-4: #0e4429;
-  --chart-5: #161b22;
+  /* Recharts / shadcn chart series colours */
+  --chart-1: oklch(0.715 0.143 215.2);  /* cyan-500 — primary line/bar (strength, ACWR) */
+  --chart-2: oklch(0.705 0.191 47.6);   /* orange-500 — secondary (metcon, caution) */
+  --chart-3: oklch(0.702 0.14 295.7);   /* violet-400 — tertiary (endurance, e1rm trend) */
+  --chart-4: oklch(0.795 0.157 161.6);  /* emerald-400 — positive (skill, optimal zone) */
+  --chart-5: oklch(0.665 0.025 247.8);  /* slate-400 — neutral (recovery, muted) */
+
+  /* Reference lines */
+  --chart-ref-lower:   oklch(0.527 0.013 247);    /* zinc-500 — lower bound (ACWR y=0.8) */
+  --chart-ref-caution: oklch(0.766 0.155 80.8);   /* amber-500 — caution threshold */
+  --chart-ref-danger:  oklch(0.636 0.222 25.3);   /* red-500 — danger threshold (ACWR y=1.5) */
+
+  /* Chart UI surfaces */
+  --chart-bg:     oklch(0.219 0.006 285.9);   /* zinc-900 — tooltip/popover background */
+  --chart-border: oklch(0.275 0.008 285.8);   /* zinc-800 — tooltip/popover border */
+  --chart-axis:   oklch(0.527 0.013 247);     /* zinc-500 — axis label text */
+
+  /* Heatmap intensity scale */
+  --heatmap-0: oklch(0.275 0.008 285.8);  /* zinc-800 — empty/no workout */
+  --heatmap-1: oklch(0.228 0.062 227.8);  /* cyan-950 — low load */
+  --heatmap-2: oklch(0.385 0.107 223.7);  /* cyan-800 — moderate */
+  --heatmap-3: oklch(0.533 0.143 218);    /* cyan-600 — hard */
+  --heatmap-4: oklch(0.825 0.118 203.3);  /* cyan-400 — peak load */
   --radius: 0.375rem;
   --sidebar: #161b22;
   --sidebar-foreground: #e6edf3;
