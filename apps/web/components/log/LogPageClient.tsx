@@ -1,0 +1,329 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useForm, useFieldArray, type Resolver } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/lib/api/client";
+import type { WorkoutSummary, SessionType, WorkoutFormat } from "@/lib/api";
+import { logFormSchema, type LogFormValues } from "./schema";
+import { MovementRow } from "./MovementRow";
+import { AddDetailsCollapsible } from "./AddDetailsCollapsible";
+import { TemplatePicker } from "./TemplatePicker";
+
+function parseTimeText(raw: string): number | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  const colonMatch = trimmed.match(/^(\d+):(\d{1,2})$/);
+  if (colonMatch) {
+    return parseInt(colonMatch[1]!, 10) * 60 + parseInt(colonMatch[2]!, 10);
+  }
+  const n = parseInt(trimmed, 10);
+  if (!isNaN(n)) {
+    const mins = Math.floor(n / 100);
+    const secs = n % 100;
+    return mins * 60 + secs;
+  }
+  return null;
+}
+
+function toISOLocal(dateStr: string): string {
+  if (dateStr.includes("T")) return dateStr;
+  return `${dateStr}T00:00:00Z`;
+}
+
+const today = new Date().toISOString().slice(0, 10);
+
+interface LogPageClientProps {
+  accessToken: string;
+  recentWorkouts: WorkoutSummary[];
+  prefillValues?: Partial<LogFormValues>;
+}
+
+export function LogPageClient({
+  accessToken,
+  recentWorkouts,
+  prefillValues,
+}: LogPageClientProps) {
+  const router = useRouter();
+  const [nlText, setNlText] = useState("");
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlPreview, setNlPreview] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<LogFormValues>({
+    resolver: zodResolver(logFormSchema) as Resolver<LogFormValues>,
+    defaultValues: {
+      performed_at: today,
+      results: [],
+      ...prefillValues,
+    },
+  });
+
+  const { fields, append, remove, replace } = useFieldArray({
+    control,
+    name: "results",
+  });
+
+  const handleTemplateSelect = useCallback(
+    async (w: WorkoutSummary) => {
+      try {
+        const full = await api.workouts.get(accessToken, w.id);
+        const prefillResults = (full.results ?? []).map((r, i) => ({
+          movement_id: r.movement_id ?? undefined,
+          movement_name: r.movement_name ?? undefined,
+          result_type:
+            r.result_type as LogFormValues["results"][number]["result_type"],
+          load_kg: "",
+          reps: "",
+          time_text: "",
+          distance_m: "",
+          rounds: "",
+          partial_reps: "",
+          calories: "",
+          height_cm: "",
+          watts: "",
+          pace_text: "",
+          order_index: i,
+        }));
+        replace(prefillResults);
+        setNlText("");
+        setNlPreview(null);
+      } catch {
+        // ignore — template fetch failed, user can continue manually
+      }
+    },
+    [accessToken, replace],
+  );
+
+  const handleNlParse = useCallback(async () => {
+    if (nlText.trim().length < 10) return;
+    setNlLoading(true);
+    setNlPreview(null);
+    try {
+      const result = await api.coach.parseLog(accessToken, nlText);
+      const entry = result.parsed;
+      if (entry) {
+        const preview = [
+          entry.title && `Title: ${entry.title}`,
+          entry.results.length > 0 &&
+            `Movements: ${entry.results
+              .map((r) => r.movement_name)
+              .join(", ")}`,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        setNlPreview(preview || "Parsed — review below before committing");
+
+        // Prefill form from parse result
+        if (entry.title) setValue("performed_at", today);
+        const prefill = entry.results.map((r, i) => ({
+          movement_id: undefined,
+          movement_name: r.movement_name,
+          result_type: "weight" as const,
+          load_kg: r.load_kg != null ? String(r.load_kg) : "",
+          reps: r.reps != null ? String(r.reps) : "",
+          time_text:
+            r.time_s != null
+              ? `${Math.floor(r.time_s / 60)}:${String(r.time_s % 60).padStart(
+                  2,
+                  "0",
+                )}`
+              : "",
+          distance_m: "",
+          rounds: "",
+          partial_reps: "",
+          calories: "",
+          height_cm: "",
+          watts: "",
+          pace_text: "",
+          order_index: i,
+        }));
+        replace(prefill);
+      }
+    } catch {
+      setNlPreview("Could not parse — try describing again or log manually");
+    } finally {
+      setNlLoading(false);
+    }
+  }, [accessToken, nlText, setValue, replace]);
+
+  async function onSubmit(values: LogFormValues) {
+    setSubmitError(null);
+    try {
+      const results = values.results.map((r, i) => ({
+        movement_id: r.movement_id ?? undefined,
+        result_type: r.result_type,
+        load_kg: r.load_kg ? Number(r.load_kg) : undefined,
+        reps: r.reps ? parseInt(r.reps, 10) : undefined,
+        time_s: r.time_text
+          ? parseTimeText(r.time_text) ?? undefined
+          : undefined,
+        distance_m: r.distance_m ? Number(r.distance_m) : undefined,
+        rounds: r.rounds ? parseInt(r.rounds, 10) : undefined,
+        partial_reps: r.partial_reps ? parseInt(r.partial_reps, 10) : undefined,
+        calories: r.calories ? parseInt(r.calories, 10) : undefined,
+        height_cm: r.height_cm ? Number(r.height_cm) : undefined,
+        watts: r.watts ? parseInt(r.watts, 10) : undefined,
+        pace_s: r.pace_text
+          ? parseTimeText(r.pace_text) ?? undefined
+          : undefined,
+        order_index: i,
+        is_pr: false,
+        pace_distance_m: 500,
+      }));
+
+      await api.workouts.create(accessToken, {
+        performed_at: toISOLocal(values.performed_at),
+        title: values.title || undefined,
+        session_type: (values.session_type as SessionType) || undefined,
+        workout_format: (values.workout_format as WorkoutFormat) || undefined,
+        notes: values.notes || undefined,
+        session_rpe: values.session_rpe,
+        duration_s: values.duration_min
+          ? Math.round(Number(values.duration_min) * 60)
+          : undefined,
+        bodyweight_kg: values.bodyweight_kg
+          ? Number(values.bodyweight_kg)
+          : undefined,
+        results,
+      });
+
+      router.push("/history");
+    } catch {
+      setSubmitError("Failed to commit workout. Please try again.");
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-lg px-4 py-6 space-y-6">
+      {/* Page heading */}
+      <h1 className="text-lg font-semibold text-[#e6edf3]">
+        <span className="font-mono text-[#8b949e] text-sm mr-2">$</span>
+        git commit --fit
+      </h1>
+
+      {/* NL area */}
+      <div className="space-y-2">
+        <Textarea
+          placeholder={
+            'Describe your workout…\ne.g. "Fran in 6:45" or "5×5 back squat @ 90 kg"'
+          }
+          value={nlText}
+          onChange={(e) => setNlText(e.target.value)}
+          rows={3}
+          className="bg-[#0d1117] border-[#30363d] text-[#e6edf3] text-sm placeholder:text-[#8b949e] resize-none"
+        />
+        {nlText.trim().length > 10 && (
+          <button
+            type="button"
+            onClick={handleNlParse}
+            disabled={nlLoading}
+            className="text-xs text-[#58a6ff] hover:text-[#58a6ff]/80 transition-colors disabled:opacity-50"
+          >
+            {nlLoading ? "Parsing…" : "Parse & prefill →"}
+          </button>
+        )}
+        {nlPreview && (
+          <p className="text-xs text-[#8b949e] bg-[#161b22] rounded px-3 py-2 border border-[#30363d]">
+            {nlPreview}
+          </p>
+        )}
+      </div>
+
+      {/* Divider */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-[#30363d]" />
+        <span className="text-xs text-[#8b949e]">or add movements</span>
+        <div className="flex-1 h-px bg-[#30363d]" />
+      </div>
+
+      {/* Form */}
+      <form
+        onSubmit={handleSubmit(onSubmit as Parameters<typeof handleSubmit>[0])}
+        className="space-y-4"
+      >
+        {/* Movement rows */}
+        <div className="space-y-3">
+          {fields.map((field, idx) => (
+            <MovementRow
+              key={field.id}
+              index={idx}
+              accessToken={accessToken}
+              control={control}
+              register={register}
+              setValue={setValue}
+              remove={remove}
+            />
+          ))}
+        </div>
+
+        {/* Add movement */}
+        {fields.length < 10 && (
+          <button
+            type="button"
+            onClick={() =>
+              append({
+                movement_id: undefined,
+                movement_name: undefined,
+                result_type: "weight",
+                load_kg: "",
+                reps: "",
+                time_text: "",
+                distance_m: "",
+                rounds: "",
+                partial_reps: "",
+                calories: "",
+                height_cm: "",
+                watts: "",
+                pace_text: "",
+                order_index: fields.length,
+              })
+            }
+            className="w-full rounded-lg border border-dashed border-[#30363d] py-3 text-sm text-[#8b949e] hover:border-[#58a6ff]/60 hover:text-[#e6edf3] transition-colors"
+          >
+            + Add movement
+          </button>
+        )}
+
+        {/* Details collapsible */}
+        <AddDetailsCollapsible
+          register={register}
+          setValue={setValue}
+          watch={watch}
+        />
+
+        {/* Error */}
+        {submitError && (
+          <p role="alert" className="text-xs text-[#ff7b72]">
+            {submitError}
+          </p>
+        )}
+
+        {/* Submit */}
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-[#58a6ff] text-[#0d1117] font-semibold hover:bg-[#58a6ff]/90 disabled:opacity-60 min-h-[48px]"
+        >
+          {isSubmitting ? "Committing…" : "Commit workout"}
+        </Button>
+      </form>
+
+      {/* Template picker */}
+      <TemplatePicker
+        recentWorkouts={recentWorkouts}
+        onSelect={handleTemplateSelect}
+      />
+    </div>
+  );
+}

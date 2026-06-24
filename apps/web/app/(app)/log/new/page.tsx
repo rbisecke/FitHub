@@ -1,50 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { WorkoutForm } from "@/components/workout/WorkoutForm";
-import type { components } from "@/lib/api/generated";
-
-type ParsedEntry = components["schemas"]["ParsedLogEntry"];
-type FormResultType =
-  | "weight"
-  | "reps"
-  | "time"
-  | "distance"
-  | "calories"
-  | "height"
-  | "rounds_reps"
-  | "pace"
-  | "watts";
-
-const RESULT_TYPE_MAP: Record<string, FormResultType> = {
-  weight_kg: "weight",
-  time_s: "time",
-  distance_m: "distance",
-  rounds: "rounds_reps",
-  reps: "reps",
-  calories: "calories",
-};
-
-function parsedToInitialValues(parsed: ParsedEntry) {
-  return {
-    title: parsed.title ?? undefined,
-    session_type:
-      parsed.session_type !== "unknown" ? parsed.session_type : undefined,
-    workout_format: parsed.workout_format ?? undefined,
-    session_rpe: parsed.session_rpe ?? undefined,
-    duration_min:
-      parsed.duration_s != null
-        ? Math.round(parsed.duration_s / 60)
-        : undefined,
-    results: parsed.results.map((r) => ({
-      movement_name: r.movement_name,
-      result_type: RESULT_TYPE_MAP[r.result_type] ?? "reps",
-      load_kg: r.load_kg != null ? String(r.load_kg) : undefined,
-      reps: r.reps ?? undefined,
-      time_s: r.time_s ?? undefined,
-      notes: r.notes ?? undefined,
-    })),
-  };
-}
+import { LogPageClient } from "@/components/log/LogPageClient";
+import { api } from "@/lib/api/client";
+import type { WorkoutSummary } from "@/lib/api";
 
 export default async function NewWorkoutPage({
   searchParams,
@@ -61,21 +19,69 @@ export default async function NewWorkoutPage({
     data: { session },
   } = await supabase.auth.getSession();
 
+  const token = session!.access_token;
   const { prefill } = await searchParams;
-  let initialValues: ReturnType<typeof parsedToInitialValues> | undefined;
+
+  // Fetch recent workouts for the template picker
+  let recentWorkouts: WorkoutSummary[] = [];
+  try {
+    const resp = await api.workouts.list(token, { limit: 3 });
+    recentWorkouts = resp.items;
+  } catch {
+    // non-fatal — template picker will be empty
+  }
+
+  // Parse NL prefill if present (legacy flow from NLLogInput on /coach)
+  let prefillValues: Parameters<typeof LogPageClient>[0]["prefillValues"];
   if (prefill) {
     try {
-      const parsed = JSON.parse(prefill) as ParsedEntry;
-      initialValues = parsedToInitialValues(parsed);
+      // prefill is a JSON-encoded ParsedLogEntry from the old NLLogInput flow
+      const parsed = JSON.parse(prefill) as {
+        title?: string | null;
+        session_type?: string | null;
+        results?: Array<{
+          movement_name: string;
+          result_type: string;
+          load_kg?: number | null;
+          reps?: number | null;
+          time_s?: number | null;
+        }>;
+      };
+      prefillValues = {
+        title: parsed.title ?? undefined,
+        session_type: parsed.session_type ?? undefined,
+        results: (parsed.results ?? []).map((r, i) => ({
+          movement_name: r.movement_name,
+          result_type: "weight" as const,
+          load_kg: r.load_kg != null ? String(r.load_kg) : "",
+          reps: r.reps != null ? String(r.reps) : "",
+          time_text:
+            r.time_s != null
+              ? `${Math.floor(r.time_s / 60)}:${String(r.time_s % 60).padStart(
+                  2,
+                  "0",
+                )}`
+              : "",
+          distance_m: "",
+          rounds: "",
+          partial_reps: "",
+          calories: "",
+          height_cm: "",
+          watts: "",
+          pace_text: "",
+          order_index: i,
+        })),
+      };
     } catch {
       // ignore malformed prefill
     }
   }
 
   return (
-    <WorkoutForm
-      accessToken={session!.access_token}
-      initialValues={initialValues}
+    <LogPageClient
+      accessToken={token}
+      recentWorkouts={recentWorkouts}
+      prefillValues={prefillValues}
     />
   );
 }

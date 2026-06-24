@@ -13,6 +13,7 @@ import type {
   HistoryMessage,
   TrainingBalanceResponse,
   BenchmarkResponse,
+  LastResult,
 } from "./index";
 import type {
   PlanDetail,
@@ -101,6 +102,11 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    lastResult: (token: string, movementId: string) =>
+      apiFetch<LastResult>(
+        `/api/v1/movements/${movementId}/last-result`,
+        token,
+      ),
   },
   analytics: {
     load: (token: string, days = 90) =>

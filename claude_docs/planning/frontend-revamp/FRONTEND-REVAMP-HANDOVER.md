@@ -112,14 +112,14 @@ All design docs live in this directory (`claude_docs/planning/frontend-revamp/`)
 | `feat/ui-dashboard` | ✅ Done | #49 | HeroBlock, StreakWidget, WeekMiniGraph, ContributionGraphRevamp (2-month heatmap), RecentPRsStrip, TrainingPartnersSummary, DashboardSkeleton; fixed DayPicker v10 heatmap cell coloring (no inner button in no-selection mode), dot visibility, AppShell bottom-nav clearance; also fixed use-mobile lint error |
 | `feat/ui-library-migration` | ✅ Done | #50 | @nivo/calendar removed; ChartContainer migration; --chart-*/--heatmap-* CSS vars (hex, not oklch — Turbopack cache issue); lib/chart-utils, motion, toast; DonutChart/KpiCard; @hookform/resolvers 5→4 fix; heatmap green scale; cell size 28→20px; Supabase client guard moved inside createClient() to unblock Vercel SSG |
 | `feat/ui-history` | ✅ Done | #51 | Commit-log feed with collapsible WorkoutCard (ARIA expand, AnimatePresence), date separators, client-side filters (sessionType/partner/date), desktop inline row + mobile bottom sheet (key-remount pattern, no useEffect setState), load-more pagination, BENCHMARK/Co-authored-by/PR badges, benchmarks.ts, useRef fetch-guard. ui-iterate polish: layout restructure (mobile trigger in h1 row, desktop row below subtitle), dedup date display, RPE Number() fix, touch targets 44px, aria-pressed/role=group/aria-label a11y, flex-nowrap filter row. Signed off at 375px + 1280px. |
-| `feat/ui-logger` | 🔲 Not started | — | Blocked on B1 for `prev:` |
+| `feat/ui-logger` | 🔲 Not started | — | B1 unblocked; still needs F2 (done) |
 | `feat/ui-progress` | ✅ Done | #52 | TrainingSummaryHero (narrative + metric tiles), StrengthProgressSection (e1rm line chart + movement picker), VolumeTrendSection (period selector), TrainingBalanceSection (null-safe), BenchmarkProgressSection (sparklines, null-safe), PRSummaryStrip; benchmarks API endpoint added (GET /api/v1/analytics/benchmarks); destructuring bug fixed; PeriodSelector SelectValue fix; overflow fix; 1-decimal PR weights; seed_progress_demo.sql for local validation |
 | `feat/ui-records` | 🔲 Not started | — | Blocked on B2 for live PR data |
 | `feat/ui-coach` | 🔲 Not started | — | Blocked on B4 |
 | `feat/ui-onboarding` | 🔲 Not started | — | Blocked on B5 |
 | `feat/ui-profile` | 🔲 Not started | — | Blocked on B5 |
 | `feat/ui-gamification` | 🔲 Not started | — | Blocked on B2 |
-| `feat/api-last-result` | 🔲 Not started | — | |
+| `feat/api-last-result` | ✅ Done | — | `LastResult` model + repo + router; 4 tests (auth, 404, recency, user-scope) |
 | `feat/api-pr-detection` | 🔲 Not started | — | |
 | `feat/api-movement-result-type` | 🔲 Not started | — | |
 | `feat/api-coach-streaming` | 🔲 Not started | — | |
