@@ -10,12 +10,14 @@ import type { WorkoutSummary } from "@/lib/api";
 
 type ColourMode = "intensity" | "volume";
 
-// 4 levels from low → high matching the GitHub green scale in globals.css
+// 4 levels from low → high matching the GitHub green scale in globals.css.
+// DayPicker v10 in no-selection mode renders day cells as plain <td> elements
+// (no inner button), so modifier classes are applied directly to the <td>.
 const VARIANT_CLASSNAMES = [
-  "[&_.rdp-day_button]:bg-[#0e4429]", // level 1 — very low
-  "[&_.rdp-day_button]:bg-[#006d32]", // level 2
-  "[&_.rdp-day_button]:bg-[#26a641]", // level 3
-  "[&_.rdp-day_button]:bg-[#39d353]", // level 4 — high
+  "!bg-[#0e4429]", // level 1 — very low
+  "!bg-[#006d32]", // level 2
+  "!bg-[#26a641]", // level 3
+  "!bg-[#39d353]", // level 4 — high
 ];
 
 function avgIntensityLabel(workouts: WorkoutSummary[]): string {
@@ -130,12 +132,17 @@ export function ContributionGraphRevamp({
           weightedDates={weightedDates}
           variantClassnames={VARIANT_CLASSNAMES}
           numberOfMonths={window.numberOfMonths}
-          startMonth={window.fromDate}
-          endMonth={window.toDate}
           defaultMonth={window.fromDate}
           disableNavigation
           showOutsideDays={false}
           className="text-[--muted]"
+          classNames={{
+            day: "h-7 w-7 text-center text-[0px] p-0 relative rounded-sm overflow-hidden",
+            today: "ring-1 ring-[--accent] ring-offset-1 ring-offset-[--bg]",
+            weekday: "text-[--muted]/50 font-mono text-[9px] w-7",
+            caption_label: "font-mono text-[10px] text-[--muted] tracking-wide",
+            nav: "hidden",
+          }}
         />
       </div>
 

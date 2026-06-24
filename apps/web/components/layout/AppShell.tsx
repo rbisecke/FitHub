@@ -66,7 +66,7 @@ export function AppShell({ user, defaultSidebarOpen, children }: Props) {
             animate={animate}
             exit={{ opacity: 0 }}
             transition={transition}
-            className="flex-1 overflow-auto outline-none"
+            className="flex-1 overflow-auto outline-none pb-[calc(64px+env(safe-area-inset-bottom))] md:pb-0"
           >
             {children}
           </motion.main>
