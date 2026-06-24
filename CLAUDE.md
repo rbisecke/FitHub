@@ -66,6 +66,66 @@ Professional software engineer, no design experience. Research-and-design-first;
 and recommend a default; cheap + simple infra first; keep the git theme woven throughout. Full detail in
 `claude_docs/planning/PROJECT-CONTEXT.md`.
 
+## UI/UX Design System
+
+FitHub uses a GitHub dark aesthetic. These values are **NON-NEGOTIABLE** — do not suggest deviations.
+
+### Color palette (CSS custom properties in `globals.css`)
+
+- `--bg: #0d1117` — page background
+- `--surface: #161b22` — cards, raised surfaces, code blocks
+- `--text: #e6edf3` — primary text
+- `--muted: #8b949e` — secondary text, labels, metadata
+- `--border: #30363d` — borders, dividers, table lines
+- `--accent: #58a6ff` — links, CTAs, active nav state
+- `--green: #3fb950` — positive, PR merged, streak active
+- `--amber: #d29922` — warnings, moderate load, caution
+- `--red: #ff7b72` — errors, danger, overtraining
+- `--purple: #bc8cff` — PRs, special achievements, premium
+- `--cyan: #39d353` — contribution graph max density
+
+### Typography
+
+- **Data/metrics:** `font-mono` (JetBrains Mono) — ALL numbers, hashes, durations, distances, weights
+- **UI text:** `font-sans` (system-ui) — nav, labels, body copy, buttons
+- No decorative fonts. No Inter. No Poppins. No rounded-corners-as-personality.
+
+### Spacing (8px base rhythm)
+
+Acceptable values: `4px (1)` · `8px (2)` · `12px (3)` · `16px (4)` · `20px (5)` · `24px (6)` · `32px (8)` · `40px (10)` · `48px (12)`
+
+- Card padding: `p-4` (16px) or `p-6` (24px)
+- Section gaps: `gap-6` (24px) or `gap-8` (32px)
+- List item gaps: `gap-2` (8px) or `gap-3` (12px)
+- Inline gaps (icon + text): `gap-1` (4px) or `gap-2` (8px)
+
+### Navigation
+
+- **Mobile (< 768px):** bottom tab bar + inset FAB (Material Design notch pattern)
+- **Desktop (≥ 768px):** shadcn Sidebar, 64px collapsed → 256px expanded
+- Single `md:` breakpoint switch — no intermediate states
+
+### Component philosophy
+
+- Dark, professional, dense — developer tool aesthetic, not fitness app pastels
+- Monospace for ALL numerical data: no exceptions
+- Git-themed copy where natural: "commit", "push", "branch", "repo", "merge"
+- No success confetti. Subtle spring animations only. Always respect `prefers-reduced-motion`.
+- Touch targets ≥ 44px on mobile. Safe-area insets required on bottom nav.
+
+### Design iteration workflow (when making UI changes)
+
+1. `pnpm -C apps/web dev` — start the dev server first
+2. Use Playwright MCP: navigate → resize (375px + 1280px) → screenshot before
+3. Apply changes
+4. Re-screenshot at same viewports → compare before/after
+5. Run the structured critique from `claude_docs/research_claude_design_iteration.md §5`
+6. Iterate until the §7 "signs you're done" checklist passes
+7. Include before+after screenshots in the PR description
+
+Full iteration guide: `claude_docs/research_claude_design_iteration.md`
+Full implementation plan: `claude_docs/planning/frontend-revamp/IMPLEMENTATION-PLAN.md`
+
 ## Open (deferrable) choices
 
 First connected wearable source (Oura/Strava/Apple) · domain name · public-vs-private profiles.
