@@ -50,10 +50,26 @@ async function apiFetch<T>(
 
 export const api = {
   workouts: {
-    list: (token: string, params?: { beforeId?: string; limit?: number }) => {
+    list: (
+      token: string,
+      params?: {
+        beforeId?: string;
+        limit?: number;
+        sessionType?: string;
+        partnerOnly?: boolean;
+        dateFrom?: string;
+        dateTo?: string;
+      },
+    ) => {
       const qs = new URLSearchParams();
       if (params?.beforeId) qs.set("before_id", params.beforeId);
       if (params?.limit) qs.set("limit", String(params.limit));
+      // Filter params — ignored by API until backend adds support (B-series PRs)
+      if (params?.sessionType) qs.set("session_type", params.sessionType);
+      if (params?.partnerOnly !== undefined)
+        qs.set("partner_only", String(params.partnerOnly));
+      if (params?.dateFrom) qs.set("date_from", params.dateFrom);
+      if (params?.dateTo) qs.set("date_to", params.dateTo);
       return apiFetch<WorkoutListResponse>(`/api/v1/workouts?${qs}`, token);
     },
     create: (token: string, body: CreateWorkoutBody) =>
