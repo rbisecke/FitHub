@@ -137,9 +137,10 @@ export function ContributionGraphRevamp({
           showOutsideDays={false}
           className="text-[--muted]"
           classNames={{
-            day: "h-7 w-7 text-center text-[0px] p-0 relative rounded-sm overflow-hidden",
-            today: "ring-1 ring-[--accent] ring-offset-1 ring-offset-[--bg]",
-            weekday: "text-[--muted]/50 font-mono text-[9px] w-7",
+            day: "h-5 w-5 text-center text-[0px] p-0 relative rounded-sm overflow-hidden",
+            today:
+              "ring-1 ring-[--accent] ring-offset-1 ring-offset-[--surface]",
+            weekday: "text-[--muted]/50 font-mono text-[9px] w-5",
             caption_label: "font-mono text-[10px] text-[--muted] tracking-wide",
             nav: "hidden",
           }}

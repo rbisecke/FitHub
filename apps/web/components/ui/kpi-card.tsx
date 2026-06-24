@@ -12,9 +12,9 @@ interface KpiCardProps {
 }
 
 const TREND_STYLES: Record<Trend, { icon: string; color: string }> = {
-  up: { icon: "↑", color: "text-emerald-400" },
-  down: { icon: "↓", color: "text-red-400" },
-  neutral: { icon: "→", color: "text-zinc-500" },
+  up: { icon: "↑", color: "text-[--green]" },
+  down: { icon: "↓", color: "text-[--red]" },
+  neutral: { icon: "→", color: "text-[--muted]" },
 };
 
 export function KpiCard({
@@ -30,12 +30,12 @@ export function KpiCard({
   return (
     <div
       className={cn(
-        "rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3",
+        "rounded-lg border border-[--border] bg-[--surface] px-4 py-3",
         className,
       )}
     >
-      <p className="font-mono text-xs text-zinc-500 mb-1">{label}</p>
-      <p className="font-mono text-2xl font-semibold text-zinc-100 leading-none">
+      <p className="font-mono text-xs text-[--muted] mb-1">{label}</p>
+      <p className="font-mono text-2xl font-semibold text-[--text] leading-none">
         {value}
       </p>
       {(subtext || trendStyle) && (
@@ -46,7 +46,7 @@ export function KpiCard({
             </span>
           )}
           {subtext && (
-            <span className="font-mono text-xs text-zinc-600">{subtext}</span>
+            <span className="font-mono text-xs text-[--muted]">{subtext}</span>
           )}
         </div>
       )}

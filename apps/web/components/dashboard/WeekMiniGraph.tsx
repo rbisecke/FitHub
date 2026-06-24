@@ -58,7 +58,7 @@ export function WeekMiniGraph({ workouts }: WeekMiniGraphProps) {
       transition={{ duration: 0.2, ease: "easeOut", delay: 0.08 }}
     >
       <p className="font-mono text-xs text-[--muted] mb-3">this week</p>
-      <div className="flex items-end justify-between">
+      <div className="flex items-end justify-between overflow-hidden">
         {DAYS.map(({ key, label }) => {
           const logged = loggedDays.has(key);
           const isToday = key === todayDayOfWeek;
@@ -75,7 +75,7 @@ export function WeekMiniGraph({ workouts }: WeekMiniGraphProps) {
                     "ring-1 ring-[--accent] ring-offset-1 ring-offset-[--surface]",
                 )}
               />
-              <span className="font-mono text-[8px] text-[--muted]">
+              <span className="font-mono text-[9px] text-[--muted]">
                 {label}
               </span>
             </div>
