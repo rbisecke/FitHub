@@ -205,128 +205,149 @@ export function LogPageClient({
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-6 space-y-6">
-      {/* Page heading */}
+    <div className="mx-auto max-w-lg md:max-w-5xl px-4 md:px-8 py-6">
+      {/* Page heading — spans full width */}
       <h1 className="text-xl font-semibold text-[#e6edf3]">
         <span className="font-mono text-[#8b949e] text-sm mr-2">$</span>
         git commit --fit
       </h1>
 
-      {/* NL area */}
-      <div className="space-y-2">
-        <p className="text-xs text-[#8b949e]">
-          Describe your workout (optional)
-        </p>
-        <Textarea
-          placeholder={
-            'Describe your workout…\ne.g. "Fran in 6:45" or "5×5 back squat @ 90 kg"'
-          }
-          value={nlText}
-          onChange={(e) => setNlText(e.target.value)}
-          rows={3}
-          className="bg-[#0d1117] border-[#30363d] text-[#e6edf3] text-sm placeholder:text-[#8b949e] resize-none"
-        />
-        {nlText.trim().length > 10 && (
-          <button
-            type="button"
-            onClick={handleNlParse}
-            disabled={nlLoading}
-            className="text-xs text-[#58a6ff] hover:text-[#58a6ff]/80 transition-colors disabled:opacity-50"
+      {/* Two-column on desktop, single column on mobile */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-[minmax(0,520px)_1fr] md:gap-10 md:items-start gap-6">
+        {/* LEFT: primary form */}
+        <div className="space-y-6">
+          {/* NL area */}
+          <div className="space-y-2">
+            <p className="text-xs text-[#8b949e]">
+              Describe your workout (optional)
+            </p>
+            <Textarea
+              placeholder={
+                'Describe your workout…\ne.g. "Fran in 6:45" or "5×5 back squat @ 90 kg"'
+              }
+              value={nlText}
+              onChange={(e) => setNlText(e.target.value)}
+              rows={3}
+              className="bg-[#0d1117] border-[#30363d] text-[#e6edf3] text-sm placeholder:text-[#8b949e] resize-none"
+            />
+            {nlText.trim().length > 10 && (
+              <button
+                type="button"
+                onClick={handleNlParse}
+                disabled={nlLoading}
+                className="text-xs text-[#58a6ff] hover:text-[#58a6ff]/80 transition-colors disabled:opacity-50"
+              >
+                {nlLoading ? "Parsing…" : "Parse & prefill →"}
+              </button>
+            )}
+            {nlPreview && (
+              <p className="text-xs text-[#8b949e] bg-[#161b22] rounded px-3 py-2 border border-[#30363d]">
+                {nlPreview}
+              </p>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-[#30363d]" />
+            <span className="text-xs text-[#8b949e]">or add movements</span>
+            <div className="flex-1 h-px bg-[#30363d]" />
+          </div>
+
+          {/* Form */}
+          <form
+            onSubmit={handleSubmit(
+              onSubmit as Parameters<typeof handleSubmit>[0],
+            )}
+            className="space-y-4"
           >
-            {nlLoading ? "Parsing…" : "Parse & prefill →"}
-          </button>
-        )}
-        {nlPreview && (
-          <p className="text-xs text-[#8b949e] bg-[#161b22] rounded px-3 py-2 border border-[#30363d]">
-            {nlPreview}
-          </p>
-        )}
-      </div>
+            {/* Movement rows */}
+            <div className="space-y-3">
+              {fields.map((field, idx) => (
+                <MovementRow
+                  key={field.id}
+                  index={idx}
+                  accessToken={accessToken}
+                  control={control}
+                  register={register}
+                  setValue={setValue}
+                  remove={remove}
+                />
+              ))}
+            </div>
 
-      {/* Divider */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-[#30363d]" />
-        <span className="text-xs text-[#8b949e]">or add movements</span>
-        <div className="flex-1 h-px bg-[#30363d]" />
-      </div>
+            {/* Add movement */}
+            {fields.length < 10 && (
+              <button
+                type="button"
+                onClick={() =>
+                  append({
+                    movement_id: undefined,
+                    movement_name: undefined,
+                    result_type: "weight",
+                    load_kg: "",
+                    reps: "",
+                    time_text: "",
+                    distance_m: "",
+                    rounds: "",
+                    partial_reps: "",
+                    calories: "",
+                    height_cm: "",
+                    watts: "",
+                    pace_text: "",
+                    order_index: fields.length,
+                  })
+                }
+                className="w-full rounded-lg border border-dashed border-[#30363d] py-3 min-h-[44px] text-sm text-[#8b949e] hover:border-[#58a6ff]/60 hover:text-[#e6edf3] transition-colors"
+              >
+                + Add movement
+              </button>
+            )}
 
-      {/* Form */}
-      <form
-        onSubmit={handleSubmit(onSubmit as Parameters<typeof handleSubmit>[0])}
-        className="space-y-4"
-      >
-        {/* Movement rows */}
-        <div className="space-y-3">
-          {fields.map((field, idx) => (
-            <MovementRow
-              key={field.id}
-              index={idx}
-              accessToken={accessToken}
-              control={control}
+            {/* Details collapsible */}
+            <AddDetailsCollapsible
               register={register}
               setValue={setValue}
-              remove={remove}
+              watch={watch}
             />
-          ))}
+
+            {/* Error */}
+            {submitError && (
+              <p role="alert" className="text-xs text-[#ff7b72]">
+                {submitError}
+              </p>
+            )}
+
+            {/* Submit */}
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-[#58a6ff] text-[#0d1117] font-semibold hover:bg-[#58a6ff]/90 disabled:opacity-60 min-h-[48px]"
+            >
+              {isSubmitting ? "Committing…" : "Commit workout"}
+            </Button>
+          </form>
+
+          {/* Template picker — mobile only */}
+          <div className="md:hidden">
+            <TemplatePicker
+              recentWorkouts={recentWorkouts}
+              onSelect={handleTemplateSelect}
+            />
+          </div>
         </div>
 
-        {/* Add movement */}
-        {fields.length < 10 && (
-          <button
-            type="button"
-            onClick={() =>
-              append({
-                movement_id: undefined,
-                movement_name: undefined,
-                result_type: "weight",
-                load_kg: "",
-                reps: "",
-                time_text: "",
-                distance_m: "",
-                rounds: "",
-                partial_reps: "",
-                calories: "",
-                height_cm: "",
-                watts: "",
-                pace_text: "",
-                order_index: fields.length,
-              })
-            }
-            className="w-full rounded-lg border border-dashed border-[#30363d] py-3 min-h-[44px] text-sm text-[#8b949e] hover:border-[#58a6ff]/60 hover:text-[#e6edf3] transition-colors"
-          >
-            + Add movement
-          </button>
-        )}
-
-        {/* Details collapsible */}
-        <AddDetailsCollapsible
-          register={register}
-          setValue={setValue}
-          watch={watch}
-        />
-
-        {/* Error */}
-        {submitError && (
-          <p role="alert" className="text-xs text-[#ff7b72]">
-            {submitError}
-          </p>
-        )}
-
-        {/* Submit */}
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-[#58a6ff] text-[#0d1117] font-semibold hover:bg-[#58a6ff]/90 disabled:opacity-60 min-h-[48px]"
-        >
-          {isSubmitting ? "Committing…" : "Commit workout"}
-        </Button>
-      </form>
-
-      {/* Template picker */}
-      <TemplatePicker
-        recentWorkouts={recentWorkouts}
-        onSelect={handleTemplateSelect}
-      />
+        {/* RIGHT: desktop sidebar — recent sessions, hidden on mobile */}
+        <div className="hidden md:flex md:flex-col md:gap-6 md:border-l md:border-[#30363d] md:pl-10">
+          <div className="max-w-xs">
+            <TemplatePicker
+              recentWorkouts={recentWorkouts}
+              onSelect={handleTemplateSelect}
+              vertical
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -10,18 +10,28 @@ function formatTemplateDate(isoStr: string): string {
 interface TemplatePickerProps {
   recentWorkouts: WorkoutSummary[];
   onSelect: (w: WorkoutSummary) => void;
+  vertical?: boolean;
 }
 
 export function TemplatePicker({
   recentWorkouts,
   onSelect,
+  vertical = false,
 }: TemplatePickerProps) {
   if (recentWorkouts.length === 0) return null;
 
   return (
     <div className="space-y-2">
-      <p className="text-sm text-[#8b949e]">Or start from a recent session</p>
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-0">
+      <p className="text-sm text-[#8b949e]">
+        {vertical ? "Recent sessions" : "Or start from a recent session"}
+      </p>
+      <div
+        className={
+          vertical
+            ? "flex flex-col gap-3"
+            : "flex gap-3 overflow-x-auto pb-2 -mx-0"
+        }
+      >
         {recentWorkouts.map((w) => {
           const label =
             w.title ??
@@ -33,7 +43,9 @@ export function TemplatePicker({
               key={w.id}
               type="button"
               onClick={() => onSelect(w)}
-              className="min-w-[140px] flex-shrink-0 rounded-lg border border-[#30363d] bg-[#161b22] p-3 text-left hover:border-[#58a6ff]/60 hover:bg-[#161b22]/80 transition-colors"
+              className={`${
+                vertical ? "w-full" : "min-w-[140px] flex-shrink-0"
+              } rounded-lg border border-[#30363d] bg-[#161b22] p-3 text-left hover:border-[#58a6ff]/60 hover:bg-[#161b22]/80 transition-colors`}
             >
               <p className="font-mono text-xs text-[#8b949e]">
                 {formatTemplateDate(w.performed_at)}
