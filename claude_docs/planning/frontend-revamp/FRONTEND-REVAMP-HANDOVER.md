@@ -216,6 +216,28 @@ pnpm --filter web add motion
 
 ---
 
+## Seed Data Conventions
+
+Demo data lives in `supabase/seed_progress_demo.sql`. When adding or editing filler workouts,
+follow these rules so the contribution heatmap looks realistic rather than mechanical.
+
+**Pattern rules — do this:**
+- 3–5 sessions per week, varying week to week
+- Include back-to-back training days: Mon/Tue, Wed/Thu, or Fri/Sat clusters
+- Include multi-day rest gaps (2–3 days between clusters, not always 1)
+- Some lighter weeks (2–3 sessions), some heavier (4–5)
+- Occasionally skip a whole week or arrive late in a week (life happens)
+
+**Avoid — this creates a visual checkerboard in the heatmap:**
+- Every-other-day scheduling (`Apr 1, 3, 5, 7, 9 …`)
+- A fixed weekly template repeated with no variation
+- All workouts on the same days of the week across every week
+
+The current filler block uses annotated week comments (`-- Week N (dates): pattern`) to
+make the intent clear. Keep that convention when editing.
+
+---
+
 ## Tooling Setup (already done)
 
 | Tool | Status | Usage |
