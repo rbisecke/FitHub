@@ -78,3 +78,12 @@ export function relativeDate(dateStr: string): string {
     year: "numeric",
   });
 }
+
+export function convertWeight(kg: number, unit: "kg" | "lb"): number {
+  return unit === "lb" ? Math.round(kg * 2.20462 * 10) / 10 : kg;
+}
+
+export function formatWeight(kg: number, unit: "kg" | "lb"): string {
+  const val = convertWeight(kg, unit);
+  return `${val} ${unit}`;
+}

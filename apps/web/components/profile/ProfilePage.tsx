@@ -1,0 +1,78 @@
+"use client";
+
+import type {
+  UserProfile,
+  ProfileStats,
+  TrainingPartner,
+  FrequencyTarget,
+} from "@/lib/api";
+import { ProfileHeader } from "./ProfileHeader";
+import { StatsSummaryStrip } from "./StatsSummaryStrip";
+import { PartnerList } from "./PartnerList";
+import { SettingsSection } from "./SettingsSection";
+import { FrequencyTargetControl } from "./FrequencyTargetControl";
+import { CheckinToggle } from "./CheckinToggle";
+import { GraphColourToggle } from "./GraphColourToggle";
+import { WeightUnitToggle } from "./WeightUnitToggle";
+import { AccountSection } from "./AccountSection";
+
+interface Props {
+  profile: UserProfile;
+  stats: ProfileStats;
+  partners: TrainingPartner[];
+  token: string;
+}
+
+export function ProfilePage({ profile, stats, partners, token }: Props) {
+  const frequencyTarget = (
+    [3, 4, 5, 6].includes(profile.frequency_target_days)
+      ? profile.frequency_target_days
+      : 3
+  ) as FrequencyTarget;
+
+  return (
+    <div className="animate-fade-in">
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+        <ProfileHeader
+          displayName={profile.display_name}
+          email={profile.email}
+          avatarUrl={profile.avatar_url}
+          firstWorkoutDate={profile.first_workout_date}
+        />
+
+        <StatsSummaryStrip stats={stats} />
+
+        <SettingsSection label="Training Partners">
+          <PartnerList initial={partners} token={token} />
+        </SettingsSection>
+
+        <SettingsSection label="Settings">
+          <FrequencyTargetControl initial={frequencyTarget} token={token} />
+          <CheckinToggle initial={profile.checkin_enabled} token={token} />
+        </SettingsSection>
+
+        <SettingsSection label="Display">
+          <GraphColourToggle
+            initial={profile.graph_colour_mode}
+            token={token}
+          />
+          <WeightUnitToggle initial={profile.weight_unit} token={token} />
+          <div className="flex items-center justify-between py-3 pointer-events-none opacity-60">
+            <p className="text-sm text-[#e6edf3]">Theme</p>
+            <span className="text-sm text-[#8b949e]">Dark (default) →</span>
+          </div>
+        </SettingsSection>
+
+        <SettingsSection label="Notifications">
+          <p className="py-3 text-sm text-[#8b949e]">
+            Notifications — coming soon.
+          </p>
+        </SettingsSection>
+
+        <SettingsSection label="Account">
+          <AccountSection />
+        </SettingsSection>
+      </div>
+    </div>
+  );
+}

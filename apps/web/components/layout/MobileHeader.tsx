@@ -7,8 +7,8 @@ import type { User } from "@supabase/supabase-js";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getPageMeta } from "./nav-config";
 
-function initials(email: string): string {
-  return email.slice(0, 2).toUpperCase();
+function initials(name: string): string {
+  return name.charAt(0).toUpperCase();
 }
 
 interface Props {

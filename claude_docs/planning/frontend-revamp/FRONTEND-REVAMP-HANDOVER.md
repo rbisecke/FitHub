@@ -17,7 +17,7 @@
 | Design doc accuracy review | ✅ Done | Each doc has `## Accuracy Review` section |
 | Design iteration tooling | ✅ Done | Playwright MCP, Chrome DevTools MCP, Unlighthouse |
 | CLAUDE.md design system | ✅ Done | Color palette, typography, spacing encoded |
-| Implementation | 🔄 In progress | F1–F9, F12, F13 merged; B1–B5 merged/in-PR; F10/F11 unblocked; B6–B7 not started |
+| Implementation | 🔄 In progress | F1–F9, F12, F13 merged; B1–B5 merged; F10/F11 unblocked; B6–B7 not started |
 
 ---
 
@@ -118,16 +118,16 @@ All design docs live in this directory (`claude_docs/planning/frontend-revamp/`)
 | `feat/ui-logger` | ✅ Done | #53 | Progressive-disclosure logger: NL parse+prefill, movement rows with ResultFields, prev: badge (B1 last-result), AddDetails collapsible (date/title/type/format/duration/RPE/notes/bodyweight), TemplatePicker. UI iterate Cycle 1: h1 size, NL label, touch targets, collapsible text, RPE slider null fix. Cycle 2 (a11y): aria-label on all ResultFields inputs, collapsible trigger min-h-[44px]. Sign-off: ✅ 375px + 1280px. |
 | `feat/ui-progress` | ✅ Done | #52 | TrainingSummaryHero (narrative + metric tiles), StrengthProgressSection (e1rm line chart + movement picker), VolumeTrendSection (period selector), TrainingBalanceSection (null-safe), BenchmarkProgressSection (sparklines, null-safe), PRSummaryStrip; benchmarks API endpoint added (GET /api/v1/analytics/benchmarks); destructuring bug fixed; PeriodSelector SelectValue fix; overflow fix; 1-decimal PR weights; seed_progress_demo.sql for local validation |
 | `feat/ui-records` | ✅ Done | #56 | `/records` route, PRCard collapsible, category tabs, sparklines, OLS projection, timeline view, empty states, shimmer banner. ui-iterate: CategoryTabs overflow fix, delta double-negative fix, active toggle font-medium. |
-| `feat/ui-coach` | ✅ Done | #60 | CoachShell (session list desktop + drawer mobile), ChatPanel (SSE stream, rehydrate from sessions API), MessageBubble (markdown, safety tier, stub badge), ChatInput (auto-resize, stop button), StarterPrompts, SessionList/Drawer/ListItem, TypingIndicator. Lazy session create → router.replace on done event. h-full fix (not h-dvh). |
-| `feat/ui-onboarding` | 🔲 Not started | — | Unblocked (B5 PR #61 open) |
-| `feat/ui-profile` | 🔲 Not started | — | Unblocked (B5 PR #61 open) |
+| `feat/ui-coach` | ✅ Done | #60 #62 | CoachShell (session list desktop + drawer mobile), ChatPanel (SSE stream, rehydrate from sessions API), MessageBubble (markdown, safety tier, stub badge), ChatInput (auto-resize, stop button), StarterPrompts, SessionList/Drawer/ListItem, TypingIndicator. Lazy session create → router.replace on done event. h-full fix (not h-dvh). ui-iterate (#62): action bar 28→44px, send/stop 36→44px, prompt cards min-h-[44px], comment text contrast fix, always grid-cols-2. |
+| `feat/ui-onboarding` | 🔲 Not started | — | Unblocked |
+| `feat/ui-profile` | 🔲 Not started | — | Unblocked |
 | `feat/ui-gamification` | ✅ Done | #57 | streak milestone toasts, atRisk fix (Thu-Sun), comeback CTA, WeekMiniGraph pulse, PR/initial-commit toasts from logger, EmptyState, AppInit cleanup, Toaster theme. ui-iterate: amber number+bg for atRisk, "weeks committed", "best:" label, single-letter day labels. Seed: realistic 3-5×/week cluster pattern (no checkerboard). |
 | `feat/ui-tag` | ✅ Done | #54 | `/log/tag` page + FAB speed-dial + sidebar nav item + history TagCard + filter toggle. ui-iterate: MovementSearch design-system colors + w-full + min-h-[44px]; submit min-h-[48px]. B7 + F8 add history differentiation + Records entry point (stub-safe until those land). |
 | `feat/api-last-result` | ✅ Done | — | `LastResult` model + repo + router; 4 tests (auth, 404, recency, user-scope) |
 | `feat/api-pr-detection` | ✅ Done | #55 | _flag_prs() UPDATE on create_workout; PersonalRecord extended with load_kg/reps/time_s/prev_best_1rm_kg/delta_kg; movementTrend added to client.ts; 8 new tests |
 | `feat/api-movement-result-type` | ✅ Done | — | `default_result_type TEXT` column on movements; logger smart defaults wired |
 | `feat/api-coach-streaming` | ✅ Done | #59 | SSE `/chat/stream`, `GET /sessions`, `GET /sessions/{id}/messages`; coach_sessions + coach_messages tables; pgTAP RLS + Playwright E2E |
-| `feat/api-profile` | 🔄 In progress | #61 | GET+PATCH /profile, GET /profile/stats, POST /training-partners, migration 0035 |
+| `feat/api-profile` | ✅ Done | #61 | GET+PATCH /profile, GET /profile/stats, POST /training-partners, migration 0035 |
 | `feat/api-training-balance` | 🔲 Not started | — | |
 | `feat/api-tag` | 🔲 Not started | — | Add `is_tag boolean DEFAULT false` to workouts + migration |
 
