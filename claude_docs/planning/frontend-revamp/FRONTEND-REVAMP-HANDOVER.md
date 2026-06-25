@@ -17,7 +17,7 @@
 | Design doc accuracy review | ✅ Done | Each doc has `## Accuracy Review` section |
 | Design iteration tooling | ✅ Done | Playwright MCP, Chrome DevTools MCP, Unlighthouse |
 | CLAUDE.md design system | ✅ Done | Color palette, typography, spacing encoded |
-| Implementation | 🔄 In progress | F1–F8, F12, F13 merged; B2 merged (#55); F12 merged (#57); F9 blocked B4; F10/F11 blocked B5; B3–B7 not started |
+| Implementation | 🔄 In progress | F1–F8, F12, F13 merged; B2 merged (#55); B3 done; F9 blocked B4; F10/F11 blocked B5; B4–B7 not started |
 
 ---
 
@@ -125,7 +125,7 @@ All design docs live in this directory (`claude_docs/planning/frontend-revamp/`)
 | `feat/ui-tag` | ✅ Done | #54 | `/log/tag` page + FAB speed-dial + sidebar nav item + history TagCard + filter toggle. ui-iterate: MovementSearch design-system colors + w-full + min-h-[44px]; submit min-h-[48px]. B7 + F8 add history differentiation + Records entry point (stub-safe until those land). |
 | `feat/api-last-result` | ✅ Done | — | `LastResult` model + repo + router; 4 tests (auth, 404, recency, user-scope) |
 | `feat/api-pr-detection` | ✅ Done | #55 | _flag_prs() UPDATE on create_workout; PersonalRecord extended with load_kg/reps/time_s/prev_best_1rm_kg/delta_kg; movementTrend added to client.ts; 8 new tests |
-| `feat/api-movement-result-type` | 🔲 Not started | — | |
+| `feat/api-movement-result-type` | ✅ Done | — | `default_result_type TEXT` column on movements; logger smart defaults wired |
 | `feat/api-coach-streaming` | 🔲 Not started | — | |
 | `feat/api-profile` | 🔲 Not started | — | |
 | `feat/api-training-balance` | 🔲 Not started | — | |
