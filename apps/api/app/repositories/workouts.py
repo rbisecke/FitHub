@@ -147,8 +147,8 @@ async def create_workout(
             INSERT INTO public.workouts
                 (id, user_id, performed_at, title, short_hash, notes, bodyweight_kg,
                  session_type, workout_format, time_cap_s, location,
-                 session_rpe, duration_s, perceived_load_au, volume_load_kg)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 session_rpe, duration_s, perceived_load_au, volume_load_kg, is_tag)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING *
             """,
             [
@@ -167,6 +167,7 @@ async def create_workout(
                 req.duration_s,
                 perceived_load_au,
                 volume_load_kg,
+                req.is_tag,
             ],
         )
         workout_row = await cur.fetchone()
