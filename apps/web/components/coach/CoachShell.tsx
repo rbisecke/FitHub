@@ -96,14 +96,14 @@ export function CoachShell({
             <button
               onClick={handleNewSession}
               aria-label="New session"
-              className="flex h-7 w-7 items-center justify-center rounded-md text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#161b22] transition-colors"
+              className="flex h-11 w-11 items-center justify-center rounded-md text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#161b22] transition-colors"
             >
               <Plus size={14} aria-hidden />
             </button>
             <button
               onClick={() => setDrawerOpen(true)}
               aria-label="View sessions"
-              className="flex h-7 w-7 items-center justify-center rounded-md text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#161b22] transition-colors"
+              className="flex h-11 w-11 items-center justify-center rounded-md text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#161b22] transition-colors"
             >
               <LayoutList size={14} aria-hidden />
             </button>
