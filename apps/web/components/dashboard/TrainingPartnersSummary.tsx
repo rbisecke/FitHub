@@ -3,6 +3,7 @@
 import * as motion from "motion/react-client";
 import { useReducedMotion } from "motion/react";
 import type { TrainingPartner } from "@/lib/api";
+import { fadeUpProps } from "@/lib/motion";
 
 interface TrainingPartnersSummaryProps {
   partners: TrainingPartner[];
@@ -26,9 +27,7 @@ export function TrainingPartnersSummary({
   return (
     <motion.div
       className="rounded-lg border border-[--border] bg-[--surface] px-4 py-3"
-      initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut", delay: 0.12 }}
+      {...fadeUpProps(prefersReducedMotion, 0.12)}
     >
       <p className="font-mono text-xs text-[--muted] mb-2">training partners</p>
       <ul className="space-y-1.5">
