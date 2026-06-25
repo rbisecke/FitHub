@@ -87,7 +87,7 @@ export function ChatInput({
             type="button"
             onClick={onStop}
             aria-label="Stop generating"
-            className="shrink-0 flex items-center justify-center rounded-md bg-[#30363d] hover:bg-[#30363d]/80 px-3 py-2 min-h-[2.25rem] min-w-[2.25rem]"
+            className="shrink-0 flex items-center justify-center rounded-md bg-[#30363d] hover:bg-[#30363d]/80 px-3 py-2 min-h-[44px] min-w-[44px]"
           >
             <Square size={14} className="text-[#e6edf3]" aria-hidden />
           </button>
@@ -98,7 +98,7 @@ export function ChatInput({
             disabled={disabled || !value.trim()}
             aria-label="Send message"
             data-testid="coach-submit"
-            className="shrink-0 flex items-center justify-center rounded-md bg-[#58a6ff] hover:bg-[#58a6ff]/80 px-3 py-2 min-h-[2.25rem] min-w-[2.25rem] disabled:opacity-40"
+            className="shrink-0 flex items-center justify-center rounded-md bg-[#58a6ff] hover:bg-[#58a6ff]/80 px-3 py-2 min-h-[44px] min-w-[44px] disabled:opacity-40"
           >
             <Send size={14} className="text-[#0d1117]" aria-hidden />
           </button>
