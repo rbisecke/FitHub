@@ -16,7 +16,7 @@ This skill loads the two additional files needed for the session.
 
 **`<page>`** (optional override) — one of: `dashboard`, `history`, `logger`,
 `progress`, `records`, `coach`, `profile`, `onboarding`, `navigation`, `library`,
-`gamification`
+`gamification`, `tag`
 
 ## Steps
 
@@ -28,7 +28,7 @@ From it, extract:
 
 - Which PRs are ✅ Done, 🔄 In Progress, 🔲 Not Started (Progress Tracker table)
 - The dependency graph (Implementation Sequence tables — "Depends on" column)
-- Any backend PRs (B1–B6) that are blocking frontend work
+- Any backend PRs (B1–B7) that are blocking frontend work
 
 ### 2. Determine the target page
 
@@ -38,14 +38,14 @@ logic and go to Step 3.
 **If no argument was given:** auto-select using this logic:
 
 1. Start with the ordered frontend PR list from the handover: F1, F2, F3, F4, F5,
-   F6, F7, F8, F9, F10, F11, F12.
+   F6, F7, F8, F9, F10, F11, F12, F13.
 2. Skip any PR marked ✅ Done.
 3. For each remaining PR, check its "Depends on" column:
    - If all dependencies are ✅ Done → this PR is **unblocked**
    - If any dependency is 🔲 Not Started or 🔄 In Progress → this PR is **blocked**
 4. Select the **first unblocked PR** in the list. That is the target for this session.
 5. If everything is blocked (all unblocked PRs have outstanding backend dependencies),
-   select the first unblocked **backend PR** (B1–B6) instead and note that backend
+   select the first unblocked **backend PR** (B1–B7) instead and note that backend
    work is needed before frontend can continue.
 6. If everything is ✅ Done, report that the revamp is complete and stop.
 
@@ -65,6 +65,7 @@ Map the selected PR to a `<page>` argument using this table:
 | F10 | `onboarding`                             |
 | F11 | `profile`                                |
 | F12 | `gamification`                           |
+| F13 | `tag`                                    |
 
 > **F1 special case:** F1 is the setup PR (install shadcn components, motion, sonner,
 > viewport fix, CSS vars). There is no page-level design doc for it. If F1 is the
@@ -88,6 +89,7 @@ Use this map to find the right file:
 | `navigation`   | `claude_docs/planning/frontend-revamp/cross-navigation-layout.md`       |
 | `library`      | `claude_docs/planning/frontend-revamp/cross-library-migration.md`       |
 | `gamification` | `claude_docs/planning/frontend-revamp/cross-motivation-gamification.md` |
+| `tag`          | `claude_docs/planning/frontend-revamp/page-tag.md`                      |
 
 Read the design doc. Do NOT read any other design docs — they are not needed for
 this session and will fill context unnecessarily.
@@ -151,7 +153,7 @@ explicitly confirms.
 
 To keep context lean, this skill deliberately does NOT read:
 
-- The other 10 design docs (read only what you need today)
+- The other 12 design docs (read only what you need today)
 - `FitHub-UIUX-Brainstorm-Redesign.html` (too large; use only if a specific
   decision needs to be traced back to research)
 - `IMPLEMENTATION-PLAN.md` (the HANDOVER tracker has the summary you need)

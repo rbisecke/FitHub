@@ -13,7 +13,7 @@ repeats until the sign-off checklist passes. Uses `/loop` to self-pace.
 ```
 
 **`<page>`** — one of: `dashboard`, `history`, `logger`, `progress`, `records`,
-`coach`, `profile`, `onboarding`, `navigation`, or a custom route path like `/plans/[id]`.
+`coach`, `profile`, `onboarding`, `navigation`, `tag`, or a custom route path like `/plans/[id]`.
 
 **`--focus`** (optional) — narrow the critique to one area:
 `typography` · `spacing` · `mobile` · `accessibility` · `hierarchy` · `states`
@@ -293,6 +293,7 @@ Include the AFTER-mobile and AFTER-desktop screenshots inline so the user sees t
 | `profile`    | `/profile`                    | `page-profile-settings.md`   |
 | `onboarding` | `/onboarding`                 | `cross-onboarding.md`        |
 | `navigation` | `/dashboard` (check nav only) | `cross-navigation-layout.md` |
+| `tag`        | `/log/tag`                    | `page-tag.md`                |
 
 ## What this skill does NOT do
 

@@ -13,11 +13,11 @@
 | Design research & brainstorm | ✅ Done | `FitHub-UIUX-Brainstorm-Redesign.html` |
 | Library research | ✅ Done | Section 9 of brainstorm doc |
 | Layout/nav research | ✅ Done | Section 6 of brainstorm doc |
-| Per-page design docs | ✅ Done | All 12 docs in this directory |
+| Per-page design docs | ✅ Done | All 13 docs in this directory |
 | Design doc accuracy review | ✅ Done | Each doc has `## Accuracy Review` section |
 | Design iteration tooling | ✅ Done | Playwright MCP, Chrome DevTools MCP, Unlighthouse |
 | CLAUDE.md design system | ✅ Done | Color palette, typography, spacing encoded |
-| Implementation | 🔄 In progress | F1–F7 merged; F8–F12 remaining; B2–B6 not started (see tracker) |
+| Implementation | 🔄 In progress | F1–F7 merged; F8–F13 remaining; B2–B7 not started (see tracker) |
 
 ---
 
@@ -62,6 +62,7 @@ All design docs live in this directory (`claude_docs/planning/frontend-revamp/`)
 | `cross-library-migration.md` | @nivo → recharts swap | CSS chart vars already exist in globals.css as placeholders; must replace not add |
 | `cross-motivation-gamification.md` | Streak, toasts, animations | `is_pr` is always client-supplied (never server-computed); readiness score is 0–1 (multiply ×100 for display) |
 | `cross-onboarding.md` | Onboarding flow | `unit_preference` / `'lb'`; no profile PATCH endpoint yet; middleware.ts already handles auth redirect |
+| `page-tag.md` | `git tag` quick-milestone screen | New feature (brainstormed 2026-06-25); single-movement, FAB speed-dial + Records entry, `is_tag` DB flag (B7) |
 | `IMPLEMENTATION-PLAN.md` | Full implementation order | 6 backend PRs + 11 frontend PRs with dependency graph |
 
 **Brainstorm doc:** `claude_docs/planning/FitHub-UIUX-Brainstorm-Redesign.html`
@@ -81,6 +82,7 @@ All design docs live in this directory (`claude_docs/planning/frontend-revamp/`)
 | B4 | `feat/api-coach-streaming` | SSE streaming + session persistence for coach | Coach page |
 | B5 | `feat/api-profile` | `GET + PATCH /profile` endpoint | Profile page, onboarding |
 | B6 | `feat/api-training-balance` | `primary_muscle_group` on movements + balance endpoint | Progress training balance widget |
+| B7 | `feat/api-tag` | Add `is_tag: boolean DEFAULT false` to workouts table | Tag history-feed differentiation |
 
 ### Frontend PRs (ordered — each branches off `feat/ui-revamp`)
 
@@ -98,6 +100,7 @@ All design docs live in this directory (`claude_docs/planning/frontend-revamp/`)
 | F10 | `feat/ui-onboarding` | Onboarding flow (5 screens) | B5 |
 | F11 | `feat/ui-profile` | Profile + settings page | B5, F2 |
 | F12 | `feat/ui-gamification` | Streak, animations, toasts, celebration | F3, F7, B2 |
+| F13 | `feat/ui-tag` | `git tag` quick-milestone screen + FAB speed-dial | F2, B1; F8 optional (Records entry point); B7 optional (history differentiation) |
 
 ---
 
@@ -119,12 +122,14 @@ All design docs live in this directory (`claude_docs/planning/frontend-revamp/`)
 | `feat/ui-onboarding` | 🔲 Not started | — | Blocked on B5 |
 | `feat/ui-profile` | 🔲 Not started | — | Blocked on B5 |
 | `feat/ui-gamification` | 🔲 Not started | — | Blocked on B2 |
+| `feat/ui-tag` | 🔲 Not started | — | Unblocked (B1 ✅, F2 ✅); B7 + F8 add history differentiation + Records entry point |
 | `feat/api-last-result` | ✅ Done | — | `LastResult` model + repo + router; 4 tests (auth, 404, recency, user-scope) |
 | `feat/api-pr-detection` | 🔲 Not started | — | |
 | `feat/api-movement-result-type` | 🔲 Not started | — | |
 | `feat/api-coach-streaming` | 🔲 Not started | — | |
 | `feat/api-profile` | 🔲 Not started | — | |
 | `feat/api-training-balance` | 🔲 Not started | — | |
+| `feat/api-tag` | 🔲 Not started | — | Add `is_tag boolean DEFAULT false` to workouts + migration |
 
 ---
 
