@@ -82,6 +82,7 @@ export default async function NewWorkoutPage({
       accessToken={token}
       recentWorkouts={recentWorkouts}
       prefillValues={prefillValues}
+      isFirstWorkout={recentWorkouts.length === 0}
     />
   );
 }

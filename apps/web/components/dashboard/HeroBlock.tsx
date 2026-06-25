@@ -8,9 +8,14 @@ import { buttonVariants } from "@/components/ui/button";
 interface HeroBlockProps {
   sentence: string;
   readinessLabel: string;
+  isComeback?: boolean;
 }
 
-export function HeroBlock({ sentence, readinessLabel }: HeroBlockProps) {
+export function HeroBlock({
+  sentence,
+  readinessLabel,
+  isComeback = false,
+}: HeroBlockProps) {
   const prefersReducedMotion = useReducedMotion();
 
   return (
@@ -29,7 +34,7 @@ export function HeroBlock({ sentence, readinessLabel }: HeroBlockProps) {
       </p>
       <div className="flex items-center gap-4 flex-wrap">
         <Link href="/log/new" className={buttonVariants()}>
-          Log workout
+          {isComeback ? "Log your comeback workout" : "Log workout"}
         </Link>
         <span className="text-xs text-[--muted]">
           or{" "}

@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import * as motion from "motion/react-client";
 import { useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { checkAndFireMilestoneToast } from "@/lib/pr-celebrations";
 import type { StreakResult } from "@/lib/dashboard/streakCalc";
 
 interface StreakWidgetProps {
@@ -12,6 +14,10 @@ interface StreakWidgetProps {
 export function StreakWidget({ streak }: StreakWidgetProps) {
   const prefersReducedMotion = useReducedMotion();
   const { currentStreak, personalBest, atRisk, isComeback } = streak;
+
+  useEffect(() => {
+    checkAndFireMilestoneToast(currentStreak);
+  }, [currentStreak]);
 
   const borderClass = atRisk ? "border-[--amber]" : "border-[--border]";
 

@@ -48,9 +48,9 @@ export default async function DashboardPage({
   const readiness: ReadinessResponse | null =
     readinessRes.status === "fulfilled" ? readinessRes.value : null;
 
-  const sentence = readinessSentence(readiness);
-  const readinessLabel = readiness?.label ?? "unknown";
   const streak = streakCalc(workouts);
+  const sentence = readinessSentence(readiness, streak.isComeback);
+  const readinessLabel = readiness?.label ?? "unknown";
   const recentPRs = prDelta(prs);
 
   const params = await searchParams;
@@ -63,7 +63,11 @@ export default async function DashboardPage({
         <h1 className="text-2xl font-bold text-[--text]">Dashboard</h1>
       </header>
 
-      <HeroBlock sentence={sentence} readinessLabel={readinessLabel} />
+      <HeroBlock
+        sentence={sentence}
+        readinessLabel={readinessLabel}
+        isComeback={streak.isComeback}
+      />
 
       {/* Mobile: stack vertically. Desktop (lg:): two-column grid */}
       <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-6">
@@ -72,7 +76,10 @@ export default async function DashboardPage({
           {/* Mobile: streak + week side-by-side */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
             <StreakWidget streak={streak} />
-            <WeekMiniGraph workouts={workouts} />
+            <WeekMiniGraph
+              workouts={workouts}
+              frequencyTarget={streak.frequencyTarget}
+            />
           </div>
 
           {partners.length > 0 && (

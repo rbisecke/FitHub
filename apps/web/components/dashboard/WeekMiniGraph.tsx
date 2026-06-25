@@ -18,12 +18,16 @@ const DAYS = [
 
 interface WeekMiniGraphProps {
   workouts: WorkoutSummary[];
+  frequencyTarget?: number;
 }
 
-export function WeekMiniGraph({ workouts }: WeekMiniGraphProps) {
+export function WeekMiniGraph({
+  workouts,
+  frequencyTarget = 3,
+}: WeekMiniGraphProps) {
   const prefersReducedMotion = useReducedMotion();
 
-  const { loggedDays, todayDayOfWeek } = useMemo(() => {
+  const { loggedDays, todayDayOfWeek, thisWeekCount } = useMemo(() => {
     const now = new Date();
     const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon…
 
@@ -45,7 +49,11 @@ export function WeekMiniGraph({ workouts }: WeekMiniGraphProps) {
       }
     }
 
-    return { loggedDays: logged, todayDayOfWeek: dayOfWeek };
+    return {
+      loggedDays: logged,
+      todayDayOfWeek: dayOfWeek,
+      thisWeekCount: logged.size,
+    };
   }, [workouts]);
 
   return (
@@ -58,23 +66,46 @@ export function WeekMiniGraph({ workouts }: WeekMiniGraphProps) {
       transition={{ duration: 0.2, ease: "easeOut", delay: 0.08 }}
     >
       <p className="font-mono text-xs text-[--muted] mb-3">this week</p>
-      <div className="flex items-end justify-between overflow-hidden">
+      <div
+        role="img"
+        aria-label={`This week: ${thisWeekCount} of ${frequencyTarget} sessions logged`}
+        className="flex items-end justify-between overflow-hidden"
+      >
         {DAYS.map(({ key, label }) => {
           const logged = loggedDays.has(key);
           const isToday = key === todayDayOfWeek;
+          const shouldPulse =
+            isToday &&
+            !logged &&
+            thisWeekCount < frequencyTarget &&
+            !prefersReducedMotion;
+
           return (
             <div key={key} className="flex flex-col items-center gap-1">
-              <div
-                aria-label={`${label}: ${logged ? "logged" : "not logged"}`}
-                className={cn(
-                  "w-4 h-4 rounded-full transition-colors",
-                  logged
-                    ? "bg-[--green]"
-                    : "bg-transparent border border-[--muted]/40",
-                  isToday &&
-                    "ring-1 ring-[--accent] ring-offset-1 ring-offset-[--surface]",
-                )}
-              />
+              {shouldPulse ? (
+                <motion.div
+                  aria-hidden="true"
+                  className="w-4 h-4 rounded-full bg-transparent border border-[--muted]/40 ring-1 ring-[--accent] ring-offset-1 ring-offset-[--surface]"
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                  transition={{
+                    duration: 1.8,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+              ) : (
+                <div
+                  aria-hidden="true"
+                  className={cn(
+                    "w-4 h-4 rounded-full transition-colors",
+                    logged
+                      ? "bg-[--green]"
+                      : "bg-transparent border border-[--muted]/40",
+                    isToday &&
+                      "ring-1 ring-[--accent] ring-offset-1 ring-offset-[--surface]",
+                  )}
+                />
+              )}
               <span className="font-mono text-[9px] text-[--muted]">
                 {label}
               </span>
