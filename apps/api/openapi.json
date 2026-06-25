@@ -239,6 +239,56 @@
         ]
       }
     },
+    "/api/v1/analytics/training-balance": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Training Balance",
+        "operationId": "training_balance_api_v1_analytics_training_balance_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 7,
+              "default": 28,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingBalanceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/coach/parse-log": {
       "post": {
         "tags": [
@@ -6459,6 +6509,50 @@
           "participant_count"
         ],
         "title": "TeamSessionSummary"
+      },
+      "TrainingBalanceCategory": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "volume_pct": {
+            "type": "number",
+            "title": "Volume Pct"
+          },
+          "load_au": {
+            "type": "number",
+            "title": "Load Au"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "volume_pct",
+          "load_au"
+        ],
+        "title": "TrainingBalanceCategory"
+      },
+      "TrainingBalanceResponse": {
+        "properties": {
+          "breakdown": {
+            "items": {
+              "$ref": "#/components/schemas/TrainingBalanceCategory"
+            },
+            "type": "array",
+            "title": "Breakdown"
+          },
+          "period_days": {
+            "type": "integer",
+            "title": "Period Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "breakdown",
+          "period_days"
+        ],
+        "title": "TrainingBalanceResponse"
       },
       "TrainingPartner": {
         "properties": {

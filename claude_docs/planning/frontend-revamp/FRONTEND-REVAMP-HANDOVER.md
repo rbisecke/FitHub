@@ -17,7 +17,7 @@
 | Design doc accuracy review | ✅ Done | Each doc has `## Accuracy Review` section |
 | Design iteration tooling | ✅ Done | Playwright MCP, Chrome DevTools MCP, Unlighthouse |
 | CLAUDE.md design system | ✅ Done | Color palette, typography, spacing encoded |
-| Implementation | 🔄 In progress | F1–F13 all done and merged; B1–B5 merged; B6–B7 not started |
+| Implementation | 🔄 In progress | F1–F13 all done and merged; B1–B6 merged; B7 not started |
 
 ---
 
@@ -128,7 +128,7 @@ All design docs live in this directory (`claude_docs/planning/frontend-revamp/`)
 | `feat/api-movement-result-type` | ✅ Done | — | `default_result_type TEXT` column on movements; logger smart defaults wired |
 | `feat/api-coach-streaming` | ✅ Done | #59 | SSE `/chat/stream`, `GET /sessions`, `GET /sessions/{id}/messages`; coach_sessions + coach_messages tables; pgTAP RLS + Playwright E2E |
 | `feat/api-profile` | ✅ Done | #61 | GET+PATCH /profile, GET /profile/stats, POST /training-partners, migration 0035 |
-| `feat/api-training-balance` | 🔲 Not started | — | |
+| `feat/api-training-balance` | ✅ Done | — | migration 0037: `primary_muscle_group TEXT CHECK IN (pull/push/legs/core/conditioning)` nullable + backfill 14 CrossFit movements; `GET /api/v1/analytics/training-balance?days=N` (7–365); 9 tests; openapi.json + generated.ts regenerated |
 | `feat/api-tag` | 🔲 Not started | — | Add `is_tag boolean DEFAULT false` to workouts + migration |
 
 ---

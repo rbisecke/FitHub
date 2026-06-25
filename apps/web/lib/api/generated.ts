@@ -106,6 +106,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/analytics/training-balance": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Training Balance */
+    get: operations["training_balance_api_v1_analytics_training_balance_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/coach/parse-log": {
     parameters: {
       query?: never;
@@ -2012,6 +2029,22 @@ export interface components {
       /** Participant Count */
       participant_count: number;
     };
+    /** TrainingBalanceCategory */
+    TrainingBalanceCategory: {
+      /** Category */
+      category: string;
+      /** Volume Pct */
+      volume_pct: number;
+      /** Load Au */
+      load_au: number;
+    };
+    /** TrainingBalanceResponse */
+    TrainingBalanceResponse: {
+      /** Breakdown */
+      breakdown: components["schemas"]["TrainingBalanceCategory"][];
+      /** Period Days */
+      period_days: number;
+    };
     /** TrainingPartner */
     TrainingPartner: {
       /** User Id */
@@ -2385,6 +2418,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["BenchmarkResponse"];
+        };
+      };
+    };
+  };
+  training_balance_api_v1_analytics_training_balance_get: {
+    parameters: {
+      query?: {
+        days?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TrainingBalanceResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
