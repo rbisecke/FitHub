@@ -249,6 +249,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/movements/{movement_id}/last-result": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Last Result */
+    get: operations["get_last_result_api_v1_movements__movement_id__last_result_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/workouts": {
     parameters: {
       query?: never;
@@ -1075,6 +1092,31 @@ export interface components {
       reported_at?: string | null;
       /** Resolved At */
       resolved_at?: string | null;
+    };
+    /** LastResult */
+    LastResult: {
+      result_type: components["schemas"]["ResultType"];
+      /** Load Kg */
+      load_kg: string | null;
+      /** Reps */
+      reps: number | null;
+      /** Time S */
+      time_s: number | null;
+      /** Distance M */
+      distance_m: string | null;
+      /** Rounds */
+      rounds: number | null;
+      /** Partial Reps */
+      partial_reps: number | null;
+      /** Calories */
+      calories: number | null;
+      /** Watts */
+      watts: number | null;
+      /**
+       * Performed At
+       * Format: date
+       */
+      performed_at: string;
     };
     /**
      * LimbStyle
@@ -2364,6 +2406,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Movement"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_last_result_api_v1_movements__movement_id__last_result_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        movement_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LastResult"];
         };
       };
       /** @description Validation Error */

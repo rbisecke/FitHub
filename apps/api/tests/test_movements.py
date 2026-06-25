@@ -104,3 +104,97 @@ async def test_create_movement_duplicate_slug_is_conflict(alice_client: AsyncCli
     payload["name"] = f"Move Dupe {uid}"  # different name, same slug
     r2 = await alice_client.post("/api/v1/movements", json=payload)
     assert r2.status_code == 409
+
+
+# ── /api/v1/movements/{movement_id}/last-result ───────────────────────────────
+
+_MOVEMENT_BASE = {
+    "base_movement": "Back Squat",
+    "modality": "strength",
+    "default_result_types": ["weight"],
+}
+
+
+def _movement_payload(uid: str) -> dict:
+    return {"name": f"Back Squat {uid}", "slug": f"back-squat-{uid}", **_MOVEMENT_BASE}
+
+
+@pytest.mark.asyncio
+async def test_last_result_requires_auth(anon_client: AsyncClient) -> None:
+    r = await anon_client.get(f"/api/v1/movements/{uuid.uuid4()}/last-result")
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_last_result_404_when_no_history(alice_client: AsyncClient) -> None:
+    uid = uuid.uuid4().hex[:8]
+    mv = await alice_client.post("/api/v1/movements", json=_movement_payload(uid))
+    assert mv.status_code == 201
+    movement_id = mv.json()["id"]
+
+    r = await alice_client.get(f"/api/v1/movements/{movement_id}/last-result")
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_last_result_returns_most_recent(alice_client: AsyncClient) -> None:
+    uid = uuid.uuid4().hex[:8]
+    mv = await alice_client.post("/api/v1/movements", json=_movement_payload(uid))
+    assert mv.status_code == 201
+    movement_id = mv.json()["id"]
+
+    # Older workout
+    w1 = await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2026-01-01T08:00:00Z",
+            "results": [
+                {"movement_id": movement_id, "result_type": "weight", "load_kg": "80.0", "reps": 5}
+            ],
+        },
+    )
+    assert w1.status_code == 201
+
+    # Newer workout — this is the one that should be returned
+    w2 = await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2026-06-01T08:00:00Z",
+            "results": [
+                {"movement_id": movement_id, "result_type": "weight", "load_kg": "90.0", "reps": 3}
+            ],
+        },
+    )
+    assert w2.status_code == 201
+
+    r = await alice_client.get(f"/api/v1/movements/{movement_id}/last-result")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["result_type"] == "weight"
+    assert float(body["load_kg"]) == 90.0
+    assert body["reps"] == 3
+    assert body["performed_at"] == "2026-06-01"
+
+
+@pytest.mark.asyncio
+async def test_last_result_user_scoped(alice_client: AsyncClient, bob_client: AsyncClient) -> None:
+    uid = uuid.uuid4().hex[:8]
+    mv = await alice_client.post("/api/v1/movements", json=_movement_payload(uid))
+    assert mv.status_code == 201
+    movement_id = mv.json()["id"]
+
+    # Alice logs a result for this movement
+    w = await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2026-06-01T08:00:00Z",
+            "results": [
+                {"movement_id": movement_id, "result_type": "weight", "load_kg": "90.0", "reps": 5}
+            ],
+        },
+    )
+    assert w.status_code == 201
+
+    # Bob has no history for that movement — must get 404, not Alice's data
+    r = await bob_client.get(f"/api/v1/movements/{movement_id}/last-result")
+    assert r.status_code == 404

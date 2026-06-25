@@ -623,6 +623,54 @@
         }
       }
     },
+    "/api/v1/movements/{movement_id}/last-result": {
+      "get": {
+        "tags": [
+          "movements"
+        ],
+        "summary": "Get Last Result",
+        "operationId": "get_last_result_api_v1_movements__movement_id__last_result_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "movement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Movement Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LastResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workouts": {
       "get": {
         "tags": [
@@ -3548,6 +3596,122 @@
           "requires_referral"
         ],
         "title": "InjuryOut"
+      },
+      "LastResult": {
+        "properties": {
+          "result_type": {
+            "$ref": "#/components/schemas/ResultType"
+          },
+          "load_kg": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Kg"
+          },
+          "reps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reps"
+          },
+          "time_s": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time S"
+          },
+          "distance_m": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance M"
+          },
+          "rounds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rounds"
+          },
+          "partial_reps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partial Reps"
+          },
+          "calories": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calories"
+          },
+          "watts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Watts"
+          },
+          "performed_at": {
+            "type": "string",
+            "format": "date",
+            "title": "Performed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "result_type",
+          "load_kg",
+          "reps",
+          "time_s",
+          "distance_m",
+          "rounds",
+          "partial_reps",
+          "calories",
+          "watts",
+          "performed_at"
+        ],
+        "title": "LastResult"
       },
       "LimbStyle": {
         "type": "string",

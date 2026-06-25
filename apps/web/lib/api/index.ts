@@ -42,3 +42,4 @@ export type ParseLogResponse = components["schemas"]["ParseLogResponse"];
 export type Citation = components["schemas"]["Citation"];
 export type ChatResponse = components["schemas"]["ChatResponse"];
 export type HistoryMessage = components["schemas"]["HistoryMessage"];
+export type LastResult = components["schemas"]["LastResult"];

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 from enum import StrEnum
 
 from pydantic import BaseModel, Field
+
+from app.models.result import ResultType
 
 
 class Modality(StrEnum):
@@ -82,3 +85,16 @@ class CreateMovementRequest(BaseModel):
     limb_style: LimbStyle | None = None
     implement: str | None = None
     default_result_types: list[str] = Field(default_factory=list)
+
+
+class LastResult(BaseModel):
+    result_type: ResultType
+    load_kg: Decimal | None
+    reps: int | None
+    time_s: int | None
+    distance_m: Decimal | None
+    rounds: int | None
+    partial_reps: int | None
+    calories: int | None
+    watts: int | None
+    performed_at: date
