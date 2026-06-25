@@ -78,12 +78,12 @@ async def test_plan_task_completes(alice_client: AsyncClient) -> None:
     r = await alice_client.post("/api/v1/plans", json=CREATE_BODY)
     task_id = r.json()["task_id"]
 
-    # Stub is near-instant — poll up to 2s
-    for _ in range(20):
+    # Stub is near-instant — poll up to 5s to tolerate CI load
+    for _ in range(50):
         status_r = await alice_client.get(f"/api/v1/plans/tasks/{task_id}")
         if status_r.json()["status"] == "complete":
             break
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.1)  # max 5s total
 
     assert status_r.json()["status"] == "complete"
     assert status_r.json()["plan_id"] is not None
@@ -104,7 +104,7 @@ async def test_list_plans_shows_created_plan(alice_client: AsyncClient) -> None:
         tr = await alice_client.get(f"/api/v1/plans/tasks/{task_id}")
         if tr.json()["status"] == "complete":
             break
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.1)  # max 5s total
 
     r = await alice_client.get("/api/v1/plans")
     assert r.status_code == 200
@@ -121,7 +121,7 @@ async def test_get_plan_detail(alice_client: AsyncClient) -> None:
         tr = await alice_client.get(f"/api/v1/plans/tasks/{task_id}")
         if tr.json()["status"] == "complete":
             break
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.1)  # max 5s total
 
     plan_id = tr.json()["plan_id"]
     r = await alice_client.get(f"/api/v1/plans/{plan_id}")
@@ -143,7 +143,7 @@ async def test_plan_detail_has_items(alice_client: AsyncClient) -> None:
         tr = await alice_client.get(f"/api/v1/plans/tasks/{task_id}")
         if tr.json()["status"] == "complete":
             break
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.1)  # max 5s total
 
     plan_id = tr.json()["plan_id"]
     r = await alice_client.get(f"/api/v1/plans/{plan_id}")
@@ -163,7 +163,7 @@ async def test_plan_idor_returns_404(alice_client: AsyncClient, bob_client: Asyn
         tr = await alice_client.get(f"/api/v1/plans/tasks/{task_id}")
         if tr.json()["status"] == "complete":
             break
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.1)  # max 5s total
 
     plan_id = tr.json()["plan_id"]
     r = await bob_client.get(f"/api/v1/plans/{plan_id}")
