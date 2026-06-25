@@ -38,8 +38,8 @@ export function WeightUnitToggle({ initial, token }: Props) {
   }
 
   return (
-    <div className="flex items-center justify-between py-3">
-      <p className="text-sm text-[#e6edf3]">Weight unit</p>
+    <div className="flex items-center justify-between py-3 gap-4">
+      <p className="text-sm text-[#e6edf3] shrink-0">Weight unit</p>
       <div
         role="radiogroup"
         aria-label="Weight unit"

@@ -30,8 +30,8 @@ export function CheckinToggle({ initial, token }: Props) {
   }
 
   return (
-    <div className="flex items-center justify-between py-3">
-      <div>
+    <div className="flex items-center justify-between py-3 gap-4">
+      <div className="min-w-0">
         <p className="text-sm text-[#e6edf3]">4-week check-in</p>
         <p className="text-xs text-[#8b949e]">
           Show a prompt every 4 weeks to review your frequency goal

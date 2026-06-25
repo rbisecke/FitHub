@@ -25,7 +25,7 @@ async function ProfileContent() {
 
   return (
     <ProfilePage
-      profile={profile}
+      profile={{ ...profile, email: user.email ?? profile.email }}
       stats={stats}
       partners={partners}
       token={token}

@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
@@ -41,8 +40,8 @@ export function GraphColourToggle({ initial, token }: Props) {
   }
 
   return (
-    <div className="flex items-center justify-between py-3">
-      <p className="text-sm text-[#e6edf3]">Graph colour</p>
+    <div className="flex items-center justify-between py-3 gap-4">
+      <p className="text-sm text-[#e6edf3] shrink-0">Graph colour</p>
       <RadioGroup
         value={value}
         onValueChange={handleChange}
@@ -52,28 +51,22 @@ export function GraphColourToggle({ initial, token }: Props) {
         <div className="flex items-center gap-1.5">
           <RadioGroupItem
             value="intensity"
-            id="colour-intensity"
+            aria-label="Intensity"
             className="border-[#30363d] text-[#58a6ff]"
           />
-          <Label
-            htmlFor="colour-intensity"
-            className="text-sm text-[#e6edf3] cursor-pointer font-sans"
-          >
+          <span className="text-sm text-[#e6edf3] cursor-pointer font-sans select-none">
             Intensity
-          </Label>
+          </span>
         </div>
         <div className="flex items-center gap-1.5">
           <RadioGroupItem
             value="volume"
-            id="colour-volume"
+            aria-label="Volume"
             className="border-[#30363d] text-[#58a6ff]"
           />
-          <Label
-            htmlFor="colour-volume"
-            className="text-sm text-[#e6edf3] cursor-pointer font-sans"
-          >
+          <span className="text-sm text-[#e6edf3] cursor-pointer font-sans select-none">
             Volume
-          </Label>
+          </span>
         </div>
       </RadioGroup>
     </div>
