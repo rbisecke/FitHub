@@ -179,4 +179,13 @@
   .pb-nav-safe {
     padding-bottom: calc(64px + env(safe-area-inset-bottom) + 16px);
   }
+
+  @keyframes shimmer-fade {
+    from { opacity: 0.6; }
+    to { opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shimmer-overlay { display: none; }
+  }
 }
