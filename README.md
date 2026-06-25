@@ -8,9 +8,9 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-![FitHub dashboard](screenshots/readme/dashboard.png)
+![FitHub progress page](screenshots/readme/progress.png)
 
-FitHub is a training tracker built on a git mental model: every workout is a commit with a short hash ID, the home screen is a contribution graph, and a sidebar styled like a terminal prompt anchors the theme. Under the surface it applies the sports-science models that most fitness apps skip — sRPE-based load, ACWR, and Hooper readiness — plus a deterministic AI layer that generates plans and coaching prose without ever being the source of safety decisions.
+FitHub is a training tracker built on a git mental model: every workout is a commit with a short hash ID, the history page is `git log`, and the sidebar is styled like a terminal prompt. Under the surface it applies the sports-science models that most fitness apps skip — sRPE-based load, ACWR, and Hooper readiness — plus a deterministic AI layer that generates plans and coaching prose without ever being the source of safety decisions.
 
 The app is invite-only and in active development. Email [rbisecke@gmail.com](mailto:rbisecke@gmail.com) to request access, or [run it locally](#getting-started).
 
@@ -18,13 +18,14 @@ The app is invite-only and in active development. Email [rbisecke@gmail.com](mai
 
 ## What it does
 
-| Theme                   | Details                                                                                                                                                             |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Training log**        | Commit metaphor for workouts — short hash IDs, contribution graph, support for strength, AMRAP, EMOM, benchmark WODs, and team sessions                             |
-| **Load management**     | sRPE × duration perceived load; ACWR (Acute:Chronic Workload Ratio) via EWMA; ATL/CTL/TSB; Hooper index check-ins for daily readiness                               |
-| **AI coach & planning** | Natural-language log parser; hybrid RAG coach (BM25 + pgvector RRF fusion); adaptive plan generator with deterministic ACWR/readiness triggers; injury train-around |
-| **Data model depth**    | Poliquin 4-digit tempo notation; Epley e1RM cached at write time; VBT fields; wearable-ready schema; IDOR-safe team session consent model                           |
-| **Engineering**         | Invite-only multi-user from day one; deterministic safety logic; 397 tests across three suites; openapi-typescript contract check in CI                             |
+| Theme                   | Details                                                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Training log**        | `git commit --fit` — short hash IDs, PR badges, benchmark / partner / AMRAP / EMOM / strength WOD support; NL parser turns plain text into structured sets                |
+| **Load management**     | sRPE × duration perceived load; ACWR via EWMA; ATL/CTL/TSB; Hooper index check-ins; training balance breakdown by muscle group                                            |
+| **Personal records**    | `git tag` — milestone screen for quick PR logging; Records page with sparklines, trend projections, and named-benchmark progress (e.g. Fran 4:47 → 3:48)                  |
+| **AI coach & planning** | SSE streaming chat with session history; hybrid RAG (BM25 + pgvector RRF fusion); adaptive plan generator with deterministic ACWR/readiness triggers; injury train-around |
+| **Data model depth**    | Poliquin 4-digit tempo notation; Epley e1RM cached at write time; VBT fields; wearable-ready schema; IDOR-safe team session consent model                                 |
+| **Engineering**         | Invite-only multi-user from day one; deterministic safety logic; 433 tests across four suites; openapi-typescript contract check in CI                                    |
 
 ---
 
@@ -34,7 +35,7 @@ The app is invite-only and in active development. Email [rbisecke@gmail.com](mai
 FitHub/
 ├── apps/
 │   ├── api/          # FastAPI — Python 3.14, Alembic migrations, psycopg3
-│   └── web/          # Next.js 16 App Router, shadcn/ui (Base UI), Tailwind v4
+│   └── web/          # Next.js 16 App Router, shadcn/ui, Tailwind v4
 ├── packages/
 │   └── shared/       # TypeScript types generated from the FastAPI OpenAPI spec
 ├── supabase/         # Local dev config, seed data, pgTAP RLS tests
@@ -51,16 +52,16 @@ The frontend calls FastAPI exclusively. Supabase handles auth (magic-link + Goog
 
 `packages/shared` contains TypeScript types generated from the FastAPI OpenAPI schema via `openapi-typescript`. A CI job re-exports the spec and regenerates types on every PR, failing on any drift between the API contract and the frontend type definitions.
 
-| Layer    | Technology                                                            |
-| -------- | --------------------------------------------------------------------- |
-| Frontend | Next.js 16 App Router, shadcn/ui (Base UI), Tailwind v4               |
-| Backend  | FastAPI, Pydantic v2, Alembic, psycopg3                               |
-| Database | Supabase Postgres + pgvector, RLS on every table                      |
-| Auth     | Supabase magic-link + Google OAuth, ES256 JWT via JWKS                |
-| AI       | Claude Haiku 4.5 via Instructor, hybrid RAG (BM25 + pgvector RRF)     |
-| Testing  | pytest (301), pgTAP RLS (42), Playwright E2E (54)                     |
-| CI       | GitHub Actions: lint, typecheck, test, contract drift, security audit |
-| Hosting  | Railway (API) · Vercel (web) · Supabase (DB / auth)                   |
+| Layer    | Technology                                                                       |
+| -------- | -------------------------------------------------------------------------------- |
+| Frontend | Next.js 16 App Router, shadcn/ui, Tailwind v4, Recharts                          |
+| Backend  | FastAPI, Pydantic v2, Alembic, psycopg3                                          |
+| Database | Supabase Postgres + pgvector, RLS on every table                                 |
+| Auth     | Supabase magic-link + Google OAuth, ES256 JWT via JWKS                           |
+| AI       | Claude Haiku 4.5 via Instructor, SSE streaming, hybrid RAG (BM25 + pgvector RRF) |
+| Testing  | pytest (252), pgTAP RLS (52), Playwright E2E (65), Vitest unit (64)              |
+| CI       | GitHub Actions: lint, typecheck, test, contract drift, security audit            |
+| Hosting  | Railway (API) · Vercel (web) · Supabase (DB / auth)                              |
 
 ---
 
@@ -72,7 +73,7 @@ The core principle: **safety-critical logic is deterministic Python; the LLM gen
 
 **NL log parser** — parses free-text workout descriptions into structured Pydantic models using [Instructor](https://github.com/instructor-ai/instructor) with Anthropic tool-use constrained decoding. Schema adherence is ~99% with Instructor vs ~85% with raw JSON mode; the structured output is validated by Pydantic before write.
 
-**Hybrid RAG coach** — retrieval combines BM25 keyword search and pgvector cosine similarity with Reciprocal Rank Fusion. Sources include CrossFit Level 1 programming standards, coaching notes, and session history. Context is XML-delimited before injection to mitigate prompt injection. `GET /api/v1/coach/history` returns persistent session history.
+**Streaming coach** — SSE endpoint with persistent session history. Retrieval combines BM25 keyword search and pgvector cosine similarity with Reciprocal Rank Fusion. Sources include CrossFit Level 1 programming standards, coaching notes, and session history. Context is XML-delimited before injection to mitigate prompt injection.
 
 **Adaptive plan generator** — returns HTTP 202 immediately and exposes a polling URL (async task pattern). Inputs are structured: Epley 1RM estimates, current ACWR, and Hooper readiness score. Output is validated against the sports-science knowledge base before persisting.
 
@@ -95,21 +96,31 @@ The core principle: **safety-critical logic is deterministic Python; the LLM gen
 <tr>
   <td align="center" width="50%">
     <img src="screenshots/readme/history.png" alt="History" />
-    <br /><sub>History — date-grouped sessions, session-type colour coding, PR badges</sub>
+    <br /><sub>History — <code>$ git log</code>, date-grouped commits, short hash IDs, PR and benchmark badges</sub>
   </td>
   <td align="center" width="50%">
-    <img src="screenshots/readme/log-form.png" alt="Log workout" />
-    <br /><sub>Log form — AI natural-language parse or manual entry</sub>
+    <img src="screenshots/readme/logger.png" alt="Log workout" />
+    <br /><sub>Logger — <code>$ git commit --fit</code>, NL parser or manual movement entry with template picker</sub>
   </td>
 </tr>
 <tr>
   <td align="center" width="50%">
-    <img src="screenshots/readme/log-form-expanded.png" alt="Log form expanded" />
-    <br /><sub>Log form expanded — full movement breakdown with set data</sub>
+    <img src="screenshots/readme/records.png" alt="Personal records" />
+    <br /><sub>Records — <code>$ git tag</code>, per-movement PRs with e1RM trend projections and sparklines</sub>
   </td>
   <td align="center" width="50%">
-    <img src="screenshots/readme/detail.png" alt="Workout detail" />
-    <br /><sub>Workout detail — git-commit view with result table and hash footer</sub>
+    <img src="screenshots/readme/coach.png" alt="AI coach" />
+    <br /><sub>Coach — SSE streaming chat with session history and starter prompts</sub>
+  </td>
+</tr>
+<tr>
+  <td align="center" width="50%">
+    <img src="screenshots/readme/history-mobile.png" alt="Mobile history" />
+    <br /><sub>Mobile — bottom tab bar, inset FAB, safe-area insets; full feature parity at 375px</sub>
+  </td>
+  <td align="center" width="50%">
+    <img src="screenshots/readme/progress.png" alt="Progress" />
+    <br /><sub>Progress — <code>$ git diff</code>, ACWR/CTL/TSB, lift trends, weekly volume, named benchmark progress</sub>
   </td>
 </tr>
 </table>
@@ -177,13 +188,14 @@ Open [http://localhost:3000](http://localhost:3000). The app is invite-only; add
 
 ## Testing
 
-FitHub has three test suites and passes strict static analysis. pgTAP is worth highlighting — most web applications rely solely on application-layer authorization checks; the 42 pgTAP tests verify that RLS policies prevent cross-user data access at the database layer, independent of the application code.
+FitHub has four test suites and passes strict static analysis. pgTAP is worth highlighting — most web applications rely solely on application-layer authorization checks; the 52 pgTAP tests verify that RLS policies prevent cross-user data access at the database layer, independent of the application code.
 
 | Suite              | Tool        | Count | Covers                                                  |
 | ------------------ | ----------- | ----- | ------------------------------------------------------- |
-| Unit + integration | pytest      | 301   | API routes, repositories, AI stubs, rate limiting, auth |
-| DB isolation       | pgTAP       | 42    | RLS policies on every table, cross-user data isolation  |
-| Browser E2E        | Playwright  | 54    | Auth flow, workout CRUD, coach chat, plan generation    |
+| Unit + integration | pytest      | 252   | API routes, repositories, AI stubs, rate limiting, auth |
+| DB isolation       | pgTAP       | 52    | RLS policies on every table, cross-user data isolation  |
+| Browser E2E        | Playwright  | 65    | Auth flow, workout CRUD, coach chat, plan generation    |
+| Unit (frontend)    | Vitest      | 64    | Utility functions, hooks, API client, component logic   |
 | Static analysis    | mypy + ruff | —     | Strict mypy, zero `Any` in models, ruff format          |
 
 ```bash
@@ -195,6 +207,9 @@ supabase --workdir . test db
 
 # E2E (requires API running on port 8000 with STUB_LLM=true)
 pnpm --filter web exec playwright test
+
+# Frontend unit
+pnpm --filter web test
 ```
 
 ---
@@ -215,13 +230,14 @@ Dependabot keeps Actions SHAs current monthly and pip/npm dependencies weekly.
 
 ## Status & roadmap
 
-Phases 0–7b are merged. Deployment (Phase 7c — Railway + Vercel + Supabase production) is the current milestone.
+The full UI redesign — new navigation, dashboard, history, logger, records, coach, profile, onboarding, and the `git tag` quick-milestone screen — shipped as part of the `feat/ui-revamp` branch and is now on `main`. Deployment (Railway + Vercel + Supabase production) is the current milestone.
 
 Near-term:
 
 - **Wearable data sync** — schema is wearable-ready; Oura / Apple Health pipeline not yet wired
 - **Nutrition tracking** — schema and feature design complete; deferred post-deployment
 - **Mobile PWA** — manifest and offline strategy planned; not yet implemented
+- **Training balance** — muscle-group categories on movements; balance widget ready on the progress page once movements are tagged
 
 **Access:** Email [rbisecke@gmail.com](mailto:rbisecke@gmail.com) to request an invite, or clone and [run locally](#getting-started).
 
