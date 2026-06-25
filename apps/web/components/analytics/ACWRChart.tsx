@@ -1,12 +1,14 @@
 "use client";
 
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
+  CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
   ReferenceLine,
+  ReferenceDot,
 } from "recharts";
 import { useReducedMotion } from "motion/react";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
@@ -42,17 +44,31 @@ export function ACWRChart({ series }: Props) {
         pt.acwr !== null && pt.acwr !== undefined ? +pt.acwr.toFixed(2) : null,
     }));
 
+  // Highlight the latest point — keeps prior points quiet (design 08 §2).
+  const latest = [...data].reverse().find((d) => d.acwr !== null);
+
   return (
     <ChartContainer
       config={acwrConfig}
       data-testid="acwr-chart"
       className="h-52 w-full min-w-0"
     >
-      <LineChart
+      <AreaChart
         accessibilityLayer
         data={data}
         margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
       >
+        <defs>
+          <linearGradient id="acwrFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid
+          stroke="var(--chart-border)"
+          strokeDasharray="3 3"
+          vertical={false}
+        />
         <XAxis
           dataKey="day"
           tick={{ fill: "var(--chart-axis)", fontSize: 10 }}
@@ -80,16 +96,28 @@ export function ACWRChart({ series }: Props) {
           stroke="var(--chart-ref-danger)"
           strokeDasharray="4 2"
         />
-        <Line
+        <Area
           type="monotone"
           dataKey="acwr"
           stroke="var(--color-acwr)"
+          fill="url(#acwrFill)"
+          fillOpacity={1}
           dot={false}
           strokeWidth={2}
           connectNulls
           isAnimationActive={!prefersReducedMotion}
         />
-      </LineChart>
+        {latest && (
+          <ReferenceDot
+            x={latest.day}
+            y={latest.acwr as number}
+            r={4}
+            fill="var(--chart-1)"
+            stroke="var(--bg)"
+            strokeWidth={2}
+          />
+        )}
+      </AreaChart>
     </ChartContainer>
   );
 }
