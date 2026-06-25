@@ -42,6 +42,7 @@ export function ResultFields({
             min={0}
             max={1000}
             placeholder="95"
+            aria-label="Weight in kg"
             {...r("load_kg")}
             className={`${INPUT_CLS} pr-8`}
           />
@@ -54,6 +55,7 @@ export function ResultFields({
           min={1}
           max={9999}
           placeholder="5"
+          aria-label="Repetitions"
           {...r("reps")}
           className={`${INPUT_CLS} w-20`}
         />
@@ -68,6 +70,7 @@ export function ResultFields({
         min={1}
         max={9999}
         placeholder="42"
+        aria-label="Repetitions"
         {...r("reps")}
         className={INPUT_CLS}
       />
@@ -80,6 +83,7 @@ export function ResultFields({
         type="text"
         inputMode="numeric"
         placeholder="6:32"
+        aria-label="Time (mm:ss)"
         {...r("time_text")}
         className={INPUT_CLS}
       />
@@ -93,6 +97,7 @@ export function ResultFields({
           type="number"
           min={0.01}
           placeholder="5000"
+          aria-label="Distance in metres"
           {...r("distance_m")}
           className={`${INPUT_CLS} pr-6`}
         />
@@ -109,6 +114,7 @@ export function ResultFields({
         type="number"
         min={1}
         placeholder="84"
+        aria-label="Calories"
         {...r("calories")}
         className={INPUT_CLS}
       />
@@ -122,6 +128,7 @@ export function ResultFields({
           type="number"
           min={0}
           placeholder="8"
+          aria-label="Rounds"
           {...r("rounds")}
           className={`${INPUT_CLS} w-20`}
         />
@@ -130,6 +137,7 @@ export function ResultFields({
           type="number"
           min={0}
           placeholder="14"
+          aria-label="Partial reps"
           {...r("partial_reps")}
           className={`${INPUT_CLS} w-20`}
         />
@@ -145,6 +153,7 @@ export function ResultFields({
           type="number"
           min={1}
           placeholder="312"
+          aria-label="Power in watts"
           {...r("watts")}
           className={`${INPUT_CLS} pr-6`}
         />
@@ -162,6 +171,7 @@ export function ResultFields({
           type="number"
           min={1}
           placeholder="60"
+          aria-label="Height in cm"
           {...r("height_cm")}
           className={`${INPUT_CLS} pr-8`}
         />
@@ -178,6 +188,7 @@ export function ResultFields({
         type="text"
         inputMode="numeric"
         placeholder="2:05"
+        aria-label="Pace per 500m (mm:ss)"
         {...r("pace_text")}
         className={INPUT_CLS}
       />

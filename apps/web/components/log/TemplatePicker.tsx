@@ -20,7 +20,7 @@ export function TemplatePicker({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-[#8b949e]">Or start from a recent session</p>
+      <p className="text-sm text-[#8b949e]">Or start from a recent session</p>
       <div className="flex gap-3 overflow-x-auto pb-2 -mx-0">
         {recentWorkouts.map((w) => {
           const label =

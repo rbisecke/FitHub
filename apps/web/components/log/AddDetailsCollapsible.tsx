@@ -91,11 +91,12 @@ export function AddDetailsCollapsible({
   watch,
 }: AddDetailsCollapsibleProps) {
   const [open, setOpen] = useState(false);
+  const [sliderDisplay, setSliderDisplay] = useState(5);
   const rpe = watch("session_rpe");
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-md border border-[#30363d] bg-[#161b22] px-3 py-2 text-sm text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3] transition-colors">
+      <CollapsibleTrigger className="flex w-full min-h-[44px] items-center gap-2 rounded-md border border-[#30363d] bg-[#161b22] px-3 py-2 text-sm text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3] transition-colors">
         <span
           className="font-mono text-xs text-[#58a6ff] transition-transform duration-200 shrink-0"
           style={{
@@ -105,13 +106,9 @@ export function AddDetailsCollapsible({
         >
           ▸
         </span>
-        {open ? (
-          <span>Hide details</span>
-        ) : (
-          <span className="text-left">
-            Add details: session type · duration · RPE · notes
-          </span>
-        )}
+        <span className="text-left">
+          Add details: session type · duration · RPE · notes
+        </span>
       </CollapsibleTrigger>
 
       <CollapsibleContent className="mt-4 space-y-4">
@@ -214,11 +211,13 @@ export function AddDetailsCollapsible({
             min={0}
             max={10}
             step={0.5}
-            value={rpe != null ? [rpe] : [0]}
+            value={[rpe ?? sliderDisplay]}
             onValueChange={(v) => {
-              const num =
-                typeof v === "number" ? v : (v as readonly number[])[0];
-              if (num !== undefined) setValue("session_rpe", num);
+              const num = (v as readonly number[])[0];
+              if (num !== undefined) {
+                setSliderDisplay(num);
+                setValue("session_rpe", num);
+              }
             }}
             className="w-full"
           />

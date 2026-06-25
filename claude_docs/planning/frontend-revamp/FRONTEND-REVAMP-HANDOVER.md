@@ -17,7 +17,7 @@
 | Design doc accuracy review | ✅ Done | Each doc has `## Accuracy Review` section |
 | Design iteration tooling | ✅ Done | Playwright MCP, Chrome DevTools MCP, Unlighthouse |
 | CLAUDE.md design system | ✅ Done | Color palette, typography, spacing encoded |
-| Implementation | 🔄 In progress | F1–F5, F7 merged; F6/F8–F12 remaining (see tracker) |
+| Implementation | 🔄 In progress | F1–F7 merged; F8–F12 remaining; B2–B6 not started (see tracker) |
 
 ---
 
@@ -112,7 +112,7 @@ All design docs live in this directory (`claude_docs/planning/frontend-revamp/`)
 | `feat/ui-dashboard` | ✅ Done | #49 | HeroBlock, StreakWidget, WeekMiniGraph, ContributionGraphRevamp (2-month heatmap), RecentPRsStrip, TrainingPartnersSummary, DashboardSkeleton; fixed DayPicker v10 heatmap cell coloring (no inner button in no-selection mode), dot visibility, AppShell bottom-nav clearance; also fixed use-mobile lint error |
 | `feat/ui-library-migration` | ✅ Done | #50 | @nivo/calendar removed; ChartContainer migration; --chart-*/--heatmap-* CSS vars (hex, not oklch — Turbopack cache issue); lib/chart-utils, motion, toast; DonutChart/KpiCard; @hookform/resolvers 5→4 fix; heatmap green scale; cell size 28→20px; Supabase client guard moved inside createClient() to unblock Vercel SSG |
 | `feat/ui-history` | ✅ Done | #51 | Commit-log feed with collapsible WorkoutCard (ARIA expand, AnimatePresence), date separators, client-side filters (sessionType/partner/date), desktop inline row + mobile bottom sheet (key-remount pattern, no useEffect setState), load-more pagination, BENCHMARK/Co-authored-by/PR badges, benchmarks.ts, useRef fetch-guard. ui-iterate polish: layout restructure (mobile trigger in h1 row, desktop row below subtitle), dedup date display, RPE Number() fix, touch targets 44px, aria-pressed/role=group/aria-label a11y, flex-nowrap filter row. Signed off at 375px + 1280px. |
-| `feat/ui-logger` | 🔲 Not started | — | B1 unblocked; still needs F2 (done) |
+| `feat/ui-logger` | ✅ Done | #53 | Progressive-disclosure logger: NL parse+prefill, movement rows with ResultFields, prev: badge (B1 last-result), AddDetails collapsible (date/title/type/format/duration/RPE/notes/bodyweight), TemplatePicker. UI iterate Cycle 1: h1 size, NL label, touch targets, collapsible text, RPE slider null fix. Cycle 2 (a11y): aria-label on all ResultFields inputs, collapsible trigger min-h-[44px]. Sign-off: ✅ 375px + 1280px. |
 | `feat/ui-progress` | ✅ Done | #52 | TrainingSummaryHero (narrative + metric tiles), StrengthProgressSection (e1rm line chart + movement picker), VolumeTrendSection (period selector), TrainingBalanceSection (null-safe), BenchmarkProgressSection (sparklines, null-safe), PRSummaryStrip; benchmarks API endpoint added (GET /api/v1/analytics/benchmarks); destructuring bug fixed; PeriodSelector SelectValue fix; overflow fix; 1-decimal PR weights; seed_progress_demo.sql for local validation |
 | `feat/ui-records` | 🔲 Not started | — | Blocked on B2 for live PR data |
 | `feat/ui-coach` | 🔲 Not started | — | Blocked on B4 |

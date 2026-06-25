@@ -207,13 +207,16 @@ export function LogPageClient({
   return (
     <div className="mx-auto max-w-lg px-4 py-6 space-y-6">
       {/* Page heading */}
-      <h1 className="text-lg font-semibold text-[#e6edf3]">
+      <h1 className="text-xl font-semibold text-[#e6edf3]">
         <span className="font-mono text-[#8b949e] text-sm mr-2">$</span>
         git commit --fit
       </h1>
 
       {/* NL area */}
       <div className="space-y-2">
+        <p className="text-xs text-[#8b949e]">
+          Describe your workout (optional)
+        </p>
         <Textarea
           placeholder={
             'Describe your workout…\ne.g. "Fran in 6:45" or "5×5 back squat @ 90 kg"'
@@ -289,7 +292,7 @@ export function LogPageClient({
                 order_index: fields.length,
               })
             }
-            className="w-full rounded-lg border border-dashed border-[#30363d] py-3 text-sm text-[#8b949e] hover:border-[#58a6ff]/60 hover:text-[#e6edf3] transition-colors"
+            className="w-full rounded-lg border border-dashed border-[#30363d] py-3 min-h-[44px] text-sm text-[#8b949e] hover:border-[#58a6ff]/60 hover:text-[#e6edf3] transition-colors"
           >
             + Add movement
           </button>
