@@ -26,6 +26,7 @@ async def get_profile(
                 p.frequency_target_days,
                 p.graph_colour_mode,
                 p.checkin_enabled,
+                p.onboarding_completed,
                 (
                     SELECT performed_at::date::text
                     FROM   public.workouts
@@ -51,6 +52,7 @@ async def get_profile(
         graph_colour_mode=row["graph_colour_mode"],
         weight_unit=row["weight_unit"],
         checkin_enabled=row["checkin_enabled"],
+        onboarding_completed=row["onboarding_completed"],
     )
 
 
@@ -157,6 +159,8 @@ async def patch_profile(
         updates["unit_preference"] = patch.weight_unit  # DB column name
     if patch.checkin_enabled is not None:
         updates["checkin_enabled"] = patch.checkin_enabled
+    if patch.onboarding_completed is not None:
+        updates["onboarding_completed"] = patch.onboarding_completed
 
     if updates:
         set_clause = ", ".join(f"{col} = %s" for col in updates)

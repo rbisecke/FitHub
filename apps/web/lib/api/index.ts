@@ -35,6 +35,9 @@ export interface TrainingBalanceResponse {
   period_days: number;
 }
 
+// Workout parsing — from generated OpenAPI schema
+export type ParseNLResponse = components["schemas"]["ParseNLResponse"];
+
 // Coach types — from generated OpenAPI schema
 export type MovementResult = components["schemas"]["MovementResult"];
 export type ParsedLogEntry = components["schemas"]["ParsedLogEntry"];
@@ -64,6 +67,7 @@ export interface UserProfile {
   graph_colour_mode: GraphColourMode;
   weight_unit: WeightUnit;
   checkin_enabled: boolean;
+  onboarding_completed: boolean;
 }
 
 export interface ProfileStats {

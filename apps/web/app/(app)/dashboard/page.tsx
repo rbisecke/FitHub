@@ -18,6 +18,7 @@ import { WeekMiniGraph } from "@/components/dashboard/WeekMiniGraph";
 import { ContributionGraphRevamp } from "@/components/dashboard/ContributionGraphRevamp";
 import { RecentPRsStrip } from "@/components/dashboard/RecentPRsStrip";
 import { TrainingPartnersSummary } from "@/components/dashboard/TrainingPartnersSummary";
+import { OnboardingToast } from "@/components/onboarding/OnboardingToast";
 
 export default async function DashboardPage({
   searchParams,
@@ -32,12 +33,13 @@ export default async function DashboardPage({
 
   const token = session.access_token;
 
-  const [workoutRes, partnersRes, prRes, readinessRes] =
+  const [workoutRes, partnersRes, prRes, readinessRes, profileRes] =
     await Promise.allSettled([
       api.workouts.list(token, { limit: 365 }),
       api.trainingPartners(token),
       api.analytics.personalRecords(token),
       api.analytics.readiness(token),
+      api.profile.get(token),
     ]);
 
   const workouts: WorkoutSummary[] =
@@ -52,6 +54,8 @@ export default async function DashboardPage({
   const sentence = readinessSentence(readiness, streak.isComeback);
   const readinessLabel = readiness?.label ?? "unknown";
   const recentPRs = prDelta(prs);
+  const showOnboardingToast =
+    profileRes.status === "fulfilled" && !profileRes.value.onboarding_completed;
 
   const params = await searchParams;
   const isNewPR = params.pr === "1";
@@ -104,6 +108,8 @@ export default async function DashboardPage({
           <TrainingPartnersSummary partners={partners} />
         </div>
       )}
+
+      {showOnboardingToast && <OnboardingToast />}
     </div>
   );
 }

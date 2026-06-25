@@ -3,6 +3,7 @@ import type {
   Workout,
   WorkoutListResponse,
   CreateWorkoutBody,
+  ParseNLResponse,
   LoadModelResponse,
   PersonalRecord,
   E1RMPoint,
@@ -94,6 +95,11 @@ export const api = {
       }),
     del: (token: string, id: string) =>
       apiFetch<void>(`/api/v1/workouts/${id}`, token, { method: "DELETE" }),
+    parseNl: (token: string, text: string) =>
+      apiFetch<ParseNLResponse>("/api/v1/workouts/parse-nl", token, {
+        method: "POST",
+        body: JSON.stringify({ text }),
+      }),
   },
   movements: {
     search: (token: string, params: { q?: string; modality?: string }) => {
@@ -158,6 +164,7 @@ export const api = {
           | "graph_colour_mode"
           | "weight_unit"
           | "checkin_enabled"
+          | "onboarding_completed"
         >
       >,
     ) =>
