@@ -86,8 +86,9 @@ FitHub uses a GitHub dark aesthetic. These values are **NON-NEGOTIABLE** — do 
 
 ### Typography
 
-- **Data/metrics:** `font-mono` (JetBrains Mono) — ALL numbers, hashes, durations, distances, weights
-- **UI text:** `font-sans` (system-ui) — nav, labels, body copy, buttons
+- **Data/metrics:** `font-mono` (**Geist Mono**) — ALL numbers, hashes, durations, distances, weights (use `tabular-nums` for aligned/changing values).
+- **UI text:** `font-sans` (**Geist Sans**) — nav, labels, body copy, buttons.
+- Both fonts load via `next/font` (`app/layout.tsx`); Tailwind's `font-sans` / `font-mono` map to `--font-geist-sans` / `--font-geist-mono` in `globals.css`'s `@theme` block. (Keep `--font-sans` pointed at `--font-geist-sans` — a self-reference there silently falls back to serif.)
 - No decorative fonts. No Inter. No Poppins. No rounded-corners-as-personality.
 
 ### Spacing (8px base rhythm)
