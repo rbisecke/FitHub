@@ -157,6 +157,57 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/coach/sessions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Sessions */
+    get: operations["list_sessions_api_v1_coach_sessions_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/coach/sessions/{session_id}/messages": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Session Messages */
+    get: operations["get_session_messages_api_v1_coach_sessions__session_id__messages_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/coach/chat/stream": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Chat Stream */
+    post: operations["chat_stream_api_v1_coach_chat_stream_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/integrations/apple-health/connect": {
     parameters: {
       query?: never;
@@ -792,6 +843,13 @@ export interface components {
       /** Safety Tier */
       safety_tier?: string | null;
     };
+    /** ChatStreamRequest */
+    ChatStreamRequest: {
+      /** Question */
+      question: string;
+      /** Session Id */
+      session_id?: string | null;
+    };
     /** Citation */
     Citation: {
       /** Title */
@@ -800,6 +858,21 @@ export interface components {
       source_type: string;
       /** Score */
       score: number;
+    };
+    /** CoachSession */
+    CoachSession: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Title */
+      title: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
     };
     /** ConnectResponse */
     ConnectResponse: {
@@ -1702,6 +1775,13 @@ export interface components {
       | "max_load"
       | "relay"
       | "slowest_finisher";
+    /** SessionMessagesResponse */
+    SessionMessagesResponse: {
+      /** Messages */
+      messages: components["schemas"]["HistoryMessage"][];
+      /** Has More */
+      has_more: boolean;
+    };
     /**
      * SessionType
      * @enum {string}
@@ -2274,6 +2354,104 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ChatResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_sessions_api_v1_coach_sessions_get: {
+    parameters: {
+      query?: {
+        limit?: number;
+        before_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CoachSession"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_session_messages_api_v1_coach_sessions__session_id__messages_get: {
+    parameters: {
+      query?: {
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SessionMessagesResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  chat_stream_api_v1_coach_chat_stream_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChatStreamRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */

@@ -5,11 +5,14 @@ from __future__ import annotations
 import logging
 import os
 import re
+import uuid
+from collections.abc import AsyncIterator
 from typing import Annotated, Any
 
 import psycopg
 import psycopg.rows
 from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import StreamingResponse
 
 from app.ai.chat_history import fetch_session_history, rag_query_text
 from app.ai.kill_switch import require_llm_enabled
@@ -20,9 +23,12 @@ from app.middleware.rate_limit import limiter
 from app.models.coach import (
     ChatRequest,
     ChatResponse,
+    ChatStreamRequest,
+    CoachSession,
     HistoryMessage,
     ParseLogRequest,
     ParseLogResponse,
+    SessionMessagesResponse,
 )
 
 log = logging.getLogger("fithub.coach")
@@ -232,3 +238,128 @@ async def chat(
         for c in chunks
     ]
     return ChatResponse(answer=answer_text, citations=citations, stub=False, safety_tier=tier.value)
+
+
+# ── Session endpoints ─────────────────────────────────────────────────────────
+
+
+@router.get("/sessions", response_model=list[CoachSession])
+async def list_sessions(
+    user: Annotated[UserContext, Depends(get_current_user)],
+    db: _Db,
+    limit: int = Query(default=20, ge=1, le=100),
+    before_id: uuid.UUID | None = Query(default=None),
+) -> list[CoachSession]:
+    import app.repositories.coach as coach_repo
+
+    return await coach_repo.list_sessions(db, user.user_id, limit=limit, before_id=before_id)
+
+
+@router.get("/sessions/{session_id}/messages", response_model=SessionMessagesResponse)
+async def get_session_messages(
+    session_id: uuid.UUID,
+    user: Annotated[UserContext, Depends(get_current_user)],
+    db: _Db,
+    limit: int = Query(default=50, ge=1, le=200),
+) -> SessionMessagesResponse:
+    import app.repositories.coach as coach_repo
+
+    return await coach_repo.list_messages(db, session_id, user.user_id, limit=limit)
+
+
+@router.post("/chat/stream")
+@limiter.limit("10/minute")
+async def chat_stream(
+    request: Request,
+    body: ChatStreamRequest,
+    user: Annotated[UserContext, Depends(get_current_user)],
+    db: _Db,
+    _kill: Annotated[None, Depends(require_llm_enabled)],
+) -> StreamingResponse:
+    return StreamingResponse(
+        _do_stream(body.question, body.session_id, user.user_id, db),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+async def _do_stream(
+    question: str,
+    session_id: uuid.UUID | None,
+    user_id: uuid.UUID,
+    db: psycopg.AsyncConnection[object],
+) -> AsyncIterator[str]:
+    import app.repositories.coach as coach_repo
+    from app.ai.streaming import sanitize_answer, sse_event, stream_llm_tokens
+    from app.ai.stub import is_stubbed
+    from app.engine.safety import SafetyTier, classify_safety
+
+    tier, _ = classify_safety(question)
+
+    if tier == SafetyTier.STOP:
+        yield sse_event(
+            {
+                "type": "error",
+                "message": (
+                    "Please stop your workout and consult a medical professional immediately. "
+                    "This situation is beyond the scope of AI coaching."
+                ),
+            }
+        )
+        return
+
+    if session_id is not None:
+        row = await coach_repo.get_session(db, session_id, user_id)
+        if row is None:
+            yield sse_event({"type": "error", "message": "Session not found."})
+            return
+    else:
+        session_id = await coach_repo.create_session(db, user_id=user_id, title=question[:200])
+
+    history = await coach_repo.fetch_session_messages_history(db, session_id)
+
+    if is_stubbed():
+        chunks: list[dict[str, object]] = []
+    else:
+        from app.ai.chat_history import rag_query_text
+        from app.ai.rag import hybrid_retrieve
+
+        rag_text = rag_query_text(question, history)
+        chunks = await hybrid_retrieve(rag_text, db, top_k=5)
+
+    context = "\n\n".join(str(c["body"]) for c in chunks)
+    user_content = (
+        "<context>\n"
+        + context
+        + "\n</context>\n\n"
+        + "Question: <user_input>"
+        + question
+        + "</user_input>"
+    )
+    messages: list[dict[str, str]] = list(history) + [{"role": "user", "content": user_content}]
+
+    full_answer: list[str] = []
+    async for token in stream_llm_tokens(messages, COACH_SYSTEM_PROMPT):
+        full_answer.append(token)
+        yield sse_event({"type": "token", "text": token})
+
+    answer_text = sanitize_answer("".join(full_answer))
+
+    citations = [
+        {
+            "title": str(c["title"]),
+            "source_type": str(c["source_type"]),
+            "score": float(str(c["score"])),
+        }
+        for c in chunks
+    ]
+
+    stub = is_stubbed()
+    await coach_repo.write_message(
+        db, session_id, "user", question, safety_tier=tier.value, stub=stub
+    )
+    await coach_repo.write_message(
+        db, session_id, "assistant", answer_text, citations=citations, stub=stub
+    )
+
+    yield sse_event({"type": "done", "session_id": str(session_id)})

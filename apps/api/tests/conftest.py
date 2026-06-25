@@ -169,7 +169,17 @@ async def _clean_data() -> AsyncGenerator[None]:
             "DELETE FROM public.injuries WHERE user_id = ANY(%s::uuid[])",
             [[str(ALICE_ID), str(BOB_ID)]],
         )
-        # AI / wearable tables
+        # AI / wearable tables — messages and sessions must be deleted before interactions
+        await conn.execute(
+            "DELETE FROM public.coach_messages WHERE session_id IN ("
+            "  SELECT id FROM public.coach_sessions WHERE user_id = ANY(%s::uuid[])"
+            ")",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        await conn.execute(
+            "DELETE FROM public.coach_sessions WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
         await conn.execute(
             "DELETE FROM public.coach_interactions WHERE user_id = ANY(%s::uuid[])",
             [[str(ALICE_ID), str(BOB_ID)]],
