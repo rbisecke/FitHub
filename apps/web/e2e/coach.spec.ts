@@ -514,11 +514,12 @@ test.describe("B4 — streaming chat API", () => {
       has_more: boolean;
     };
     expect(body.messages.length).toBeGreaterThanOrEqual(2);
-    expect(body.messages[0].role).toBe("user");
-    expect(body.messages[0].content).toBe("What is RPE?");
-    expect(body.messages[1].role).toBe("assistant");
-    expect(typeof body.messages[1].content).toBe("string");
-    expect(body.messages[1].content.length).toBeGreaterThan(0);
+    const [userMsg, assistantMsg] = body.messages;
+    expect(userMsg!.role).toBe("user");
+    expect(userMsg!.content).toBe("What is RPE?");
+    expect(assistantMsg!.role).toBe("assistant");
+    expect(typeof assistantMsg!.content).toBe("string");
+    expect(assistantMsg!.content.length).toBeGreaterThan(0);
   });
 
   // ── IDOR isolation ────────────────────────────────────────────────────────
