@@ -27,6 +27,7 @@ export default async function AppLayout({
   // Fetch user prefs for context seeding — fall back to defaults on error
   let weightUnit: WeightUnit = "kg";
   let graphColourMode: GraphColourMode = "intensity";
+  let shouldRedirectToOnboarding = false;
   try {
     const {
       data: { session },
@@ -36,10 +37,14 @@ export default async function AppLayout({
       const profile = await api.profile.get(token);
       weightUnit = profile.weight_unit;
       graphColourMode = profile.graph_colour_mode;
+      if (!profile.onboarding_completed) {
+        shouldRedirectToOnboarding = true;
+      }
     }
   } catch {
     // Non-fatal: page still renders with safe defaults
   }
+  if (shouldRedirectToOnboarding) redirect("/onboarding/1");
 
   return (
     <UserPrefsProvider

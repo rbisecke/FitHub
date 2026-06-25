@@ -20,6 +20,10 @@ def upgrade() -> None:
         "ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS "
         "onboarding_completed BOOLEAN NOT NULL DEFAULT false"
     )
+    # Mark all pre-existing users as onboarded — they existed before this feature
+    op.execute(
+        "UPDATE public.profiles SET onboarding_completed = true WHERE onboarding_completed = false"
+    )
     op.execute(
         """
         GRANT UPDATE(handle, display_name, unit_preference, timezone, bodyweight,
