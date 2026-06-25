@@ -57,17 +57,18 @@ async def stream_llm_tokens(
             async for text in stream.text_stream:
                 yield text
     else:
-        from openai import AsyncOpenAI
+        from openai import AsyncOpenAI, AsyncStream
+        from openai.types.chat import ChatCompletionChunk
 
         raw = llm.raw
         assert isinstance(raw, AsyncOpenAI)
-        stream = await raw.chat.completions.create(
+        oai_stream: AsyncStream[ChatCompletionChunk] = await raw.chat.completions.create(  # type: ignore[assignment]
             model=llm.model,
             max_tokens=1024,
             messages=[{"role": "system", "content": system_prompt}] + messages,  # type: ignore[arg-type]
             stream=True,
         )
-        async for chunk in stream:
+        async for chunk in oai_stream:
             delta = chunk.choices[0].delta.content
             if delta:
                 yield delta
