@@ -62,6 +62,34 @@ export function HistoryFilterSheet({
         </SheetHeader>
 
         <div className="space-y-6 pb-2">
+          {/* Tags */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-[#8b949e] uppercase tracking-wider">
+              Entry type
+            </p>
+            <div className="flex gap-2">
+              {(
+                [
+                  { value: "all", label: "All" },
+                  { value: "tags-only", label: "Tags only" },
+                  { value: "no-tags", label: "Commits only" },
+                ] as const
+              ).map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setLocal({ ...local, tagsFilter: value })}
+                  className={`px-3 py-3 rounded-full text-xs font-mono border transition-colors ${
+                    local.tagsFilter === value
+                      ? "bg-[#21262d] border-[#58a6ff] text-[#e6edf3]"
+                      : "border-[#30363d] text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3]"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Session type */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-[#8b949e] uppercase tracking-wider">

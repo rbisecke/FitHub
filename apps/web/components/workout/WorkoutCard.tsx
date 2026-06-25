@@ -34,6 +34,12 @@ export interface WorkoutCardProps {
   onMovementFilter?: (m: { id: string; name: string }) => void;
 }
 
+// Without B7 (is_tag column), tag entries are detected by absence of session_type + single result.
+// This is a fragile fallback — update when B7 ships.
+function isTagEntry(w: WorkoutSummary): boolean {
+  return !w.session_type && w.result_count === 1;
+}
+
 export function WorkoutCard({
   workout,
   isExpanded,
@@ -46,6 +52,7 @@ export function WorkoutCard({
   const fetchedRef = useRef(false);
   const prefersReduced = useReducedMotion();
 
+  const isTag = isTagEntry(workout);
   const isPartner =
     workout.workout_format === "partner" || workout.workout_format === "team";
   const showBenchmark = isBenchmark(workout.title);
@@ -73,6 +80,18 @@ export function WorkoutCard({
   const expandTransition = prefersReduced
     ? { duration: 0 }
     : { duration: 0.2, ease: "easeInOut" as const };
+
+  // Compact non-interactive tag card
+  if (isTag) {
+    return (
+      <TagCard
+        workout={workout}
+        detail={detail}
+        detailLoading={detailLoading}
+        accessToken={accessToken}
+      />
+    );
+  }
 
   return (
     <div
@@ -378,6 +397,127 @@ function ExpandedContent({
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Tag card ─────────────────────────────────────────────────────────────────
+
+function formatResultValue(r: {
+  result_type: string;
+  load_kg?: string | number | null;
+  reps?: number | null;
+  time_s?: number | null;
+  distance_m?: string | number | null;
+  calories?: number | null;
+  rounds?: number | null;
+  partial_reps?: number | null;
+  watts?: number | null;
+}): string {
+  if (r.result_type === "weight") {
+    const load = r.load_kg != null ? String(r.load_kg) : null;
+    if (!load) return "";
+    return r.reps != null ? `${load} kg × ${r.reps}` : `${load} kg`;
+  }
+  if (r.result_type === "reps") return r.reps != null ? `${r.reps} reps` : "";
+  if (r.result_type === "time" && r.time_s != null) {
+    const m = Math.floor(r.time_s / 60);
+    const s = r.time_s % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  }
+  if (r.result_type === "calories")
+    return r.calories != null ? `${r.calories} cal` : "";
+  if (r.result_type === "rounds_reps" && r.rounds != null) {
+    return r.partial_reps != null
+      ? `${r.rounds} + ${r.partial_reps} reps`
+      : `${r.rounds} rounds`;
+  }
+  if (r.result_type === "watts") return r.watts != null ? `${r.watts} W` : "";
+  return "";
+}
+
+function TagCard({
+  workout,
+  detail,
+  detailLoading,
+  accessToken,
+}: {
+  workout: WorkoutSummary;
+  detail: Workout | null;
+  detailLoading: boolean;
+  accessToken: string;
+}) {
+  const [localDetail, setLocalDetail] = useState<Workout | null>(detail);
+  const [loading, setLoading] = useState(detailLoading);
+  const fetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    setLoading(true);
+    api.workouts
+      .get(accessToken, workout.id)
+      .then((w) => setLocalDetail(w))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [accessToken, workout.id]);
+
+  const result = localDetail?.results?.[0];
+  const movementName = result?.movement_name ?? null;
+  const resultValue = result ? formatResultValue(result) : null;
+
+  const dateStr = workout.performed_at.slice(0, 10);
+  const [y, mo, d] = dateStr.split("-").map(Number) as [number, number, number];
+  const dateLabel = new Date(y, mo - 1, d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  return (
+    <div
+      data-testid="tag-card"
+      className="rounded-lg border border-[#30363d] px-4 py-3 transition-colors hover:border-[#58a6ff]/20"
+    >
+      {loading ? (
+        <div className="flex items-center gap-2 font-mono text-xs text-[#8b949e]">
+          <span>🏷</span>
+          <span className="text-[#8b949e]">Loading…</span>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 font-mono text-sm min-w-0">
+              <span aria-hidden>🏷</span>
+              {movementName && (
+                <span className="text-[#e6edf3] truncate">{movementName}</span>
+              )}
+              {resultValue && (
+                <>
+                  <span className="text-[#8b949e]">·</span>
+                  <span className="text-[#e6edf3]">{resultValue}</span>
+                </>
+              )}
+              {workout.has_pr && (
+                <span
+                  className="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300"
+                  aria-label="Personal record"
+                >
+                  PR
+                </span>
+              )}
+            </div>
+            <span className="shrink-0 font-mono text-xs text-[#8b949e]">
+              {dateLabel}
+            </span>
+          </div>
+          {localDetail?.notes && (
+            <p className="mt-1 font-mono text-xs text-[#8b949e] pl-6">
+              {localDetail.notes}
+            </p>
+          )}
+        </>
+      )}
     </div>
   );
 }

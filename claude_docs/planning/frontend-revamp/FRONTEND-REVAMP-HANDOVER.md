@@ -17,7 +17,7 @@
 | Design doc accuracy review | ✅ Done | Each doc has `## Accuracy Review` section |
 | Design iteration tooling | ✅ Done | Playwright MCP, Chrome DevTools MCP, Unlighthouse |
 | CLAUDE.md design system | ✅ Done | Color palette, typography, spacing encoded |
-| Implementation | 🔄 In progress | F1–F7 merged; F8–F13 remaining; B2–B7 not started (see tracker) |
+| Implementation | 🔄 In progress | F1–F7, F13 merged; F8–F12 blocked on B2/B4/B5; B2–B7 not started (see tracker) |
 
 ---
 
@@ -122,7 +122,7 @@ All design docs live in this directory (`claude_docs/planning/frontend-revamp/`)
 | `feat/ui-onboarding` | 🔲 Not started | — | Blocked on B5 |
 | `feat/ui-profile` | 🔲 Not started | — | Blocked on B5 |
 | `feat/ui-gamification` | 🔲 Not started | — | Blocked on B2 |
-| `feat/ui-tag` | 🔲 Not started | — | Unblocked (B1 ✅, F2 ✅); B7 + F8 add history differentiation + Records entry point |
+| `feat/ui-tag` | ✅ Done | — | `/log/tag` page + FAB speed-dial + sidebar nav item + history TagCard + filter toggle. ui-iterate: MovementSearch design-system colors + w-full + min-h-[44px]; submit min-h-[48px]. B7 + F8 add history differentiation + Records entry point (stub-safe until those land). |
 | `feat/api-last-result` | ✅ Done | — | `LastResult` model + repo + router; 4 tests (auth, 404, recency, user-scope) |
 | `feat/api-pr-detection` | 🔲 Not started | — | |
 | `feat/api-movement-result-type` | 🔲 Not started | — | |
