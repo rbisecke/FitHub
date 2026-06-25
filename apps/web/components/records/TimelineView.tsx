@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { tooltipContentStyle } from "@/lib/chart-utils";
+import { ChartEmpty } from "@/components/ui/chart-empty";
 import type { PersonalRecord, E1RMPoint } from "@/lib/api";
 import type { PRCategory } from "@/lib/records/categorise";
 import { CATEGORY_LABEL, CATEGORY_ORDER } from "@/lib/records/categorise";
@@ -26,11 +27,7 @@ function TimelineMovementChart({
   points: E1RMPoint[];
 }) {
   if (points.length < 2) {
-    return (
-      <p className="text-xs font-mono text-[--muted] py-2">
-        Not enough data to display
-      </p>
-    );
+    return <ChartEmpty className="py-2" />;
   }
 
   const data = points.map((p) => ({

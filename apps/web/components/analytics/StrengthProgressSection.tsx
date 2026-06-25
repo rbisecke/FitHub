@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import { tooltipContentStyle } from "@/lib/chart-utils";
+import { ChartEmpty } from "@/components/ui/chart-empty";
 import type { PersonalRecord, Movement, E1RMPoint } from "@/lib/api";
 import {
   PeriodSelector,
@@ -256,11 +257,10 @@ export function StrengthProgressSection({
           </p>
         </div>
       ) : chartData.length < 2 ? (
-        <div className="h-52 flex items-center justify-center">
-          <p className="text-xs text-[--muted]">
-            Not enough data for this period. Try expanding the time range.
-          </p>
-        </div>
+        <ChartEmpty
+          className="h-52"
+          message="Not enough data for this period — try a wider time range"
+        />
       ) : (
         <div
           className="h-52 md:h-64 w-full"
