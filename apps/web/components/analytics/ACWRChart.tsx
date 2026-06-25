@@ -7,6 +7,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  ReferenceArea,
   ReferenceLine,
   ReferenceDot,
 } from "recharts";
@@ -86,15 +87,31 @@ export function ACWRChart({ series }: Props) {
           ]}
         />
         <Tooltip contentStyle={tooltipContentStyle} />
-        <ReferenceLine
-          y={0.8}
-          stroke="var(--chart-ref-lower)"
-          strokeDasharray="4 2"
+        {/* Sweet-spot band (0.8–1.3 = optimal training load) and danger zone
+            (≥1.5). The band reads at a glance where a bare line can't. */}
+        <ReferenceArea
+          y1={0.8}
+          y2={1.3}
+          fill="var(--green)"
+          fillOpacity={0.07}
+          ifOverflow="extendDomain"
+          label={{
+            value: "optimal",
+            position: "insideTopRight",
+            fill: "var(--chart-axis)",
+            fontSize: 9,
+          }}
         />
         <ReferenceLine
           y={1.5}
           stroke="var(--chart-ref-danger)"
           strokeDasharray="4 2"
+          label={{
+            value: "high risk",
+            position: "insideBottomRight",
+            fill: "var(--chart-ref-danger)",
+            fontSize: 9,
+          }}
         />
         <Area
           type="monotone"
