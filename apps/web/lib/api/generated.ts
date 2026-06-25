@@ -317,6 +317,41 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/profile": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Profile */
+    get: operations["get_profile_api_v1_profile_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Patch Profile */
+    patch: operations["patch_profile_api_v1_profile_patch"];
+    trace?: never;
+  };
+  "/api/v1/profile/stats": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Profile Stats */
+    get: operations["get_profile_stats_api_v1_profile_stats_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/workouts": {
     parameters: {
       query?: never;
@@ -696,7 +731,8 @@ export interface paths {
     /** List Training Partners */
     get: operations["list_training_partners_api_v1_training_partners_get"];
     put?: never;
-    post?: never;
+    /** Add Training Partner */
+    post: operations["add_training_partner_api_v1_training_partners_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -785,6 +821,11 @@ export interface components {
       guest_name?: string | null;
       /** Role */
       role?: string | null;
+    };
+    /** AddPartnerRequest */
+    AddPartnerRequest: {
+      /** Email */
+      email: string;
     };
     /** AdjustAdaptationRequest */
     AdjustAdaptationRequest: {
@@ -1431,6 +1472,17 @@ export interface components {
       /** Role */
       role?: string | null;
     };
+    /** PatchProfileRequest */
+    PatchProfileRequest: {
+      /** Frequency Target Days */
+      frequency_target_days?: number | null;
+      /** Graph Colour Mode */
+      graph_colour_mode?: string | null;
+      /** Weight Unit */
+      weight_unit?: string | null;
+      /** Checkin Enabled */
+      checkin_enabled?: boolean | null;
+    };
     /** PatchTeamSessionRequest */
     PatchTeamSessionRequest: {
       /** Name */
@@ -1612,6 +1664,17 @@ export interface components {
        * @default []
        */
       items: components["schemas"]["PlannedItemOut"][];
+    };
+    /** ProfileStats */
+    ProfileStats: {
+      /** Total Workouts */
+      total_workouts: number;
+      /** Total Prs */
+      total_prs: number;
+      /** Best Streak Weeks */
+      best_streak_weeks: number;
+      /** Movements Tracked */
+      movements_tracked: number;
     };
     /** ReadinessResponse */
     ReadinessResponse: {
@@ -1927,6 +1990,27 @@ export interface components {
       session_count: number;
       /** Most Common Format */
       most_common_format: string | null;
+    };
+    /** UserProfile */
+    UserProfile: {
+      /** Display Name */
+      display_name: string | null;
+      /** Email */
+      email: string;
+      /** Avatar Url */
+      avatar_url: string | null;
+      /** Timezone */
+      timezone: string;
+      /** First Workout Date */
+      first_workout_date: string | null;
+      /** Frequency Target Days */
+      frequency_target_days: number;
+      /** Graph Colour Mode */
+      graph_colour_mode: string;
+      /** Weight Unit */
+      weight_unit: string;
+      /** Checkin Enabled */
+      checkin_enabled: boolean;
     };
     /** ValidationError */
     ValidationError: {
@@ -2636,6 +2720,79 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_profile_api_v1_profile_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UserProfile"];
+        };
+      };
+    };
+  };
+  patch_profile_api_v1_profile_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PatchProfileRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UserProfile"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_profile_stats_api_v1_profile_stats_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProfileStats"];
         };
       };
     };
@@ -3589,6 +3746,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["TrainingPartner"][];
+        };
+      };
+    };
+  };
+  add_training_partner_api_v1_training_partners_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AddPartnerRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TrainingPartner"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

@@ -17,6 +17,8 @@ import type {
   LastResult,
   CoachSession,
   SessionMessagesResponse,
+  UserProfile,
+  ProfileStats,
 } from "./index";
 import type {
   PlanDetail,
@@ -138,6 +140,32 @@ export const api = {
   },
   trainingPartners: (token: string) =>
     apiFetch<TrainingPartner[]>("/api/v1/training-partners", token),
+  addTrainingPartner: (token: string, email: string) =>
+    apiFetch<TrainingPartner>("/api/v1/training-partners", token, {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  profile: {
+    get: (token: string) => apiFetch<UserProfile>("/api/v1/profile", token),
+    stats: (token: string) =>
+      apiFetch<ProfileStats>("/api/v1/profile/stats", token),
+    patch: (
+      token: string,
+      body: Partial<
+        Pick<
+          UserProfile,
+          | "frequency_target_days"
+          | "graph_colour_mode"
+          | "weight_unit"
+          | "checkin_enabled"
+        >
+      >,
+    ) =>
+      apiFetch<UserProfile>("/api/v1/profile", token, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+  },
   coach: {
     parseLog: (token: string, text: string) =>
       apiFetch<ParseLogResponse>("/api/v1/coach/parse-log", token, {
