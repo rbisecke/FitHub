@@ -65,6 +65,7 @@ class Movement(BaseModel):
     limb_style: LimbStyle | None
     implement: str | None
     default_result_types: list[str]
+    default_result_type: ResultType | None
     is_official: bool
     created_by: uuid.UUID | None
     created_at: datetime
@@ -85,6 +86,7 @@ class CreateMovementRequest(BaseModel):
     limb_style: LimbStyle | None = None
     implement: str | None = None
     default_result_types: list[str] = Field(default_factory=list)
+    default_result_type: ResultType | None = None
 
 
 class LastResult(BaseModel):

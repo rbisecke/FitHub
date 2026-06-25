@@ -2722,6 +2722,16 @@
             },
             "type": "array",
             "title": "Default Result Types"
+          },
+          "default_result_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResultType"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -3955,6 +3965,16 @@
             "type": "array",
             "title": "Default Result Types"
           },
+          "default_result_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResultType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "is_official": {
             "type": "boolean",
             "title": "Is Official"
@@ -3998,6 +4018,7 @@
           "limb_style",
           "implement",
           "default_result_types",
+          "default_result_type",
           "is_official",
           "created_by",
           "created_at",

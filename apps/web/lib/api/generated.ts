@@ -843,6 +843,7 @@ export interface components {
       implement?: string | null;
       /** Default Result Types */
       default_result_types?: string[];
+      default_result_type?: components["schemas"]["ResultType"] | null;
     };
     /** CreateParticipantRequest */
     CreateParticipantRequest: {
@@ -1199,6 +1200,7 @@ export interface components {
       implement: string | null;
       /** Default Result Types */
       default_result_types: string[];
+      default_result_type: components["schemas"]["ResultType"] | null;
       /** Is Official */
       is_official: boolean;
       /** Created By */
