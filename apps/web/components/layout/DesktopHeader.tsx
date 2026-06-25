@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { MessageSquare } from "lucide-react";
-import type { User } from "@supabase/supabase-js";
 import {
   Tooltip,
   TooltipContent,
@@ -11,11 +10,7 @@ import {
 } from "@/components/ui/tooltip";
 import { getPageMeta } from "./nav-config";
 
-interface Props {
-  user: User;
-}
-
-export function DesktopHeader({ user: _user }: Props) {
+export function DesktopHeader() {
   const pathname = usePathname();
   const { title, gitCommand } = getPageMeta(pathname);
 

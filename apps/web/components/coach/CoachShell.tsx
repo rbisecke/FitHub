@@ -28,18 +28,22 @@ export function CoachShell({
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const loadSessions = useCallback(() => {
-    setSessionsLoading(true);
+  // Silent refresh — called after session creation, no loading spinner
+  const refreshSessions = useCallback(() => {
     api.coach.sessions
       .list(token, { limit: 20 })
       .then(setSessions)
+      .catch(() => {});
+  }, [token]);
+
+  // Initial load — setState only inside async callbacks to satisfy lint rule
+  useEffect(() => {
+    api.coach.sessions
+      .list(token, { limit: 20 })
+      .then((data) => setSessions(data))
       .catch(() => {})
       .finally(() => setSessionsLoading(false));
   }, [token]);
-
-  useEffect(() => {
-    loadSessions();
-  }, [loadSessions]);
 
   function handleSelectSession(id: string) {
     setActiveSessionId(id);
@@ -54,7 +58,7 @@ export function CoachShell({
   function handleSessionCreated(id: string) {
     setActiveSessionId(id);
     router.replace(`/coach/${id}`, { scroll: false });
-    loadSessions();
+    refreshSessions();
   }
 
   return (

@@ -38,7 +38,8 @@ export function ChatPanel({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [historyLoading, setHistoryLoading] = useState(false);
+  // Initialize true when sessionId provided — component remounts on session change via key prop
+  const [historyLoading, setHistoryLoading] = useState(!!sessionId);
   const [showScrollPill, setShowScrollPill] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
@@ -58,14 +59,10 @@ export function ChatPanel({
   // Rehydrate messages when sessionId changes
   useEffect(() => {
     if (!sessionId) {
-      setMessages([]);
-      setHistoryLoading(false);
+      // ChatPanel remounts via key={sessionId ?? "new"}, so state is already reset
       onMessagesLoaded?.();
       return;
     }
-
-    setMessages([]);
-    setHistoryLoading(true);
 
     api.coach.sessions
       .messages(token, sessionId)
