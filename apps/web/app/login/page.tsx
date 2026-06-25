@@ -50,26 +50,26 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-8">
         {/* Wordmark */}
         <div className="space-y-1 text-center">
-          <p className="font-mono text-sm text-zinc-500">$ git commit --fit</p>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-50">
+          <p className="font-mono text-sm text-[--muted]">$ git commit --fit</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[--text]">
             FitHub
           </h1>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-[--muted-strong]">
             Training history for people who think in commits.
           </p>
         </div>
 
         {status === "sent" ? (
-          <div className="rounded-lg border border-zinc-600 bg-zinc-900 px-6 py-8 text-center space-y-3">
+          <div className="rounded-lg border border-[--border] bg-[--surface] px-6 py-8 text-center space-y-3">
             <p className="text-2xl">✓</p>
-            <p className="text-zinc-50 font-medium">Check your email</p>
-            <p className="text-sm text-zinc-400">
+            <p className="text-[--text] font-medium">Check your email</p>
+            <p className="text-sm text-[--muted-strong]">
               Magic link sent to{" "}
-              <span className="font-mono text-zinc-200">{email}</span>
+              <span className="font-mono text-[--text]">{email}</span>
             </p>
             <button
               onClick={() => setStatus("idle")}
-              className="mt-2 text-xs text-zinc-500 underline underline-offset-2 hover:text-zinc-300"
+              className="mt-2 text-xs text-[--muted] underline underline-offset-2 hover:text-[--text]"
             >
               Use a different email
             </button>
@@ -77,12 +77,12 @@ export default function LoginPage() {
         ) : (
           <form
             onSubmit={handleSubmit}
-            className="space-y-4 rounded-lg border border-zinc-800 bg-zinc-900 px-6 py-8"
+            className="space-y-4 rounded-lg border border-[--border] bg-[--surface] px-6 py-8"
           >
             <div className="space-y-1">
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-zinc-300"
+                className="block text-sm font-medium text-[--text]"
               >
                 Email
               </label>
@@ -93,12 +93,12 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                className="w-full rounded-md border border-[--input] bg-[--surface-2] px-3 py-2 text-sm text-[--text] placeholder:text-[--muted] focus:border-[--accent] focus:outline-none focus:ring-1 focus:ring-[--accent]"
               />
             </div>
 
             {status === "error" && (
-              <p className="text-sm text-red-400">{errorMsg}</p>
+              <p className="text-sm text-[--red]">{errorMsg}</p>
             )}
 
             <button
@@ -109,7 +109,7 @@ export default function LoginPage() {
               {status === "loading" ? "Sending…" : "Send magic link"}
             </button>
 
-            <p className="text-center text-xs text-zinc-600">
+            <p className="text-center text-xs text-[--muted]">
               Access by invitation only · Ask your host for an invite
             </p>
           </form>
