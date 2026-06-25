@@ -72,6 +72,10 @@ def upgrade() -> None:
     op.execute("""
         GRANT SELECT, INSERT ON public.coach_messages TO service_role
     """)
+    # SELECT to authenticated so pgTAP RLS tests can verify isolation.
+    # RLS policies enforce per-user scoping; the grant alone gives no cross-user access.
+    op.execute("GRANT SELECT ON public.coach_sessions TO authenticated")
+    op.execute("GRANT SELECT ON public.coach_messages TO authenticated")
 
     # Backfill existing sessions from coach_interactions
     op.execute("""
