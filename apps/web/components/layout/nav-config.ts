@@ -58,6 +58,7 @@ export const PAGE_META: Record<string, { title: string; gitCommand: string }> =
     "/history": { title: "History", gitCommand: "$ git log" },
     "/analytics": { title: "Progress", gitCommand: "$ git diff" },
     "/log/new": { title: "Log Workout", gitCommand: "$ git commit" },
+    "/log/tag": { title: "Tag Milestone", gitCommand: "$ git tag" },
     "/log": { title: "Log Workout", gitCommand: "$ git commit" },
     "/plans": { title: "Plans", gitCommand: "$ git branch" },
     "/coach": { title: "Coach", gitCommand: "$ git coach" },

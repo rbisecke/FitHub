@@ -17,13 +17,13 @@ import { api } from "@/lib/api/client";
 import type { Movement } from "@/lib/api";
 
 const MODALITY_COLOUR: Record<string, string> = {
-  strength: "text-blue-400",
-  gymnastics: "text-orange-400",
-  mono_structural: "text-green-400",
-  weightlifting: "text-yellow-400",
-  plyometric: "text-red-400",
-  carry: "text-amber-400",
-  strongman: "text-rose-400",
+  strength: "text-[#58a6ff]",
+  gymnastics: "text-[#bc8cff]",
+  mono_structural: "text-[#3fb950]",
+  weightlifting: "text-[#d29922]",
+  plyometric: "text-[#ff7b72]",
+  carry: "text-[#d29922]",
+  strongman: "text-[#ff7b72]",
 };
 
 interface MovementSearchProps {
@@ -68,21 +68,21 @@ export function MovementSearch({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        className="inline-flex min-w-40 items-center justify-start rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-left text-sm text-zinc-300 hover:border-zinc-600 hover:bg-zinc-700 transition-colors"
-        aria-label="Search movement"
+        className="inline-flex w-full min-h-[44px] items-center justify-start rounded-lg border border-[#30363d] bg-[#161b22] px-3 text-left text-sm text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3] transition-colors"
+        aria-label="Search movements"
       >
         {displayName}
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-0 bg-zinc-900 border-zinc-700">
-        <Command className="bg-zinc-900">
+      <PopoverContent className="w-72 p-0 bg-[#161b22] border-[#30363d]">
+        <Command className="bg-[#161b22]">
           <CommandInput
             placeholder="Search movements…"
             value={query}
             onValueChange={setQuery}
-            className="text-zinc-200 placeholder:text-zinc-500"
+            className="text-[#e6edf3] placeholder:text-[#8b949e]"
           />
           <CommandList>
-            <CommandEmpty className="py-4 text-center text-sm text-zinc-500">
+            <CommandEmpty className="py-4 text-center text-sm text-[#8b949e]">
               No movements found.
             </CommandEmpty>
             {results.map((m) => (
@@ -95,12 +95,12 @@ export function MovementSearch({
                   setOpen(false);
                   setQuery("");
                 }}
-                className="flex items-center justify-between px-3 py-2 text-zinc-200 data-[selected=true]:bg-zinc-800"
+                className="flex items-center justify-between px-3 py-2 text-[#e6edf3] data-[selected=true]:bg-[#21262d]"
               >
                 <span>{m.name}</span>
                 <span
                   className={`text-xs ${
-                    MODALITY_COLOUR[m.modality] ?? "text-zinc-500"
+                    MODALITY_COLOUR[m.modality] ?? "text-[#8b949e]"
                   }`}
                 >
                   {m.modality}

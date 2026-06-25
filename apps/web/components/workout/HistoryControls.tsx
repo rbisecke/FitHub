@@ -18,6 +18,7 @@ export interface HistoryFilters {
   partnerFilter: "all" | "solo" | "partner";
   dateFrom: string | null;
   dateTo: string | null;
+  tagsFilter: "all" | "tags-only" | "no-tags";
 }
 
 export const DEFAULT_FILTERS: HistoryFilters = {
@@ -25,6 +26,7 @@ export const DEFAULT_FILTERS: HistoryFilters = {
   partnerFilter: "all",
   dateFrom: null,
   dateTo: null,
+  tagsFilter: "all",
 };
 
 export function isFilterActive(filters: HistoryFilters): boolean {
@@ -32,7 +34,8 @@ export function isFilterActive(filters: HistoryFilters): boolean {
     filters.sessionType !== null ||
     filters.partnerFilter !== "all" ||
     filters.dateFrom !== null ||
-    filters.dateTo !== null
+    filters.dateTo !== null ||
+    filters.tagsFilter !== "all"
   );
 }
 
@@ -42,6 +45,7 @@ function activeFilterCount(filters: HistoryFilters): number {
     filters.partnerFilter !== "all",
     filters.dateFrom !== null,
     filters.dateTo !== null,
+    filters.tagsFilter !== "all",
   ].filter(Boolean).length;
 }
 
@@ -169,6 +173,35 @@ export function HistoryControls({
                 }`}
               >
                 {v}
+              </button>
+            ))}
+          </div>
+
+          <div
+            role="group"
+            aria-label="Filter by tags"
+            className="flex rounded border border-[#30363d] overflow-hidden"
+          >
+            {(
+              [
+                { value: "all", label: "all" },
+                { value: "tags-only", label: "tags" },
+                { value: "no-tags", label: "commits" },
+              ] as const
+            ).map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() =>
+                  onFiltersChange({ ...filters, tagsFilter: value })
+                }
+                aria-pressed={filters.tagsFilter === value}
+                className={`px-3 py-1 text-xs font-mono transition-colors ${
+                  filters.tagsFilter === value
+                    ? "bg-[#21262d] text-[#e6edf3]"
+                    : "text-[#8b949e] hover:text-[#e6edf3]"
+                }`}
+              >
+                {label}
               </button>
             ))}
           </div>
