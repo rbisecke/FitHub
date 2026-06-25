@@ -7,6 +7,8 @@ export interface StreakResult {
   frequencyTarget: number;
   atRisk: boolean;
   isComeback: boolean;
+  /** The most recent week was missed but forgiven ("never miss twice") — recovery state. */
+  graceWeekUsed: boolean;
 }
 
 function getISOWeekKey(date: Date): string {
@@ -73,6 +75,7 @@ export function streakCalc(
       frequencyTarget,
       atRisk: false,
       isComeback: false,
+      graceWeekUsed: false,
     };
   }
 
@@ -95,14 +98,30 @@ export function streakCalc(
   const currentWeekKey = getISOWeekKey(now);
   const thisWeekCount = daysByWeek.get(currentWeekKey)?.size ?? 0;
 
-  // Walk backwards from previous week (current partial week excluded from streak)
+  // Walk backwards from previous week (current partial week excluded from streak).
+  // "Never miss twice": a single missed week is forgiven (bridged) as long as the
+  // week before it was completed; two consecutive misses end the streak.
   const previousWeekStart = addDays(isoWeekStart(currentWeekKey), -7);
   const previousWeekKey = getISOWeekKey(previousWeekStart);
+  const prevWeekOf = (key: string) =>
+    getISOWeekKey(addDays(isoWeekStart(key), -7));
+
   let streak = 0;
-  let weekCursor = previousWeekKey;
-  for (let i = 0; i < 1000 && completedWeeks.has(weekCursor); i++) {
-    streak++;
-    weekCursor = getISOWeekKey(addDays(isoWeekStart(weekCursor), -7));
+  let graceWeekUsed = false;
+  let cursor = previousWeekKey;
+  let firstStep = true;
+  for (let i = 0; i < 1000; i++) {
+    if (completedWeeks.has(cursor)) {
+      streak++;
+      cursor = prevWeekOf(cursor);
+    } else if (completedWeeks.has(prevWeekOf(cursor))) {
+      // Single-week gap — forgive it and bridge to the completed week before it.
+      if (firstStep) graceWeekUsed = true; // the most recent week is the forgiven one
+      cursor = prevWeekOf(cursor);
+    } else {
+      break; // two consecutive misses → streak ends
+    }
+    firstStep = false;
   }
 
   const personalBest = longestConsecutiveRun(completedWeeks);
@@ -124,5 +143,6 @@ export function streakCalc(
     frequencyTarget,
     atRisk,
     isComeback,
+    graceWeekUsed,
   };
 }
