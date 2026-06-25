@@ -1,6 +1,7 @@
 "use client";
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
+import { useReducedMotion } from "motion/react";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { tooltipContentStyle } from "@/lib/chart-utils";
 import type { WeeklyVolume } from "@/lib/api";
@@ -25,6 +26,7 @@ function barColor(st: string): string {
 }
 
 export function VolumeChart({ weeks }: Props) {
+  const prefersReducedMotion = useReducedMotion();
   const sessionTypes = [
     ...new Set(weeks.map((w) => w.session_type ?? "other")),
   ];
@@ -44,7 +46,11 @@ export function VolumeChart({ weeks }: Props) {
       data-testid="volume-chart"
       className="h-52 w-full min-w-0"
     >
-      <BarChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+      <BarChart
+        accessibilityLayer
+        data={data}
+        margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
+      >
         <XAxis
           dataKey="week"
           tick={{ fill: "var(--chart-axis)", fontSize: 10 }}
@@ -65,6 +71,7 @@ export function VolumeChart({ weeks }: Props) {
             stackId="a"
             fill={barColor(st)}
             minPointSize={3}
+            isAnimationActive={!prefersReducedMotion}
           />
         ))}
       </BarChart>

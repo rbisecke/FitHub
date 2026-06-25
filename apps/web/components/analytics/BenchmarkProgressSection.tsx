@@ -43,6 +43,7 @@ function BenchmarkSparkline({ attempts }: { attempts: BenchmarkAttempt[] }) {
             stroke="var(--purple)"
             dot={false}
             strokeWidth={2}
+            isAnimationActive={false}
           />
         </LineChart>
       </ResponsiveContainer>

@@ -73,6 +73,7 @@ function TimelineMovementChart({
             dot={{ r: 3, fill: "var(--purple)", strokeWidth: 0 }}
             activeDot={{ r: 4 }}
             strokeWidth={2}
+            isAnimationActive={false}
           />
         </LineChart>
       </ResponsiveContainer>

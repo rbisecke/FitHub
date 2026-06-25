@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
+import { useReducedMotion } from "motion/react";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { tooltipContentStyle } from "@/lib/chart-utils";
 import type { E1RMPoint } from "@/lib/api";
@@ -19,6 +20,7 @@ const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export function MovementTrendChart({ movementId, token }: Props) {
   const [points, setPoints] = useState<E1RMPoint[] | null>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     fetch(`${BASE}/api/v1/analytics/movement-trend/${movementId}`, {
@@ -50,6 +52,7 @@ export function MovementTrendChart({ movementId, token }: Props) {
       className="h-20 w-full mt-2 min-w-0"
     >
       <LineChart
+        accessibilityLayer
         data={data}
         margin={{ top: 4, right: 4, left: -30, bottom: 0 }}
       >
@@ -73,6 +76,7 @@ export function MovementTrendChart({ movementId, token }: Props) {
           stroke="var(--color-e1rm)"
           dot={false}
           strokeWidth={1.5}
+          isAnimationActive={!prefersReducedMotion}
         />
       </LineChart>
     </ChartContainer>

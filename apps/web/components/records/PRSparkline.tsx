@@ -64,6 +64,7 @@ export function PRSparkline({ points }: Props) {
             dot={{ r: 2, fill: "var(--purple)", strokeWidth: 0 }}
             activeDot={{ r: 3 }}
             strokeWidth={1.5}
+            isAnimationActive={false}
           />
         </LineChart>
       </ResponsiveContainer>
