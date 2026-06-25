@@ -1,6 +1,12 @@
 import type { ReadinessResponse } from "@/lib/api";
 
-export function readinessSentence(data: ReadinessResponse | null): string {
+export function readinessSentence(
+  data: ReadinessResponse | null,
+  isComeback = false,
+): string {
+  if (isComeback) {
+    return "Welcome back — start steady and rebuild momentum.";
+  }
   if (!data) {
     return "Ready to train? Log a session and your readiness will appear here.";
   }

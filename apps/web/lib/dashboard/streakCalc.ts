@@ -107,11 +107,11 @@ export function streakCalc(
 
   const personalBest = longestConsecutiveRun(completedWeeks);
 
-  const dayOfWeek = now.getDay(); // 0=Sun, 6=Sat
+  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon … 6=Sat
+  // At-risk from Thursday onwards: Sun(0), Thu(4), Fri(5), Sat(6)
+  const remainingDays = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
   const atRisk =
-    streak > 0 &&
-    thisWeekCount < frequencyTarget &&
-    (dayOfWeek === 0 || dayOfWeek === 6);
+    streak > 0 && thisWeekCount < frequencyTarget && remainingDays <= 3;
 
   const mostRecent = new Date(workouts[0]!.performed_at);
   const daysSinceLast = (now.getTime() - mostRecent.getTime()) / 86_400_000;

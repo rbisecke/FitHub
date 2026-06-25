@@ -132,38 +132,49 @@ INSERT INTO results (user_id, workout_id, movement_id, result_type, time_s, is_p
 VALUES (uid, wid, NULL, 'time', 228, true);
 
 -- ── 4. Filler metcon + skill workouts to build CTL curve ─────────────────────
+-- Dates follow a realistic 3–5×/week pattern: back-to-back clusters (Mon/Tue,
+-- Wed/Thu, Fri/Sat) with variable rest gaps. Never use a mechanical
+-- every-other-day schedule — that creates a checkerboard in the heatmap.
 INSERT INTO workouts (user_id, performed_at, short_hash, session_type, workout_format, perceived_load_au, volume_load_kg)
 VALUES
--- March
+-- Week 1 (Mar 26–29): Thu[BSQ] + Sat = 2 sessions
 (uid, '2026-03-28 07:00:00+00', 'c4d5e6f7', 'metcon', 'for_time', 280, 0),
+-- Week 2 (Mar 30–Apr 5): Mon + Wed + Fri[BSQ] = 3 sessions
 (uid, '2026-03-30 07:00:00+00', 'd5e6f7a8', 'strength', 'strength', 300, 7800),
--- April
 (uid, '2026-04-01 07:00:00+00', 'e6f7a8b9', 'metcon', 'amrap', 260, 0),
-(uid, '2026-04-05 07:00:00+00', 'f7a8b9c0', 'skill', 'emom', 180, 0),
+-- Week 3 (Apr 6–12): Mon/Tue cluster + Thu + Sat = 4 sessions
+(uid, '2026-04-06 07:00:00+00', 'f7a8b9c0', 'skill', 'emom', 180, 0),
 (uid, '2026-04-07 07:00:00+00', 'a8b9c0d1', 'metcon', 'for_time', 290, 0),
 (uid, '2026-04-09 07:00:00+00', 'b9c0d1e2', 'strength', 'strength', 340, 9000),
 (uid, '2026-04-11 07:00:00+00', 'c0d1e2f3', 'metcon', 'amrap', 250, 0),
-(uid, '2026-04-13 07:00:00+00', 'd1e2f3a4', 'skill', 'emom', 190, 0),
+-- Week 4 (Apr 13–19): Mon/Tue cluster + Fri[BSQ] + Sat = 4 sessions
+(uid, '2026-04-14 07:00:00+00', 'd1e2f3a4', 'skill', 'emom', 190, 0),
 (uid, '2026-04-15 07:00:00+00', 'e2f3a4b5', 'strength', 'strength', 330, 8800),
-(uid, '2026-04-19 07:00:00+00', 'f3a4b5c6', 'metcon', 'for_time', 270, 0),
+(uid, '2026-04-18 07:00:00+00', 'f3a4b5c6', 'metcon', 'for_time', 270, 0),
+-- Week 5 (Apr 20–26): Tue + Thu + Sat[BSQ] = 3 sessions
 (uid, '2026-04-21 07:00:00+00', 'a4b5c6d7', 'strength', 'strength', 350, 9200),
 (uid, '2026-04-23 07:00:00+00', 'b5c6d7e8', 'metcon', 'amrap', 240, 0),
+-- Week 6 (Apr 27–May 3): Mon/Tue cluster + Fri[Fran] + Sun[BSQ] = 4 sessions
 (uid, '2026-04-27 07:00:00+00', 'c6d7e8f9', 'skill', 'emom', 170, 0),
-(uid, '2026-04-29 07:00:00+00', 'd7e8f9a0', 'strength', 'strength', 370, 9800),
--- May
+(uid, '2026-04-28 07:00:00+00', 'd7e8f9a0', 'strength', 'strength', 370, 9800),
+-- Week 7 (May 4–10): Tue + Thu + Sat = 3 sessions
 (uid, '2026-05-05 07:00:00+00', 'e8f9a0b1', 'metcon', 'for_time', 280, 0),
 (uid, '2026-05-07 07:00:00+00', 'f9a0b1c2', 'strength', 'strength', 360, 9500),
 (uid, '2026-05-09 07:00:00+00', 'a0b1c2d3', 'skill', 'emom', 200, 0),
+-- Week 8 (May 11–17): Mon[BSQ] + Wed/Thu cluster + Sun = 4 sessions
 (uid, '2026-05-13 07:00:00+00', 'b1c2d3e4', 'metcon', 'amrap', 270, 0),
-(uid, '2026-05-15 07:00:00+00', 'c2d3e4f5', 'strength', 'strength', 380, 10000),
+(uid, '2026-05-14 07:00:00+00', 'c2d3e4f5', 'strength', 'strength', 380, 10000),
 (uid, '2026-05-17 07:00:00+00', 'd3e4f5a6', 'metcon', 'for_time', 260, 0),
-(uid, '2026-05-21 07:00:00+00', 'e4f5a6b7', 'skill', 'emom', 190, 0),
+-- Week 9 (May 18–24): Tue[BSQ] + Wed cluster + Sat[Fran] = 3 sessions
+(uid, '2026-05-20 07:00:00+00', 'e4f5a6b7', 'skill', 'emom', 190, 0),
+-- Week 10 (May 25–31): Mon + Wed[BSQ] + Fri/Sat cluster = 4 sessions
 (uid, '2026-05-25 07:00:00+00', 'f5a6b7c8', 'strength', 'strength', 400, 10500),
 (uid, '2026-05-29 07:00:00+00', 'a6b7c8d9', 'metcon', 'amrap', 290, 0),
-(uid, '2026-05-31 07:00:00+00', 'b7c8d9e0', 'strength', 'strength', 390, 10200),
--- June (before existing data at Jun 13)
-(uid, '2026-06-02 07:00:00+00', 'c8d9e0f1', 'metcon', 'for_time', 275, 0),
-(uid, '2026-06-06 07:00:00+00', 'd9e0f1a2', 'skill', 'emom', 195, 0),
+(uid, '2026-05-30 07:00:00+00', 'b7c8d9e0', 'strength', 'strength', 390, 10200),
+-- Week 11 (Jun 1–7): Mon/Tue cluster + Thu[BSQ] = 3 sessions
+(uid, '2026-06-01 07:00:00+00', 'c8d9e0f1', 'metcon', 'for_time', 275, 0),
+(uid, '2026-06-02 07:00:00+00', 'd9e0f1a2', 'skill', 'emom', 195, 0),
+-- Week 12 (Jun 8–13): Mon + Wed[Fran] + Fri[BSQ] = 3 sessions
 (uid, '2026-06-08 07:00:00+00', 'e0f1a2b3', 'strength', 'strength', 420, 11000);
 
 RAISE NOTICE 'Seed complete: added 40+ workouts including Back Squat progression, Fran benchmarks';

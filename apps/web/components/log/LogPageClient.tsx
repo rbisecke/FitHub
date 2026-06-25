@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api/client";
 import type { WorkoutSummary, SessionType, WorkoutFormat } from "@/lib/api";
+import { toasts } from "@/lib/toast";
+import { fireInitialCommitToast } from "@/lib/pr-celebrations";
 import { logFormSchema, type LogFormValues } from "./schema";
 import { MovementRow } from "./MovementRow";
 import { AddDetailsCollapsible } from "./AddDetailsCollapsible";
@@ -40,12 +42,14 @@ interface LogPageClientProps {
   accessToken: string;
   recentWorkouts: WorkoutSummary[];
   prefillValues?: Partial<LogFormValues>;
+  isFirstWorkout?: boolean;
 }
 
 export function LogPageClient({
   accessToken,
   recentWorkouts,
   prefillValues,
+  isFirstWorkout = false,
 }: LogPageClientProps) {
   const router = useRouter();
   const [nlText, setNlText] = useState("");
@@ -182,7 +186,7 @@ export function LogPageClient({
         pace_distance_m: 500,
       }));
 
-      await api.workouts.create(accessToken, {
+      const workout = await api.workouts.create(accessToken, {
         performed_at: toISOLocal(values.performed_at),
         title: values.title || undefined,
         session_type: (values.session_type as SessionType) || undefined,
@@ -198,7 +202,18 @@ export function LogPageClient({
         results,
       });
 
-      router.push("/history");
+      const hasPR = workout.results?.some((r) => r.is_pr) ?? false;
+
+      if (isFirstWorkout) {
+        fireInitialCommitToast();
+        router.push("/history");
+      } else if (hasPR) {
+        // Dashboard will fire the PR toast + animation via ?pr=1
+        router.push("/dashboard?pr=1");
+      } else {
+        toasts.workoutLogged(values.title || undefined);
+        router.push("/history");
+      }
     } catch {
       setSubmitError("Failed to commit workout. Please try again.");
     }

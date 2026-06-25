@@ -38,7 +38,17 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <TooltipProvider>{children}</TooltipProvider>
-        <Toaster />
+        <Toaster
+          theme="dark"
+          toastOptions={{
+            style: {
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              color: "var(--text)",
+              fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
+            },
+          }}
+        />
       </body>
     </html>
   );

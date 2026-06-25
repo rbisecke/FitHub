@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/layout/AppShell";
+import { AppInit } from "@/components/layout/AppInit";
 
 export default async function AppLayout({
   children,
@@ -22,6 +23,7 @@ export default async function AppLayout({
 
   return (
     <AppShell user={user} defaultSidebarOpen={defaultSidebarOpen}>
+      <AppInit />
       {children}
     </AppShell>
   );

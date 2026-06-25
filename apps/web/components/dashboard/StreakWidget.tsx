@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import * as motion from "motion/react-client";
 import { useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { checkAndFireMilestoneToast } from "@/lib/pr-celebrations";
 import type { StreakResult } from "@/lib/dashboard/streakCalc";
 
 interface StreakWidgetProps {
@@ -13,12 +15,18 @@ export function StreakWidget({ streak }: StreakWidgetProps) {
   const prefersReducedMotion = useReducedMotion();
   const { currentStreak, personalBest, atRisk, isComeback } = streak;
 
+  useEffect(() => {
+    checkAndFireMilestoneToast(currentStreak);
+  }, [currentStreak]);
+
   const borderClass = atRisk ? "border-[--amber]" : "border-[--border]";
+  const bgClass = atRisk ? "bg-amber-950/20" : "bg-[--surface]";
+  const numberColor = atRisk ? "text-[--amber]" : "text-[--text]";
 
   return (
     <motion.div
       aria-label={`Current streak: ${currentStreak} weeks. Personal best: ${personalBest} weeks.`}
-      className={cn("rounded-lg border bg-[--surface] p-4", borderClass)}
+      className={cn("rounded-lg border p-4", bgClass, borderClass)}
       initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
       animate={
         atRisk && !prefersReducedMotion
@@ -45,7 +53,7 @@ export function StreakWidget({ streak }: StreakWidgetProps) {
         <>
           <p className="text-sm text-[--text]">Back in the repo.</p>
           <p className="font-mono text-xs text-[--muted] mt-1">
-            Best: {personalBest} {personalBest === 1 ? "week" : "weeks"}
+            best: {personalBest} {personalBest === 1 ? "week" : "weeks"}
           </p>
         </>
       ) : currentStreak === 0 ? (
@@ -56,25 +64,26 @@ export function StreakWidget({ streak }: StreakWidgetProps) {
       ) : (
         <>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold font-mono text-[--accent]">
+            <span className={`text-4xl font-bold font-mono ${numberColor}`}>
               {currentStreak}
             </span>
             <span className="text-sm text-[--muted]">
-              {currentStreak === 1 ? "week" : "weeks"}
+              {currentStreak === 1 ? "week committed" : "weeks committed"}
             </span>
           </div>
           <p className="font-mono text-xs text-[--muted] mt-1">
-            PB: {personalBest} {personalBest === 1 ? "week" : "weeks"}
+            best: {personalBest} {personalBest === 1 ? "week" : "weeks"}
           </p>
-          {atRisk && (
-            <p className="text-xs text-[--amber] mt-2">
-              {streak.frequencyTarget - streak.thisWeekCount} more session
-              {streak.frequencyTarget - streak.thisWeekCount !== 1
-                ? "s"
-                : ""}{" "}
-              to keep it going
-            </p>
-          )}
+          <p
+            aria-live="polite"
+            className="text-xs text-[--amber] mt-2 min-h-[1rem]"
+          >
+            {atRisk
+              ? `${streak.frequencyTarget - streak.thisWeekCount} more session${
+                  streak.frequencyTarget - streak.thisWeekCount !== 1 ? "s" : ""
+                } to keep it going`
+              : ""}
+          </p>
         </>
       )}
     </motion.div>
