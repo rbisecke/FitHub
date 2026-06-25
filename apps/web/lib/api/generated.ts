@@ -1407,6 +1407,16 @@ export interface components {
       achieved_at: string;
       /** Workout Id */
       workout_id: string;
+      /** Load Kg */
+      load_kg?: number | null;
+      /** Reps */
+      reps?: number | null;
+      /** Time S */
+      time_s?: number | null;
+      /** Prev Best 1Rm Kg */
+      prev_best_1rm_kg?: number | null;
+      /** Delta Kg */
+      delta_kg?: number | null;
     };
     /** PlanDetail */
     PlanDetail: {

@@ -67,10 +67,24 @@ async def get_personal_records(
             """
             SELECT DISTINCT ON (r.movement_id)
                 r.movement_id::text,
-                m.name AS movement_name,
+                m.name                    AS movement_name,
                 r.estimated_1rm_kg::float AS best_1rm_kg,
                 w.performed_at::date      AS achieved_at,
-                w.id::text                AS workout_id
+                w.id::text                AS workout_id,
+                r.load_kg::float          AS load_kg,
+                r.reps,
+                r.time_s,
+                (
+                    SELECT r2.estimated_1rm_kg::float
+                    FROM   public.results r2
+                    JOIN   public.workouts w2 ON r2.workout_id = w2.id
+                    WHERE  w2.user_id           = %s
+                      AND  r2.movement_id       = r.movement_id
+                      AND  r2.estimated_1rm_kg IS NOT NULL
+                      AND  r2.id              != r.id
+                    ORDER  BY r2.estimated_1rm_kg DESC
+                    LIMIT  1
+                )                         AS prev_best_1rm_kg
             FROM results r
             JOIN workouts  w ON r.workout_id  = w.id
             JOIN movements m ON r.movement_id = m.id
@@ -78,9 +92,15 @@ async def get_personal_records(
               AND r.estimated_1rm_kg IS NOT NULL
             ORDER BY r.movement_id, r.estimated_1rm_kg DESC
             """,
-            (user_id,),
+            (user_id, user_id),
         )
-        return await cur.fetchall()
+        rows = await cur.fetchall()
+
+    for row in rows:
+        prev = row.get("prev_best_1rm_kg")
+        row["delta_kg"] = (row["best_1rm_kg"] - prev) if prev is not None else None
+
+    return rows
 
 
 async def get_movement_trend(

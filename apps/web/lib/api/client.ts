@@ -5,6 +5,7 @@ import type {
   CreateWorkoutBody,
   LoadModelResponse,
   PersonalRecord,
+  E1RMPoint,
   VolumeTrendResponse,
   ReadinessResponse,
   TrainingPartner,
@@ -113,6 +114,11 @@ export const api = {
       apiFetch<LoadModelResponse>(`/api/v1/analytics/load?days=${days}`, token),
     personalRecords: (token: string) =>
       apiFetch<PersonalRecord[]>("/api/v1/analytics/personal-records", token),
+    movementTrend: (token: string, movementId: string) =>
+      apiFetch<E1RMPoint[]>(
+        `/api/v1/analytics/movement-trend/${movementId}`,
+        token,
+      ),
     volumeTrend: (token: string, weeks = 12) =>
       apiFetch<VolumeTrendResponse>(
         `/api/v1/analytics/volume-trend?weeks=${weeks}`,

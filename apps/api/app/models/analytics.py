@@ -29,6 +29,11 @@ class PersonalRecord(BaseModel):
     best_1rm_kg: float
     achieved_at: date
     workout_id: str
+    load_kg: float | None = None
+    reps: int | None = None
+    time_s: int | None = None
+    prev_best_1rm_kg: float | None = None
+    delta_kg: float | None = None
 
 
 class E1RMPoint(BaseModel):
