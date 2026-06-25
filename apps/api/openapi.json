@@ -213,6 +213,82 @@
         ]
       }
     },
+    "/api/v1/analytics/benchmarks": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Benchmarks",
+        "operationId": "benchmarks_api_v1_analytics_benchmarks_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/analytics/training-balance": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Training Balance",
+        "operationId": "training_balance_api_v1_analytics_training_balance_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 7,
+              "default": 28,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingBalanceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/coach/parse-log": {
       "post": {
         "tags": [
@@ -347,6 +423,181 @@
                 "schema": {
                   "$ref": "#/components/schemas/ChatResponse"
                 }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/coach/sessions": {
+      "get": {
+        "tags": [
+          "coach"
+        ],
+        "summary": "List Sessions",
+        "operationId": "list_sessions_api_v1_coach_sessions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "before_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CoachSession"
+                  },
+                  "title": "Response List Sessions Api V1 Coach Sessions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/coach/sessions/{session_id}/messages": {
+      "get": {
+        "tags": [
+          "coach"
+        ],
+        "summary": "Get Session Messages",
+        "operationId": "get_session_messages_api_v1_coach_sessions__session_id__messages_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionMessagesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/coach/chat/stream": {
+      "post": {
+        "tags": [
+          "coach"
+        ],
+        "summary": "Chat Stream",
+        "operationId": "chat_stream_api_v1_coach_chat_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatStreamRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           },
@@ -597,6 +848,150 @@
         }
       }
     },
+    "/api/v1/movements/{movement_id}/last-result": {
+      "get": {
+        "tags": [
+          "movements"
+        ],
+        "summary": "Get Last Result",
+        "operationId": "get_last_result_api_v1_movements__movement_id__last_result_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "movement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Movement Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LastResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profile": {
+      "get": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Get Profile",
+        "operationId": "get_profile_api_v1_profile_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Patch Profile",
+        "operationId": "patch_profile_api_v1_profile_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/profile/stats": {
+      "get": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Get Profile Stats",
+        "operationId": "get_profile_stats_api_v1_profile_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileStats"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/workouts": {
       "get": {
         "tags": [
@@ -706,6 +1101,53 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/workouts/parse-nl": {
+      "post": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "Parse Workout Nl",
+        "description": "Minimal NL workout parser \u2014 extracts title from free-form text.",
+        "operationId": "parse_workout_nl_api_v1_workouts_parse_nl_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParseNLRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseNLResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v1/workouts/{workout_id}": {
@@ -2103,6 +2545,50 @@
             "HTTPBearer": []
           }
         ]
+      },
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Add Training Partner",
+        "operationId": "add_training_partner_api_v1_training_partners_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPartnerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingPartner"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/health": {
@@ -2306,6 +2792,19 @@
         "type": "object",
         "title": "AddParticipantRequest"
       },
+      "AddPartnerRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "AddPartnerRequest"
+      },
       "AdjustAdaptationRequest": {
         "properties": {
           "feedback": {
@@ -2320,6 +2819,77 @@
           "feedback"
         ],
         "title": "AdjustAdaptationRequest"
+      },
+      "BenchmarkAttempt": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "result_display": {
+            "type": "string",
+            "title": "Result Display"
+          },
+          "result_seconds": {
+            "type": "integer",
+            "title": "Result Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "result_display",
+          "result_seconds"
+        ],
+        "title": "BenchmarkAttempt"
+      },
+      "BenchmarkEntry": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/BenchmarkAttempt"
+            },
+            "type": "array",
+            "title": "Attempts"
+          },
+          "pr_display": {
+            "type": "string",
+            "title": "Pr Display"
+          },
+          "improvement_display": {
+            "type": "string",
+            "title": "Improvement Display"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "attempts",
+          "pr_display",
+          "improvement_display"
+        ],
+        "title": "BenchmarkEntry"
+      },
+      "BenchmarkResponse": {
+        "properties": {
+          "benchmarks": {
+            "items": {
+              "$ref": "#/components/schemas/BenchmarkEntry"
+            },
+            "type": "array",
+            "title": "Benchmarks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "benchmarks"
+        ],
+        "title": "BenchmarkResponse"
       },
       "ChatRequest": {
         "properties": {
@@ -2385,6 +2955,33 @@
         ],
         "title": "ChatResponse"
       },
+      "ChatStreamRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Question"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "ChatStreamRequest"
+      },
       "Citation": {
         "properties": {
           "title": {
@@ -2407,6 +3004,31 @@
           "score"
         ],
         "title": "Citation"
+      },
+      "CoachSession": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "created_at"
+        ],
+        "title": "CoachSession"
       },
       "ConnectResponse": {
         "properties": {
@@ -2577,6 +3199,16 @@
             },
             "type": "array",
             "title": "Default Result Types"
+          },
+          "default_result_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResultType"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -3176,6 +3808,11 @@
             ],
             "title": "Duration S"
           },
+          "is_tag": {
+            "type": "boolean",
+            "title": "Is Tag",
+            "default": false
+          },
           "results": {
             "items": {
               "$ref": "#/components/schemas/CreateResultRequest"
@@ -3452,6 +4089,122 @@
         ],
         "title": "InjuryOut"
       },
+      "LastResult": {
+        "properties": {
+          "result_type": {
+            "$ref": "#/components/schemas/ResultType"
+          },
+          "load_kg": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Kg"
+          },
+          "reps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reps"
+          },
+          "time_s": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time S"
+          },
+          "distance_m": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance M"
+          },
+          "rounds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rounds"
+          },
+          "partial_reps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partial Reps"
+          },
+          "calories": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calories"
+          },
+          "watts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Watts"
+          },
+          "performed_at": {
+            "type": "string",
+            "format": "date",
+            "title": "Performed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "result_type",
+          "load_kg",
+          "reps",
+          "time_s",
+          "distance_m",
+          "rounds",
+          "partial_reps",
+          "calories",
+          "watts",
+          "performed_at"
+        ],
+        "title": "LastResult"
+      },
       "LimbStyle": {
         "type": "string",
         "enum": [
@@ -3694,6 +4447,16 @@
             "type": "array",
             "title": "Default Result Types"
           },
+          "default_result_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResultType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "is_official": {
             "type": "boolean",
             "title": "Is Official"
@@ -3737,6 +4500,7 @@
           "limb_style",
           "implement",
           "default_result_types",
+          "default_result_type",
           "is_official",
           "created_by",
           "created_at",
@@ -3931,6 +4695,37 @@
         ],
         "title": "ParseLogResponse"
       },
+      "ParseNLRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "ParseNLRequest"
+      },
+      "ParseNLResponse": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "notes"
+        ],
+        "title": "ParseNLResponse"
+      },
       "ParsedLogEntry": {
         "properties": {
           "title": {
@@ -4049,6 +4844,67 @@
         },
         "type": "object",
         "title": "PatchParticipantRequest"
+      },
+      "PatchProfileRequest": {
+        "properties": {
+          "frequency_target_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frequency Target Days"
+          },
+          "graph_colour_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Graph Colour Mode"
+          },
+          "weight_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Unit"
+          },
+          "checkin_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkin Enabled"
+          },
+          "onboarding_completed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Onboarding Completed"
+          }
+        },
+        "type": "object",
+        "title": "PatchProfileRequest"
       },
       "PatchTeamSessionRequest": {
         "properties": {
@@ -4284,6 +5140,61 @@
           "workout_id": {
             "type": "string",
             "title": "Workout Id"
+          },
+          "load_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Kg"
+          },
+          "reps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reps"
+          },
+          "time_s": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time S"
+          },
+          "prev_best_1rm_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Best 1Rm Kg"
+          },
+          "delta_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta Kg"
           }
         },
         "type": "object",
@@ -4630,6 +5541,34 @@
           "status"
         ],
         "title": "PlannedSessionOut"
+      },
+      "ProfileStats": {
+        "properties": {
+          "total_workouts": {
+            "type": "integer",
+            "title": "Total Workouts"
+          },
+          "total_prs": {
+            "type": "integer",
+            "title": "Total Prs"
+          },
+          "best_streak_weeks": {
+            "type": "integer",
+            "title": "Best Streak Weeks"
+          },
+          "movements_tracked": {
+            "type": "integer",
+            "title": "Movements Tracked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_workouts",
+          "total_prs",
+          "best_streak_weeks",
+          "movements_tracked"
+        ],
+        "title": "ProfileStats"
       },
       "ReadinessResponse": {
         "properties": {
@@ -5188,6 +6127,27 @@
         ],
         "title": "ScoringType"
       },
+      "SessionMessagesResponse": {
+        "properties": {
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryMessage"
+            },
+            "type": "array",
+            "title": "Messages"
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More"
+          }
+        },
+        "type": "object",
+        "required": [
+          "messages",
+          "has_more"
+        ],
+        "title": "SessionMessagesResponse"
+      },
       "SessionType": {
         "type": "string",
         "enum": [
@@ -5555,6 +6515,50 @@
         ],
         "title": "TeamSessionSummary"
       },
+      "TrainingBalanceCategory": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "volume_pct": {
+            "type": "number",
+            "title": "Volume Pct"
+          },
+          "load_au": {
+            "type": "number",
+            "title": "Load Au"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "volume_pct",
+          "load_au"
+        ],
+        "title": "TrainingBalanceCategory"
+      },
+      "TrainingBalanceResponse": {
+        "properties": {
+          "breakdown": {
+            "items": {
+              "$ref": "#/components/schemas/TrainingBalanceCategory"
+            },
+            "type": "array",
+            "title": "Breakdown"
+          },
+          "period_days": {
+            "type": "integer",
+            "title": "Period Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "breakdown",
+          "period_days"
+        ],
+        "title": "TrainingBalanceResponse"
+      },
       "TrainingPartner": {
         "properties": {
           "user_id": {
@@ -5609,6 +6613,85 @@
           "most_common_format"
         ],
         "title": "TrainingPartner"
+      },
+      "UserProfile": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "first_workout_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Workout Date"
+          },
+          "frequency_target_days": {
+            "type": "integer",
+            "title": "Frequency Target Days"
+          },
+          "graph_colour_mode": {
+            "type": "string",
+            "title": "Graph Colour Mode"
+          },
+          "weight_unit": {
+            "type": "string",
+            "title": "Weight Unit"
+          },
+          "checkin_enabled": {
+            "type": "boolean",
+            "title": "Checkin Enabled"
+          },
+          "onboarding_completed": {
+            "type": "boolean",
+            "title": "Onboarding Completed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_name",
+          "email",
+          "avatar_url",
+          "timezone",
+          "first_workout_date",
+          "frequency_target_days",
+          "graph_colour_mode",
+          "weight_unit",
+          "checkin_enabled",
+          "onboarding_completed"
+        ],
+        "title": "UserProfile"
       },
       "ValidationError": {
         "properties": {
@@ -5879,6 +6962,11 @@
             ],
             "title": "Trimp Au"
           },
+          "is_tag": {
+            "type": "boolean",
+            "title": "Is Tag",
+            "default": false
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -6143,6 +7231,11 @@
               }
             ],
             "title": "Trimp Au"
+          },
+          "is_tag": {
+            "type": "boolean",
+            "title": "Is Tag",
+            "default": false
           },
           "created_at": {
             "type": "string",

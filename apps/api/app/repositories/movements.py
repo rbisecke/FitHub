@@ -6,7 +6,7 @@ from typing import Any
 import psycopg
 from psycopg.rows import dict_row
 
-from app.models.movement import CreateMovementRequest, Modality, Movement
+from app.models.movement import CreateMovementRequest, LastResult, Modality, Movement
 
 
 async def search_movements(
@@ -46,8 +46,8 @@ async def create_movement(
                 (name, slug, base_movement, modality, start_position,
                  catch_position, pause_position, tempo, execution_style,
                  movement_pattern, limb_style, implement,
-                 default_result_types, created_by)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 default_result_types, default_result_type, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING *
             """,
             [
@@ -64,9 +64,45 @@ async def create_movement(
                 req.limb_style,
                 req.implement,
                 req.default_result_types,
+                req.default_result_type,
                 user_id,
             ],
         )
         row = await cur.fetchone()
     assert row is not None
     return Movement(**row)
+
+
+async def get_last_result_for_movement(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    user_id: uuid.UUID,
+    movement_id: uuid.UUID,
+) -> LastResult | None:
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT
+                r.result_type,
+                r.load_kg,
+                r.reps,
+                r.time_s,
+                r.distance_m,
+                r.rounds,
+                r.partial_reps,
+                r.calories,
+                r.watts,
+                w.performed_at::date AS performed_at
+            FROM   public.results r
+            JOIN   public.workouts w ON w.id = r.workout_id
+            WHERE  r.user_id = %s
+              AND  r.movement_id = %s
+            ORDER  BY w.performed_at DESC, r.created_at DESC
+            LIMIT  1
+            """,
+            [user_id, movement_id],
+        )
+        row = await cur.fetchone()
+    if row is None:
+        return None
+    return LastResult(**row)

@@ -25,10 +25,13 @@ class LLMClient:
     Call sites use:
         llm = get_client()
         result = await llm.client.chat.completions.create(model=llm.model, ...)
+    Streaming callers use llm.raw for direct provider access (bypasses Instructor).
     """
 
     client: AsyncInstructor
     model: str
+    backend: str = "anthropic"
+    raw: object = None
 
 
 _instance: LLMClient | None = None
@@ -77,7 +80,7 @@ def _build_anthropic(timeout: float) -> LLMClient:
     # instructor v2's handle_kwargs would re-inject it into OpenAI kwargs, causing conflicts.
     client = instructor.from_anthropic(raw)
     model = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
-    return LLMClient(client=client, model=model)
+    return LLMClient(client=client, model=model, backend="anthropic", raw=raw)
 
 
 def _build_ollama(timeout: float) -> LLMClient:
@@ -92,7 +95,7 @@ def _build_ollama(timeout: float) -> LLMClient:
     # Mode.JSON is required; TOOLS mode returns a 400.
     client = instructor.from_openai(raw, mode=instructor.Mode.JSON)
     model = os.getenv("OLLAMA_MODEL", "mistral:7b")
-    return LLMClient(client=client, model=model)
+    return LLMClient(client=client, model=model, backend="ollama", raw=raw)
 
 
 def _build_openai(timeout: float) -> LLMClient:
@@ -105,4 +108,4 @@ def _build_openai(timeout: float) -> LLMClient:
     raw = AsyncOpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
     client = instructor.from_openai(raw, mode=instructor.Mode.TOOLS)
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    return LLMClient(client=client, model=model)
+    return LLMClient(client=client, model=model, backend="openai", raw=raw)

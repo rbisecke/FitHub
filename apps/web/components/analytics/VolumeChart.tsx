@@ -1,31 +1,25 @@
 "use client";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
+import { tooltipContentStyle } from "@/lib/chart-utils";
 import type { WeeklyVolume } from "@/lib/api";
 
 interface Props {
   weeks: WeeklyVolume[];
 }
 
-const SESSION_COLORS: Record<string, string> = {
-  strength: "#06b6d4",
-  metcon: "#f97316",
-  endurance: "#a78bfa",
-  skill: "#34d399",
-  recovery: "#94a3b8",
-};
+const volumeConfig = {
+  strength: { label: "Strength", color: "#3fb950" },
+  metcon: { label: "Metcon", color: "#d29922" },
+  endurance: { label: "Endurance", color: "#bc8cff" },
+  skill: { label: "Skill", color: "#58a6ff" },
+  recovery: { label: "Recovery", color: "#39d353" },
+  other: { label: "Other", color: "var(--chart-axis)" },
+} satisfies ChartConfig;
 
-function defaultColor(sessionType: string | null): string {
-  if (sessionType === null) return "#71717a";
-  return SESSION_COLORS[sessionType] ?? "#71717a";
+function barColor(st: string): string {
+  return st in volumeConfig ? `var(--color-${st})` : "var(--chart-axis)";
 }
 
 export function VolumeChart({ weeks }: Props) {
@@ -43,44 +37,35 @@ export function VolumeChart({ weeks }: Props) {
   const data = Object.values(weekMap);
 
   return (
-    <div data-testid="volume-chart" className="h-52 w-full min-w-0">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={data}
-          margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
-        >
-          <XAxis
-            dataKey="week"
-            tick={{ fill: "#71717a", fontSize: 10 }}
-            tickLine={false}
-            axisLine={false}
+    <ChartContainer
+      config={volumeConfig}
+      data-testid="volume-chart"
+      className="h-52 w-full min-w-0"
+    >
+      <BarChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+        <XAxis
+          dataKey="week"
+          tick={{ fill: "var(--chart-axis)", fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+        />
+        <YAxis
+          tick={{ fill: "var(--chart-axis)", fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+        />
+        <Tooltip contentStyle={tooltipContentStyle} />
+        <Legend wrapperStyle={{ fontSize: 11, color: "var(--chart-axis)" }} />
+        {sessionTypes.map((st) => (
+          <Bar
+            key={st}
+            dataKey={st}
+            stackId="a"
+            fill={barColor(st)}
+            minPointSize={3}
           />
-          <YAxis
-            tick={{ fill: "#71717a", fontSize: 10 }}
-            tickLine={false}
-            axisLine={false}
-          />
-          <Tooltip
-            contentStyle={{
-              background: "#18181b",
-              border: "1px solid #27272a",
-              borderRadius: 6,
-              color: "#f4f4f5",
-              fontSize: 12,
-            }}
-          />
-          <Legend wrapperStyle={{ fontSize: 11, color: "#71717a" }} />
-          {sessionTypes.map((st) => (
-            <Bar
-              key={st}
-              dataKey={st}
-              stackId="a"
-              fill={defaultColor(st === "other" ? null : st)}
-              minPointSize={3}
-            />
-          ))}
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
+        ))}
+      </BarChart>
+    </ChartContainer>
   );
 }

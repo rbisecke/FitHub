@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import Annotated, Any
 
 import psycopg
@@ -8,8 +9,12 @@ from psycopg import errors as pg_errors
 
 from app.auth import UserContext, get_current_user
 from app.db import get_db
-from app.models.movement import CreateMovementRequest, Modality, Movement
-from app.repositories.movements import create_movement, search_movements
+from app.models.movement import CreateMovementRequest, LastResult, Modality, Movement
+from app.repositories.movements import (
+    create_movement,
+    get_last_result_for_movement,
+    search_movements,
+)
 
 router = APIRouter(prefix="/api/v1/movements", tags=["movements"])
 
@@ -41,3 +46,18 @@ async def create_movement_route(
             status_code=status.HTTP_409_CONFLICT,
             detail="A movement with that name or slug already exists.",
         ) from None
+
+
+@router.get("/{movement_id}/last-result", response_model=LastResult)
+async def get_last_result(
+    movement_id: uuid.UUID,
+    user: Auth,
+    conn: DBConn,
+) -> LastResult:
+    result = await get_last_result_for_movement(conn, user_id=user.user_id, movement_id=movement_id)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No previous result found",
+        )
+    return result

@@ -89,6 +89,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/analytics/benchmarks": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Benchmarks */
+    get: operations["benchmarks_api_v1_analytics_benchmarks_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/analytics/training-balance": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Training Balance */
+    get: operations["training_balance_api_v1_analytics_training_balance_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/coach/parse-log": {
     parameters: {
       query?: never;
@@ -134,6 +168,57 @@ export interface paths {
     put?: never;
     /** Chat */
     post: operations["chat_api_v1_coach_chat_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/coach/sessions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Sessions */
+    get: operations["list_sessions_api_v1_coach_sessions_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/coach/sessions/{session_id}/messages": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Session Messages */
+    get: operations["get_session_messages_api_v1_coach_sessions__session_id__messages_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/coach/chat/stream": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Chat Stream */
+    post: operations["chat_stream_api_v1_coach_chat_stream_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -232,6 +317,58 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/movements/{movement_id}/last-result": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Last Result */
+    get: operations["get_last_result_api_v1_movements__movement_id__last_result_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/profile": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Profile */
+    get: operations["get_profile_api_v1_profile_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Patch Profile */
+    patch: operations["patch_profile_api_v1_profile_patch"];
+    trace?: never;
+  };
+  "/api/v1/profile/stats": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Profile Stats */
+    get: operations["get_profile_stats_api_v1_profile_stats_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/workouts": {
     parameters: {
       query?: never;
@@ -244,6 +381,26 @@ export interface paths {
     put?: never;
     /** Create Workout Route */
     post: operations["create_workout_route_api_v1_workouts_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/workouts/parse-nl": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Parse Workout Nl
+     * @description Minimal NL workout parser — extracts title from free-form text.
+     */
+    post: operations["parse_workout_nl_api_v1_workouts_parse_nl_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -611,7 +768,8 @@ export interface paths {
     /** List Training Partners */
     get: operations["list_training_partners_api_v1_training_partners_get"];
     put?: never;
-    post?: never;
+    /** Add Training Partner */
+    post: operations["add_training_partner_api_v1_training_partners_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -701,10 +859,43 @@ export interface components {
       /** Role */
       role?: string | null;
     };
+    /** AddPartnerRequest */
+    AddPartnerRequest: {
+      /** Email */
+      email: string;
+    };
     /** AdjustAdaptationRequest */
     AdjustAdaptationRequest: {
       /** Feedback */
       feedback: string;
+    };
+    /** BenchmarkAttempt */
+    BenchmarkAttempt: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Result Display */
+      result_display: string;
+      /** Result Seconds */
+      result_seconds: number;
+    };
+    /** BenchmarkEntry */
+    BenchmarkEntry: {
+      /** Name */
+      name: string;
+      /** Attempts */
+      attempts: components["schemas"]["BenchmarkAttempt"][];
+      /** Pr Display */
+      pr_display: string;
+      /** Improvement Display */
+      improvement_display: string;
+    };
+    /** BenchmarkResponse */
+    BenchmarkResponse: {
+      /** Benchmarks */
+      benchmarks: components["schemas"]["BenchmarkEntry"][];
     };
     /** ChatRequest */
     ChatRequest: {
@@ -730,6 +921,13 @@ export interface components {
       /** Safety Tier */
       safety_tier?: string | null;
     };
+    /** ChatStreamRequest */
+    ChatStreamRequest: {
+      /** Question */
+      question: string;
+      /** Session Id */
+      session_id?: string | null;
+    };
     /** Citation */
     Citation: {
       /** Title */
@@ -738,6 +936,21 @@ export interface components {
       source_type: string;
       /** Score */
       score: number;
+    };
+    /** CoachSession */
+    CoachSession: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Title */
+      title: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
     };
     /** ConnectResponse */
     ConnectResponse: {
@@ -781,6 +994,7 @@ export interface components {
       implement?: string | null;
       /** Default Result Types */
       default_result_types?: string[];
+      default_result_type?: components["schemas"]["ResultType"] | null;
     };
     /** CreateParticipantRequest */
     CreateParticipantRequest: {
@@ -921,6 +1135,11 @@ export interface components {
       session_rpe?: number | string | null;
       /** Duration S */
       duration_s?: number | null;
+      /**
+       * Is Tag
+       * @default false
+       */
+      is_tag: boolean;
       /** Results */
       results?: components["schemas"]["CreateResultRequest"][];
     };
@@ -1031,6 +1250,31 @@ export interface components {
       /** Resolved At */
       resolved_at?: string | null;
     };
+    /** LastResult */
+    LastResult: {
+      result_type: components["schemas"]["ResultType"];
+      /** Load Kg */
+      load_kg: string | null;
+      /** Reps */
+      reps: number | null;
+      /** Time S */
+      time_s: number | null;
+      /** Distance M */
+      distance_m: string | null;
+      /** Rounds */
+      rounds: number | null;
+      /** Partial Reps */
+      partial_reps: number | null;
+      /** Calories */
+      calories: number | null;
+      /** Watts */
+      watts: number | null;
+      /**
+       * Performed At
+       * Format: date
+       */
+      performed_at: string;
+    };
     /**
      * LimbStyle
      * @enum {string}
@@ -1112,6 +1356,7 @@ export interface components {
       implement: string | null;
       /** Default Result Types */
       default_result_types: string[];
+      default_result_type: components["schemas"]["ResultType"] | null;
       /** Is Official */
       is_official: boolean;
       /** Created By */
@@ -1219,6 +1464,18 @@ export interface components {
        */
       stub: boolean;
     };
+    /** ParseNLRequest */
+    ParseNLRequest: {
+      /** Text */
+      text: string;
+    };
+    /** ParseNLResponse */
+    ParseNLResponse: {
+      /** Title */
+      title: string;
+      /** Notes */
+      notes: string;
+    };
     /** ParsedLogEntry */
     ParsedLogEntry: {
       /** Title */
@@ -1268,6 +1525,19 @@ export interface components {
       workout_id?: string | null;
       /** Role */
       role?: string | null;
+    };
+    /** PatchProfileRequest */
+    PatchProfileRequest: {
+      /** Frequency Target Days */
+      frequency_target_days?: number | null;
+      /** Graph Colour Mode */
+      graph_colour_mode?: string | null;
+      /** Weight Unit */
+      weight_unit?: string | null;
+      /** Checkin Enabled */
+      checkin_enabled?: boolean | null;
+      /** Onboarding Completed */
+      onboarding_completed?: boolean | null;
     };
     /** PatchTeamSessionRequest */
     PatchTeamSessionRequest: {
@@ -1320,6 +1590,16 @@ export interface components {
       achieved_at: string;
       /** Workout Id */
       workout_id: string;
+      /** Load Kg */
+      load_kg?: number | null;
+      /** Reps */
+      reps?: number | null;
+      /** Time S */
+      time_s?: number | null;
+      /** Prev Best 1Rm Kg */
+      prev_best_1rm_kg?: number | null;
+      /** Delta Kg */
+      delta_kg?: number | null;
     };
     /** PlanDetail */
     PlanDetail: {
@@ -1440,6 +1720,17 @@ export interface components {
        * @default []
        */
       items: components["schemas"]["PlannedItemOut"][];
+    };
+    /** ProfileStats */
+    ProfileStats: {
+      /** Total Workouts */
+      total_workouts: number;
+      /** Total Prs */
+      total_prs: number;
+      /** Best Streak Weeks */
+      best_streak_weeks: number;
+      /** Movements Tracked */
+      movements_tracked: number;
     };
     /** ReadinessResponse */
     ReadinessResponse: {
@@ -1603,6 +1894,13 @@ export interface components {
       | "max_load"
       | "relay"
       | "slowest_finisher";
+    /** SessionMessagesResponse */
+    SessionMessagesResponse: {
+      /** Messages */
+      messages: components["schemas"]["HistoryMessage"][];
+      /** Has More */
+      has_more: boolean;
+    };
     /**
      * SessionType
      * @enum {string}
@@ -1736,6 +2034,22 @@ export interface components {
       /** Participant Count */
       participant_count: number;
     };
+    /** TrainingBalanceCategory */
+    TrainingBalanceCategory: {
+      /** Category */
+      category: string;
+      /** Volume Pct */
+      volume_pct: number;
+      /** Load Au */
+      load_au: number;
+    };
+    /** TrainingBalanceResponse */
+    TrainingBalanceResponse: {
+      /** Breakdown */
+      breakdown: components["schemas"]["TrainingBalanceCategory"][];
+      /** Period Days */
+      period_days: number;
+    };
     /** TrainingPartner */
     TrainingPartner: {
       /** User Id */
@@ -1748,6 +2062,29 @@ export interface components {
       session_count: number;
       /** Most Common Format */
       most_common_format: string | null;
+    };
+    /** UserProfile */
+    UserProfile: {
+      /** Display Name */
+      display_name: string | null;
+      /** Email */
+      email: string;
+      /** Avatar Url */
+      avatar_url: string | null;
+      /** Timezone */
+      timezone: string;
+      /** First Workout Date */
+      first_workout_date: string | null;
+      /** Frequency Target Days */
+      frequency_target_days: number;
+      /** Graph Colour Mode */
+      graph_colour_mode: string;
+      /** Weight Unit */
+      weight_unit: string;
+      /** Checkin Enabled */
+      checkin_enabled: boolean;
+      /** Onboarding Completed */
+      onboarding_completed: boolean;
     };
     /** ValidationError */
     ValidationError: {
@@ -1826,6 +2163,11 @@ export interface components {
       max_hr: number | null;
       /** Trimp Au */
       trimp_au: string | null;
+      /**
+       * Is Tag
+       * @default false
+       */
+      is_tag: boolean;
       /**
        * Created At
        * Format: date-time
@@ -1907,6 +2249,11 @@ export interface components {
       max_hr: number | null;
       /** Trimp Au */
       trimp_au: string | null;
+      /**
+       * Is Tag
+       * @default false
+       */
+      is_tag: boolean;
       /**
        * Created At
        * Format: date-time
@@ -2070,6 +2417,57 @@ export interface operations {
       };
     };
   };
+  benchmarks_api_v1_analytics_benchmarks_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BenchmarkResponse"];
+        };
+      };
+    };
+  };
+  training_balance_api_v1_analytics_training_balance_get: {
+    parameters: {
+      query?: {
+        days?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TrainingBalanceResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   parse_log_api_v1_coach_parse_log_post: {
     parameters: {
       query?: never;
@@ -2155,6 +2553,104 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ChatResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_sessions_api_v1_coach_sessions_get: {
+    parameters: {
+      query?: {
+        limit?: number;
+        before_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CoachSession"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_session_messages_api_v1_coach_sessions__session_id__messages_get: {
+    parameters: {
+      query?: {
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SessionMessagesResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  chat_stream_api_v1_coach_chat_stream_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChatStreamRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */
@@ -2312,6 +2808,110 @@ export interface operations {
       };
     };
   };
+  get_last_result_api_v1_movements__movement_id__last_result_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        movement_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LastResult"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_profile_api_v1_profile_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UserProfile"];
+        };
+      };
+    };
+  };
+  patch_profile_api_v1_profile_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PatchProfileRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UserProfile"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_profile_stats_api_v1_profile_stats_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProfileStats"];
+        };
+      };
+    };
+  };
   list_workouts_route_api_v1_workouts_get: {
     parameters: {
       query?: {
@@ -2364,6 +2964,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Workout"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  parse_workout_nl_api_v1_workouts_parse_nl_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ParseNLRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ParseNLResponse"];
         };
       };
       /** @description Validation Error */
@@ -3261,6 +3894,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["TrainingPartner"][];
+        };
+      };
+    };
+  };
+  add_training_partner_api_v1_training_partners_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AddPartnerRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TrainingPartner"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

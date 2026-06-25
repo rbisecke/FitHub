@@ -24,6 +24,7 @@ from app.routers.integrations import router as integrations_router  # noqa: F401
 from app.routers.movements import router as movements_router
 from app.routers.notifications import router as notifications_router
 from app.routers.plans import router as plans_router  # noqa: F401
+from app.routers.profile import router as profile_router
 from app.routers.team_sessions import router as team_sessions_router
 from app.routers.workouts import router as workouts_router
 
@@ -46,6 +47,7 @@ app.include_router(analytics_router)
 app.include_router(coach_router)
 app.include_router(integrations_router)
 app.include_router(movements_router)
+app.include_router(profile_router)
 app.include_router(workouts_router)
 app.include_router(plans_router)
 app.include_router(adaptations_router)

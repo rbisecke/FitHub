@@ -67,10 +67,24 @@ async def get_personal_records(
             """
             SELECT DISTINCT ON (r.movement_id)
                 r.movement_id::text,
-                m.name AS movement_name,
+                m.name                    AS movement_name,
                 r.estimated_1rm_kg::float AS best_1rm_kg,
                 w.performed_at::date      AS achieved_at,
-                w.id::text                AS workout_id
+                w.id::text                AS workout_id,
+                r.load_kg::float          AS load_kg,
+                r.reps,
+                r.time_s,
+                (
+                    SELECT r2.estimated_1rm_kg::float
+                    FROM   public.results r2
+                    JOIN   public.workouts w2 ON r2.workout_id = w2.id
+                    WHERE  w2.user_id           = %s
+                      AND  r2.movement_id       = r.movement_id
+                      AND  r2.estimated_1rm_kg IS NOT NULL
+                      AND  r2.id              != r.id
+                    ORDER  BY r2.estimated_1rm_kg DESC
+                    LIMIT  1
+                )                         AS prev_best_1rm_kg
             FROM results r
             JOIN workouts  w ON r.workout_id  = w.id
             JOIN movements m ON r.movement_id = m.id
@@ -78,9 +92,15 @@ async def get_personal_records(
               AND r.estimated_1rm_kg IS NOT NULL
             ORDER BY r.movement_id, r.estimated_1rm_kg DESC
             """,
-            (user_id,),
+            (user_id, user_id),
         )
-        return await cur.fetchall()
+        rows = await cur.fetchall()
+
+    for row in rows:
+        prev = row.get("prev_best_1rm_kg")
+        row["delta_kg"] = (row["best_1rm_kg"] - prev) if prev is not None else None
+
+    return rows
 
 
 async def get_movement_trend(
@@ -216,3 +236,72 @@ async def get_readiness(
         "sleep_avg": sleep_avg,
         "factors_available": factors_available,
     }
+
+
+async def get_training_balance(
+    conn: psycopg.AsyncConnection[Any],
+    user_id: uuid.UUID,
+    days: int = 28,
+) -> list[dict[str, Any]]:
+    """Return volume share per primary_muscle_group over the last N days.
+
+    Only movements with a tagged primary_muscle_group are included.
+    Returns rows sorted by load_au descending.
+    """
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            WITH tagged AS (
+                SELECT
+                    m.primary_muscle_group            AS category,
+                    SUM(COALESCE(r.load_kg * r.reps, 0))::float AS load_au
+                FROM results r
+                JOIN workouts  w ON r.workout_id  = w.id
+                JOIN movements m ON r.movement_id = m.id
+                WHERE w.user_id              = %s
+                  AND w.performed_at         >= NOW() - %s * INTERVAL '1 day'
+                  AND m.primary_muscle_group IS NOT NULL
+                GROUP BY m.primary_muscle_group
+            ),
+            total AS (
+                SELECT SUM(load_au) AS grand_total FROM tagged
+            )
+            SELECT
+                t.category,
+                t.load_au,
+                CASE WHEN tt.grand_total > 0
+                     THEN ROUND((t.load_au / tt.grand_total)::numeric, 4)::float
+                     ELSE 0
+                END AS volume_pct
+            FROM tagged t
+            CROSS JOIN total tt
+            ORDER BY t.load_au DESC
+            """,
+            (user_id, days),
+        )
+        return await cur.fetchall()
+
+
+async def get_benchmark_attempts(
+    conn: psycopg.AsyncConnection[Any],
+    user_id: uuid.UUID,
+) -> list[dict[str, Any]]:
+    """Return all timed benchmark WOD attempts for a user, oldest first."""
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT
+                b.name,
+                w.performed_at::date AS day,
+                r.time_s,
+                w.id AS workout_id
+            FROM workouts w
+            JOIN benchmarks b ON b.id = w.benchmark_id
+            LEFT JOIN results r ON r.workout_id = w.id AND r.result_type = 'time'
+            WHERE w.user_id = %s
+              AND w.benchmark_id IS NOT NULL
+            ORDER BY b.name, w.performed_at ASC
+            """,
+            (user_id,),
+        )
+        return await cur.fetchall()

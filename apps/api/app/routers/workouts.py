@@ -5,6 +5,7 @@ from typing import Annotated, Any
 
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from pydantic import BaseModel
 
 from app.auth import UserContext, get_current_user
 from app.db import get_db
@@ -23,6 +24,16 @@ from app.repositories.workouts import (
     list_workouts,
     patch_workout,
 )
+
+
+class ParseNLRequest(BaseModel):
+    text: str
+
+
+class ParseNLResponse(BaseModel):
+    title: str
+    notes: str
+
 
 router = APIRouter(prefix="/api/v1/workouts", tags=["workouts"])
 
@@ -49,6 +60,18 @@ async def create_workout_route(
     req: CreateWorkoutRequest,
 ) -> Workout:
     return await create_workout(conn, user_id=user.user_id, req=req)
+
+
+@router.post("/parse-nl", response_model=ParseNLResponse)
+async def parse_workout_nl(body: ParseNLRequest, user: Auth) -> ParseNLResponse:
+    """Minimal NL workout parser — extracts title from free-form text."""
+    import re
+
+    text = body.text.strip()
+    parts = re.split(r"[.!?\n]", text)
+    title = (parts[0].strip() if parts else text)[:80] or "Workout"
+    notes = text if len(text) > len(title) else ""
+    return ParseNLResponse(title=title, notes=notes)
 
 
 @router.get("/{workout_id}", response_model=Workout)

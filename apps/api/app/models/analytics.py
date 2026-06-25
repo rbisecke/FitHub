@@ -29,6 +29,11 @@ class PersonalRecord(BaseModel):
     best_1rm_kg: float
     achieved_at: date
     workout_id: str
+    load_kg: float | None = None
+    reps: int | None = None
+    time_s: int | None = None
+    prev_best_1rm_kg: float | None = None
+    delta_kg: float | None = None
 
 
 class E1RMPoint(BaseModel):
@@ -46,6 +51,34 @@ class WeeklyVolume(BaseModel):
 
 class VolumeTrendResponse(BaseModel):
     weeks: list[WeeklyVolume]
+
+
+class BenchmarkAttempt(BaseModel):
+    date: date
+    result_display: str
+    result_seconds: int
+
+
+class BenchmarkEntry(BaseModel):
+    name: str
+    attempts: list[BenchmarkAttempt]
+    pr_display: str
+    improvement_display: str
+
+
+class BenchmarkResponse(BaseModel):
+    benchmarks: list[BenchmarkEntry]
+
+
+class TrainingBalanceCategory(BaseModel):
+    category: str
+    volume_pct: float
+    load_au: float
+
+
+class TrainingBalanceResponse(BaseModel):
+    breakdown: list[TrainingBalanceCategory]
+    period_days: int
 
 
 class ReadinessResponse(BaseModel):

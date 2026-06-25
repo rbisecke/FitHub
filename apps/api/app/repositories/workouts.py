@@ -47,6 +47,36 @@ def _compute_perceived_load(session_rpe: Decimal | None, duration_s: int | None)
     return round(float(session_rpe) * duration_s / 60)
 
 
+async def _flag_prs(
+    cur: psycopg.AsyncCursor[dict[str, Any]],
+    *,
+    user_id: uuid.UUID,
+    workout_id: uuid.UUID,
+) -> None:
+    """Set is_pr = true on results in this workout that beat the user's prior best e1RM."""
+    await cur.execute(
+        """
+        UPDATE public.results AS r
+        SET    is_pr = true
+        WHERE  r.workout_id        = %s
+          AND  r.user_id           = %s
+          AND  r.estimated_1rm_kg IS NOT NULL
+          AND  r.movement_id      IS NOT NULL
+          AND  r.estimated_1rm_kg  > COALESCE(
+               (
+                   SELECT MAX(r2.estimated_1rm_kg)
+                   FROM   public.results r2
+                   WHERE  r2.user_id     = r.user_id
+                     AND  r2.movement_id = r.movement_id
+                     AND  r2.workout_id != %s
+               ),
+               0
+          )
+        """,
+        [workout_id, user_id, workout_id],
+    )
+
+
 async def _insert_result(
     cur: psycopg.AsyncCursor[dict[str, Any]],
     *,
@@ -117,8 +147,8 @@ async def create_workout(
             INSERT INTO public.workouts
                 (id, user_id, performed_at, title, short_hash, notes, bodyweight_kg,
                  session_type, workout_format, time_cap_s, location,
-                 session_rpe, duration_s, perceived_load_au, volume_load_kg)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 session_rpe, duration_s, perceived_load_au, volume_load_kg, is_tag)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING *
             """,
             [
@@ -137,17 +167,31 @@ async def create_workout(
                 req.duration_s,
                 perceived_load_au,
                 volume_load_kg,
+                req.is_tag,
             ],
         )
         workout_row = await cur.fetchone()
         assert workout_row is not None
 
-        results: list[Result] = []
         for r in req.results:
-            result = await _insert_result(cur, user_id=user_id, workout_id=workout_id, req=r)
-            results.append(result)
+            await _insert_result(cur, user_id=user_id, workout_id=workout_id, req=r)
 
-    return Workout(**workout_row, results=results)
+        await _flag_prs(cur, user_id=user_id, workout_id=workout_id)
+
+        # Re-fetch after PR flagging so returned results reflect is_pr correctly.
+        await cur.execute(
+            """
+            SELECT r.*, m.name AS movement_name
+            FROM   public.results r
+            LEFT JOIN public.movements m ON m.id = r.movement_id
+            WHERE  r.workout_id = %s AND r.user_id = %s
+            ORDER  BY r.order_index, r.id
+            """,
+            [workout_id, user_id],
+        )
+        result_rows = await cur.fetchall()
+
+    return Workout(**workout_row, results=[Result(**r) for r in result_rows])
 
 
 async def list_workouts(

@@ -3,14 +3,23 @@ import type {
   Workout,
   WorkoutListResponse,
   CreateWorkoutBody,
+  ParseNLResponse,
   LoadModelResponse,
   PersonalRecord,
+  E1RMPoint,
   VolumeTrendResponse,
   ReadinessResponse,
   TrainingPartner,
   ParseLogResponse,
   ChatResponse,
   HistoryMessage,
+  TrainingBalanceResponse,
+  BenchmarkResponse,
+  LastResult,
+  CoachSession,
+  SessionMessagesResponse,
+  UserProfile,
+  ProfileStats,
 } from "./index";
 import type {
   PlanDetail,
@@ -50,10 +59,26 @@ async function apiFetch<T>(
 
 export const api = {
   workouts: {
-    list: (token: string, params?: { beforeId?: string; limit?: number }) => {
+    list: (
+      token: string,
+      params?: {
+        beforeId?: string;
+        limit?: number;
+        sessionType?: string;
+        partnerOnly?: boolean;
+        dateFrom?: string;
+        dateTo?: string;
+      },
+    ) => {
       const qs = new URLSearchParams();
       if (params?.beforeId) qs.set("before_id", params.beforeId);
       if (params?.limit) qs.set("limit", String(params.limit));
+      // Filter params — ignored by API until backend adds support (B-series PRs)
+      if (params?.sessionType) qs.set("session_type", params.sessionType);
+      if (params?.partnerOnly !== undefined)
+        qs.set("partner_only", String(params.partnerOnly));
+      if (params?.dateFrom) qs.set("date_from", params.dateFrom);
+      if (params?.dateTo) qs.set("date_to", params.dateTo);
       return apiFetch<WorkoutListResponse>(`/api/v1/workouts?${qs}`, token);
     },
     create: (token: string, body: CreateWorkoutBody) =>
@@ -70,6 +95,11 @@ export const api = {
       }),
     del: (token: string, id: string) =>
       apiFetch<void>(`/api/v1/workouts/${id}`, token, { method: "DELETE" }),
+    parseNl: (token: string, text: string) =>
+      apiFetch<ParseNLResponse>("/api/v1/workouts/parse-nl", token, {
+        method: "POST",
+        body: JSON.stringify({ text }),
+      }),
   },
   movements: {
     search: (token: string, params: { q?: string; modality?: string }) => {
@@ -83,12 +113,22 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    lastResult: (token: string, movementId: string) =>
+      apiFetch<LastResult>(
+        `/api/v1/movements/${movementId}/last-result`,
+        token,
+      ),
   },
   analytics: {
     load: (token: string, days = 90) =>
       apiFetch<LoadModelResponse>(`/api/v1/analytics/load?days=${days}`, token),
     personalRecords: (token: string) =>
       apiFetch<PersonalRecord[]>("/api/v1/analytics/personal-records", token),
+    movementTrend: (token: string, movementId: string) =>
+      apiFetch<E1RMPoint[]>(
+        `/api/v1/analytics/movement-trend/${movementId}`,
+        token,
+      ),
     volumeTrend: (token: string, weeks = 12) =>
       apiFetch<VolumeTrendResponse>(
         `/api/v1/analytics/volume-trend?weeks=${weeks}`,
@@ -96,9 +136,43 @@ export const api = {
       ),
     readiness: (token: string) =>
       apiFetch<ReadinessResponse>("/api/v1/analytics/readiness", token),
+    trainingBalance: (token: string, days = 28) =>
+      apiFetch<TrainingBalanceResponse>(
+        `/api/v1/analytics/training-balance?days=${days}`,
+        token,
+      ),
+    benchmarks: (token: string) =>
+      apiFetch<BenchmarkResponse>("/api/v1/analytics/benchmarks", token),
   },
   trainingPartners: (token: string) =>
     apiFetch<TrainingPartner[]>("/api/v1/training-partners", token),
+  addTrainingPartner: (token: string, email: string) =>
+    apiFetch<TrainingPartner>("/api/v1/training-partners", token, {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  profile: {
+    get: (token: string) => apiFetch<UserProfile>("/api/v1/profile", token),
+    stats: (token: string) =>
+      apiFetch<ProfileStats>("/api/v1/profile/stats", token),
+    patch: (
+      token: string,
+      body: Partial<
+        Pick<
+          UserProfile,
+          | "frequency_target_days"
+          | "graph_colour_mode"
+          | "weight_unit"
+          | "checkin_enabled"
+          | "onboarding_completed"
+        >
+      >,
+    ) =>
+      apiFetch<UserProfile>("/api/v1/profile", token, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+  },
   coach: {
     parseLog: (token: string, text: string) =>
       apiFetch<ParseLogResponse>("/api/v1/coach/parse-log", token, {
@@ -117,6 +191,19 @@ export const api = {
         )}&limit=${limit}`,
         token,
       ),
+    sessions: {
+      list: (token: string, params?: { beforeId?: string; limit?: number }) => {
+        const qs = new URLSearchParams();
+        if (params?.beforeId) qs.set("before_id", params.beforeId);
+        if (params?.limit) qs.set("limit", String(params.limit));
+        return apiFetch<CoachSession[]>(`/api/v1/coach/sessions?${qs}`, token);
+      },
+      messages: (token: string, sessionId: string, limit = 50) =>
+        apiFetch<SessionMessagesResponse>(
+          `/api/v1/coach/sessions/${sessionId}/messages?limit=${limit}`,
+          token,
+        ),
+    },
   },
   plans: {
     list: (token: string) => apiFetch<PlanSummary[]>("/api/v1/plans", token),
