@@ -34,7 +34,7 @@ export function MovementTrendChart({ movementId, token }: Props) {
 
   if (points.length < 3) {
     return (
-      <p className="font-mono text-xs text-zinc-600 mt-1">Not enough data</p>
+      <p className="font-mono text-xs text-[--muted] mt-1">Not enough data</p>
     );
   }
 

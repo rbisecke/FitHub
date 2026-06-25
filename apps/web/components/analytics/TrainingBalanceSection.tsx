@@ -32,12 +32,13 @@ const PERIOD_OPTIONS: PeriodOption[] = [
 
 const STORAGE_KEY = "progress.balance.period";
 
+// Category colors map to the semantic brand tokens (single source of truth).
 const CATEGORY_COLORS: Record<string, string> = {
-  pull: "#58a6ff",
-  push: "#bc8cff",
-  legs: "#3fb950",
-  core: "#d29922",
-  conditioning: "#39d353",
+  pull: "var(--accent)",
+  push: "var(--purple)",
+  legs: "var(--green)",
+  core: "var(--amber)",
+  conditioning: "var(--cyan)",
 };
 
 function getInsightCopy(breakdown: BalanceBreakdown[]): string {
@@ -105,7 +106,7 @@ export function TrainingBalanceSection({ data, className }: Props) {
                   name:
                     b.category.charAt(0).toUpperCase() + b.category.slice(1),
                   value: Math.round(b.volume_pct * 100),
-                  color: CATEGORY_COLORS[b.category] ?? "#8b949e",
+                  color: CATEGORY_COLORS[b.category] ?? "var(--muted)",
                 }),
               )}
               className="w-full sm:w-48 flex-shrink-0"
@@ -122,7 +123,8 @@ export function TrainingBalanceSection({ data, className }: Props) {
                   <span
                     className="h-2 w-2 rounded-full flex-shrink-0"
                     style={{
-                      backgroundColor: CATEGORY_COLORS[b.category] ?? "#8b949e",
+                      backgroundColor:
+                        CATEGORY_COLORS[b.category] ?? "var(--muted)",
                     }}
                   />
                   <span className="text-[--text] capitalize flex-1">

@@ -40,7 +40,7 @@ function BenchmarkSparkline({ attempts }: { attempts: BenchmarkAttempt[] }) {
           <Line
             type="monotone"
             dataKey="v"
-            stroke="#bc8cff"
+            stroke="var(--purple)"
             dot={false}
             strokeWidth={2}
           />
