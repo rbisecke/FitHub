@@ -65,6 +65,22 @@ class HistoryMessage(BaseModel):
     created_at: datetime
 
 
+class ChatStreamRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=2000)
+    session_id: UUID | None = None
+
+
+class CoachSession(BaseModel):
+    id: UUID
+    title: str
+    created_at: datetime
+
+
+class SessionMessagesResponse(BaseModel):
+    messages: list[HistoryMessage]
+    has_more: bool
+
+
 class _ChatAnswer(BaseModel):
     """Internal instructor response model for chat — required by Mode.JSON providers (Ollama)."""
 
