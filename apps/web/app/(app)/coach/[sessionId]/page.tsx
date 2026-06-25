@@ -2,7 +2,13 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CoachShell } from "@/components/coach/CoachShell";
 
-export default async function CoachPage() {
+interface Props {
+  params: Promise<{ sessionId: string }>;
+}
+
+export default async function CoachSessionPage({ params }: Props) {
+  const { sessionId } = await params;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -14,5 +20,11 @@ export default async function CoachPage() {
   } = await supabase.auth.getSession();
   const token = session!.access_token;
 
-  return <CoachShell token={token} userEmail={user.email ?? ""} />;
+  return (
+    <CoachShell
+      token={token}
+      userEmail={user.email ?? ""}
+      initialSessionId={sessionId}
+    />
+  );
 }
