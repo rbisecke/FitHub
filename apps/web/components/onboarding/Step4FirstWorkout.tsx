@@ -27,6 +27,7 @@ export function Step4FirstWorkout({ token, onNext, onSkip, onBack }: Props) {
         title: parsed.title,
         notes: parsed.notes || null,
         performed_at: new Date().toISOString(),
+        is_tag: false,
       });
       onNext();
     } catch {

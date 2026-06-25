@@ -199,6 +199,7 @@ export function LogPageClient({
         bodyweight_kg: values.bodyweight_kg
           ? Number(values.bodyweight_kg)
           : undefined,
+        is_tag: false,
         results,
       });
 

@@ -40,6 +40,7 @@ describe("api.workouts.create", () => {
     );
     await api.workouts.create("tok", {
       performed_at: "2026-06-19T09:00:00Z",
+      is_tag: false,
     });
     const init = spy.mock.calls[0]![1];
     expect(init?.method).toBe("POST");
