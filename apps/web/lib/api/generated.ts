@@ -370,6 +370,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/workouts/parse-nl": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Parse Workout Nl
+     * @description Minimal NL workout parser — extracts title from free-form text.
+     */
+    post: operations["parse_workout_nl_api_v1_workouts_parse_nl_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/workouts/{workout_id}": {
     parameters: {
       query?: never;
@@ -1422,6 +1442,18 @@ export interface components {
        */
       stub: boolean;
     };
+    /** ParseNLRequest */
+    ParseNLRequest: {
+      /** Text */
+      text: string;
+    };
+    /** ParseNLResponse */
+    ParseNLResponse: {
+      /** Title */
+      title: string;
+      /** Notes */
+      notes: string;
+    };
     /** ParsedLogEntry */
     ParsedLogEntry: {
       /** Title */
@@ -1482,6 +1514,8 @@ export interface components {
       weight_unit?: string | null;
       /** Checkin Enabled */
       checkin_enabled?: boolean | null;
+      /** Onboarding Completed */
+      onboarding_completed?: boolean | null;
     };
     /** PatchTeamSessionRequest */
     PatchTeamSessionRequest: {
@@ -2011,6 +2045,8 @@ export interface components {
       weight_unit: string;
       /** Checkin Enabled */
       checkin_enabled: boolean;
+      /** Onboarding Completed */
+      onboarding_completed: boolean;
     };
     /** ValidationError */
     ValidationError: {
@@ -2849,6 +2885,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Workout"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  parse_workout_nl_api_v1_workouts_parse_nl_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ParseNLRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ParseNLResponse"];
         };
       };
       /** @description Validation Error */

@@ -1053,6 +1053,53 @@
         }
       }
     },
+    "/api/v1/workouts/parse-nl": {
+      "post": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "Parse Workout Nl",
+        "description": "Minimal NL workout parser \u2014 extracts title from free-form text.",
+        "operationId": "parse_workout_nl_api_v1_workouts_parse_nl_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParseNLRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseNLResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/workouts/{workout_id}": {
       "get": {
         "tags": [
@@ -4593,6 +4640,37 @@
         ],
         "title": "ParseLogResponse"
       },
+      "ParseNLRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "ParseNLRequest"
+      },
+      "ParseNLResponse": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "notes"
+        ],
+        "title": "ParseNLResponse"
+      },
       "ParsedLogEntry": {
         "properties": {
           "title": {
@@ -4757,6 +4835,17 @@
               }
             ],
             "title": "Checkin Enabled"
+          },
+          "onboarding_completed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Onboarding Completed"
           }
         },
         "type": "object",
@@ -6484,6 +6573,10 @@
           "checkin_enabled": {
             "type": "boolean",
             "title": "Checkin Enabled"
+          },
+          "onboarding_completed": {
+            "type": "boolean",
+            "title": "Onboarding Completed"
           }
         },
         "type": "object",
@@ -6496,7 +6589,8 @@
           "frequency_target_days",
           "graph_colour_mode",
           "weight_unit",
-          "checkin_enabled"
+          "checkin_enabled",
+          "onboarding_completed"
         ],
         "title": "UserProfile"
       },

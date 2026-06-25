@@ -13,6 +13,7 @@ class UserProfile(BaseModel):
     graph_colour_mode: str  # 'intensity' | 'volume'
     weight_unit: str  # 'kg' | 'lb'
     checkin_enabled: bool
+    onboarding_completed: bool
 
 
 class ProfileStats(BaseModel):
@@ -27,3 +28,4 @@ class PatchProfileRequest(BaseModel):
     graph_colour_mode: str | None = None
     weight_unit: str | None = None  # maps to unit_preference column in DB
     checkin_enabled: bool | None = None
+    onboarding_completed: bool | None = None
