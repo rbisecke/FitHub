@@ -54,7 +54,7 @@ export function AppShell({ user, defaultSidebarOpen, children }: Props) {
       {/* Content column */}
       <div className="flex flex-1 flex-col min-h-screen overflow-hidden">
         <MobileHeader user={user} />
-        <DesktopHeader user={user} />
+        <DesktopHeader />
 
         <AnimatePresence mode="wait" initial={false}>
           <motion.main

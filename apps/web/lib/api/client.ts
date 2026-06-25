@@ -15,6 +15,8 @@ import type {
   TrainingBalanceResponse,
   BenchmarkResponse,
   LastResult,
+  CoachSession,
+  SessionMessagesResponse,
 } from "./index";
 import type {
   PlanDetail,
@@ -154,6 +156,19 @@ export const api = {
         )}&limit=${limit}`,
         token,
       ),
+    sessions: {
+      list: (token: string, params?: { beforeId?: string; limit?: number }) => {
+        const qs = new URLSearchParams();
+        if (params?.beforeId) qs.set("before_id", params.beforeId);
+        if (params?.limit) qs.set("limit", String(params.limit));
+        return apiFetch<CoachSession[]>(`/api/v1/coach/sessions?${qs}`, token);
+      },
+      messages: (token: string, sessionId: string, limit = 50) =>
+        apiFetch<SessionMessagesResponse>(
+          `/api/v1/coach/sessions/${sessionId}/messages?limit=${limit}`,
+          token,
+        ),
+    },
   },
   plans: {
     list: (token: string) => apiFetch<PlanSummary[]>("/api/v1/plans", token),
