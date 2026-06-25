@@ -12,7 +12,7 @@ interface Props {
 }
 
 const trendConfig = {
-  e1rm: { label: "Est. 1RM (kg)", color: "hsl(var(--chart-3))" },
+  e1rm: { label: "Est. 1RM (kg)", color: "var(--chart-3)" },
 } satisfies ChartConfig;
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";

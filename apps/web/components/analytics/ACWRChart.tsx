@@ -17,7 +17,7 @@ interface Props {
 }
 
 const acwrConfig = {
-  acwr: { label: "ACWR", color: "hsl(var(--chart-1))" },
+  acwr: { label: "ACWR", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
 function fmtDay(day: string): string {
