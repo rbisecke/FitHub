@@ -25,7 +25,7 @@ export function RecordsHeader({ viewMode, onToggle }: Props) {
             onClick={() => onToggle(mode)}
             className={`px-3 py-1 font-mono text-[11px] capitalize transition-colors ${
               viewMode === mode
-                ? "bg-[#21262d] text-[--text]"
+                ? "bg-[#21262d] text-[--text] font-medium"
                 : "text-[--muted] hover:text-[--text]"
             }`}
           >

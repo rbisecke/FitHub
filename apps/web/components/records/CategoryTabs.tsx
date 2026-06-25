@@ -18,7 +18,7 @@ export function CategoryTabs({
     <div
       role="tablist"
       aria-label="Record categories"
-      className="overflow-x-auto scrollbar-none flex gap-2 border-b border-zinc-800 px-4 -mx-4"
+      className="overflow-x-auto scrollbar-none flex gap-2 border-b border-zinc-800 px-4"
     >
       {CATEGORY_ORDER.map((cat) => {
         const available = availableCategories.has(cat);

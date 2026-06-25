@@ -80,8 +80,8 @@ export function PRCard({ pr, points, isRecent }: Props) {
             positive ? "text-green-400" : "text-red-400"
           }`}
         >
-          {positive ? "▲" : "▼"} {delta > 0 ? "+" : ""}
-          {delta.toFixed(1)} kg
+          {positive ? "▲" : "▼"} {positive ? "+" : ""}
+          {Math.abs(delta).toFixed(1)} kg
         </span>
       );
     }
@@ -218,7 +218,7 @@ export function PRCard({ pr, points, isRecent }: Props) {
                               </span>
                             ) : delta < -0.01 ? (
                               <span className="text-red-400">
-                                ▼ {delta.toFixed(1)} kg
+                                ▼ {Math.abs(delta).toFixed(1)} kg
                               </span>
                             ) : null}
                             {isCurrent && (
