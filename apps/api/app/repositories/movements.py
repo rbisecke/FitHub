@@ -46,8 +46,8 @@ async def create_movement(
                 (name, slug, base_movement, modality, start_position,
                  catch_position, pause_position, tempo, execution_style,
                  movement_pattern, limb_style, implement,
-                 default_result_types, created_by)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 default_result_types, default_result_type, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING *
             """,
             [
@@ -64,6 +64,7 @@ async def create_movement(
                 req.limb_style,
                 req.implement,
                 req.default_result_types,
+                req.default_result_type,
                 user_id,
             ],
         )

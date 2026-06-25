@@ -106,6 +106,75 @@ async def test_create_movement_duplicate_slug_is_conflict(alice_client: AsyncCli
     assert r2.status_code == 409
 
 
+@pytest.mark.asyncio
+async def test_create_movement_with_default_result_type(alice_client: AsyncClient) -> None:
+    uid = uuid.uuid4().hex[:8]
+    payload = {
+        "name": f"Box Jump {uid}",
+        "slug": f"box-jump-{uid}",
+        "base_movement": "Box Jump",
+        "modality": "plyometric",
+        "default_result_type": "height",
+    }
+    r = await alice_client.post("/api/v1/movements", json=payload)
+    assert r.status_code == 201
+    body = r.json()
+    assert body["default_result_type"] == "height"
+
+
+@pytest.mark.asyncio
+async def test_create_movement_default_result_type_null_by_default(
+    alice_client: AsyncClient,
+) -> None:
+    uid = uuid.uuid4().hex[:8]
+    payload = {
+        "name": f"Air Squat {uid}",
+        "slug": f"air-squat-{uid}",
+        "base_movement": "Squat",
+        "modality": "gymnastics",
+    }
+    r = await alice_client.post("/api/v1/movements", json=payload)
+    assert r.status_code == 201
+    assert r.json()["default_result_type"] is None
+
+
+@pytest.mark.asyncio
+async def test_create_movement_invalid_default_result_type_rejected(
+    alice_client: AsyncClient,
+) -> None:
+    uid = uuid.uuid4().hex[:8]
+    payload = {
+        "name": f"Bad Type Move {uid}",
+        "slug": f"bad-type-{uid}",
+        "base_movement": "Move",
+        "modality": "strength",
+        "default_result_type": "invalid_type",
+    }
+    r = await alice_client.post("/api/v1/movements", json=payload)
+    assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_movements_includes_default_result_type(alice_client: AsyncClient) -> None:
+    uid = uuid.uuid4().hex[:8]
+    payload = {
+        "name": f"Row {uid}",
+        "slug": f"row-{uid}",
+        "base_movement": "Row",
+        "modality": "mono_structural",
+        "default_result_type": "distance",
+    }
+    r = await alice_client.post("/api/v1/movements", json=payload)
+    assert r.status_code == 201
+    movement_id = r.json()["id"]
+
+    r2 = await alice_client.get(f"/api/v1/movements?query={uid}")
+    assert r2.status_code == 200
+    matches = [m for m in r2.json() if m["id"] == movement_id]
+    assert len(matches) == 1
+    assert matches[0]["default_result_type"] == "distance"
+
+
 # ── /api/v1/movements/{movement_id}/last-result ───────────────────────────────
 
 _MOVEMENT_BASE = {

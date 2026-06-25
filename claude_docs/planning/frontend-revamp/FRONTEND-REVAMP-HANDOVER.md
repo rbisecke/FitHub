@@ -17,7 +17,7 @@
 | Design doc accuracy review | ✅ Done | Each doc has `## Accuracy Review` section |
 | Design iteration tooling | ✅ Done | Playwright MCP, Chrome DevTools MCP, Unlighthouse |
 | CLAUDE.md design system | ✅ Done | Color palette, typography, spacing encoded |
-| Implementation | 🔄 In progress | F1–F8, F12, F13 merged; B2 merged (#55); F9 blocked B4; F10/F11 blocked B5; B3–B7 not started |
+| Implementation | 🔄 In progress | F1–F8, F12, F13 merged; B2 merged (#55); F12 merged (#57); F9 blocked B4; F10/F11 blocked B5; B3–B7 not started |
 
 ---
 
@@ -121,7 +121,7 @@ All design docs live in this directory (`claude_docs/planning/frontend-revamp/`)
 | `feat/ui-coach` | 🔲 Not started | — | Blocked on B4 |
 | `feat/ui-onboarding` | 🔲 Not started | — | Blocked on B5 |
 | `feat/ui-profile` | 🔲 Not started | — | Blocked on B5 |
-| `feat/ui-gamification` | ✅ Done | — | streak milestone toasts, atRisk fix (Thu-Sun), comeback CTA, WeekMiniGraph pulse, PR/initial-commit toasts from logger, EmptyState, AppInit cleanup, Toaster theme |
+| `feat/ui-gamification` | ✅ Done | #57 | streak milestone toasts, atRisk fix (Thu-Sun), comeback CTA, WeekMiniGraph pulse, PR/initial-commit toasts from logger, EmptyState, AppInit cleanup, Toaster theme. ui-iterate: amber number+bg for atRisk, "weeks committed", "best:" label, single-letter day labels. Seed: realistic 3-5×/week cluster pattern (no checkerboard). |
 | `feat/ui-tag` | ✅ Done | #54 | `/log/tag` page + FAB speed-dial + sidebar nav item + history TagCard + filter toggle. ui-iterate: MovementSearch design-system colors + w-full + min-h-[44px]; submit min-h-[48px]. B7 + F8 add history differentiation + Records entry point (stub-safe until those land). |
 | `feat/api-last-result` | ✅ Done | — | `LastResult` model + repo + router; 4 tests (auth, 404, recency, user-scope) |
 | `feat/api-pr-detection` | ✅ Done | #55 | _flag_prs() UPDATE on create_workout; PersonalRecord extended with load_kg/reps/time_s/prev_best_1rm_kg/delta_kg; movementTrend added to client.ts; 8 new tests |

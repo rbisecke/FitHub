@@ -48,8 +48,10 @@ export function MovementRow({
     async (m: Movement) => {
       setValue(`results.${index}.movement_id`, m.id);
       setValue(`results.${index}.movement_name`, m.name);
-      // Default result type to "weight" until B3 adds default_result_type
-      setValue(`results.${index}.result_type`, "weight");
+      setValue(
+        `results.${index}.result_type`,
+        (m.default_result_type as ResultTypeValue | null) ?? "weight",
+      );
       setSelectedName(m.name);
       setLastResult(undefined); // clear while loading
 
