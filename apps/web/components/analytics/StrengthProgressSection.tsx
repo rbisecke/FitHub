@@ -6,6 +6,7 @@ import { X, Plus, Search } from "lucide-react";
 import {
   LineChart,
   Line,
+  CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
@@ -271,6 +272,11 @@ export function StrengthProgressSection({
               data={chartData}
               margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
             >
+              <CartesianGrid
+                stroke="var(--chart-border)"
+                strokeDasharray="3 3"
+                vertical={false}
+              />
               <XAxis
                 dataKey="day"
                 tick={{ fill: "var(--chart-axis)", fontSize: 9 }}

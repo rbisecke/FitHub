@@ -1,6 +1,14 @@
 "use client";
 
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
+import {
+  BarChart,
+  Bar,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+} from "recharts";
 import { useReducedMotion } from "motion/react";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { tooltipContentStyle } from "@/lib/chart-utils";
@@ -51,6 +59,11 @@ export function VolumeChart({ weeks }: Props) {
         data={data}
         margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
       >
+        <CartesianGrid
+          stroke="var(--chart-border)"
+          strokeDasharray="3 3"
+          vertical={false}
+        />
         <XAxis
           dataKey="week"
           tick={{ fill: "var(--chart-axis)", fontSize: 10 }}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 import { useReducedMotion } from "motion/react";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { tooltipContentStyle } from "@/lib/chart-utils";
@@ -45,17 +45,26 @@ export function MovementTrendChart({ movementId, token }: Props) {
     e1rm: +pt.estimated_1rm_kg.toFixed(1),
   }));
 
+  // Gradient id must be unique per mounted instance (one chart per movement).
+  const fillId = `e1rmFill-${movementId}`;
+
   return (
     <ChartContainer
       config={trendConfig}
       data-testid="movement-trend-chart"
       className="h-20 w-full mt-2 min-w-0"
     >
-      <LineChart
+      <AreaChart
         accessibilityLayer
         data={data}
         margin={{ top: 4, right: 4, left: -30, bottom: 0 }}
       >
+        <defs>
+          <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="var(--chart-3)" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="var(--chart-3)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
         <XAxis
           dataKey="day"
           tick={{ fill: "var(--chart-axis)", fontSize: 9 }}
@@ -70,15 +79,17 @@ export function MovementTrendChart({ movementId, token }: Props) {
           tickFormatter={(v: number) => `${v.toFixed(0)}`}
         />
         <Tooltip contentStyle={tooltipContentStyle} />
-        <Line
+        <Area
           type="monotone"
           dataKey="e1rm"
           stroke="var(--color-e1rm)"
+          fill={`url(#${fillId})`}
+          fillOpacity={1}
           dot={false}
           strokeWidth={1.5}
           isAnimationActive={!prefersReducedMotion}
         />
-      </LineChart>
+      </AreaChart>
     </ChartContainer>
   );
 }
