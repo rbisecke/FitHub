@@ -846,6 +846,102 @@
         }
       }
     },
+    "/api/v1/profile": {
+      "get": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Get Profile",
+        "operationId": "get_profile_api_v1_profile_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Patch Profile",
+        "operationId": "patch_profile_api_v1_profile_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/profile/stats": {
+      "get": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Get Profile Stats",
+        "operationId": "get_profile_stats_api_v1_profile_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileStats"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/workouts": {
       "get": {
         "tags": [
@@ -2352,6 +2448,50 @@
             "HTTPBearer": []
           }
         ]
+      },
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Add Training Partner",
+        "operationId": "add_training_partner_api_v1_training_partners_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPartnerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingPartner"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/health": {
@@ -2554,6 +2694,19 @@
         },
         "type": "object",
         "title": "AddParticipantRequest"
+      },
+      "AddPartnerRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "AddPartnerRequest"
       },
       "AdjustAdaptationRequest": {
         "properties": {
@@ -4559,6 +4712,56 @@
         "type": "object",
         "title": "PatchParticipantRequest"
       },
+      "PatchProfileRequest": {
+        "properties": {
+          "frequency_target_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frequency Target Days"
+          },
+          "graph_colour_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Graph Colour Mode"
+          },
+          "weight_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Unit"
+          },
+          "checkin_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkin Enabled"
+          }
+        },
+        "type": "object",
+        "title": "PatchProfileRequest"
+      },
       "PatchTeamSessionRequest": {
         "properties": {
           "name": {
@@ -5194,6 +5397,34 @@
           "status"
         ],
         "title": "PlannedSessionOut"
+      },
+      "ProfileStats": {
+        "properties": {
+          "total_workouts": {
+            "type": "integer",
+            "title": "Total Workouts"
+          },
+          "total_prs": {
+            "type": "integer",
+            "title": "Total Prs"
+          },
+          "best_streak_weeks": {
+            "type": "integer",
+            "title": "Best Streak Weeks"
+          },
+          "movements_tracked": {
+            "type": "integer",
+            "title": "Movements Tracked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_workouts",
+          "total_prs",
+          "best_streak_weeks",
+          "movements_tracked"
+        ],
+        "title": "ProfileStats"
       },
       "ReadinessResponse": {
         "properties": {
@@ -6194,6 +6425,80 @@
           "most_common_format"
         ],
         "title": "TrainingPartner"
+      },
+      "UserProfile": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "first_workout_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Workout Date"
+          },
+          "frequency_target_days": {
+            "type": "integer",
+            "title": "Frequency Target Days"
+          },
+          "graph_colour_mode": {
+            "type": "string",
+            "title": "Graph Colour Mode"
+          },
+          "weight_unit": {
+            "type": "string",
+            "title": "Weight Unit"
+          },
+          "checkin_enabled": {
+            "type": "boolean",
+            "title": "Checkin Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_name",
+          "email",
+          "avatar_url",
+          "timezone",
+          "first_workout_date",
+          "frequency_target_days",
+          "graph_colour_mode",
+          "weight_unit",
+          "checkin_enabled"
+        ],
+        "title": "UserProfile"
       },
       "ValidationError": {
         "properties": {

@@ -48,3 +48,27 @@ export type LastResult = components["schemas"]["LastResult"];
 export type CoachSession = components["schemas"]["CoachSession"];
 export type SessionMessagesResponse =
   components["schemas"]["SessionMessagesResponse"];
+
+// Profile types — endpoint not yet in generated types; defined locally
+export type WeightUnit = "kg" | "lb";
+export type GraphColourMode = "intensity" | "volume";
+export type FrequencyTarget = 3 | 4 | 5 | 6;
+
+export interface UserProfile {
+  display_name: string | null;
+  email: string;
+  avatar_url: string | null;
+  timezone: string;
+  first_workout_date: string | null;
+  frequency_target_days: number;
+  graph_colour_mode: GraphColourMode;
+  weight_unit: WeightUnit;
+  checkin_enabled: boolean;
+}
+
+export interface ProfileStats {
+  total_workouts: number;
+  total_prs: number;
+  best_streak_weeks: number;
+  movements_tracked: number;
+}
