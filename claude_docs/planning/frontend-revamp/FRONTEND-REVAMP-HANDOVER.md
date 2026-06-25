@@ -17,7 +17,7 @@
 | Design doc accuracy review | ✅ Done | Each doc has `## Accuracy Review` section |
 | Design iteration tooling | ✅ Done | Playwright MCP, Chrome DevTools MCP, Unlighthouse |
 | CLAUDE.md design system | ✅ Done | Color palette, typography, spacing encoded |
-| Implementation | 🔄 In progress | F1–F7, F13 merged; F8–F12 blocked on B2/B4/B5; B2–B7 not started (see tracker) |
+| Implementation | 🔄 In progress | F1–F8, F12, F13 merged; B2 merged (#55); F9 blocked B4; F10/F11 blocked B5; B3–B7 not started |
 
 ---
 
@@ -117,14 +117,14 @@ All design docs live in this directory (`claude_docs/planning/frontend-revamp/`)
 | `feat/ui-history` | ✅ Done | #51 | Commit-log feed with collapsible WorkoutCard (ARIA expand, AnimatePresence), date separators, client-side filters (sessionType/partner/date), desktop inline row + mobile bottom sheet (key-remount pattern, no useEffect setState), load-more pagination, BENCHMARK/Co-authored-by/PR badges, benchmarks.ts, useRef fetch-guard. ui-iterate polish: layout restructure (mobile trigger in h1 row, desktop row below subtitle), dedup date display, RPE Number() fix, touch targets 44px, aria-pressed/role=group/aria-label a11y, flex-nowrap filter row. Signed off at 375px + 1280px. |
 | `feat/ui-logger` | ✅ Done | #53 | Progressive-disclosure logger: NL parse+prefill, movement rows with ResultFields, prev: badge (B1 last-result), AddDetails collapsible (date/title/type/format/duration/RPE/notes/bodyweight), TemplatePicker. UI iterate Cycle 1: h1 size, NL label, touch targets, collapsible text, RPE slider null fix. Cycle 2 (a11y): aria-label on all ResultFields inputs, collapsible trigger min-h-[44px]. Sign-off: ✅ 375px + 1280px. |
 | `feat/ui-progress` | ✅ Done | #52 | TrainingSummaryHero (narrative + metric tiles), StrengthProgressSection (e1rm line chart + movement picker), VolumeTrendSection (period selector), TrainingBalanceSection (null-safe), BenchmarkProgressSection (sparklines, null-safe), PRSummaryStrip; benchmarks API endpoint added (GET /api/v1/analytics/benchmarks); destructuring bug fixed; PeriodSelector SelectValue fix; overflow fix; 1-decimal PR weights; seed_progress_demo.sql for local validation |
-| `feat/ui-records` | 🔲 Not started | — | Blocked on B2 for live PR data |
+| `feat/ui-records` | ✅ Done | #56 | `/records` route, PRCard collapsible, category tabs, sparklines, OLS projection, timeline view, empty states, shimmer banner. ui-iterate: CategoryTabs overflow fix, delta double-negative fix, active toggle font-medium. |
 | `feat/ui-coach` | 🔲 Not started | — | Blocked on B4 |
 | `feat/ui-onboarding` | 🔲 Not started | — | Blocked on B5 |
 | `feat/ui-profile` | 🔲 Not started | — | Blocked on B5 |
-| `feat/ui-gamification` | 🔲 Not started | — | Blocked on B2 |
-| `feat/ui-tag` | ✅ Done | — | `/log/tag` page + FAB speed-dial + sidebar nav item + history TagCard + filter toggle. ui-iterate: MovementSearch design-system colors + w-full + min-h-[44px]; submit min-h-[48px]. B7 + F8 add history differentiation + Records entry point (stub-safe until those land). |
+| `feat/ui-gamification` | ✅ Done | — | streak milestone toasts, atRisk fix (Thu-Sun), comeback CTA, WeekMiniGraph pulse, PR/initial-commit toasts from logger, EmptyState, AppInit cleanup, Toaster theme |
+| `feat/ui-tag` | ✅ Done | #54 | `/log/tag` page + FAB speed-dial + sidebar nav item + history TagCard + filter toggle. ui-iterate: MovementSearch design-system colors + w-full + min-h-[44px]; submit min-h-[48px]. B7 + F8 add history differentiation + Records entry point (stub-safe until those land). |
 | `feat/api-last-result` | ✅ Done | — | `LastResult` model + repo + router; 4 tests (auth, 404, recency, user-scope) |
-| `feat/api-pr-detection` | 🔲 Not started | — | |
+| `feat/api-pr-detection` | ✅ Done | #55 | _flag_prs() UPDATE on create_workout; PersonalRecord extended with load_kg/reps/time_s/prev_best_1rm_kg/delta_kg; movementTrend added to client.ts; 8 new tests |
 | `feat/api-movement-result-type` | 🔲 Not started | — | |
 | `feat/api-coach-streaming` | 🔲 Not started | — | |
 | `feat/api-profile` | 🔲 Not started | — | |

@@ -7,13 +7,13 @@ import { cn } from "@/lib/utils";
 import type { WorkoutSummary } from "@/lib/api";
 
 const DAYS = [
-  { key: 1, label: "Mon" },
-  { key: 2, label: "Tue" },
-  { key: 3, label: "Wed" },
-  { key: 4, label: "Thu" },
-  { key: 5, label: "Fri" },
-  { key: 6, label: "Sat" },
-  { key: 0, label: "Sun" },
+  { key: 1, label: "M", full: "Mon" },
+  { key: 2, label: "T", full: "Tue" },
+  { key: 3, label: "W", full: "Wed" },
+  { key: 4, label: "T", full: "Thu" },
+  { key: 5, label: "F", full: "Fri" },
+  { key: 6, label: "S", full: "Sat" },
+  { key: 0, label: "S", full: "Sun" },
 ] as const;
 
 interface WeekMiniGraphProps {
