@@ -33,6 +33,8 @@ type VariantDatesInput = OneOf<[IDatesPerVariant, IWeightedDatesEntry]>;
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   variantClassnames: Classname[];
+  /** Optional per-day native tooltip (e.g. date + count + metric); adds a `title` to each cell. */
+  dayTitle?: (date: Date) => string | undefined;
 } & VariantDatesInput;
 
 function useModifiers(
@@ -52,6 +54,10 @@ function useModifiers(
   return [modifiers, modifiersClassNames];
 }
 
+// Buckets dates into `noOfVariants` equal-width bins across the user's OWN
+// min→max weight (relative, not absolute thresholds). This keeps every user's
+// graph vivid — a beginner's range still spans all levels — at the cost of
+// cross-user / temporal comparability. (style-updates/design/03 §2.)
 function categorizeDatesPerVariant(
   weightedDates: WeightedDateEntry[],
   noOfVariants: number,
@@ -81,6 +87,7 @@ function CalendarHeatmap({
   variantClassnames,
   datesPerVariant,
   weightedDates,
+  dayTitle,
   className,
   classNames,
   showOutsideDays = true,
@@ -134,6 +141,16 @@ function CalendarHeatmap({
       ) : (
         <ChevronRight className="h-4 w-4" {...rest} />
       ),
+    ...(dayTitle
+      ? {
+          // Per-cell native tooltip. The day cell is a <td> (no inner button in
+          // no-selection mode); strip rdp-internal props before spreading to the DOM.
+          Day: ({ day, modifiers, ...tdProps }) => {
+            void modifiers;
+            return <td {...tdProps} title={dayTitle(day.date)} />;
+          },
+        }
+      : {}),
   };
 
   return (
