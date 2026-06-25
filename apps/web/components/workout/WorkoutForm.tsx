@@ -173,6 +173,7 @@ export function WorkoutForm({
         values.bodyweight_kg !== "" && values.bodyweight_kg != null
           ? Number(values.bodyweight_kg)
           : undefined,
+      is_tag: false,
       results: values.results.map((r, i) => ({
         movement_id: r.movement_id,
         result_type: r.result_type,

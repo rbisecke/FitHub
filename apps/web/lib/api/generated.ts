@@ -1135,6 +1135,11 @@ export interface components {
       session_rpe?: number | string | null;
       /** Duration S */
       duration_s?: number | null;
+      /**
+       * Is Tag
+       * @default false
+       */
+      is_tag: boolean;
       /** Results */
       results?: components["schemas"]["CreateResultRequest"][];
     };
@@ -2159,6 +2164,11 @@ export interface components {
       /** Trimp Au */
       trimp_au: string | null;
       /**
+       * Is Tag
+       * @default false
+       */
+      is_tag: boolean;
+      /**
        * Created At
        * Format: date-time
        */
@@ -2239,6 +2249,11 @@ export interface components {
       max_hr: number | null;
       /** Trimp Au */
       trimp_au: string | null;
+      /**
+       * Is Tag
+       * @default false
+       */
+      is_tag: boolean;
       /**
        * Created At
        * Format: date-time

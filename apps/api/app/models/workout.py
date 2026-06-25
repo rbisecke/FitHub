@@ -53,6 +53,7 @@ class Workout(BaseModel):
     avg_hr: int | None
     max_hr: int | None
     trimp_au: Decimal | None
+    is_tag: bool = False
     created_at: datetime
     updated_at: datetime
     results: list[Result] = Field(default_factory=list)
@@ -77,6 +78,7 @@ class WorkoutSummary(BaseModel):
     avg_hr: int | None
     max_hr: int | None
     trimp_au: Decimal | None
+    is_tag: bool = False
     created_at: datetime
     updated_at: datetime
     result_count: int = 0
@@ -94,6 +96,7 @@ class CreateWorkoutRequest(BaseModel):
     location: str | None = None
     session_rpe: Decimal | None = Field(default=None, ge=0, le=10)
     duration_s: int | None = Field(default=None, gt=0)
+    is_tag: bool = False
     results: list[CreateResultRequest] = Field(default_factory=list)
 
 

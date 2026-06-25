@@ -202,8 +202,8 @@ export function TagPageClient({
 
       const body = {
         performed_at: toISOLocal(values.performed_at),
+        is_tag: true,
         results: [resultRow],
-        // is_tag: true — field added once B7 (is_tag column) lands
       };
 
       await api.workouts.create(accessToken, body);

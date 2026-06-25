@@ -3808,6 +3808,11 @@
             ],
             "title": "Duration S"
           },
+          "is_tag": {
+            "type": "boolean",
+            "title": "Is Tag",
+            "default": false
+          },
           "results": {
             "items": {
               "$ref": "#/components/schemas/CreateResultRequest"
@@ -6957,6 +6962,11 @@
             ],
             "title": "Trimp Au"
           },
+          "is_tag": {
+            "type": "boolean",
+            "title": "Is Tag",
+            "default": false
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -7221,6 +7231,11 @@
               }
             ],
             "title": "Trimp Au"
+          },
+          "is_tag": {
+            "type": "boolean",
+            "title": "Is Tag",
+            "default": false
           },
           "created_at": {
             "type": "string",
