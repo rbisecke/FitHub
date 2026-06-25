@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { tooltipContentStyle } from "@/lib/chart-utils";
+import { ChartEmpty } from "@/components/ui/chart-empty";
 import type { E1RMPoint } from "@/lib/api";
 
 interface Props {
@@ -17,11 +18,7 @@ interface Props {
 
 export function PRSparkline({ points }: Props) {
   if (points.length < 2) {
-    return (
-      <p className="font-mono text-xs text-[--muted] mt-1">
-        Not enough PR history
-      </p>
-    );
+    return <ChartEmpty className="mt-1" message="Not enough PR history yet" />;
   }
 
   const data = points.map((p) => ({

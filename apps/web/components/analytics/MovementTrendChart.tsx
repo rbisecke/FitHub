@@ -5,6 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 import { useReducedMotion } from "motion/react";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { tooltipContentStyle } from "@/lib/chart-utils";
+import { ChartEmpty } from "@/components/ui/chart-empty";
 import type { E1RMPoint } from "@/lib/api";
 
 interface Props {
@@ -35,9 +36,7 @@ export function MovementTrendChart({ movementId, token }: Props) {
   if (points === null) return null;
 
   if (points.length < 3) {
-    return (
-      <p className="font-mono text-xs text-[--muted] mt-1">Not enough data</p>
-    );
+    return <ChartEmpty className="mt-1" />;
   }
 
   const data = points.map((pt) => ({
