@@ -70,6 +70,17 @@ class BenchmarkResponse(BaseModel):
     benchmarks: list[BenchmarkEntry]
 
 
+class TrainingBalanceCategory(BaseModel):
+    category: str
+    volume_pct: float
+    load_au: float
+
+
+class TrainingBalanceResponse(BaseModel):
+    breakdown: list[TrainingBalanceCategory]
+    period_days: int
+
+
 class ReadinessResponse(BaseModel):
     score: float
     label: str

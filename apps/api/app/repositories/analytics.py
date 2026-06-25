@@ -238,6 +238,50 @@ async def get_readiness(
     }
 
 
+async def get_training_balance(
+    conn: psycopg.AsyncConnection[Any],
+    user_id: uuid.UUID,
+    days: int = 28,
+) -> list[dict[str, Any]]:
+    """Return volume share per primary_muscle_group over the last N days.
+
+    Only movements with a tagged primary_muscle_group are included.
+    Returns rows sorted by load_au descending.
+    """
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            WITH tagged AS (
+                SELECT
+                    m.primary_muscle_group            AS category,
+                    SUM(COALESCE(r.load_kg * r.reps, 0))::float AS load_au
+                FROM results r
+                JOIN workouts  w ON r.workout_id  = w.id
+                JOIN movements m ON r.movement_id = m.id
+                WHERE w.user_id              = %s
+                  AND w.performed_at         >= NOW() - %s * INTERVAL '1 day'
+                  AND m.primary_muscle_group IS NOT NULL
+                GROUP BY m.primary_muscle_group
+            ),
+            total AS (
+                SELECT SUM(load_au) AS grand_total FROM tagged
+            )
+            SELECT
+                t.category,
+                t.load_au,
+                CASE WHEN tt.grand_total > 0
+                     THEN ROUND((t.load_au / tt.grand_total)::numeric, 4)::float
+                     ELSE 0
+                END AS volume_pct
+            FROM tagged t
+            CROSS JOIN total tt
+            ORDER BY t.load_au DESC
+            """,
+            (user_id, days),
+        )
+        return await cur.fetchall()
+
+
 async def get_benchmark_attempts(
     conn: psycopg.AsyncConnection[Any],
     user_id: uuid.UUID,

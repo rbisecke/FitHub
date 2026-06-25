@@ -18,6 +18,8 @@ from app.models.analytics import (
     LoadModelResponse,
     PersonalRecord,
     ReadinessResponse,
+    TrainingBalanceCategory,
+    TrainingBalanceResponse,
     VolumeTrendResponse,
     WeeklyVolume,
 )
@@ -27,6 +29,7 @@ from app.repositories.analytics import (
     get_movement_trend,
     get_personal_records,
     get_readiness,
+    get_training_balance,
     get_volume_trend,
 )
 
@@ -189,3 +192,23 @@ async def benchmarks(
         )
 
     return BenchmarkResponse(benchmarks=entries)
+
+
+@router.get("/training-balance", response_model=TrainingBalanceResponse)
+async def training_balance(
+    days: int = Query(28, ge=7, le=365),
+    user: UserContext = Depends(get_current_user),
+    conn: psycopg.AsyncConnection[Any] = Depends(get_db),
+) -> TrainingBalanceResponse:
+    rows = await get_training_balance(conn, user.user_id, days)
+    return TrainingBalanceResponse(
+        breakdown=[
+            TrainingBalanceCategory(
+                category=r["category"],
+                volume_pct=float(r["volume_pct"]),
+                load_au=float(r["load_au"]),
+            )
+            for r in rows
+        ],
+        period_days=days,
+    )
