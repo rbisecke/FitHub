@@ -57,6 +57,7 @@ export function Step4FirstWorkout({ token, onNext, onSkip, onBack }: Props) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={`"21-15-9 thrusters and pull-ups, Fran, ~8 min"`}
+          aria-label="Describe your workout"
           rows={4}
           className="resize-none border-[#30363d] bg-[#161b22] font-mono text-sm text-[#e6edf3] placeholder:text-[#8b949e] focus-visible:ring-[#58a6ff]"
         />
@@ -73,16 +74,16 @@ export function Step4FirstWorkout({ token, onNext, onSkip, onBack }: Props) {
         >
           {saving ? "Saving…" : "Log workout"}
         </Button>
-        <div className="flex justify-center gap-6">
+        <div className="flex justify-center gap-2">
           <button
             onClick={onBack}
-            className="py-2 text-xs text-[#8b949e] transition-colors hover:text-[#e6edf3]"
+            className="inline-flex min-h-[44px] items-center px-4 text-xs text-[#8b949e] transition-colors hover:text-[#e6edf3]"
           >
             Back
           </button>
           <button
             onClick={onSkip}
-            className="py-2 text-xs text-[#8b949e] transition-colors hover:text-[#e6edf3]"
+            className="inline-flex min-h-[44px] items-center px-4 text-xs text-[#8b949e] transition-colors hover:text-[#e6edf3]"
           >
             Skip for now
           </button>

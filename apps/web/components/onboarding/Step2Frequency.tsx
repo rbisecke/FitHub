@@ -62,7 +62,7 @@ export function Step2Frequency({ defaultValue = 3, onNext, onBack }: Props) {
         <div className="flex justify-center">
           <button
             onClick={onBack}
-            className="py-2 text-xs text-[#8b949e] transition-colors hover:text-[#e6edf3]"
+            className="inline-flex min-h-[44px] items-center px-4 text-xs text-[#8b949e] transition-colors hover:text-[#e6edf3]"
           >
             Back
           </button>

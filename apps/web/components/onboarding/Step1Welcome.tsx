@@ -39,10 +39,8 @@ export function Step1Welcome({ onStart, onSkipAll }: Props) {
         className="mt-4 text-sm leading-relaxed text-[#8b949e]"
       >
         FitHub tracks your CrossFit training like git tracks code — every
-        workout is a commit, every PR is a tagged release.
-        <br />
-        <br />
-        Let&apos;s set up your repo.
+        workout is a commit, every PR is a tagged release. Let&apos;s set up
+        your repo.
       </motion.p>
 
       <div className="flex-1" />
@@ -57,7 +55,7 @@ export function Step1Welcome({ onStart, onSkipAll }: Props) {
         <div className="flex justify-center">
           <button
             onClick={onSkipAll}
-            className="py-2 text-xs text-[#8b949e] transition-colors hover:text-[#e6edf3]"
+            className="inline-flex min-h-[44px] items-center px-4 text-xs text-[#8b949e] transition-colors hover:text-[#e6edf3]"
           >
             Skip setup
           </button>

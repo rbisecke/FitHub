@@ -13,7 +13,7 @@ export default async function OnboardingLayout({
   if (!user) redirect("/login");
 
   return (
-    <div className="min-h-[100dvh] bg-[#0d1117]">
+    <div className="min-h-[100dvh] bg-[#0d1117] md:flex md:items-center">
       <div className="mx-auto w-full max-w-md">{children}</div>
     </div>
   );
