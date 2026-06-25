@@ -17,7 +17,7 @@
 | Design doc accuracy review | ✅ Done | Each doc has `## Accuracy Review` section |
 | Design iteration tooling | ✅ Done | Playwright MCP, Chrome DevTools MCP, Unlighthouse |
 | CLAUDE.md design system | ✅ Done | Color palette, typography, spacing encoded |
-| Implementation | 🔄 In progress | F1–F9, F12, F13 merged; B1–B5 merged; F10/F11 unblocked; B6–B7 not started |
+| Implementation | 🔄 In progress | F1–F13 all done (PRs open/merged); B1–B5 merged; B6–B7 not started |
 
 ---
 
@@ -119,8 +119,8 @@ All design docs live in this directory (`claude_docs/planning/frontend-revamp/`)
 | `feat/ui-progress` | ✅ Done | #52 | TrainingSummaryHero (narrative + metric tiles), StrengthProgressSection (e1rm line chart + movement picker), VolumeTrendSection (period selector), TrainingBalanceSection (null-safe), BenchmarkProgressSection (sparklines, null-safe), PRSummaryStrip; benchmarks API endpoint added (GET /api/v1/analytics/benchmarks); destructuring bug fixed; PeriodSelector SelectValue fix; overflow fix; 1-decimal PR weights; seed_progress_demo.sql for local validation |
 | `feat/ui-records` | ✅ Done | #56 | `/records` route, PRCard collapsible, category tabs, sparklines, OLS projection, timeline view, empty states, shimmer banner. ui-iterate: CategoryTabs overflow fix, delta double-negative fix, active toggle font-medium. |
 | `feat/ui-coach` | ✅ Done | #60 #62 | CoachShell (session list desktop + drawer mobile), ChatPanel (SSE stream, rehydrate from sessions API), MessageBubble (markdown, safety tier, stub badge), ChatInput (auto-resize, stop button), StarterPrompts, SessionList/Drawer/ListItem, TypingIndicator. Lazy session create → router.replace on done event. h-full fix (not h-dvh). ui-iterate (#62): action bar 28→44px, send/stop 36→44px, prompt cards min-h-[44px], comment text contrast fix, always grid-cols-2. |
-| `feat/ui-onboarding` | 🔲 Not started | — | Unblocked |
-| `feat/ui-profile` | 🔲 Not started | — | Unblocked |
+| `feat/ui-onboarding` | 🔄 PR open | — | 5-step wizard (/onboarding/1-5), onboarding_completed migration 0036, parse-nl route, dashboard toast |
+| `feat/ui-profile` | ✅ Done | #63 | UserPrefsContext, ProfilePage, ProfileHeader, StatsSummaryStrip, PartnerList, all settings toggles, AccountSection, ProfileSkeleton; email overlay from Supabase session; a11y: RadioGroupItem aria-label fix, overflow-hidden for Switch pseudo-element |
 | `feat/ui-gamification` | ✅ Done | #57 | streak milestone toasts, atRisk fix (Thu-Sun), comeback CTA, WeekMiniGraph pulse, PR/initial-commit toasts from logger, EmptyState, AppInit cleanup, Toaster theme. ui-iterate: amber number+bg for atRisk, "weeks committed", "best:" label, single-letter day labels. Seed: realistic 3-5×/week cluster pattern (no checkerboard). |
 | `feat/ui-tag` | ✅ Done | #54 | `/log/tag` page + FAB speed-dial + sidebar nav item + history TagCard + filter toggle. ui-iterate: MovementSearch design-system colors + w-full + min-h-[44px]; submit min-h-[48px]. B7 + F8 add history differentiation + Records entry point (stub-safe until those land). |
 | `feat/api-last-result` | ✅ Done | — | `LastResult` model + repo + router; 4 tests (auth, 404, recency, user-scope) |
