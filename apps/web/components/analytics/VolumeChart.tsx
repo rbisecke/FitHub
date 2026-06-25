@@ -9,12 +9,14 @@ interface Props {
   weeks: WeeklyVolume[];
 }
 
+// Session-type colors map to the semantic brand tokens (same hex values as the
+// design system) so chart color has a single source of truth in globals.css.
 const volumeConfig = {
-  strength: { label: "Strength", color: "#3fb950" },
-  metcon: { label: "Metcon", color: "#d29922" },
-  endurance: { label: "Endurance", color: "#bc8cff" },
-  skill: { label: "Skill", color: "#58a6ff" },
-  recovery: { label: "Recovery", color: "#39d353" },
+  strength: { label: "Strength", color: "var(--green)" },
+  metcon: { label: "Metcon", color: "var(--amber)" },
+  endurance: { label: "Endurance", color: "var(--purple)" },
+  skill: { label: "Skill", color: "var(--accent)" },
+  recovery: { label: "Recovery", color: "var(--cyan)" },
   other: { label: "Other", color: "var(--chart-axis)" },
 } satisfies ChartConfig;
 

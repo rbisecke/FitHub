@@ -41,7 +41,13 @@ const PERIOD_OPTIONS: PeriodOption[] = [
 const STORAGE_KEY = "progress.strength.period";
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-const LINE_COLORS = ["#bc8cff", "#3fb950", "#58a6ff", "#d29922"];
+// Series palette sourced from the semantic brand tokens (single source of truth).
+const LINE_COLORS = [
+  "var(--purple)",
+  "var(--green)",
+  "var(--accent)",
+  "var(--amber)",
+];
 
 type SeriesMap = Record<string, { name: string; points: E1RMPoint[] }>;
 
