@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useReducedMotion } from "motion/react";
 import { X, Plus, Search } from "lucide-react";
 import {
   LineChart,
@@ -62,6 +63,7 @@ export function StrengthProgressSection({
   token,
   className,
 }: Props) {
+  const prefersReducedMotion = useReducedMotion();
   const [selectedIds, setSelectedIds] = useState<string[]>(() =>
     personalRecords.slice(0, 2).map((pr) => pr.movement_id),
   );
@@ -265,6 +267,7 @@ export function StrengthProgressSection({
         >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
+              accessibilityLayer
               data={chartData}
               margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
             >
@@ -302,6 +305,7 @@ export function StrengthProgressSection({
                   dot={false}
                   strokeWidth={1.5}
                   connectNulls
+                  isAnimationActive={!prefersReducedMotion}
                 />
               ))}
             </LineChart>

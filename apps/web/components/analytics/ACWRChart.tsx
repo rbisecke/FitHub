@@ -8,6 +8,7 @@ import {
   Tooltip,
   ReferenceLine,
 } from "recharts";
+import { useReducedMotion } from "motion/react";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { tooltipContentStyle } from "@/lib/chart-utils";
 import type { DailyLoadPoint } from "@/lib/api";
@@ -25,6 +26,7 @@ function fmtDay(day: string): string {
 }
 
 export function ACWRChart({ series }: Props) {
+  const prefersReducedMotion = useReducedMotion();
   // Trim leading days with no ACWR data so the chart doesn't show weeks of blank space.
   const firstNonNull = series.findIndex(
     (pt) => pt.acwr !== null && pt.acwr !== undefined,
@@ -47,6 +49,7 @@ export function ACWRChart({ series }: Props) {
       className="h-52 w-full min-w-0"
     >
       <LineChart
+        accessibilityLayer
         data={data}
         margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
       >
@@ -84,6 +87,7 @@ export function ACWRChart({ series }: Props) {
           dot={false}
           strokeWidth={2}
           connectNulls
+          isAnimationActive={!prefersReducedMotion}
         />
       </LineChart>
     </ChartContainer>
