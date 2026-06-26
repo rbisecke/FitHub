@@ -14,6 +14,7 @@ import { FrequencyTargetControl } from "./FrequencyTargetControl";
 import { CheckinToggle } from "./CheckinToggle";
 import { GraphColourToggle } from "./GraphColourToggle";
 import { WeightUnitToggle } from "./WeightUnitToggle";
+import { DistanceUnitToggle } from "./DistanceUnitToggle";
 import { AccountSection } from "./AccountSection";
 
 interface Props {
@@ -57,6 +58,7 @@ export function ProfilePage({ profile, stats, partners, token }: Props) {
             token={token}
           />
           <WeightUnitToggle initial={profile.weight_unit} token={token} />
+          <DistanceUnitToggle initial={profile.distance_unit} token={token} />
           <div className="flex items-center justify-between py-3">
             <p className="text-sm text-[--text]">Theme</p>
             <span className="text-sm text-[--muted]">Dark (default)</span>
