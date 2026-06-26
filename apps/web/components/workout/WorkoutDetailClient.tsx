@@ -272,7 +272,7 @@ export function WorkoutDetailClient({
                     <span className="font-mono text-xs text-[--muted-strong]">
                       {i + 1}
                     </span>
-                    <span className="text-[--text] flex-1">
+                    <span className="text-[--text] flex-1 min-w-0 truncate">
                       {r.movement_name ? (
                         <span>{r.movement_name}</span>
                       ) : (

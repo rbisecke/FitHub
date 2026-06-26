@@ -57,9 +57,9 @@ export function ProfilePage({ profile, stats, partners, token }: Props) {
             token={token}
           />
           <WeightUnitToggle initial={profile.weight_unit} token={token} />
-          <div className="flex items-center justify-between py-3 pointer-events-none opacity-60">
-            <p className="text-sm text-[#e6edf3]">Theme</p>
-            <span className="text-sm text-[#8b949e]">Dark (default) →</span>
+          <div className="flex items-center justify-between py-3">
+            <p className="text-sm text-[--text]">Theme</p>
+            <span className="text-sm text-[--muted]">Dark (default)</span>
           </div>
         </SettingsSection>
 

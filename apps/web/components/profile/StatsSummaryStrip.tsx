@@ -6,12 +6,7 @@ interface Props {
 }
 
 export function StatsSummaryStrip({ stats }: Props) {
-  const streak =
-    stats.best_streak_weeks === 1
-      ? "1 wk"
-      : stats.best_streak_weeks > 0
-        ? `${stats.best_streak_weeks} wks`
-        : "—";
+  const hasStreak = stats.best_streak_weeks > 0;
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -27,7 +22,10 @@ export function StatsSummaryStrip({ stats }: Props) {
       />
       <StatCard
         label="Best streak"
-        value={streak}
+        value={hasStreak ? String(stats.best_streak_weeks) : "—"}
+        unit={
+          hasStreak ? (stats.best_streak_weeks === 1 ? "wk" : "wks") : undefined
+        }
         ariaLabel={`${stats.best_streak_weeks} week best streak`}
       />
       <StatCard
