@@ -10,6 +10,7 @@ import { useWatch } from "react-hook-form";
 import { MovementSearch } from "@/components/workout/MovementSearch";
 import { api } from "@/lib/api/client";
 import type { LastResult, Movement } from "@/lib/api";
+import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
 import { ResultFields, type ResultTypeValue } from "./ResultFields";
 import { PrevSessionBadge } from "./PrevSessionBadge";
 import type { LogFormValues } from "./schema";
@@ -31,12 +32,14 @@ export function MovementRow({
   setValue,
   remove,
 }: MovementRowProps) {
+  const { weightUnit } = useUserPrefs();
   const [lastResult, setLastResult] = useState<LastResult | null | undefined>(
     undefined,
   );
   const [selectedName, setSelectedName] = useState<string | undefined>(
     undefined,
   );
+  const [modality, setModality] = useState<string | undefined>(undefined);
 
   const resultType = useWatch({
     control,
@@ -53,6 +56,7 @@ export function MovementRow({
         (m.default_result_type as ResultTypeValue | null) ?? "weight",
       );
       setSelectedName(m.name);
+      setModality(m.modality);
       setLastResult(undefined); // clear while loading
 
       try {
@@ -122,6 +126,9 @@ export function MovementRow({
           index={index}
           resultType={resultType}
           register={register}
+          weightUnit={weightUnit}
+          setValue={setValue}
+          isCardioCompound={modality === "mono_structural"}
         />
         <PrevSessionBadge lastResult={lastResult} onFill={handleFill} />
       </div>

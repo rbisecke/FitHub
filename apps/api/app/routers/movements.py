@@ -9,10 +9,17 @@ from psycopg import errors as pg_errors
 
 from app.auth import UserContext, get_current_user
 from app.db import get_db
-from app.models.movement import CreateMovementRequest, LastResult, Modality, Movement
+from app.models.movement import (
+    CreateMovementRequest,
+    LastResult,
+    Modality,
+    Movement,
+    PersonalRecordResult,
+)
 from app.repositories.movements import (
     create_movement,
     get_last_result_for_movement,
+    get_personal_record,
     search_movements,
 )
 
@@ -61,3 +68,19 @@ async def get_last_result(
             detail="No previous result found",
         )
     return result
+
+
+@router.get(
+    "/{movement_id}/personal-record",
+    response_model=PersonalRecordResult | None,
+)
+async def get_movement_personal_record(
+    movement_id: uuid.UUID,
+    user: Auth,
+    conn: DBConn,
+) -> PersonalRecordResult | None:
+    return await get_personal_record(
+        conn,
+        user_id=user.user_id,
+        movement_id=movement_id,
+    )

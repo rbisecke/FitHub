@@ -334,6 +334,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/movements/{movement_id}/personal-record": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Movement Personal Record */
+    get: operations["get_movement_personal_record_api_v1_movements__movement_id__personal_record_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/profile": {
     parameters: {
       query?: never;
@@ -1601,6 +1618,30 @@ export interface components {
       /** Delta Kg */
       delta_kg?: number | null;
     };
+    /** PersonalRecordResult */
+    PersonalRecordResult: {
+      /**
+       * Movement Id
+       * Format: uuid
+       */
+      movement_id: string;
+      result_type: components["schemas"]["ResultType"];
+      /** Load Kg */
+      load_kg?: string | null;
+      /** Reps */
+      reps?: number | null;
+      /** Time S */
+      time_s?: number | null;
+      /** Distance M */
+      distance_m?: string | null;
+      /** Estimated 1Rm Kg */
+      estimated_1rm_kg?: string | null;
+      /**
+       * Achieved At
+       * Format: date
+       */
+      achieved_at: string;
+    };
     /** PlanDetail */
     PlanDetail: {
       /** Id */
@@ -2826,6 +2867,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["LastResult"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_movement_personal_record_api_v1_movements__movement_id__personal_record_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        movement_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json":
+            | components["schemas"]["PersonalRecordResult"]
+            | null;
         };
       };
       /** @description Validation Error */
