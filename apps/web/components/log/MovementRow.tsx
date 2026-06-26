@@ -32,7 +32,7 @@ export function MovementRow({
   setValue,
   remove,
 }: MovementRowProps) {
-  const { weightUnit } = useUserPrefs();
+  const { weightUnit, distanceUnit } = useUserPrefs();
   const [lastResult, setLastResult] = useState<LastResult | null | undefined>(
     undefined,
   );
@@ -130,7 +130,11 @@ export function MovementRow({
           setValue={setValue}
           isCardioCompound={modality === "mono_structural"}
         />
-        <PrevSessionBadge lastResult={lastResult} onFill={handleFill} />
+        <PrevSessionBadge
+          lastResult={lastResult}
+          onFill={handleFill}
+          distanceUnit={distanceUnit}
+        />
       </div>
 
       {/* hidden field so result_type is tracked in form state */}

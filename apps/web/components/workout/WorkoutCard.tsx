@@ -9,6 +9,8 @@ import { sessionLabel, formatLabel, loadDisplay } from "@/lib/display";
 import { api } from "@/lib/api/client";
 import { isBenchmark } from "@/lib/workout/benchmarks";
 import { relativeDate } from "@/lib/display";
+import { fmtDistance, type DistanceUnit } from "@/lib/distance";
+import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
 
 // Session-type badge colours mapped to brand tokens (token tints for border/bg),
 // matching WorkoutDetailClient so the list + detail read identically.
@@ -229,6 +231,7 @@ function ExpandedContent({
   summary: WorkoutSummary;
   onMovementFilter?: (m: { id: string; name: string }) => void;
 }) {
+  const { distanceUnit } = useUserPrefs();
   const dateStr = summary.performed_at.slice(0, 10);
   const [y, mo, d] = dateStr.split("-").map(Number) as [number, number, number];
   const fullDateLabel = new Date(y, mo - 1, d).toLocaleDateString("en-US", {
@@ -277,6 +280,8 @@ function ExpandedContent({
                           `${parseFloat(Number(r.load_kg).toFixed(3))} kg`}
                         {r.reps && ` × ${r.reps}`}
                         {r.time_s && formatTime(r.time_s)}
+                        {r.distance_m &&
+                          fmtDistance(Number(r.distance_m), distanceUnit)}
                       </span>
                       {r.estimated_1rm_kg && (
                         <span className="font-mono text-[#8b949e]">
@@ -405,17 +410,20 @@ function ExpandedContent({
 
 // ── Tag card ─────────────────────────────────────────────────────────────────
 
-function formatResultValue(r: {
-  result_type: string;
-  load_kg?: string | number | null;
-  reps?: number | null;
-  time_s?: number | null;
-  distance_m?: string | number | null;
-  calories?: number | null;
-  rounds?: number | null;
-  partial_reps?: number | null;
-  watts?: number | null;
-}): string {
+function formatResultValue(
+  r: {
+    result_type: string;
+    load_kg?: string | number | null;
+    reps?: number | null;
+    time_s?: number | null;
+    distance_m?: string | number | null;
+    calories?: number | null;
+    rounds?: number | null;
+    partial_reps?: number | null;
+    watts?: number | null;
+  },
+  distanceUnit: DistanceUnit,
+): string {
   if (r.result_type === "weight") {
     const load = r.load_kg != null ? String(r.load_kg) : null;
     if (!load) return "";
@@ -426,6 +434,9 @@ function formatResultValue(r: {
     const m = Math.floor(r.time_s / 60);
     const s = r.time_s % 60;
     return `${m}:${String(s).padStart(2, "0")}`;
+  }
+  if (r.result_type === "distance" && r.distance_m != null) {
+    return fmtDistance(Number(r.distance_m), distanceUnit);
   }
   if (r.result_type === "calories")
     return r.calories != null ? `${r.calories} cal` : "";
@@ -449,6 +460,7 @@ function TagCard({
   detailLoading: boolean;
   accessToken: string;
 }) {
+  const { distanceUnit } = useUserPrefs();
   const [localDetail, setLocalDetail] = useState<Workout | null>(detail);
   const [loading, setLoading] = useState(detailLoading);
   const fetchedRef = useRef(false);
@@ -466,7 +478,7 @@ function TagCard({
 
   const result = localDetail?.results?.[0];
   const movementName = result?.movement_name ?? null;
-  const resultValue = result ? formatResultValue(result) : null;
+  const resultValue = result ? formatResultValue(result, distanceUnit) : null;
 
   const dateStr = workout.performed_at.slice(0, 10);
   const [y, mo, d] = dateStr.split("-").map(Number) as [number, number, number];
