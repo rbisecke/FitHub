@@ -25,7 +25,7 @@ The app is invite-only and in active development. Email [rbisecke@gmail.com](mai
 | **Personal records**    | `git tag` — milestone screen for quick PR logging; Records page with sparklines, trend projections, and named-benchmark progress (e.g. Fran 4:47 → 3:48)                  |
 | **AI coach & planning** | SSE streaming chat with session history; hybrid RAG (BM25 + pgvector RRF fusion); adaptive plan generator with deterministic ACWR/readiness triggers; injury train-around |
 | **Data model depth**    | Poliquin 4-digit tempo notation; Epley e1RM cached at write time; VBT fields; wearable-ready schema; IDOR-safe team session consent model                                 |
-| **Engineering**         | Invite-only multi-user from day one; deterministic safety logic; 433 tests across four suites; openapi-typescript contract check in CI                                    |
+| **Engineering**         | Invite-only multi-user from day one; deterministic safety logic; 455 tests across four suites; openapi-typescript contract check in CI                                    |
 
 ---
 
@@ -59,7 +59,7 @@ The frontend calls FastAPI exclusively. Supabase handles auth (magic-link + Goog
 | Database | Supabase Postgres + pgvector, RLS on every table                                 |
 | Auth     | Supabase magic-link + Google OAuth, ES256 JWT via JWKS                           |
 | AI       | Claude Haiku 4.5 via Instructor, SSE streaming, hybrid RAG (BM25 + pgvector RRF) |
-| Testing  | pytest (252), pgTAP RLS (52), Playwright E2E (65), Vitest unit (64)              |
+| Testing  | pytest (252), pgTAP RLS (52), Playwright E2E (65), Vitest unit (86)              |
 | CI       | GitHub Actions: lint, typecheck, test, contract drift, security audit            |
 | Hosting  | Railway (API) · Vercel (web) · Supabase (DB / auth)                              |
 
@@ -195,7 +195,7 @@ FitHub has four test suites and passes strict static analysis. pgTAP is worth hi
 | Unit + integration | pytest      | 252   | API routes, repositories, AI stubs, rate limiting, auth |
 | DB isolation       | pgTAP       | 52    | RLS policies on every table, cross-user data isolation  |
 | Browser E2E        | Playwright  | 65    | Auth flow, workout CRUD, coach chat, plan generation    |
-| Unit (frontend)    | Vitest      | 64    | Utility functions, hooks, API client, component logic   |
+| Unit (frontend)    | Vitest      | 86    | Utility functions, hooks, API client, component logic   |
 | Static analysis    | mypy + ruff | —     | Strict mypy, zero `Any` in models, ruff format          |
 
 ```bash
