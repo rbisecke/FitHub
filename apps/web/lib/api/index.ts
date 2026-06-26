@@ -70,6 +70,12 @@ export interface UserProfile {
   weight_unit: WeightUnit;
   checkin_enabled: boolean;
   onboarding_completed: boolean;
+  bio: string | null;
+  location: string | null;
+  box_affiliation: string | null;
+  distance_unit: "km" | "mi";
+  training_level: string | null;
+  training_since: string | null;
 }
 
 export interface ProfileStats {

@@ -1555,6 +1555,28 @@ export interface components {
       checkin_enabled?: boolean | null;
       /** Onboarding Completed */
       onboarding_completed?: boolean | null;
+      /** Display Name */
+      display_name?: string | null;
+      /** Bio */
+      bio?: string | null;
+      /** Location */
+      location?: string | null;
+      /** Box Affiliation */
+      box_affiliation?: string | null;
+      /** Distance Unit */
+      distance_unit?: ("km" | "mi") | null;
+      /** Training Level */
+      training_level?:
+        | (
+            | "recreational"
+            | "intermediate"
+            | "competitive"
+            | "masters"
+            | "elite"
+          )
+        | null;
+      /** Training Since */
+      training_since?: string | null;
     };
     /** PatchTeamSessionRequest */
     PatchTeamSessionRequest: {
@@ -2126,6 +2148,21 @@ export interface components {
       checkin_enabled: boolean;
       /** Onboarding Completed */
       onboarding_completed: boolean;
+      /** Bio */
+      bio?: string | null;
+      /** Location */
+      location?: string | null;
+      /** Box Affiliation */
+      box_affiliation?: string | null;
+      /**
+       * Distance Unit
+       * @default km
+       */
+      distance_unit: string;
+      /** Training Level */
+      training_level?: string | null;
+      /** Training Since */
+      training_since?: string | null;
     };
     /** ValidationError */
     ValidationError: {

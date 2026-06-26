@@ -4957,6 +4957,96 @@
               }
             ],
             "title": "Onboarding Completed"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "box_affiliation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Box Affiliation"
+          },
+          "distance_unit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "km",
+                  "mi"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance Unit"
+          },
+          "training_level": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "recreational",
+                  "intermediate",
+                  "competitive",
+                  "masters",
+                  "elite"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Level"
+          },
+          "training_since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Since"
           }
         },
         "type": "object",
@@ -6814,6 +6904,66 @@
           "onboarding_completed": {
             "type": "boolean",
             "title": "Onboarding Completed"
+          },
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "box_affiliation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Box Affiliation"
+          },
+          "distance_unit": {
+            "type": "string",
+            "title": "Distance Unit",
+            "default": "km"
+          },
+          "training_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Level"
+          },
+          "training_since": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Since"
           }
         },
         "type": "object",
