@@ -8,7 +8,9 @@ from psycopg.rows import dict_row
 
 from app.models.profile import (
     PatchProfileRequest,
+    PinnedMovement,
     ProfileStats,
+    SetPinnedMovementsRequest,
     UserProfile,
 )
 
@@ -228,3 +230,58 @@ async def find_user_by_email(
         )
         row = await cur.fetchone()
     return dict(row) if row else None
+
+
+async def list_pinned_movements(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    user_id: uuid.UUID,
+) -> list[PinnedMovement]:
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT
+                pm.movement_id,
+                m.name        AS movement_name,
+                m.modality,
+                pm.display_order
+            FROM public.user_pinned_movements pm
+            JOIN public.movements m ON m.id = pm.movement_id
+            WHERE pm.user_id = %s
+            ORDER BY pm.display_order
+            """,
+            (user_id,),
+        )
+        rows = await cur.fetchall()
+    return [
+        PinnedMovement(
+            movement_id=row["movement_id"],
+            movement_name=row["movement_name"],
+            modality=row["modality"],
+            display_order=row["display_order"],
+        )
+        for row in rows
+    ]
+
+
+async def set_pinned_movements(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    user_id: uuid.UUID,
+    body: SetPinnedMovementsRequest,
+) -> list[PinnedMovement]:
+    async with conn.cursor() as cur:
+        await cur.execute(
+            "DELETE FROM public.user_pinned_movements WHERE user_id = %s",
+            (user_id,),
+        )
+        if body.movement_ids:
+            await cur.executemany(
+                """
+                INSERT INTO public.user_pinned_movements
+                    (user_id, movement_id, display_order)
+                VALUES (%s, %s, %s)
+                """,
+                [(user_id, mid, idx) for idx, mid in enumerate(body.movement_ids)],
+            )
+    return await list_pinned_movements(conn, user_id=user_id)

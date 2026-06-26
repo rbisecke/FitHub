@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -59,7 +59,7 @@ class PinnedMovement(BaseModel):
     movement_name: str
     modality: str
     display_order: int
-    personal_record: dict | None = None  # simplified for now — PR data from results
+    personal_record: dict[str, Any] | None = None
 
 
 class SetPinnedMovementsRequest(BaseModel):
