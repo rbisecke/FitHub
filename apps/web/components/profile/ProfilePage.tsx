@@ -6,6 +6,7 @@ import type {
   ProfileStats,
   TrainingPartner,
   FrequencyTarget,
+  PinnedMovement,
 } from "@/lib/api";
 import { ProfileHeader } from "./ProfileHeader";
 import { StatsSummaryStrip } from "./StatsSummaryStrip";
@@ -17,11 +18,13 @@ import { GraphColourToggle } from "./GraphColourToggle";
 import { WeightUnitToggle } from "./WeightUnitToggle";
 import { DistanceUnitToggle } from "./DistanceUnitToggle";
 import { AccountSection } from "./AccountSection";
+import { PinnedMovements } from "./PinnedMovements";
 
 interface Props {
   profile: UserProfile;
   stats: ProfileStats;
   partners: TrainingPartner[];
+  pinned: PinnedMovement[];
   token: string;
 }
 
@@ -29,6 +32,7 @@ export function ProfilePage({
   profile: initialProfile,
   stats,
   partners,
+  pinned,
   token,
 }: Props) {
   const [profile, setProfile] = useState<UserProfile>(initialProfile);
@@ -49,6 +53,8 @@ export function ProfilePage({
         />
 
         <StatsSummaryStrip stats={stats} />
+
+        <PinnedMovements initial={pinned} accessToken={token} />
 
         <SettingsSection label="Training Partners">
           <PartnerList initial={partners} token={token} />
