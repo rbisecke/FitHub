@@ -10,14 +10,16 @@ import { api } from "@/lib/api/client";
 import { isBenchmark } from "@/lib/workout/benchmarks";
 import { relativeDate } from "@/lib/display";
 
+// Session-type badge colours mapped to brand tokens (token tints for border/bg),
+// matching WorkoutDetailClient so the list + detail read identically.
 const SESSION_COLOURS: Record<string, string> = {
-  metcon: "text-orange-400 border-orange-800 bg-orange-950",
-  strength: "text-blue-400 border-blue-800 bg-blue-950",
-  skill: "text-purple-400 border-purple-800 bg-purple-950",
-  mixed: "text-teal-400 border-teal-800 bg-teal-950",
-  rest: "text-zinc-400 border-zinc-700 bg-zinc-900",
-  deload: "text-yellow-400 border-yellow-800 bg-yellow-950",
-  active_recovery: "text-green-400 border-green-800 bg-green-950",
+  metcon: "text-[--amber] border-[--amber]/40 bg-[--amber]/10",
+  strength: "text-[--accent] border-[--accent]/40 bg-[--accent]/10",
+  skill: "text-[--purple] border-[--purple]/40 bg-[--purple]/10",
+  mixed: "text-[--cyan] border-[--cyan]/40 bg-[--cyan]/10",
+  rest: "text-[--muted] border-[--border] bg-[--surface-2]",
+  deload: "text-[--amber] border-[--amber]/40 bg-[--amber]/10",
+  active_recovery: "text-[--green] border-[--green]/40 bg-[--green]/10",
 };
 
 function formatTime(seconds: number): string {
@@ -111,11 +113,11 @@ export function WorkoutCard({
           <div className="flex items-center gap-2 flex-wrap min-w-0">
             <span
               aria-hidden="true"
-              className="text-orange-400 text-xs select-none"
+              className="text-[--muted-strong] text-xs select-none"
             >
               ◉
             </span>
-            <span className="font-mono text-xs text-orange-400">
+            <span className="font-mono text-xs text-[--muted-strong]">
               <span className="sr-only">Workout ID: </span>
               {workout.short_hash}
             </span>
@@ -133,13 +135,13 @@ export function WorkoutCard({
               </span>
             )}
             {isPartner && (
-              <span className="text-xs font-mono border border-purple-800 bg-purple-950 text-purple-300 px-1.5 py-0.5 rounded">
+              <span className="text-xs font-mono border border-[--purple]/40 bg-[--purple]/10 text-[--purple] px-1.5 py-0.5 rounded">
                 Co-authored-by
               </span>
             )}
             {workout.has_pr && (
               <span
-                className="text-xs font-semibold px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300"
+                className="text-xs font-semibold px-1.5 py-0.5 rounded bg-[--green]/15 text-[--green]"
                 aria-label="Personal record achieved"
                 data-testid="pr-badge"
               >
@@ -284,7 +286,7 @@ function ExpandedContent({
                       {r.is_pr && (
                         <span
                           data-testid="result-pr-label"
-                          className="text-xs font-semibold px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300"
+                          className="text-xs font-semibold px-1.5 py-0.5 rounded bg-[--green]/15 text-[--green]"
                         >
                           PR
                         </span>
@@ -322,7 +324,7 @@ function ExpandedContent({
                 <span
                   className={`border rounded px-1.5 py-0.5 ${
                     SESSION_COLOURS[workout.session_type] ??
-                    "text-zinc-400 border-zinc-700"
+                    "text-[--muted] border-[--border]"
                   }`}
                 >
                   {sessionLabel(workout.session_type)}
@@ -500,7 +502,7 @@ function TagCard({
               )}
               {workout.has_pr && (
                 <span
-                  className="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300"
+                  className="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded bg-[--green]/15 text-[--green]"
                   aria-label="Personal record"
                 >
                   PR
