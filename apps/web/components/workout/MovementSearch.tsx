@@ -72,7 +72,7 @@ export function MovementSearch({
         {displayName}
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0 bg-[#161b22] border-[#30363d]">
-        <Command className="bg-[#161b22]">
+        <Command shouldFilter={false} className="bg-[#161b22]">
           <CommandInput
             placeholder="Search movements…"
             value={query}
