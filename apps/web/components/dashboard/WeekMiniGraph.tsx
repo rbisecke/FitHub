@@ -105,13 +105,25 @@ export function WeekMiniGraph({
                   )}
                 />
               )}
-              <span className="font-mono text-[9px] text-[--muted]">
+              <span className="font-mono text-[9px] text-[--muted-strong]">
                 {label}
               </span>
             </div>
           );
         })}
       </div>
+      <p className="font-mono text-xs mt-3 tabular-nums text-[--muted]">
+        <span
+          className={
+            thisWeekCount >= frequencyTarget
+              ? "text-[--green]"
+              : "text-[--text]"
+          }
+        >
+          {thisWeekCount}/{frequencyTarget}
+        </span>{" "}
+        sessions
+      </p>
     </motion.div>
   );
 }
