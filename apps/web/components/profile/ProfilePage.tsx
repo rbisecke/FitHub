@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type {
   UserProfile,
   ProfileStats,
@@ -24,7 +25,14 @@ interface Props {
   token: string;
 }
 
-export function ProfilePage({ profile, stats, partners, token }: Props) {
+export function ProfilePage({
+  profile: initialProfile,
+  stats,
+  partners,
+  token,
+}: Props) {
+  const [profile, setProfile] = useState<UserProfile>(initialProfile);
+
   const frequencyTarget = (
     [3, 4, 5, 6].includes(profile.frequency_target_days)
       ? profile.frequency_target_days
@@ -35,10 +43,9 @@ export function ProfilePage({ profile, stats, partners, token }: Props) {
     <div className="animate-fade-in">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <ProfileHeader
-          displayName={profile.display_name}
-          email={profile.email}
-          avatarUrl={profile.avatar_url}
-          firstWorkoutDate={profile.first_workout_date}
+          profile={profile}
+          accessToken={token}
+          onProfileUpdate={setProfile}
         />
 
         <StatsSummaryStrip stats={stats} />
