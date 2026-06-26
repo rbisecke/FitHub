@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { fmtDistance } from "@/lib/distance";
+import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -57,6 +59,7 @@ export function WorkoutDetailClient({
   accessToken: string;
 }) {
   const router = useRouter();
+  const { distanceUnit } = useUserPrefs();
   const [editing, setEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -294,6 +297,11 @@ export function WorkoutDetailClient({
                         </span>
                       )}
                       {r.time_s && <span>{formatTime(r.time_s)}</span>}
+                      {r.distance_m && (
+                        <span>
+                          {fmtDistance(Number(r.distance_m), distanceUnit)}
+                        </span>
+                      )}
                       {isPr && (
                         <span
                           data-testid="result-pr-label"
