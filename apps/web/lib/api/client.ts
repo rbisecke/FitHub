@@ -171,6 +171,13 @@ export const api = {
           | "weight_unit"
           | "checkin_enabled"
           | "onboarding_completed"
+          | "display_name"
+          | "bio"
+          | "location"
+          | "box_affiliation"
+          | "distance_unit"
+          | "training_level"
+          | "training_since"
         >
       >,
     ) =>
