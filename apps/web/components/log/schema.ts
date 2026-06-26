@@ -61,3 +61,4 @@ export const logFormSchema = z.object({
 
 export type LogFormValues = z.infer<typeof logFormSchema>;
 export type ResultRowValues = z.infer<typeof resultRowSchema>;
+export type SetEntryValues = z.infer<typeof setEntrySchema>;
