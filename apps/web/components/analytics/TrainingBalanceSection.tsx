@@ -89,12 +89,17 @@ export function TrainingBalanceSection({ data, className }: Props) {
       )}
 
       {data === null ? (
-        <div className="py-6 text-center">
-          <p className="text-xs text-[--muted]">
-            Training balance data is coming soon.
+        <div className="py-8 text-center">
+          {/* Ghost donut — the shape of the chart, waiting to be filled. */}
+          <div
+            aria-hidden="true"
+            className="mx-auto mb-3 h-16 w-16 rounded-full border-4 border-[--border]"
+          />
+          <p className="text-xs text-[--muted-strong]">
+            No movement categories tagged yet
           </p>
-          <p className="font-mono text-[10px] text-[--muted]/60 mt-1">
-            Requires movement categories to be configured.
+          <p className="font-mono text-[10px] text-[--muted] mt-1">
+            $ git diff --stat · tag movements to see your split
           </p>
         </div>
       ) : (
