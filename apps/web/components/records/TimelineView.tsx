@@ -85,8 +85,8 @@ export function TimelineView({ categorised, trendMap }: Props) {
         const prs = categorised[cat];
         if (!prs || prs.length === 0) return null;
         return (
-          <section key={cat} className="border-t border-zinc-800 pt-6">
-            <p className="text-sm font-mono text-zinc-400 mb-4">
+          <section key={cat} className="border-t border-[--border] pt-6">
+            <p className="text-sm font-mono text-[--muted] mb-4">
               {CATEGORY_LABEL[cat]} / {prs.length} movements
             </p>
             <div className="space-y-6">
@@ -96,7 +96,7 @@ export function TimelineView({ categorised, trendMap }: Props) {
                 );
                 return (
                   <div key={pr.movement_id}>
-                    <p className="text-xs font-mono text-zinc-500 mb-1">
+                    <p className="text-xs font-mono text-[--muted] mb-1">
                       {pr.movement_name}
                     </p>
                     <TimelineMovementChart
