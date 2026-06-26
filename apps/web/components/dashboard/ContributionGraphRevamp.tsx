@@ -25,7 +25,12 @@ const VARIANT_CLASSNAMES = [
 const HEATMAP_CLASSNAMES = {
   day: "h-5 w-5 text-center text-[0px] p-0 relative rounded-sm overflow-hidden bg-[var(--heatmap-0)]",
   today: "ring-1 ring-[--accent] ring-offset-1 ring-offset-[--surface]",
-  weekday: "text-[--muted]/50 font-mono text-[9px] w-5",
+  // GitHub-style gaps: without a horizontal gap, contiguous same-colour cells
+  // merge into a solid bar (empty months read as broken). 3px gap on both the
+  // weekday header and each week row keeps every cell a distinct square + aligned.
+  weekdays: "flex gap-[3px]",
+  weekday: "text-[--muted-strong] font-mono text-[9px] w-5",
+  week: "flex w-full mt-[3px] gap-[3px]",
   caption_label: "font-mono text-[10px] text-[--muted] tracking-wide",
   nav: "hidden",
 };
