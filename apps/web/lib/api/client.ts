@@ -104,7 +104,7 @@ export const api = {
   movements: {
     search: (token: string, params: { q?: string; modality?: string }) => {
       const qs = new URLSearchParams();
-      if (params.q) qs.set("q", params.q);
+      if (params.q) qs.set("query", params.q);
       if (params.modality) qs.set("modality", params.modality);
       return apiFetch<Movement[]>(`/api/v1/movements?${qs}`, token);
     },
