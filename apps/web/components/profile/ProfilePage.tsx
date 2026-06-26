@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import type {
   UserProfile,
   ProfileStats,
@@ -8,7 +7,6 @@ import type {
   FrequencyTarget,
 } from "@/lib/api";
 import { ProfileHeader } from "./ProfileHeader";
-import { EditIdentitySheet } from "./EditIdentitySheet";
 import { StatsSummaryStrip } from "./StatsSummaryStrip";
 import { PartnerList } from "./PartnerList";
 import { SettingsSection } from "./SettingsSection";
@@ -26,15 +24,7 @@ interface Props {
   token: string;
 }
 
-export function ProfilePage({
-  profile: initialProfile,
-  stats,
-  partners,
-  token,
-}: Props) {
-  const [profile, setProfile] = useState<UserProfile>(initialProfile);
-  const [editOpen, setEditOpen] = useState(false);
-
+export function ProfilePage({ profile, stats, partners, token }: Props) {
   const frequencyTarget = (
     [3, 4, 5, 6].includes(profile.frequency_target_days)
       ? profile.frequency_target_days
@@ -45,16 +35,10 @@ export function ProfilePage({
     <div className="animate-fade-in">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <ProfileHeader
-          profile={profile}
-          onEditClick={() => setEditOpen(true)}
-        />
-
-        <EditIdentitySheet
-          open={editOpen}
-          onOpenChange={setEditOpen}
-          profile={profile}
-          accessToken={token}
-          onSaved={(updated) => setProfile(updated)}
+          displayName={profile.display_name}
+          email={profile.email}
+          avatarUrl={profile.avatar_url}
+          firstWorkoutDate={profile.first_workout_date}
         />
 
         <StatsSummaryStrip stats={stats} />
