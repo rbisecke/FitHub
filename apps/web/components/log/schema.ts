@@ -12,11 +12,27 @@ export const RESULT_TYPE_VALUES = [
   "watts",
 ] as const;
 
+export const setEntrySchema = z.object({
+  set_index: z.number().default(0),
+  set_type: z.enum(["warmup", "working", "drop"]).default("working"),
+  load_display: z.string().optional(), // display value (lb or kg depending on unit)
+  load_kg: z.string().optional(), // what gets stored
+  reps: z.string().optional(),
+  time_text: z.string().optional(),
+  distance_m: z.string().optional(),
+  variant_annotation: z.string().optional(), // comma-joined chips e.g. "hang,power"
+});
+
+export type SetEntry = z.infer<typeof setEntrySchema>;
+
 const resultRowSchema = z.object({
   movement_id: z.string().uuid().optional(),
   movement_name: z.string().optional(),
+  modality: z.string().optional(),
   result_type: z.enum(RESULT_TYPE_VALUES).default("weight"),
+  sets: z.array(setEntrySchema).default([]),
   // All numeric fields stored as strings for clean empty handling
+  // Kept for backward compat — ME-7 removes them
   load_kg: z.string().optional(),
   reps: z.string().optional(),
   time_text: z.string().optional(),

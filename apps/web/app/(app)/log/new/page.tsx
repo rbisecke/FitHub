@@ -53,6 +53,7 @@ export default async function NewWorkoutPage({
         results: (parsed.results ?? []).map((r, i) => ({
           movement_name: r.movement_name,
           result_type: "weight" as const,
+          sets: [],
           load_kg: r.load_kg != null ? String(r.load_kg) : "",
           reps: r.reps != null ? String(r.reps) : "",
           time_text:

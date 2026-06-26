@@ -87,6 +87,7 @@ export function LogPageClient({
           movement_name: r.movement_name ?? undefined,
           result_type:
             r.result_type as LogFormValues["results"][number]["result_type"],
+          sets: [] as LogFormValues["results"][number]["sets"],
           load_kg: "",
           reps: "",
           time_text: "",
@@ -134,6 +135,7 @@ export function LogPageClient({
           movement_id: undefined,
           movement_name: r.movement_name,
           result_type: "weight" as const,
+          sets: [] as LogFormValues["results"][number]["sets"],
           load_kg: r.load_kg != null ? String(r.load_kg) : "",
           reps: r.reps != null ? String(r.reps) : "",
           time_text:
@@ -301,6 +303,7 @@ export function LogPageClient({
                     movement_id: undefined,
                     movement_name: undefined,
                     result_type: "weight",
+                    sets: [],
                     load_kg: "",
                     reps: "",
                     time_text: "",
