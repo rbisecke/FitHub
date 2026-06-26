@@ -84,3 +84,7 @@ export interface ProfileStats {
   best_streak_weeks: number;
   movements_tracked: number;
 }
+
+export type PinnedMovement = components["schemas"]["PinnedMovement"];
+export type SetPinnedMovementsRequest =
+  components["schemas"]["SetPinnedMovementsRequest"];

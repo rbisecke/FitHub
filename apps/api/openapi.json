@@ -1048,6 +1048,84 @@
         ]
       }
     },
+    "/api/v1/profile/pinned-movements": {
+      "get": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Get Pinned Movements",
+        "operationId": "get_pinned_movements_api_v1_profile_pinned_movements_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PinnedMovement"
+                  },
+                  "type": "array",
+                  "title": "Response Get Pinned Movements Api V1 Profile Pinned Movements Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Put Pinned Movements",
+        "operationId": "put_pinned_movements_api_v1_profile_pinned_movements_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPinnedMovementsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PinnedMovement"
+                  },
+                  "type": "array",
+                  "title": "Response Put Pinned Movements Api V1 Profile Pinned Movements Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/workouts": {
       "get": {
         "tags": [
@@ -5435,6 +5513,47 @@
         ],
         "title": "PersonalRecordResult"
       },
+      "PinnedMovement": {
+        "properties": {
+          "movement_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Movement Id"
+          },
+          "movement_name": {
+            "type": "string",
+            "title": "Movement Name"
+          },
+          "modality": {
+            "type": "string",
+            "title": "Modality"
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order"
+          },
+          "personal_record": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Personal Record"
+          }
+        },
+        "type": "object",
+        "required": [
+          "movement_id",
+          "movement_name",
+          "modality",
+          "display_order"
+        ],
+        "title": "PinnedMovement"
+      },
       "PlanDetail": {
         "properties": {
           "id": {
@@ -6388,6 +6507,21 @@
           "active_recovery"
         ],
         "title": "SessionType"
+      },
+      "SetPinnedMovementsRequest": {
+        "properties": {
+          "movement_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "Movement Ids"
+          }
+        },
+        "type": "object",
+        "title": "SetPinnedMovementsRequest"
       },
       "SyncResponse": {
         "properties": {

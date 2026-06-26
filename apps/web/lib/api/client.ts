@@ -21,6 +21,7 @@ import type {
   SessionMessagesResponse,
   UserProfile,
   ProfileStats,
+  PinnedMovement,
 } from "./index";
 import type {
   PlanDetail,
@@ -184,6 +185,13 @@ export const api = {
       apiFetch<UserProfile>("/api/v1/profile", token, {
         method: "PATCH",
         body: JSON.stringify(body),
+      }),
+    getPinnedMovements: (token: string) =>
+      apiFetch<PinnedMovement[]>("/api/v1/profile/pinned-movements", token),
+    setPinnedMovements: (token: string, movementIds: string[]) =>
+      apiFetch<PinnedMovement[]>("/api/v1/profile/pinned-movements", token, {
+        method: "PUT",
+        body: JSON.stringify({ movement_ids: movementIds }),
       }),
   },
   coach: {
