@@ -29,7 +29,7 @@ export function TemplatePicker({
         className={
           vertical
             ? "flex flex-col gap-3"
-            : "flex gap-3 overflow-x-auto pb-2 -mx-0"
+            : "flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2"
         }
       >
         {recentWorkouts.map((w) => {
@@ -44,7 +44,7 @@ export function TemplatePicker({
               type="button"
               onClick={() => onSelect(w)}
               className={`${
-                vertical ? "w-full" : "min-w-[140px] flex-shrink-0"
+                vertical ? "w-full" : "min-w-[140px] flex-shrink-0 snap-start"
               } rounded-lg border border-[#30363d] bg-[#161b22] p-3 text-left hover:border-[#58a6ff]/60 hover:bg-[#161b22]/80 transition-colors`}
             >
               <p className="font-mono text-xs text-[#8b949e]">

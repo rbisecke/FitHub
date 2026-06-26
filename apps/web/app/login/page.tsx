@@ -44,7 +44,7 @@ export default function LoginPage() {
       className="flex min-h-screen flex-col items-center justify-center px-4"
       style={{
         background:
-          "radial-gradient(600px 400px at 50% 40%, rgba(88,166,255,0.08), #09090b 70%)",
+          "radial-gradient(600px 400px at 50% 40%, rgba(88,166,255,0.08), #0d1117 70%)",
       }}
     >
       <div className="w-full max-w-sm space-y-8">
