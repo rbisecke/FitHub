@@ -20,15 +20,15 @@ export function CategorySection({
 
   return (
     <section aria-label={`${CATEGORY_LABEL[category]} records`}>
-      <div className="sticky top-0 bg-zinc-950/90 backdrop-blur-sm z-10 py-2 border-b border-zinc-800 mb-3">
-        <p className="text-xs font-mono uppercase tracking-wider text-zinc-500">
+      <div className="sticky top-0 bg-[--bg]/90 backdrop-blur-sm z-10 py-2 border-b border-[--border] mb-3">
+        <p className="text-xs font-mono uppercase tracking-wider text-[--muted-strong]">
           {CATEGORY_LABEL[category]}{" "}
-          <span className="text-zinc-600">
+          <span className="text-[--muted]">
             ({prs.length} {prs.length === 1 ? "record" : "records"})
           </span>
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {prs.map((pr) => (
           <PRCard
             key={pr.movement_id}

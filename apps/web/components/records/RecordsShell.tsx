@@ -37,7 +37,7 @@ export function RecordsShell({ prs, trendMap, recentPRIds }: Props) {
 
   if (prs.length === 0) {
     return (
-      <div className="px-4 py-6 max-w-3xl mx-auto">
+      <div className="px-4 py-6 max-w-5xl mx-auto">
         <RecordsHeader viewMode={viewMode} onToggle={setViewMode} />
         <EmptyRecords />
       </div>
@@ -64,7 +64,7 @@ export function RecordsShell({ prs, trendMap, recentPRIds }: Props) {
     : CATEGORY_ORDER.find((c) => availableCategories.has(c)) ?? "strength";
 
   return (
-    <div className="px-4 py-6 max-w-3xl mx-auto">
+    <div className="px-4 py-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="mb-4">
         {/* Mobile header row */}
@@ -77,7 +77,7 @@ export function RecordsShell({ prs, trendMap, recentPRIds }: Props) {
           </div>
           <Sheet>
             <SheetTrigger
-              className="mt-1 p-2 rounded text-zinc-500 hover:text-zinc-300 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="mt-1 p-2 rounded text-[--muted] hover:text-[--text] min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Open filter options"
             >
               <SlidersHorizontal className="h-5 w-5" />
@@ -92,7 +92,7 @@ export function RecordsShell({ prs, trendMap, recentPRIds }: Props) {
                 </SheetTitle>
               </SheetHeader>
               <div className="mt-4">
-                <p className="text-xs text-zinc-500 font-mono mb-2">
+                <p className="text-xs text-[--muted] font-mono mb-2">
                   View mode
                 </p>
                 <div

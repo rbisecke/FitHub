@@ -18,7 +18,7 @@ export function CategoryTabs({
     <div
       role="tablist"
       aria-label="Record categories"
-      className="overflow-x-auto scrollbar-none flex gap-2 border-b border-zinc-800 px-4"
+      className="overflow-x-auto scrollbar-none flex gap-2 border-b border-[--border] px-4"
     >
       {CATEGORY_ORDER.map((cat) => {
         const available = availableCategories.has(cat);
@@ -31,10 +31,10 @@ export function CategoryTabs({
             onClick={() => onSelect(cat)}
             className={`text-xs font-mono px-3 py-1.5 shrink-0 border-b-2 transition-colors min-h-[44px] ${
               active
-                ? "text-zinc-100 border-[--accent]"
+                ? "text-[--text] border-[--accent]"
                 : available
-                  ? "text-zinc-500 border-transparent hover:text-zinc-300"
-                  : "text-zinc-700 border-transparent cursor-default"
+                  ? "text-[--muted] border-transparent hover:text-[--text]"
+                  : "text-[--muted]/50 border-transparent cursor-default"
             }`}
           >
             {CATEGORY_LABEL[cat]}

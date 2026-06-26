@@ -11,7 +11,7 @@ export function PRProjection({ points, currentBestKg }: Props) {
   if (!proj) return null;
 
   return (
-    <p className="text-xs font-mono italic text-zinc-600 mt-0.5">
+    <p className="text-xs font-mono italic text-[--muted] mt-0.5">
       On trend → {proj.targetKg.toFixed(1)} kg ~{proj.weeksOut} wk
     </p>
   );
