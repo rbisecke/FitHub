@@ -13,7 +13,8 @@ interface StreakWidgetProps {
 
 export function StreakWidget({ streak }: StreakWidgetProps) {
   const prefersReducedMotion = useReducedMotion();
-  const { currentStreak, personalBest, atRisk, isComeback } = streak;
+  const { currentStreak, personalBest, atRisk, isComeback, graceWeekUsed } =
+    streak;
 
   useEffect(() => {
     checkAndFireMilestoneToast(currentStreak);
@@ -74,6 +75,11 @@ export function StreakWidget({ streak }: StreakWidgetProps) {
           <p className="font-mono text-xs text-[--muted] mt-1">
             best: {personalBest} {personalBest === 1 ? "week" : "weeks"}
           </p>
+          {graceWeekUsed && (
+            <p className="font-mono text-xs text-[--green] mt-2">
+              ↩ last week forgiven · never miss twice
+            </p>
+          )}
           <p
             aria-live="polite"
             className="text-xs text-[--amber] mt-2 min-h-[1rem]"

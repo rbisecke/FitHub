@@ -1,13 +1,17 @@
 "use client";
 
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
+  CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
+  ReferenceArea,
   ReferenceLine,
+  ReferenceDot,
 } from "recharts";
+import { useReducedMotion } from "motion/react";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { tooltipContentStyle } from "@/lib/chart-utils";
 import type { DailyLoadPoint } from "@/lib/api";
@@ -17,7 +21,7 @@ interface Props {
 }
 
 const acwrConfig = {
-  acwr: { label: "ACWR", color: "hsl(var(--chart-1))" },
+  acwr: { label: "ACWR", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
 function fmtDay(day: string): string {
@@ -25,6 +29,7 @@ function fmtDay(day: string): string {
 }
 
 export function ACWRChart({ series }: Props) {
+  const prefersReducedMotion = useReducedMotion();
   // Trim leading days with no ACWR data so the chart doesn't show weeks of blank space.
   const firstNonNull = series.findIndex(
     (pt) => pt.acwr !== null && pt.acwr !== undefined,
@@ -40,16 +45,31 @@ export function ACWRChart({ series }: Props) {
         pt.acwr !== null && pt.acwr !== undefined ? +pt.acwr.toFixed(2) : null,
     }));
 
+  // Highlight the latest point — keeps prior points quiet (design 08 §2).
+  const latest = [...data].reverse().find((d) => d.acwr !== null);
+
   return (
     <ChartContainer
       config={acwrConfig}
       data-testid="acwr-chart"
       className="h-52 w-full min-w-0"
     >
-      <LineChart
+      <AreaChart
+        accessibilityLayer
         data={data}
         margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
       >
+        <defs>
+          <linearGradient id="acwrFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid
+          stroke="var(--chart-border)"
+          strokeDasharray="3 3"
+          vertical={false}
+        />
         <XAxis
           dataKey="day"
           tick={{ fill: "var(--chart-axis)", fontSize: 10 }}
@@ -67,25 +87,54 @@ export function ACWRChart({ series }: Props) {
           ]}
         />
         <Tooltip contentStyle={tooltipContentStyle} />
-        <ReferenceLine
-          y={0.8}
-          stroke="var(--chart-ref-lower)"
-          strokeDasharray="4 2"
+        {/* Sweet-spot band (0.8–1.3 = optimal training load) and danger zone
+            (≥1.5). The band reads at a glance where a bare line can't. */}
+        <ReferenceArea
+          y1={0.8}
+          y2={1.3}
+          fill="var(--green)"
+          fillOpacity={0.07}
+          ifOverflow="extendDomain"
+          label={{
+            value: "optimal",
+            position: "insideTopRight",
+            fill: "var(--chart-axis)",
+            fontSize: 9,
+          }}
         />
         <ReferenceLine
           y={1.5}
           stroke="var(--chart-ref-danger)"
           strokeDasharray="4 2"
+          label={{
+            value: "high risk",
+            position: "insideBottomRight",
+            fill: "var(--chart-ref-danger)",
+            fontSize: 9,
+          }}
         />
-        <Line
+        <Area
           type="monotone"
           dataKey="acwr"
           stroke="var(--color-acwr)"
+          fill="url(#acwrFill)"
+          fillOpacity={1}
           dot={false}
           strokeWidth={2}
           connectNulls
+          isAnimationActive={!prefersReducedMotion}
         />
-      </LineChart>
+        {latest && (
+          <ReferenceDot
+            x={latest.day}
+            y={latest.acwr as number}
+            r={4}
+            fill="var(--chart-1)"
+            stroke="var(--bg)"
+            strokeWidth={2}
+          />
+        )}
+      </AreaChart>
     </ChartContainer>
   );
 }

@@ -8,6 +8,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useReducedMotion } from "motion/react";
 import { tooltipContentStyle } from "@/lib/chart-utils";
 
 export interface DonutSlice {
@@ -32,11 +33,12 @@ export function DonutChart({
   showLegend = true,
 }: DonutChartProps) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <div className={className} style={{ width: "100%", height: 220 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
+        <PieChart accessibilityLayer>
           <Pie
             data={data}
             cx="50%"
@@ -46,6 +48,7 @@ export function DonutChart({
             paddingAngle={2}
             dataKey="value"
             strokeWidth={0}
+            isAnimationActive={!prefersReducedMotion}
           >
             {data.map((entry, i) => (
               <Cell key={`cell-${i}`} fill={entry.color} />

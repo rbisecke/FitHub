@@ -18,7 +18,7 @@ export function NewPRBanner({ count }: Props) {
   if (!visible) return null;
 
   return (
-    <div className="mb-4 rounded border border-green-800 bg-green-950/40 px-4 py-2 text-xs font-mono text-green-400">
+    <div className="mb-4 rounded border border-[--green]/40 bg-[--green]/10 px-4 py-2 text-xs font-mono text-[--green]">
       {count === 1
         ? "New PR tagged. Your repo just got faster."
         : `${count} new PRs tagged. Milestone release pushed.`}

@@ -36,6 +36,27 @@ function prevWeekDay(dayOfWeek: number): string {
   return target.toISOString();
 }
 
+// A date string for a specific weekday `weeksAgo` weeks back (1 = previous week).
+function weekDay(weeksAgo: number, dayOfWeek: number): string {
+  const now = new Date();
+  const monday = new Date(now);
+  const dayNum = now.getDay() === 0 ? 6 : now.getDay() - 1; // Mon=0
+  monday.setDate(now.getDate() - dayNum - weeksAgo * 7);
+  monday.setHours(12, 0, 0, 0);
+  const target = new Date(monday);
+  target.setDate(monday.getDate() + dayOfWeek);
+  return target.toISOString();
+}
+
+// 3 workouts (Mon/Tue/Wed) completing the week `weeksAgo` weeks back (target 3).
+function completeWeek(weeksAgo: number): WorkoutSummary[] {
+  return [
+    makeSummary(weekDay(weeksAgo, 0)),
+    makeSummary(weekDay(weeksAgo, 1)),
+    makeSummary(weekDay(weeksAgo, 2)),
+  ];
+}
+
 describe("streakCalc", () => {
   it("returns new_user state for empty workouts", () => {
     const result = streakCalc([]);
@@ -118,5 +139,32 @@ describe("streakCalc", () => {
     ];
     const result = streakCalc(workouts, 5);
     expect(result.currentStreak).toBe(0);
+  });
+
+  it("forgives a single missed week (never miss twice)", () => {
+    const workouts = [...completeWeek(1), ...completeWeek(3)]; // week-2 missed
+    const result = streakCalc(workouts, 3);
+    expect(result.currentStreak).toBe(2);
+    expect(result.graceWeekUsed).toBe(false); // most recent week (1) was completed
+  });
+
+  it("breaks the streak on two consecutive missed weeks", () => {
+    const workouts = [...completeWeek(1), ...completeWeek(4)]; // weeks 2 & 3 missed
+    const result = streakCalc(workouts, 3);
+    expect(result.currentStreak).toBe(1); // stops at the double gap
+  });
+
+  it("flags graceWeekUsed when the most recent week was missed but forgiven", () => {
+    const workouts = [...completeWeek(2), ...completeWeek(3)]; // week-1 missed
+    const result = streakCalc(workouts, 3);
+    expect(result.currentStreak).toBe(2);
+    expect(result.graceWeekUsed).toBe(true); // last week forgiven → recovery state
+  });
+
+  it("does not forgive two missed weeks at the front of the streak", () => {
+    const workouts = [...completeWeek(3)]; // weeks 1 & 2 missed
+    const result = streakCalc(workouts, 3);
+    expect(result.currentStreak).toBe(0);
+    expect(result.graceWeekUsed).toBe(false);
   });
 });

@@ -1,24 +1,39 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import * as motion from "motion/react-client";
 import { useReducedMotion } from "motion/react";
 import { CalendarHeatmap } from "@/components/ui/calendar-heatmap";
 import { Button } from "@/components/ui/button";
 import { graphWindow } from "@/lib/dashboard/graphWindow";
+import { aggregateByDay } from "@/lib/dashboard/contributionTitle";
 import type { WorkoutSummary } from "@/lib/api";
 
 type ColourMode = "intensity" | "volume";
 
-// 4 levels from low → high using --heatmap-* CSS variables.
-// DayPicker v10 in no-selection mode renders day cells as plain <td> elements
-// (no inner button), so modifier classes are applied directly to the <td>.
+// 4 levels low → high using --heatmap-* CSS variables. With !bg these win over
+// the cell's --heatmap-0 base (see HEATMAP_CLASSNAMES), colouring workout days.
 const VARIANT_CLASSNAMES = [
   "!bg-[var(--heatmap-1)]", // level 1 — low
   "!bg-[var(--heatmap-2)]", // level 2 — moderate
   "!bg-[var(--heatmap-3)]", // level 3 — hard
   "!bg-[var(--heatmap-4)]", // level 4 — peak
 ];
+
+// Shared cell styling. `bg-[var(--heatmap-0)]` gives every cell a faint base so the
+// full grid ("ghost grid") is always visible; workout days override via the variants.
+const HEATMAP_CLASSNAMES = {
+  day: "h-5 w-5 text-center text-[0px] p-0 relative rounded-sm overflow-hidden bg-[var(--heatmap-0)]",
+  today: "ring-1 ring-[--accent] ring-offset-1 ring-offset-[--surface]",
+  // GitHub-style gaps: without a horizontal gap, contiguous same-colour cells
+  // merge into a solid bar (empty months read as broken). 3px gap on both the
+  // weekday header and each week row keeps every cell a distinct square + aligned.
+  weekdays: "flex gap-[3px]",
+  weekday: "text-[--muted-strong] font-mono text-[9px] w-5",
+  week: "flex w-full mt-[3px] gap-[3px]",
+  caption_label: "font-mono text-[10px] text-[--muted] tracking-wide",
+  nav: "hidden",
+};
 
 function avgIntensityLabel(workouts: WorkoutSummary[]): string {
   const vals = workouts
@@ -64,6 +79,27 @@ export function ContributionGraphRevamp({
       }));
   }, [workouts, window.fromDate, mode]);
 
+  // Per-day aggregation so the cell tooltip carries magnitude (not colour-only).
+  const dayInfo = useMemo(() => aggregateByDay(weightedDates), [weightedDates]);
+
+  const unit = mode === "intensity" ? "load" : "min";
+  const dayTitle = useCallback(
+    (date: Date): string => {
+      const label = date.toLocaleDateString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+      const info = dayInfo.get(date.toDateString());
+      if (!info) return `${label} · no workout`;
+      const noun = info.count === 1 ? "workout" : "workouts";
+      return `${label} · ${info.count} ${noun} · ${unit} ${Math.round(
+        info.sum,
+      )}`;
+    },
+    [dayInfo, unit],
+  );
+
   const totalCount = workouts.length;
   const intensityLabel = avgIntensityLabel(workouts);
   const headerText = window.isAnchored
@@ -79,7 +115,20 @@ export function ContributionGraphRevamp({
         transition={{ duration: 0.2, ease: "easeOut", delay: 0.16 }}
       >
         <p className="font-mono text-xs text-[--muted] mb-3">{headerText}</p>
-        <div className="flex flex-col items-center justify-center py-8 text-center">
+        {/* Ghost grid — the shape of the contribution graph, waiting to be filled. */}
+        <div className="overflow-x-auto opacity-50" aria-hidden="true">
+          <CalendarHeatmap
+            weightedDates={[]}
+            variantClassnames={VARIANT_CLASSNAMES}
+            numberOfMonths={window.numberOfMonths}
+            defaultMonth={window.fromDate}
+            disableNavigation
+            showOutsideDays={false}
+            className="text-[--muted]"
+            classNames={HEATMAP_CLASSNAMES}
+          />
+        </div>
+        <div className="text-center mt-3">
           <p className="text-[--muted] text-sm">
             Your training history will appear here.
           </p>
@@ -93,7 +142,12 @@ export function ContributionGraphRevamp({
 
   return (
     <motion.div
-      className="rounded-lg border border-[--border] bg-[--surface] p-4 mb-6"
+      className="rounded-lg border border-[--border] p-4 mb-6"
+      // Subtle green glow behind the hero — depth + achievement cue (kept low-opacity).
+      style={{
+        background:
+          "radial-gradient(110% 70% at 50% -10%, rgba(63,185,80,0.08), transparent 60%), var(--surface)",
+      }}
       initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: "easeOut", delay: 0.16 }}
@@ -130,20 +184,14 @@ export function ContributionGraphRevamp({
       >
         <CalendarHeatmap
           weightedDates={weightedDates}
+          dayTitle={dayTitle}
           variantClassnames={VARIANT_CLASSNAMES}
           numberOfMonths={window.numberOfMonths}
           defaultMonth={window.fromDate}
           disableNavigation
           showOutsideDays={false}
           className="text-[--muted]"
-          classNames={{
-            day: "h-5 w-5 text-center text-[0px] p-0 relative rounded-sm overflow-hidden",
-            today:
-              "ring-1 ring-[--accent] ring-offset-1 ring-offset-[--surface]",
-            weekday: "text-[--muted]/50 font-mono text-[9px] w-5",
-            caption_label: "font-mono text-[10px] text-[--muted] tracking-wide",
-            nav: "hidden",
-          }}
+          classNames={HEATMAP_CLASSNAMES}
         />
       </div>
 

@@ -48,12 +48,20 @@ export function ACWRWidget({ series, acwrNow, acwrZone }: Props) {
                 data={data}
                 margin={{ top: 2, right: 2, left: 2, bottom: 2 }}
               >
-                <ReferenceLine y={0.8} stroke="#3f3f46" strokeWidth={1} />
-                <ReferenceLine y={1.5} stroke="#3f3f46" strokeWidth={1} />
+                <ReferenceLine
+                  y={0.8}
+                  stroke="var(--chart-ref-lower)"
+                  strokeWidth={1}
+                />
+                <ReferenceLine
+                  y={1.5}
+                  stroke="var(--chart-ref-lower)"
+                  strokeWidth={1}
+                />
                 <Line
                   type="monotone"
                   dataKey="acwr"
-                  stroke="hsl(var(--chart-1))"
+                  stroke="var(--chart-1)"
                   dot={false}
                   strokeWidth={1.5}
                   isAnimationActive={false}

@@ -8,6 +8,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { tooltipContentStyle } from "@/lib/chart-utils";
+import { ChartEmpty } from "@/components/ui/chart-empty";
 import type { PersonalRecord, E1RMPoint } from "@/lib/api";
 import type { PRCategory } from "@/lib/records/categorise";
 import { CATEGORY_LABEL, CATEGORY_ORDER } from "@/lib/records/categorise";
@@ -25,11 +27,7 @@ function TimelineMovementChart({
   points: E1RMPoint[];
 }) {
   if (points.length < 2) {
-    return (
-      <p className="text-xs font-mono text-zinc-600 py-2">
-        Not enough data to display
-      </p>
-    );
+    return <ChartEmpty className="py-2" />;
   }
 
   const data = points.map((p) => ({
@@ -46,25 +44,19 @@ function TimelineMovementChart({
         >
           <XAxis
             dataKey="day"
-            tick={{ fill: "#52525b", fontSize: 10 }}
+            tick={{ fill: "var(--chart-axis)", fontSize: 10 }}
             tickLine={false}
             axisLine={false}
           />
           <YAxis
-            tick={{ fill: "#52525b", fontSize: 10 }}
+            tick={{ fill: "var(--chart-axis)", fontSize: 10 }}
             tickLine={false}
             axisLine={false}
             domain={["auto", "auto"]}
             tickFormatter={(v: number) => `${v.toFixed(0)}`}
           />
           <Tooltip
-            contentStyle={{
-              background: "#161b22",
-              border: "1px solid #30363d",
-              borderRadius: 4,
-              color: "#e6edf3",
-              fontSize: 11,
-            }}
+            contentStyle={tooltipContentStyle}
             formatter={(value) =>
               typeof value === "number"
                 ? [`${value.toFixed(1)} kg`, "e1RM"]
@@ -74,10 +66,11 @@ function TimelineMovementChart({
           <Line
             type="monotone"
             dataKey="e1rm"
-            stroke="#bc8cff"
-            dot={{ r: 3, fill: "#bc8cff", strokeWidth: 0 }}
+            stroke="var(--purple)"
+            dot={{ r: 3, fill: "var(--purple)", strokeWidth: 0 }}
             activeDot={{ r: 4 }}
             strokeWidth={2}
+            isAnimationActive={false}
           />
         </LineChart>
       </ResponsiveContainer>
@@ -92,8 +85,8 @@ export function TimelineView({ categorised, trendMap }: Props) {
         const prs = categorised[cat];
         if (!prs || prs.length === 0) return null;
         return (
-          <section key={cat} className="border-t border-zinc-800 pt-6">
-            <p className="text-sm font-mono text-zinc-400 mb-4">
+          <section key={cat} className="border-t border-[--border] pt-6">
+            <p className="text-sm font-mono text-[--muted] mb-4">
               {CATEGORY_LABEL[cat]} / {prs.length} movements
             </p>
             <div className="space-y-6">
@@ -103,7 +96,7 @@ export function TimelineView({ categorised, trendMap }: Props) {
                 );
                 return (
                   <div key={pr.movement_id}>
-                    <p className="text-xs font-mono text-zinc-500 mb-1">
+                    <p className="text-xs font-mono text-[--muted] mb-1">
                       {pr.movement_name}
                     </p>
                     <TimelineMovementChart

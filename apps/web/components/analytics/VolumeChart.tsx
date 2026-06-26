@@ -1,6 +1,15 @@
 "use client";
 
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
+import {
+  BarChart,
+  Bar,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+} from "recharts";
+import { useReducedMotion } from "motion/react";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { tooltipContentStyle } from "@/lib/chart-utils";
 import type { WeeklyVolume } from "@/lib/api";
@@ -9,12 +18,14 @@ interface Props {
   weeks: WeeklyVolume[];
 }
 
+// Session-type colors map to the semantic brand tokens (same hex values as the
+// design system) so chart color has a single source of truth in globals.css.
 const volumeConfig = {
-  strength: { label: "Strength", color: "#3fb950" },
-  metcon: { label: "Metcon", color: "#d29922" },
-  endurance: { label: "Endurance", color: "#bc8cff" },
-  skill: { label: "Skill", color: "#58a6ff" },
-  recovery: { label: "Recovery", color: "#39d353" },
+  strength: { label: "Strength", color: "var(--green)" },
+  metcon: { label: "Metcon", color: "var(--amber)" },
+  endurance: { label: "Endurance", color: "var(--purple)" },
+  skill: { label: "Skill", color: "var(--accent)" },
+  recovery: { label: "Recovery", color: "var(--cyan)" },
   other: { label: "Other", color: "var(--chart-axis)" },
 } satisfies ChartConfig;
 
@@ -23,6 +34,7 @@ function barColor(st: string): string {
 }
 
 export function VolumeChart({ weeks }: Props) {
+  const prefersReducedMotion = useReducedMotion();
   const sessionTypes = [
     ...new Set(weeks.map((w) => w.session_type ?? "other")),
   ];
@@ -42,7 +54,16 @@ export function VolumeChart({ weeks }: Props) {
       data-testid="volume-chart"
       className="h-52 w-full min-w-0"
     >
-      <BarChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+      <BarChart
+        accessibilityLayer
+        data={data}
+        margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
+      >
+        <CartesianGrid
+          stroke="var(--chart-border)"
+          strokeDasharray="3 3"
+          vertical={false}
+        />
         <XAxis
           dataKey="week"
           tick={{ fill: "var(--chart-axis)", fontSize: 10 }}
@@ -63,6 +84,7 @@ export function VolumeChart({ weeks }: Props) {
             stackId="a"
             fill={barColor(st)}
             minPointSize={3}
+            isAnimationActive={!prefersReducedMotion}
           />
         ))}
       </BarChart>

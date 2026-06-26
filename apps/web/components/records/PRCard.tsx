@@ -77,7 +77,7 @@ export function PRCard({ pr, points, isRecent }: Props) {
       deltaNode = (
         <span
           className={`text-xs font-mono ${
-            positive ? "text-green-400" : "text-red-400"
+            positive ? "text-[--green]" : "text-[--red]"
           }`}
         >
           {positive ? "▲" : "▼"} {positive ? "+" : ""}
@@ -87,7 +87,7 @@ export function PRCard({ pr, points, isRecent }: Props) {
     }
   } else if (sortedPoints.length === 0) {
     deltaNode = (
-      <span className="text-xs font-mono text-zinc-500">First logged</span>
+      <span className="text-xs font-mono text-[--muted]">First logged</span>
     );
   }
 
@@ -112,21 +112,21 @@ export function PRCard({ pr, points, isRecent }: Props) {
           <div className="flex items-center gap-2 mb-1 overflow-hidden">
             <span
               aria-hidden="true"
-              className="inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 border border-[--border] bg-[#161b22] shrink-0 truncate max-w-full"
+              className="inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10px] text-[--muted] border border-[--border] bg-[--surface] shrink-0 truncate max-w-full"
             >
               tag&nbsp;{slug}
             </span>
           </div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm font-medium text-zinc-100">
+            <span className="text-sm font-medium text-[--text]">
               {pr.movement_name}
             </span>
             {benchmark && <BenchmarkBadge />}
           </div>
-          <hr className="border-zinc-800 mb-2" />
+          <hr className="border-[--border] mb-2" />
           <div className="flex items-end justify-between gap-2">
             <div>
-              <span className="text-2xl font-bold font-mono text-zinc-50">
+              <span className="text-2xl font-bold font-mono text-[--text]">
                 {value}
               </span>
               <PRProjection
@@ -136,7 +136,7 @@ export function PRCard({ pr, points, isRecent }: Props) {
             </div>
             <div className="flex flex-col items-end gap-0.5 shrink-0">
               <span
-                className="text-xs font-mono text-zinc-500"
+                className="text-xs font-mono text-[--muted]"
                 title={pr.achieved_at}
               >
                 {formatDate(pr.achieved_at)}
@@ -146,7 +146,7 @@ export function PRCard({ pr, points, isRecent }: Props) {
           </div>
           <div className="flex justify-end mt-1">
             <ChevronDown
-              className={`h-4 w-4 text-zinc-600 transition-transform duration-200 ${
+              className={`h-4 w-4 text-[--muted] transition-transform duration-200 ${
                 open ? "rotate-180" : ""
               }`}
             />
@@ -156,7 +156,7 @@ export function PRCard({ pr, points, isRecent }: Props) {
         <CollapsibleContent>
           <div className="px-4 pb-4 space-y-3">
             <div>
-              <p className="text-xs text-zinc-500 font-mono mb-1">
+              <p className="text-xs text-[--muted] font-mono mb-1">
                 PR progression
               </p>
               <PRSparkline points={sortedPoints} />
@@ -164,7 +164,7 @@ export function PRCard({ pr, points, isRecent }: Props) {
 
             {sortedPoints.length > 0 && (
               <div>
-                <p className="text-xs text-zinc-500 font-mono mb-1">
+                <p className="text-xs text-[--muted] font-mono mb-1">
                   PR history
                 </p>
                 <table className="w-full text-xs font-mono">
@@ -172,19 +172,19 @@ export function PRCard({ pr, points, isRecent }: Props) {
                     <tr>
                       <th
                         scope="col"
-                        className="text-left text-zinc-600 font-normal pb-1"
+                        className="text-left text-[--muted] font-normal pb-1"
                       >
                         Date
                       </th>
                       <th
                         scope="col"
-                        className="text-left text-zinc-600 font-normal pb-1"
+                        className="text-left text-[--muted] font-normal pb-1"
                       >
                         Value
                       </th>
                       <th
                         scope="col"
-                        className="text-left text-zinc-600 font-normal pb-1"
+                        className="text-left text-[--muted] font-normal pb-1"
                       >
                         Change
                       </th>
@@ -201,28 +201,28 @@ export function PRCard({ pr, points, isRecent }: Props) {
                         prevKg !== null ? pt.estimated_1rm_kg - prevKg : null;
                       return (
                         <tr key={`${pt.day}-${idx}`}>
-                          <td className="text-zinc-500 pr-3 py-0.5">
+                          <td className="text-[--muted] pr-3 py-0.5">
                             {formatDate(pt.day)}
                           </td>
-                          <td className="text-zinc-200 pr-3 py-0.5">
+                          <td className="text-[--text] pr-3 py-0.5">
                             {pt.estimated_1rm_kg.toFixed(1)} kg
                           </td>
                           <td className="py-0.5">
                             {delta === null ? (
-                              <span className="text-zinc-500">
+                              <span className="text-[--muted]">
                                 First logged
                               </span>
                             ) : delta > 0.01 ? (
-                              <span className="text-green-400">
+                              <span className="text-[--green]">
                                 ▲ +{delta.toFixed(1)} kg
                               </span>
                             ) : delta < -0.01 ? (
-                              <span className="text-red-400">
+                              <span className="text-[--red]">
                                 ▼ {Math.abs(delta).toFixed(1)} kg
                               </span>
                             ) : null}
                             {isCurrent && (
-                              <span className="text-zinc-600 italic ml-1">
+                              <span className="text-[--muted] italic ml-1">
                                 ← current
                               </span>
                             )}

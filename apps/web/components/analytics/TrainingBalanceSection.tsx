@@ -32,12 +32,13 @@ const PERIOD_OPTIONS: PeriodOption[] = [
 
 const STORAGE_KEY = "progress.balance.period";
 
+// Category colors map to the semantic brand tokens (single source of truth).
 const CATEGORY_COLORS: Record<string, string> = {
-  pull: "#58a6ff",
-  push: "#bc8cff",
-  legs: "#3fb950",
-  core: "#d29922",
-  conditioning: "#39d353",
+  pull: "var(--accent)",
+  push: "var(--purple)",
+  legs: "var(--green)",
+  core: "var(--amber)",
+  conditioning: "var(--cyan)",
 };
 
 function getInsightCopy(breakdown: BalanceBreakdown[]): string {
@@ -88,12 +89,17 @@ export function TrainingBalanceSection({ data, className }: Props) {
       )}
 
       {data === null ? (
-        <div className="py-6 text-center">
-          <p className="text-xs text-[--muted]">
-            Training balance data is coming soon.
+        <div className="py-8 text-center">
+          {/* Ghost donut — the shape of the chart, waiting to be filled. */}
+          <div
+            aria-hidden="true"
+            className="mx-auto mb-3 h-16 w-16 rounded-full border-4 border-[--border]"
+          />
+          <p className="text-xs text-[--muted-strong]">
+            No movement categories tagged yet
           </p>
-          <p className="font-mono text-[10px] text-[--muted]/60 mt-1">
-            Requires movement categories to be configured.
+          <p className="font-mono text-[10px] text-[--muted] mt-1">
+            $ git diff --stat · tag movements to see your split
           </p>
         </div>
       ) : (
@@ -105,7 +111,7 @@ export function TrainingBalanceSection({ data, className }: Props) {
                   name:
                     b.category.charAt(0).toUpperCase() + b.category.slice(1),
                   value: Math.round(b.volume_pct * 100),
-                  color: CATEGORY_COLORS[b.category] ?? "#8b949e",
+                  color: CATEGORY_COLORS[b.category] ?? "var(--muted)",
                 }),
               )}
               className="w-full sm:w-48 flex-shrink-0"
@@ -122,7 +128,8 @@ export function TrainingBalanceSection({ data, className }: Props) {
                   <span
                     className="h-2 w-2 rounded-full flex-shrink-0"
                     style={{
-                      backgroundColor: CATEGORY_COLORS[b.category] ?? "#8b949e",
+                      backgroundColor:
+                        CATEGORY_COLORS[b.category] ?? "var(--muted)",
                     }}
                   />
                   <span className="text-[--text] capitalize flex-1">

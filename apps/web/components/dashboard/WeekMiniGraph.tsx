@@ -5,6 +5,7 @@ import * as motion from "motion/react-client";
 import { useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import type { WorkoutSummary } from "@/lib/api";
+import { fadeUpProps } from "@/lib/motion";
 
 const DAYS = [
   { key: 1, label: "M", full: "Mon" },
@@ -61,9 +62,7 @@ export function WeekMiniGraph({
       role="group"
       aria-label="Workouts logged this week"
       className="rounded-lg border border-[--border] bg-[--surface] p-4"
-      initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut", delay: 0.08 }}
+      {...fadeUpProps(prefersReducedMotion, 0.08)}
     >
       <p className="font-mono text-xs text-[--muted] mb-3">this week</p>
       <div
@@ -106,13 +105,25 @@ export function WeekMiniGraph({
                   )}
                 />
               )}
-              <span className="font-mono text-[9px] text-[--muted]">
+              <span className="font-mono text-[9px] text-[--muted-strong]">
                 {label}
               </span>
             </div>
           );
         })}
       </div>
+      <p className="font-mono text-xs mt-3 tabular-nums text-[--muted]">
+        <span
+          className={
+            thisWeekCount >= frequencyTarget
+              ? "text-[--green]"
+              : "text-[--text]"
+          }
+        >
+          {thisWeekCount}/{frequencyTarget}
+        </span>{" "}
+        sessions
+      </p>
     </motion.div>
   );
 }

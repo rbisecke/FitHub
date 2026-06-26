@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useReducedMotion } from "motion/react";
 import { X, Plus, Search } from "lucide-react";
 import {
   LineChart,
   Line,
+  CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
@@ -13,6 +15,7 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import { tooltipContentStyle } from "@/lib/chart-utils";
+import { ChartEmpty } from "@/components/ui/chart-empty";
 import type { PersonalRecord, Movement, E1RMPoint } from "@/lib/api";
 import {
   PeriodSelector,
@@ -41,7 +44,13 @@ const PERIOD_OPTIONS: PeriodOption[] = [
 const STORAGE_KEY = "progress.strength.period";
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-const LINE_COLORS = ["#bc8cff", "#3fb950", "#58a6ff", "#d29922"];
+// Series palette sourced from the semantic brand tokens (single source of truth).
+const LINE_COLORS = [
+  "var(--purple)",
+  "var(--green)",
+  "var(--accent)",
+  "var(--amber)",
+];
 
 type SeriesMap = Record<string, { name: string; points: E1RMPoint[] }>;
 
@@ -56,6 +65,7 @@ export function StrengthProgressSection({
   token,
   className,
 }: Props) {
+  const prefersReducedMotion = useReducedMotion();
   const [selectedIds, setSelectedIds] = useState<string[]>(() =>
     personalRecords.slice(0, 2).map((pr) => pr.movement_id),
   );
@@ -247,11 +257,10 @@ export function StrengthProgressSection({
           </p>
         </div>
       ) : chartData.length < 2 ? (
-        <div className="h-52 flex items-center justify-center">
-          <p className="text-xs text-[--muted]">
-            Not enough data for this period. Try expanding the time range.
-          </p>
-        </div>
+        <ChartEmpty
+          className="h-52"
+          message="Not enough data for this period — try a wider time range"
+        />
       ) : (
         <div
           className="h-52 md:h-64 w-full"
@@ -259,9 +268,15 @@ export function StrengthProgressSection({
         >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
+              accessibilityLayer
               data={chartData}
               margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
             >
+              <CartesianGrid
+                stroke="var(--chart-border)"
+                strokeDasharray="3 3"
+                vertical={false}
+              />
               <XAxis
                 dataKey="day"
                 tick={{ fill: "var(--chart-axis)", fontSize: 9 }}
@@ -296,6 +311,7 @@ export function StrengthProgressSection({
                   dot={false}
                   strokeWidth={1.5}
                   connectNulls
+                  isAnimationActive={!prefersReducedMotion}
                 />
               ))}
             </LineChart>

@@ -8,6 +8,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { tooltipContentStyle } from "@/lib/chart-utils";
+import { ChartEmpty } from "@/components/ui/chart-empty";
 import type { E1RMPoint } from "@/lib/api";
 
 interface Props {
@@ -16,11 +18,7 @@ interface Props {
 
 export function PRSparkline({ points }: Props) {
   if (points.length < 2) {
-    return (
-      <p className="font-mono text-xs text-zinc-600 mt-1">
-        Not enough PR history
-      </p>
-    );
+    return <ChartEmpty className="mt-1" message="Not enough PR history yet" />;
   }
 
   const data = points.map((p) => ({
@@ -37,25 +35,19 @@ export function PRSparkline({ points }: Props) {
         >
           <XAxis
             dataKey="day"
-            tick={{ fill: "#52525b", fontSize: 9 }}
+            tick={{ fill: "var(--chart-axis)", fontSize: 9 }}
             tickLine={false}
             axisLine={false}
           />
           <YAxis
-            tick={{ fill: "#52525b", fontSize: 9 }}
+            tick={{ fill: "var(--chart-axis)", fontSize: 9 }}
             tickLine={false}
             axisLine={false}
             domain={["auto", "auto"]}
             tickFormatter={(v: number) => `${v.toFixed(0)}`}
           />
           <Tooltip
-            contentStyle={{
-              background: "#161b22",
-              border: "1px solid #30363d",
-              borderRadius: 4,
-              color: "#e6edf3",
-              fontSize: 11,
-            }}
+            contentStyle={tooltipContentStyle}
             formatter={(value) =>
               typeof value === "number"
                 ? [`${value.toFixed(1)} kg`, "e1RM"]
@@ -65,10 +57,11 @@ export function PRSparkline({ points }: Props) {
           <Line
             type="monotone"
             dataKey="e1rm"
-            stroke="#bc8cff"
-            dot={{ r: 2, fill: "#bc8cff", strokeWidth: 0 }}
+            stroke="var(--purple)"
+            dot={{ r: 2, fill: "var(--purple)", strokeWidth: 0 }}
             activeDot={{ r: 3 }}
             strokeWidth={1.5}
+            isAnimationActive={false}
           />
         </LineChart>
       </ResponsiveContainer>

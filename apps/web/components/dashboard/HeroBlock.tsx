@@ -4,6 +4,7 @@ import Link from "next/link";
 import * as motion from "motion/react-client";
 import { useReducedMotion } from "motion/react";
 import { buttonVariants } from "@/components/ui/button";
+import { fadeUpProps } from "@/lib/motion";
 
 interface HeroBlockProps {
   sentence: string;
@@ -22,9 +23,7 @@ export function HeroBlock({
     <motion.section
       aria-label={`Training readiness summary: ${readinessLabel}`}
       className="rounded-lg border border-[--border] bg-[--surface] p-6 mb-6"
-      initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      {...fadeUpProps(prefersReducedMotion)}
     >
       <p className="font-mono text-[10px] text-[--muted] mb-2 tracking-wide uppercase">
         on-form report

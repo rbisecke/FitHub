@@ -37,14 +37,16 @@ const RESULT_TYPE_LABELS: Record<string, string> = {
   watts: "Watts result",
 };
 
+// Session-type badge colours, mapped to brand tokens (token tints for the
+// border/bg so they read as quiet category chips, not solid blocks).
 const SESSION_COLOURS: Record<string, string> = {
-  metcon: "text-orange-400 border-orange-800 bg-orange-950",
-  strength: "text-blue-400 border-blue-800 bg-blue-950",
-  skill: "text-purple-400 border-purple-800 bg-purple-950",
-  mixed: "text-teal-400 border-teal-800 bg-teal-950",
-  rest: "text-zinc-400 border-zinc-700 bg-zinc-900",
-  deload: "text-yellow-400 border-yellow-800 bg-yellow-950",
-  active_recovery: "text-green-400 border-green-800 bg-green-950",
+  metcon: "text-[--amber] border-[--amber]/40 bg-[--amber]/10",
+  strength: "text-[--accent] border-[--accent]/40 bg-[--accent]/10",
+  skill: "text-[--purple] border-[--purple]/40 bg-[--purple]/10",
+  mixed: "text-[--cyan] border-[--cyan]/40 bg-[--cyan]/10",
+  rest: "text-[--muted] border-[--border] bg-[--surface-2]",
+  deload: "text-[--amber] border-[--amber]/40 bg-[--amber]/10",
+  active_recovery: "text-[--green] border-[--green]/40 bg-[--green]/10",
 };
 
 export function WorkoutDetailClient({
@@ -139,7 +141,7 @@ export function WorkoutDetailClient({
       {/* Breadcrumb */}
       <Link
         href="/history"
-        className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+        className="inline-flex items-center gap-1 text-sm text-[--muted] hover:text-[--text] transition-colors"
       >
         ← git log
       </Link>
@@ -148,34 +150,34 @@ export function WorkoutDetailClient({
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-sm text-orange-400">
+            <span className="font-mono text-sm text-[--muted-strong]">
               {workout.short_hash}
             </span>
             {workout.session_type && (
               <span
                 className={`text-xs border rounded px-1.5 py-0.5 ${
                   SESSION_COLOURS[workout.session_type] ??
-                  "text-zinc-400 border-zinc-700"
+                  "text-[--muted] border-[--border]"
                 }`}
               >
                 {sessionLabel(workout.session_type)}
               </span>
             )}
             {workout.workout_format && !isPartner && (
-              <span className="text-xs border border-zinc-700 bg-zinc-900 text-zinc-400 rounded px-1.5 py-0.5">
+              <span className="text-xs border border-[--border] bg-[--surface] text-[--muted] rounded px-1.5 py-0.5">
                 {formatLabel(workout.workout_format)}
               </span>
             )}
             {isPartner && (
-              <span className="text-xs font-mono border border-purple-800 bg-purple-950 text-purple-300 px-2 py-0.5 rounded">
+              <span className="text-xs font-mono border border-[--purple]/40 bg-[--purple]/10 text-[--purple] px-2 py-0.5 rounded">
                 Co-authored-by
               </span>
             )}
           </div>
-          <h1 className="text-2xl font-bold text-zinc-50 truncate">
+          <h1 className="text-2xl font-bold text-[--text] truncate">
             {workout.title ?? "Untitled workout"}
           </h1>
-          <p className="text-sm text-zinc-500">{dateStr}</p>
+          <p className="text-sm text-[--muted]">{dateStr}</p>
         </div>
 
         {/* Actions — top right */}
@@ -184,7 +186,7 @@ export function WorkoutDetailClient({
             variant="outline"
             size="sm"
             onClick={() => setEditing(true)}
-            className="border-zinc-700 text-zinc-300"
+            className="border-[--border] text-[--text]"
           >
             Edit
           </Button>
@@ -200,28 +202,28 @@ export function WorkoutDetailClient({
       </div>
 
       {/* Meta */}
-      <div className="flex flex-wrap gap-4 text-sm text-zinc-400">
+      <div className="flex flex-wrap gap-4 text-sm text-[--muted]">
         {workout.session_rpe != null && (
           <div>
-            <span className="text-zinc-600 text-xs">Effort</span>{" "}
-            <span className="font-mono text-zinc-200">
+            <span className="text-[--muted-strong] text-xs">Effort</span>{" "}
+            <span className="font-mono text-[--text]">
               {workout.session_rpe} / 10
             </span>
           </div>
         )}
         {workout.duration_s != null && (
           <div>
-            <span className="text-zinc-600 text-xs">Duration</span>{" "}
-            <span className="font-mono text-zinc-200">
+            <span className="text-[--muted-strong] text-xs">Duration</span>{" "}
+            <span className="font-mono text-[--text]">
               {Math.round(workout.duration_s / 60)} min
             </span>
           </div>
         )}
         {workout.perceived_load_au != null && (
           <div>
-            <span className="text-zinc-600 text-xs">Load</span>{" "}
+            <span className="text-[--muted-strong] text-xs">Load</span>{" "}
             <span
-              className="font-mono text-zinc-200"
+              className="font-mono text-[--text]"
               title="Training load in arbitrary units (sRPE × duration minutes)"
             >
               {Math.round(workout.perceived_load_au)} AU
@@ -230,24 +232,24 @@ export function WorkoutDetailClient({
         )}
         {workout.location && (
           <div>
-            <span className="text-zinc-600 text-xs">Location</span>{" "}
-            <span className="text-zinc-200">{workout.location}</span>
+            <span className="text-[--muted-strong] text-xs">Location</span>{" "}
+            <span className="text-[--text]">{workout.location}</span>
           </div>
         )}
       </div>
 
       {/* Notes */}
       {workout.notes && (
-        <p className="text-sm text-zinc-400 italic border-l-2 border-zinc-700 pl-3">
+        <p className="text-sm text-[--muted] italic border-l-2 border-[--border] pl-3">
           {workout.notes}
         </p>
       )}
 
       {/* Results */}
       <div>
-        <h2 className="text-sm font-medium text-zinc-300 mb-3">Results</h2>
+        <h2 className="text-sm font-medium text-[--text] mb-3">Results</h2>
         {(workout.results ?? []).length === 0 ? (
-          <p className="text-sm text-zinc-600 font-mono italic">
+          <p className="text-sm text-[--muted] font-mono italic">
             No results logged.
           </p>
         ) : (
@@ -264,22 +266,22 @@ export function WorkoutDetailClient({
               return (
                 <div
                   key={r.id}
-                  className="rounded px-3 py-2 bg-zinc-900 text-sm"
+                  className="rounded px-3 py-2 bg-[--surface] text-sm"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-xs text-zinc-600">
+                    <span className="font-mono text-xs text-[--muted-strong]">
                       {i + 1}
                     </span>
-                    <span className="text-zinc-300 flex-1">
+                    <span className="text-[--text] flex-1 min-w-0 truncate">
                       {r.movement_name ? (
                         <span>{r.movement_name}</span>
                       ) : (
-                        <span className="text-zinc-500 italic">
+                        <span className="text-[--muted] italic">
                           {RESULT_TYPE_LABELS[r.result_type] ?? r.result_type}
                         </span>
                       )}
                     </span>
-                    <div className="flex items-center gap-3 text-zinc-400 font-mono text-xs">
+                    <div className="flex items-center gap-3 text-[--muted] font-mono text-xs">
                       {r.load_kg && (
                         <span>
                           {parseFloat(Number(r.load_kg).toFixed(3))} kg
@@ -287,7 +289,7 @@ export function WorkoutDetailClient({
                       )}
                       {r.reps && <span>× {r.reps}</span>}
                       {r.estimated_1rm_kg && (
-                        <span className="text-zinc-600">
+                        <span className="text-[--muted-strong]">
                           e1RM {Number(r.estimated_1rm_kg).toFixed(1)} kg
                         </span>
                       )}
@@ -295,7 +297,7 @@ export function WorkoutDetailClient({
                       {isPr && (
                         <span
                           data-testid="result-pr-label"
-                          className="bg-yellow-500/20 text-yellow-300 rounded px-1.5 py-0.5 font-semibold"
+                          className="bg-[--green]/15 text-[--green] rounded px-1.5 py-0.5 font-mono font-semibold"
                         >
                           PR
                         </span>
@@ -315,10 +317,10 @@ export function WorkoutDetailClient({
         )}
       </div>
 
-      <Separator className="border-zinc-800" />
+      <Separator className="border-[--border]" />
 
       {/* Commit info footer */}
-      <div className="text-xs text-zinc-600 space-y-0.5">
+      <div className="text-xs text-[--muted] space-y-0.5">
         <p>
           <span className="font-mono">commit {workout.short_hash}</span>
         </p>
@@ -337,19 +339,19 @@ export function WorkoutDetailClient({
 
       {/* Delete confirm dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="bg-zinc-900 border-zinc-700">
+        <DialogContent className="bg-[--surface-3] border-[--border]">
           <DialogHeader>
-            <DialogTitle className="text-zinc-100">Delete workout?</DialogTitle>
-            <DialogDescription className="text-zinc-500">
+            <DialogTitle className="text-[--text]">Delete workout?</DialogTitle>
+            <DialogDescription className="text-[--muted-strong]">
               This will permanently delete{" "}
-              <span className="font-mono text-orange-400">
+              <span className="font-mono text-[--muted-strong]">
                 {workout.short_hash}
               </span>{" "}
               — {workout.title ?? "Untitled workout"}. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-3 justify-end mt-2">
-            <DialogClose className="inline-flex items-center justify-center rounded-lg border border-zinc-700 bg-transparent px-2.5 py-1.5 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none">
+            <DialogClose className="inline-flex items-center justify-center rounded-lg border border-[--border] bg-transparent px-2.5 py-1.5 text-sm font-medium text-[--text] transition-colors hover:bg-[--surface-2] hover:text-[--text] focus-visible:outline-none">
               Cancel
             </DialogClose>
             <Button
