@@ -4,6 +4,8 @@ import { useState, useMemo } from "react";
 import type { UseFormRegister, UseFormSetValue } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { parseTimeInput, timeTextToSeconds } from "@/lib/time";
+import { fmtPace } from "@/lib/distance";
+import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
 import type { LogFormValues } from "./schema";
 
 export type ResultTypeValue =
@@ -37,6 +39,7 @@ export function ResultFields({
   setValue,
   isCardioCompound = false,
 }: ResultFieldsProps) {
+  const { distanceUnit } = useUserPrefs();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const r = (field: string) => register(`results.${index}.${field}` as any);
 
@@ -48,11 +51,8 @@ export function ResultFields({
     const dist = Number(cardioDistance);
     const timeS = timeTextToSeconds(cardioTime);
     if (!dist || !timeS) return null;
-    const paceSec = Math.round(timeS / (dist / 500));
-    const m = Math.floor(paceSec / 60);
-    const s = paceSec % 60;
-    return `${m}:${String(s).padStart(2, "0")} /500m`;
-  }, [cardioDistance, cardioTime]);
+    return fmtPace(timeS, dist, distanceUnit);
+  }, [cardioDistance, cardioTime, distanceUnit]);
 
   // Cardio compound branch — distance + time stacked + read-only pace
   if (isCardioCompound) {

@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { useForm } from "react-hook-form";
 import { ResultFields } from "@/components/log/ResultFields";
+import { UserPrefsProvider } from "@/lib/contexts/UserPrefsContext";
 import type { LogFormValues } from "@/components/log/schema";
 import type { ResultTypeValue } from "@/components/log/ResultFields";
 
@@ -10,10 +11,12 @@ import type { ResultTypeValue } from "@/components/log/ResultFields";
 function Wrapper({
   resultType = "weight",
   weightUnit = "kg",
+  distanceUnit = "km",
   isCardioCompound = false,
 }: {
   resultType?: ResultTypeValue;
   weightUnit?: "kg" | "lb";
+  distanceUnit?: "km" | "mi";
   isCardioCompound?: boolean;
 }) {
   const { register, setValue } = useForm<LogFormValues>({
@@ -21,14 +24,20 @@ function Wrapper({
   });
 
   return (
-    <ResultFields
-      index={0}
-      resultType={resultType}
-      register={register}
-      weightUnit={weightUnit}
-      setValue={setValue}
-      isCardioCompound={isCardioCompound}
-    />
+    <UserPrefsProvider
+      initialWeightUnit={weightUnit}
+      initialDistanceUnit={distanceUnit}
+      initialGraphColourMode="intensity"
+    >
+      <ResultFields
+        index={0}
+        resultType={resultType}
+        register={register}
+        weightUnit={weightUnit}
+        setValue={setValue}
+        isCardioCompound={isCardioCompound}
+      />
+    </UserPrefsProvider>
   );
 }
 
@@ -75,25 +84,43 @@ describe("ResultFields — cardio compound branch", () => {
     expect(screen.getByRole("textbox", { name: "Time (mm:ss)" })).toBeTruthy();
   });
 
-  it("shows pace label after entering valid distance and time", () => {
-    render(<Wrapper isCardioCompound={true} resultType="weight" />);
+  it("shows pace label in km/km after entering valid distance and time", () => {
+    render(
+      <Wrapper isCardioCompound={true} resultType="weight" distanceUnit="km" />,
+    );
     const distInput = screen.getByRole("spinbutton", {
       name: "Distance in metres",
     });
     const timeInput = screen.getByRole("textbox", { name: "Time (mm:ss)" });
 
-    // 2000m at 7:12 (432s) → pace = 432 / (2000/500) = 432/4 = 108s = 1:48 /500m
+    // 2000m at 7:12 (432s) → pace per km = 432 / (2000/1000) = 432/2 = 216s = 3:36 /km
     fireEvent.change(distInput, { target: { value: "2000" } });
     fireEvent.change(timeInput, { target: { value: "7:12" } });
 
-    expect(screen.getByText("1:48 /500m")).toBeTruthy();
+    expect(screen.getByText("3:36 /km")).toBeTruthy();
+  });
+
+  it("shows pace label in /mi when distanceUnit=mi", () => {
+    render(
+      <Wrapper isCardioCompound={true} resultType="weight" distanceUnit="mi" />,
+    );
+    const distInput = screen.getByRole("spinbutton", {
+      name: "Distance in metres",
+    });
+    const timeInput = screen.getByRole("textbox", { name: "Time (mm:ss)" });
+
+    // 2000m at 7:12 (432s) → pace per mile = 432 / (2000/1609.344) ≈ 347.7s ≈ 5:48 /mi
+    fireEvent.change(distInput, { target: { value: "2000" } });
+    fireEvent.change(timeInput, { target: { value: "7:12" } });
+
+    expect(screen.getByText("5:48 /mi")).toBeTruthy();
   });
 
   it("does not show pace when distance is empty", () => {
     render(<Wrapper isCardioCompound={true} resultType="weight" />);
     const timeInput = screen.getByRole("textbox", { name: "Time (mm:ss)" });
     fireEvent.change(timeInput, { target: { value: "7:12" } });
-    expect(screen.queryByText(/\/500m/)).toBeNull();
+    expect(screen.queryByText(/\/km/)).toBeNull();
   });
 
   it("renders distance suffix 'm'", () => {
