@@ -100,3 +100,14 @@ class LastResult(BaseModel):
     calories: int | None
     watts: int | None
     performed_at: date
+
+
+class PersonalRecordResult(BaseModel):
+    movement_id: uuid.UUID
+    result_type: ResultType
+    load_kg: Decimal | None = None
+    reps: int | None = None
+    time_s: int | None = None
+    distance_m: Decimal | None = None
+    estimated_1rm_kg: Decimal | None = None
+    achieved_at: date

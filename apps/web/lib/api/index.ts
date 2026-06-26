@@ -46,6 +46,8 @@ export type Citation = components["schemas"]["Citation"];
 export type ChatResponse = components["schemas"]["ChatResponse"];
 export type HistoryMessage = components["schemas"]["HistoryMessage"];
 export type LastResult = components["schemas"]["LastResult"];
+export type PersonalRecordResult =
+  components["schemas"]["PersonalRecordResult"];
 
 // Coach session types — from generated OpenAPI schema
 export type CoachSession = components["schemas"]["CoachSession"];

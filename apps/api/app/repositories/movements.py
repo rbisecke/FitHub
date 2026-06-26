@@ -6,7 +6,13 @@ from typing import Any
 import psycopg
 from psycopg.rows import dict_row
 
-from app.models.movement import CreateMovementRequest, LastResult, Modality, Movement
+from app.models.movement import (
+    CreateMovementRequest,
+    LastResult,
+    Modality,
+    Movement,
+    PersonalRecordResult,
+)
 
 
 async def search_movements(
@@ -106,3 +112,45 @@ async def get_last_result_for_movement(
     if row is None:
         return None
     return LastResult(**row)
+
+
+async def get_personal_record(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    user_id: uuid.UUID,
+    movement_id: uuid.UUID,
+    variant_annotation: str | None = None,
+) -> PersonalRecordResult | None:
+    variant_clause = ""
+    params: list[Any] = [user_id, movement_id]
+    if variant_annotation is not None:
+        variant_clause = "AND r.variant_annotation = %s"
+        params.append(variant_annotation)
+
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            f"""
+            SELECT
+                r.movement_id,
+                r.result_type,
+                r.load_kg,
+                r.reps,
+                r.time_s,
+                r.distance_m,
+                r.estimated_1rm_kg,
+                w.performed_at::date AS achieved_at
+            FROM   public.results r
+            JOIN   public.workouts w ON w.id = r.workout_id
+            WHERE  r.user_id     = %s
+              AND  r.movement_id  = %s
+              AND  r.is_pr        = TRUE
+              {variant_clause}
+            ORDER  BY w.performed_at DESC
+            LIMIT  1
+            """,
+            params,
+        )
+        row = await cur.fetchone()
+    if row is None:
+        return None
+    return PersonalRecordResult(**row)

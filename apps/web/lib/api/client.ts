@@ -6,6 +6,7 @@ import type {
   ParseNLResponse,
   LoadModelResponse,
   PersonalRecord,
+  PersonalRecordResult,
   E1RMPoint,
   VolumeTrendResponse,
   ReadinessResponse,
@@ -116,6 +117,11 @@ export const api = {
     lastResult: (token: string, movementId: string) =>
       apiFetch<LastResult>(
         `/api/v1/movements/${movementId}/last-result`,
+        token,
+      ),
+    personalRecord: (token: string, movementId: string) =>
+      apiFetch<PersonalRecordResult | null>(
+        `/api/v1/movements/${movementId}/personal-record`,
         token,
       ),
   },
