@@ -56,6 +56,7 @@ export type SessionMessagesResponse =
 
 // Profile types — endpoint not yet in generated types; defined locally
 export type WeightUnit = "kg" | "lb";
+export type DistanceUnit = "km" | "mi";
 export type GraphColourMode = "intensity" | "volume";
 export type FrequencyTarget = 3 | 4 | 5 | 6;
 
@@ -73,7 +74,7 @@ export interface UserProfile {
   bio: string | null;
   location: string | null;
   box_affiliation: string | null;
-  distance_unit: "km" | "mi";
+  distance_unit: DistanceUnit;
   training_level: string | null;
   training_since: string | null;
 }

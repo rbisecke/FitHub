@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { AppInit } from "@/components/layout/AppInit";
 import { UserPrefsProvider } from "@/lib/contexts/UserPrefsContext";
 import { api } from "@/lib/api/client";
-import type { WeightUnit, GraphColourMode } from "@/lib/api";
+import type { WeightUnit, DistanceUnit, GraphColourMode } from "@/lib/api";
 
 export default async function AppLayout({
   children,
@@ -26,6 +26,7 @@ export default async function AppLayout({
 
   // Fetch user prefs for context seeding — fall back to defaults on error
   let weightUnit: WeightUnit = "kg";
+  let distanceUnit: DistanceUnit = "km";
   let graphColourMode: GraphColourMode = "intensity";
   let shouldRedirectToOnboarding = false;
   try {
@@ -36,6 +37,7 @@ export default async function AppLayout({
     if (token) {
       const profile = await api.profile.get(token);
       weightUnit = profile.weight_unit;
+      distanceUnit = profile.distance_unit;
       graphColourMode = profile.graph_colour_mode;
       if (!profile.onboarding_completed) {
         shouldRedirectToOnboarding = true;
@@ -49,6 +51,7 @@ export default async function AppLayout({
   return (
     <UserPrefsProvider
       initialWeightUnit={weightUnit}
+      initialDistanceUnit={distanceUnit}
       initialGraphColourMode={graphColourMode}
     >
       <AppShell user={user} defaultSidebarOpen={defaultSidebarOpen}>

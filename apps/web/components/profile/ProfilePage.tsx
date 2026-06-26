@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type {
   UserProfile,
   ProfileStats,
@@ -7,6 +8,7 @@ import type {
   FrequencyTarget,
 } from "@/lib/api";
 import { ProfileHeader } from "./ProfileHeader";
+import { EditIdentitySheet } from "./EditIdentitySheet";
 import { StatsSummaryStrip } from "./StatsSummaryStrip";
 import { PartnerList } from "./PartnerList";
 import { SettingsSection } from "./SettingsSection";
@@ -14,6 +16,7 @@ import { FrequencyTargetControl } from "./FrequencyTargetControl";
 import { CheckinToggle } from "./CheckinToggle";
 import { GraphColourToggle } from "./GraphColourToggle";
 import { WeightUnitToggle } from "./WeightUnitToggle";
+import { DistanceUnitToggle } from "./DistanceUnitToggle";
 import { AccountSection } from "./AccountSection";
 
 interface Props {
@@ -23,7 +26,15 @@ interface Props {
   token: string;
 }
 
-export function ProfilePage({ profile, stats, partners, token }: Props) {
+export function ProfilePage({
+  profile: initialProfile,
+  stats,
+  partners,
+  token,
+}: Props) {
+  const [profile, setProfile] = useState<UserProfile>(initialProfile);
+  const [editOpen, setEditOpen] = useState(false);
+
   const frequencyTarget = (
     [3, 4, 5, 6].includes(profile.frequency_target_days)
       ? profile.frequency_target_days
@@ -34,10 +45,16 @@ export function ProfilePage({ profile, stats, partners, token }: Props) {
     <div className="animate-fade-in">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <ProfileHeader
-          displayName={profile.display_name}
-          email={profile.email}
-          avatarUrl={profile.avatar_url}
-          firstWorkoutDate={profile.first_workout_date}
+          profile={profile}
+          onEditClick={() => setEditOpen(true)}
+        />
+
+        <EditIdentitySheet
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          profile={profile}
+          accessToken={token}
+          onSaved={(updated) => setProfile(updated)}
         />
 
         <StatsSummaryStrip stats={stats} />
@@ -57,6 +74,7 @@ export function ProfilePage({ profile, stats, partners, token }: Props) {
             token={token}
           />
           <WeightUnitToggle initial={profile.weight_unit} token={token} />
+          <DistanceUnitToggle initial={profile.distance_unit} token={token} />
           <div className="flex items-center justify-between py-3">
             <p className="text-sm text-[--text]">Theme</p>
             <span className="text-sm text-[--muted]">Dark (default)</span>
