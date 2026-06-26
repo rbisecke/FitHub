@@ -1,18 +1,18 @@
 export default function IntegrationsPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="mb-1 font-mono text-xl font-bold text-zinc-100">
+      <h1 className="mb-1 font-mono text-xl font-bold text-[--text]">
         $ git remote -v
       </h1>
-      <p className="mb-8 text-sm text-zinc-500">
+      <p className="mb-8 text-sm text-[--muted]">
         Wearable &amp; app integrations
       </p>
 
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+      <div className="rounded-lg border border-[--border] bg-[--surface] p-6">
         <div className="flex items-start gap-4">
-          <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-zinc-800">
+          <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[--surface-2]">
             <svg
-              className="h-5 w-5 text-zinc-400"
+              className="h-5 w-5 text-[--muted]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -27,14 +27,14 @@ export default function IntegrationsPage() {
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h2 className="font-mono text-sm font-semibold text-zinc-100">
+              <h2 className="font-mono text-sm font-semibold text-[--text]">
                 Apple Health
               </h2>
-              <span className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
+              <span className="rounded border border-[--border] bg-[--surface-2] px-1.5 py-0.5 font-mono text-[10px] text-[--muted]">
                 coming soon
               </span>
             </div>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-[--muted]">
               HRV, resting heart rate, and sleep data from Apple Watch via
               Health Auto Export. Native HealthKit sync will be available when
               the iOS app ships.
@@ -43,7 +43,7 @@ export default function IntegrationsPage() {
         </div>
       </div>
 
-      <p className="mt-6 font-mono text-xs text-zinc-700">
+      <p className="mt-6 font-mono text-xs text-[--muted]">
         More integrations (Oura, Strava, Garmin) are on the roadmap.
       </p>
     </div>
