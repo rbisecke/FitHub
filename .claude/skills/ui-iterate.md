@@ -82,13 +82,19 @@ If the server is not running, stop and tell the user to start it before proceedi
 
 - Use `browser_navigate` to `http://localhost:3000/<route>`.
 - If it returns a 404, error, or redirect to login (and login is not the target page), stop and report.
-- Read the relevant design doc:
-  - For a page: `claude_docs/planning/frontend-revamp/page-<name>.md`
-  - For navigation: `claude_docs/planning/frontend-revamp/cross-navigation-layout.md`
-  - For the library migration: `claude_docs/planning/frontend-revamp/cross-library-migration.md`
-- Note any blockers called out in that doc (backend endpoints not yet implemented, etc.).
+- Determine the **active effort** from the current git branch (`git branch --show-current`):
+  - Branch matches `feat/me-*` or `feat/p-*` → effort is **movement-entry-profile**
+    - Design docs: `claude_docs/planning/movement-entry-profile/01-design-movement-entry.md` (logger) or `02-design-profile-page.md` (profile)
+    - Screenshot root: `claude_docs/planning/movement-entry-profile/screenshots/`
+  - Branch matches `style/*` or `refactor/style-*` → effort is **style-updates**
+    - Design docs: `claude_docs/planning/style-updates/design/0X-<aspect>.md`; index at `claude_docs/planning/style-updates/README.md`
+    - Screenshot root: `claude_docs/planning/style-updates/screenshots/`
+  - Any other branch → use `claude_docs/planning/screenshots/` as fallback
+- Note any blockers called out in the relevant design doc.
 
 ### 2. Capture baseline screenshots (label: BEFORE)
+
+> **Save path:** `<screenshot-root>/<branch-name>/` where `<screenshot-root>` is determined in step 1 and `<branch-name>` is the current git branch (e.g. `feat/me-6-set-table`). Use this as the directory prefix on every `browser_take_screenshot` call — filenames: `before-mobile.png`, `before-desktop.png`, and later `after-mobile.png`, `after-desktop.png`. Playwright MCP resolves relative paths from the repo root.
 
 For **mobile** (unless `--viewport desktop`):
 
@@ -259,7 +265,14 @@ This captures the Playwright visual baseline for regression prevention.
 
 ### 12. Update the handoff doc
 
-Open `claude_docs/planning/frontend-revamp/FRONTEND-REVAMP-HANDOVER.md` and update the Progress Tracker table — change the relevant branch row from `🔲 Not started` to `✅ Done`.
+Update the handoff doc for the active effort:
+
+| Active effort                   | Handoff doc                                                        |
+| ------------------------------- | ------------------------------------------------------------------ |
+| movement-entry-profile          | `claude_docs/planning/movement-entry-profile/HANDOVER.md`          |
+| style-updates / frontend-revamp | `claude_docs/planning/frontend-revamp/FRONTEND-REVAMP-HANDOVER.md` |
+
+Change the relevant row from `🔲 Not started` to `✅ Merged` and note the PR number. For movement-entry-profile, also add the AFTER screenshots inline in the PR description (see step 13).
 
 ### 13. Final report
 
