@@ -44,10 +44,6 @@ export function MovementSearch({
 
   const search = useCallback(
     async (q: string) => {
-      if (q.length < 2) {
-        setResults([]);
-        return;
-      }
       try {
         const data = await api.movements.search(accessToken, { q });
         setResults(data);
@@ -58,10 +54,12 @@ export function MovementSearch({
     [accessToken],
   );
 
+  // Load default list when popover opens; filter as the user types.
   useEffect(() => {
-    const t = setTimeout(() => search(query), 300);
+    if (!open) return;
+    const t = setTimeout(() => search(query), query.length === 0 ? 0 : 300);
     return () => clearTimeout(t);
-  }, [query, search]);
+  }, [open, query, search]);
 
   const displayName = selected?.name ?? initialName ?? "Search movement…";
 
@@ -74,7 +72,7 @@ export function MovementSearch({
         {displayName}
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0 bg-[#161b22] border-[#30363d]">
-        <Command className="bg-[#161b22]">
+        <Command shouldFilter={false} className="bg-[#161b22]">
           <CommandInput
             placeholder="Search movements…"
             value={query}

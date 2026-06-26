@@ -51,12 +51,12 @@ describe("api.workouts.create", () => {
 });
 
 describe("api.movements.search", () => {
-  it("sends q param", async () => {
+  it("sends query param", async () => {
     const spy = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(new Response(JSON.stringify([]), { status: 200 }));
     await api.movements.search("tok", { q: "squat" });
     const url = spy.mock.calls[0]![0];
-    expect(String(url)).toContain("q=squat");
+    expect(String(url)).toContain("query=squat");
   });
 });
