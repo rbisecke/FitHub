@@ -29,6 +29,8 @@ interface ResultFieldsProps {
   weightUnit?: "kg" | "lb";
   setValue?: UseFormSetValue<LogFormValues>;
   isCardioCompound?: boolean;
+  /** Form field path prefix, e.g. "movement_entries.0.sets.0". Defaults to that pattern using index. */
+  fieldPrefix?: string;
 }
 
 export function ResultFields({
@@ -38,10 +40,12 @@ export function ResultFields({
   weightUnit = "kg",
   setValue,
   isCardioCompound = false,
+  fieldPrefix,
 }: ResultFieldsProps) {
   const { distanceUnit } = useUserPrefs();
+  const prefix = fieldPrefix ?? `movement_entries.${index}.sets.0`;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const r = (field: string) => register(`results.${index}.${field}` as any);
+  const r = (field: string) => register(`${prefix}.${field}` as any);
 
   // Local state for cardio compound pace computation
   const [cardioDistance, setCardioDistance] = useState("");
@@ -94,7 +98,7 @@ export function ResultFields({
               setCardioTime(normalised);
               if (setValue) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                setValue(`results.${index}.time_text` as any, normalised);
+                setValue(`${prefix}.time_text` as any, normalised);
               }
               timeRegCardio.onBlur(e);
             }}
@@ -166,7 +170,7 @@ export function ResultFields({
           const normalised = parseTimeInput(e.target.value);
           if (setValue) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setValue(`results.${index}.time_text` as any, normalised);
+            setValue(`${prefix}.time_text` as any, normalised);
           }
           timeReg.onBlur(e);
         }}

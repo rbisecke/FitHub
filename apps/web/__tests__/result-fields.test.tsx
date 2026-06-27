@@ -20,7 +20,7 @@ function Wrapper({
   isCardioCompound?: boolean;
 }) {
   const { register, setValue } = useForm<LogFormValues>({
-    defaultValues: { results: [{}] },
+    defaultValues: { movement_entries: [] },
   });
 
   return (

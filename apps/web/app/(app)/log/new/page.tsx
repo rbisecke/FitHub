@@ -50,26 +50,27 @@ export default async function NewWorkoutPage({
       prefillValues = {
         title: parsed.title ?? undefined,
         session_type: parsed.session_type ?? undefined,
-        results: (parsed.results ?? []).map((r, i) => ({
+        movement_entries: (parsed.results ?? []).map((r, i) => ({
           movement_name: r.movement_name,
+          modality: undefined as string | undefined,
           result_type: "weight" as const,
-          sets: [],
-          load_kg: r.load_kg != null ? String(r.load_kg) : "",
-          reps: r.reps != null ? String(r.reps) : "",
-          time_text:
-            r.time_s != null
-              ? `${Math.floor(r.time_s / 60)}:${String(r.time_s % 60).padStart(
-                  2,
-                  "0",
-                )}`
-              : "",
-          distance_m: "",
-          rounds: "",
-          partial_reps: "",
-          calories: "",
-          height_cm: "",
-          watts: "",
-          pace_text: "",
+          sets: [
+            {
+              set_index: 0,
+              set_type: "working" as const,
+              load_kg: r.load_kg != null ? String(r.load_kg) : "",
+              load_display: r.load_kg != null ? String(r.load_kg) : "",
+              reps: r.reps != null ? String(r.reps) : "",
+              time_text:
+                r.time_s != null
+                  ? `${Math.floor(r.time_s / 60)}:${String(
+                      r.time_s % 60,
+                    ).padStart(2, "0")}`
+                  : "",
+              distance_m: "",
+              variant_annotation: "",
+            },
+          ],
           order_index: i,
         })),
       };

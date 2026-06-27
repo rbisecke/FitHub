@@ -7,14 +7,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api/client";
 import type { Movement, LastResult } from "@/lib/api";
-import { logFormSchema, type LogFormValues } from "./schema";
+import { timeTextToSeconds } from "@/lib/time";
+import {
+  logFormSchema,
+  type LogFormValues,
+  type SetEntryValues,
+} from "./schema";
 import { ResultFields, type ResultTypeValue } from "./ResultFields";
 import { MovementChips } from "./MovementChips";
 import { MovementSearch } from "@/components/workout/MovementSearch";
 import {
   buildTagLabel,
   computePrStatus,
-  parseTimeText,
   writeRecentMovements,
   type RecentMovement,
 } from "@/lib/tag";
@@ -22,9 +26,32 @@ import { relativeDate } from "@/lib/display";
 
 const today = new Date().toISOString().slice(0, 10);
 
+const EMPTY_SET: SetEntryValues = {
+  set_index: 0,
+  set_type: "working",
+  load_kg: "",
+  load_display: "",
+  reps: "",
+  time_text: "",
+  distance_m: "",
+  rounds: "",
+  partial_reps: "",
+  calories: "",
+  height_cm: "",
+  watts: "",
+  pace_text: "",
+  variant_annotation: "",
+};
+
 function toISOLocal(dateStr: string): string {
   if (dateStr.includes("T")) return dateStr;
   return `${dateStr}T00:00:00Z`;
+}
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 interface TagPageClientProps {
@@ -67,38 +94,36 @@ export function TagPageClient({
     defaultValues: {
       performed_at: today,
       notes: "",
-      results: [
+      movement_entries: [
         {
           movement_id: prefillMovement?.id ?? undefined,
           movement_name: prefillMovement?.name ?? undefined,
+          modality: undefined,
           result_type:
-            (prefillLastResult?.result_type as LogFormValues["results"][number]["result_type"]) ??
+            (prefillLastResult?.result_type as LogFormValues["movement_entries"][number]["result_type"]) ??
             "weight",
-          load_kg: "",
-          reps: "",
-          time_text: "",
-          distance_m: "",
-          rounds: "",
-          partial_reps: "",
-          calories: "",
-          height_cm: "",
-          watts: "",
-          pace_text: "",
+          sets: [EMPTY_SET],
           order_index: 0,
         },
       ],
     },
   });
 
-  const resultValues = useWatch({ control, name: "results.0" });
+  // Watch the first movement entry's sets; extract [0] for live PR feedback
+  const watchedSets = useWatch({
+    control,
+    name: "movement_entries.0.sets",
+  });
+  const resultValues = Array.isArray(watchedSets) ? watchedSets[0] : undefined;
+
   const noteValue = useWatch({ control, name: "notes" });
 
   // Sync result_type into form when lastResult changes
   useEffect(() => {
     if (lastResult && lastResult.result_type) {
       setValue(
-        "results.0.result_type",
-        lastResult.result_type as LogFormValues["results"][number]["result_type"],
+        "movement_entries.0.result_type",
+        lastResult.result_type as LogFormValues["movement_entries"][number]["result_type"],
       );
     }
   }, [lastResult, setValue]);
@@ -123,19 +148,10 @@ export function TagPageClient({
     knownLastResult?: LastResult | null,
   ) {
     setSelectedMovement(movement);
-    setValue("results.0.movement_id", movement.id);
-    setValue("results.0.movement_name", movement.name);
-    // Clear prior result field values
-    setValue("results.0.load_kg", "");
-    setValue("results.0.reps", "");
-    setValue("results.0.time_text", "");
-    setValue("results.0.distance_m", "");
-    setValue("results.0.rounds", "");
-    setValue("results.0.partial_reps", "");
-    setValue("results.0.calories", "");
-    setValue("results.0.height_cm", "");
-    setValue("results.0.watts", "");
-    setValue("results.0.pace_text", "");
+    setValue("movement_entries.0.movement_id", movement.id);
+    setValue("movement_entries.0.movement_name", movement.name);
+    // Reset sets[0] to empty values
+    setValue("movement_entries.0.sets", [EMPTY_SET]);
 
     if (knownLastResult !== undefined) {
       setLastResult(knownLastResult);
@@ -157,42 +173,46 @@ export function TagPageClient({
   }
 
   function handleFill(r: LastResult) {
-    if (r.load_kg) setValue("results.0.load_kg", String(r.load_kg));
-    if (r.reps) setValue("results.0.reps", String(r.reps));
-    if (r.time_s != null) {
-      const m = Math.floor(r.time_s / 60);
-      const s = r.time_s % 60;
-      setValue("results.0.time_text", `${m}:${String(s).padStart(2, "0")}`);
-    }
-    if (r.distance_m) setValue("results.0.distance_m", String(r.distance_m));
-    if (r.rounds != null) setValue("results.0.rounds", String(r.rounds));
-    if (r.partial_reps != null)
-      setValue("results.0.partial_reps", String(r.partial_reps));
-    if (r.calories != null) setValue("results.0.calories", String(r.calories));
-    if (r.watts != null) setValue("results.0.watts", String(r.watts));
+    setValue("movement_entries.0.sets", [
+      {
+        ...EMPTY_SET,
+        load_kg: r.load_kg != null ? String(r.load_kg) : "",
+        load_display: r.load_kg != null ? String(r.load_kg) : "",
+        reps: r.reps != null ? String(r.reps) : "",
+        time_text: r.time_s != null ? formatTime(r.time_s) : "",
+        distance_m: r.distance_m != null ? String(r.distance_m) : "",
+        rounds: r.rounds != null ? String(r.rounds) : "",
+        partial_reps: r.partial_reps != null ? String(r.partial_reps) : "",
+        calories: r.calories != null ? String(r.calories) : "",
+        watts: r.watts != null ? String(r.watts) : "",
+      },
+    ]);
   }
 
   async function onSubmit(values: LogFormValues) {
     if (!selectedMovement) return;
     setSubmitError(null);
     try {
-      const r = values.results[0]!;
+      const entry = values.movement_entries[0]!;
+      const set = entry.sets[0];
       const resultRow = {
-        movement_id: r.movement_id ?? undefined,
-        result_type: r.result_type,
-        load_kg: r.load_kg ? Number(r.load_kg) : undefined,
-        reps: r.reps ? parseInt(r.reps, 10) : undefined,
-        time_s: r.time_text
-          ? parseTimeText(r.time_text) ?? undefined
+        movement_id: entry.movement_id ?? undefined,
+        result_type: entry.result_type,
+        load_kg: set?.load_kg ? Number(set.load_kg) : undefined,
+        reps: set?.reps ? parseInt(set.reps, 10) : undefined,
+        time_s: set?.time_text
+          ? timeTextToSeconds(set.time_text) ?? undefined
           : undefined,
-        distance_m: r.distance_m ? Number(r.distance_m) : undefined,
-        rounds: r.rounds ? parseInt(r.rounds, 10) : undefined,
-        partial_reps: r.partial_reps ? parseInt(r.partial_reps, 10) : undefined,
-        calories: r.calories ? parseInt(r.calories, 10) : undefined,
-        height_cm: r.height_cm ? Number(r.height_cm) : undefined,
-        watts: r.watts ? parseInt(r.watts, 10) : undefined,
-        pace_s: r.pace_text
-          ? parseTimeText(r.pace_text) ?? undefined
+        distance_m: set?.distance_m ? Number(set.distance_m) : undefined,
+        rounds: set?.rounds ? parseInt(set.rounds, 10) : undefined,
+        partial_reps: set?.partial_reps
+          ? parseInt(set.partial_reps, 10)
+          : undefined,
+        calories: set?.calories ? parseInt(set.calories, 10) : undefined,
+        height_cm: set?.height_cm ? Number(set.height_cm) : undefined,
+        watts: set?.watts ? parseInt(set.watts, 10) : undefined,
+        pace_s: set?.pace_text
+          ? timeTextToSeconds(set.pace_text) ?? undefined
           : undefined,
         notes: values.notes || undefined,
         order_index: 0,
@@ -257,9 +277,7 @@ export function TagPageClient({
         return r.reps != null ? `${r.reps} reps` : null;
       case "time": {
         if (r.time_s == null) return null;
-        const m = Math.floor(r.time_s / 60);
-        const s = r.time_s % 60;
-        return `${m}:${String(s).padStart(2, "0")}`;
+        return formatTime(r.time_s);
       }
       case "distance":
         return r.distance_m != null ? `${r.distance_m} m` : null;
@@ -290,7 +308,10 @@ export function TagPageClient({
         Mark a milestone
       </p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-6">
+      <form
+        onSubmit={handleSubmit(onSubmit as Parameters<typeof handleSubmit>[0])}
+        className="mt-6 space-y-6"
+      >
         {/* Movement selection */}
         <div className="space-y-3">
           <MovementChips
@@ -345,6 +366,7 @@ export function TagPageClient({
                 index={0}
                 resultType={resultType}
                 register={register}
+                fieldPrefix="movement_entries.0.sets.0"
               />
 
               {/* Dynamic PR feedback */}
