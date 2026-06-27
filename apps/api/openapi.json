@@ -3631,6 +3631,17 @@
             ],
             "title": "Notes"
           },
+          "variant_annotation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variant Annotation"
+          },
           "rpe": {
             "anyOf": [
               {
@@ -6304,6 +6315,17 @@
             ],
             "title": "Notes"
           },
+          "variant_annotation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variant Annotation"
+          },
           "rpe": {
             "anyOf": [
               {
@@ -6419,6 +6441,7 @@
           "order_index",
           "is_pr",
           "notes",
+          "variant_annotation",
           "rpe",
           "rpe_target",
           "rir",

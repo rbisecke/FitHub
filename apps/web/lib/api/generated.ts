@@ -1108,6 +1108,8 @@ export interface components {
       is_pr: boolean;
       /** Notes */
       notes?: string | null;
+      /** Variant Annotation */
+      variant_annotation?: string | null;
       /** Rpe */
       rpe?: number | string | null;
       /** Rpe Target */
@@ -1938,6 +1940,8 @@ export interface components {
       is_pr: boolean;
       /** Notes */
       notes: string | null;
+      /** Variant Annotation */
+      variant_annotation: string | null;
       /** Rpe */
       rpe: string | null;
       /** Rpe Target */
