@@ -18,6 +18,7 @@ interface SetTableProps {
   resultType: ResultTypeValue;
   weightUnit: "kg" | "lb";
   prThreshold: number | null; // from personalRecord API (estimated_1rm_kg)
+  onSetConfirmed?: () => void;
 }
 
 const CARDIO_TYPES: ResultTypeValue[] = ["time", "distance"];
@@ -29,10 +30,11 @@ export function SetTable({
   resultType,
   weightUnit,
   prThreshold,
+  onSetConfirmed: _onSetConfirmed,
 }: SetTableProps) {
   const { fields, append } = useFieldArray({
     control,
-    name: `results.${movementIndex}.sets`,
+    name: `movement_entries.${movementIndex}.sets`,
   });
 
   const isCardio = CARDIO_TYPES.includes(resultType);
@@ -89,16 +91,25 @@ export function SetTable({
             reps={reps}
             weightUnit={weightUnit}
             onSetTypeChange={(t) =>
-              setValue(`results.${movementIndex}.sets.${i}.set_type`, t)
+              setValue(
+                `movement_entries.${movementIndex}.sets.${i}.set_type`,
+                t,
+              )
             }
             onLoadChange={(v) => {
-              setValue(`results.${movementIndex}.sets.${i}.load_display`, v);
+              setValue(
+                `movement_entries.${movementIndex}.sets.${i}.load_display`,
+                v,
+              );
               // Convert to kg for storage
               const kg = weightUnit === "lb" ? String(Number(v) / 2.20462) : v;
-              setValue(`results.${movementIndex}.sets.${i}.load_kg`, kg);
+              setValue(
+                `movement_entries.${movementIndex}.sets.${i}.load_kg`,
+                kg,
+              );
             }}
             onRepsChange={(v) =>
-              setValue(`results.${movementIndex}.sets.${i}.reps`, v)
+              setValue(`movement_entries.${movementIndex}.sets.${i}.reps`, v)
             }
             prThreshold={prThreshold}
             estimatedOneRM={estimatedOneRM}

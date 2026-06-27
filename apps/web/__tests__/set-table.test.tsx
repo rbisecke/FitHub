@@ -8,8 +8,8 @@ import type { LogFormValues } from "@/components/log/schema";
 // ---- Minimal wrapper that provides react-hook-form context ----
 
 interface WrapperProps {
-  resultType?: LogFormValues["results"][0]["result_type"];
-  initialSets?: LogFormValues["results"][0]["sets"];
+  resultType?: LogFormValues["movement_entries"][0]["result_type"];
+  initialSets?: LogFormValues["movement_entries"][0]["sets"];
   prThreshold?: number | null;
   weightUnit?: "kg" | "lb";
 }
@@ -23,10 +23,11 @@ function Wrapper({
   const { control, register, setValue } = useForm<LogFormValues>({
     defaultValues: {
       performed_at: "2026-01-01",
-      results: [
+      movement_entries: [
         {
           result_type: resultType,
           sets: initialSets,
+          order_index: 0,
         },
       ],
     },
@@ -56,7 +57,7 @@ describe("SetTable", () => {
   });
 
   it("renders a SetRow for each entry in sets[]", () => {
-    const sets: LogFormValues["results"][0]["sets"] = [
+    const sets: LogFormValues["movement_entries"][0]["sets"] = [
       {
         set_index: 0,
         set_type: "working",
@@ -91,7 +92,7 @@ describe("SetTable", () => {
   });
 
   it("appending a second set copies the previous set_type", () => {
-    const sets: LogFormValues["results"][0]["sets"] = [
+    const sets: LogFormValues["movement_entries"][0]["sets"] = [
       {
         set_index: 0,
         set_type: "drop",

@@ -20,6 +20,12 @@ export const setEntrySchema = z.object({
   reps: z.string().optional(),
   time_text: z.string().optional(),
   distance_m: z.string().optional(),
+  rounds: z.string().optional(),
+  partial_reps: z.string().optional(),
+  calories: z.string().optional(),
+  height_cm: z.string().optional(),
+  watts: z.string().optional(),
+  pace_text: z.string().optional(),
   variant_annotation: z.string().optional(), // comma-joined chips e.g. "hang,power"
 });
 
@@ -31,18 +37,6 @@ const resultRowSchema = z.object({
   modality: z.string().optional(),
   result_type: z.enum(RESULT_TYPE_VALUES).default("weight"),
   sets: z.array(setEntrySchema).default([]),
-  // All numeric fields stored as strings for clean empty handling
-  // Kept for backward compat — ME-7 removes them
-  load_kg: z.string().optional(),
-  reps: z.string().optional(),
-  time_text: z.string().optional(),
-  distance_m: z.string().optional(),
-  rounds: z.string().optional(),
-  partial_reps: z.string().optional(),
-  calories: z.string().optional(),
-  height_cm: z.string().optional(),
-  watts: z.string().optional(),
-  pace_text: z.string().optional(),
   order_index: z.number().default(0),
 });
 
@@ -56,9 +50,9 @@ export const logFormSchema = z.object({
   notes: z.string().optional(),
   bodyweight_kg: z.string().optional(),
   location: z.string().optional(),
-  results: z.array(resultRowSchema).default([]),
+  movement_entries: z.array(resultRowSchema).default([]),
 });
 
 export type LogFormValues = z.infer<typeof logFormSchema>;
-export type ResultRowValues = z.infer<typeof resultRowSchema>;
+export type MovementEntry = z.infer<typeof resultRowSchema>;
 export type SetEntryValues = z.infer<typeof setEntrySchema>;
