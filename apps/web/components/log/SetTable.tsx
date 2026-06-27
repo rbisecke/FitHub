@@ -1,11 +1,7 @@
 "use client";
 
 import { useFieldArray } from "react-hook-form";
-import type {
-  Control,
-  UseFormRegister,
-  UseFormSetValue,
-} from "react-hook-form";
+import type { Control, UseFormSetValue } from "react-hook-form";
 import { SetRow } from "./SetRow";
 import type { LogFormValues } from "./schema";
 import type { ResultTypeValue } from "./ResultFields";
@@ -13,7 +9,6 @@ import type { ResultTypeValue } from "./ResultFields";
 interface SetTableProps {
   movementIndex: number;
   control: Control<LogFormValues>;
-  register: UseFormRegister<LogFormValues>;
   setValue: UseFormSetValue<LogFormValues>;
   resultType: ResultTypeValue;
   weightUnit: "kg" | "lb";
@@ -58,7 +53,7 @@ export function SetTable({
   return (
     <div className="space-y-2">
       {/* Column headers */}
-      <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem_auto] gap-2 items-center text-xs font-mono text-[#8b949e] px-1">
+      <div className="grid grid-cols-[2rem_1fr_1fr_3rem_auto] gap-2 items-center text-xs font-mono text-[#8b949e] px-1">
         <span className="text-right">Set</span>
         <span>{weightUnit}</span>
         <span>Reps</span>
@@ -123,7 +118,7 @@ export function SetTable({
       <button
         type="button"
         onClick={handleAddSet}
-        className="text-xs font-mono text-[#58a6ff] hover:text-[#e6edf3] transition-colors py-1 px-1"
+        className="inline-flex items-center text-xs font-mono text-[#58a6ff] hover:text-[#e6edf3] transition-colors min-h-[44px] px-2"
       >
         + Add set
       </button>
