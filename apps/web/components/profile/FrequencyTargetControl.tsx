@@ -37,14 +37,14 @@ export function FrequencyTargetControl({ initial, token }: Props) {
 
   return (
     <div className="flex items-center justify-between py-3">
-      <div>
+      <div className="min-w-0">
         <p className="text-sm text-[#e6edf3]">Frequency target</p>
         <p className="text-xs text-[#8b949e]">Days per week you aim to train</p>
       </div>
       <div
         role="radiogroup"
         aria-label="Frequency target"
-        className="flex rounded-md border border-[#30363d] overflow-hidden"
+        className="flex rounded-md border border-[#30363d] overflow-hidden shrink-0"
       >
         {OPTIONS.map((opt) => (
           <button

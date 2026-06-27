@@ -55,7 +55,7 @@ export function PinnedMovementCard({ movement }: PinnedMovementCardProps) {
         {prDisplay}
       </p>
       <span
-        className={`inline-block text-[10px] font-mono uppercase tracking-wide border rounded px-1.5 py-0.5 ${chipClass}`}
+        className={`inline-block text-xs font-mono uppercase tracking-wide border rounded px-1.5 py-0.5 ${chipClass}`}
       >
         {movement.modality}
       </span>

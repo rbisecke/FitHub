@@ -98,7 +98,7 @@ export function StatCard({
       )}
       aria-label={ariaLabel}
     >
-      <p className="font-mono text-[10px] uppercase tracking-wider text-[--muted]">
+      <p className="font-mono text-xs uppercase tracking-wider text-[--muted]">
         {label}
       </p>
       <div className="mt-1 flex items-baseline gap-1.5">
