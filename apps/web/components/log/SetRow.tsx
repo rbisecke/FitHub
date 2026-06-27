@@ -16,6 +16,8 @@ interface SetRowProps {
   onSetTypeChange: (t: SetType) => void;
   onLoadChange: (v: string) => void;
   onRepsChange: (v: string) => void;
+  /** Called when reps field loses focus with a non-empty value — triggers rest timer. */
+  onSetConfirmed?: () => void;
   /** Pre-computed estimated 1RM in kg (null when hidden). Provided by SetTable to avoid double-computing. */
   estimatedOneRM?: number | null;
   /** PR threshold from personalRecord API (estimated_1rm_kg). null = no prior PR on record. */
@@ -36,6 +38,7 @@ export function SetRow({
   onSetTypeChange,
   onLoadChange,
   onRepsChange,
+  onSetConfirmed,
   estimatedOneRM,
   prThreshold = null,
   setTypeBadgeForPR,
@@ -80,6 +83,11 @@ export function SetRow({
         aria-label={`Set ${setNumber} reps`}
         value={reps}
         onChange={(e) => onRepsChange(e.target.value)}
+        onBlur={(e) => {
+          if (onSetConfirmed && e.target.value.trim()) {
+            onSetConfirmed();
+          }
+        }}
         className={INPUT_CLS}
       />
       <SetTypeBadge value={setType} onChange={onSetTypeChange} />

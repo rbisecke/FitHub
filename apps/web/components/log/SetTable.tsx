@@ -30,7 +30,7 @@ export function SetTable({
   resultType,
   weightUnit,
   prThreshold,
-  onSetConfirmed: _onSetConfirmed,
+  onSetConfirmed,
 }: SetTableProps) {
   const { fields, append } = useFieldArray({
     control,
@@ -111,6 +111,7 @@ export function SetTable({
             onRepsChange={(v) =>
               setValue(`movement_entries.${movementIndex}.sets.${i}.reps`, v)
             }
+            onSetConfirmed={onSetConfirmed}
             prThreshold={prThreshold}
             estimatedOneRM={estimatedOneRM}
             setTypeBadgeForPR={setType}

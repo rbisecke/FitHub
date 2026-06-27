@@ -79,16 +79,26 @@ const CHEVRON = {
 const INPUT_CLS =
   "h-9 bg-[#0d1117] border-[#30363d] text-[#e6edf3] text-sm placeholder:text-[#8b949e]";
 
+const REST_DURATIONS = [60, 90, 120, 180] as const;
+
 interface AddDetailsCollapsibleProps {
   register: UseFormRegister<LogFormValues>;
   setValue: UseFormSetValue<LogFormValues>;
   watch: UseFormWatch<LogFormValues>;
+  restEnabled?: boolean;
+  onRestEnabledChange?: (v: boolean) => void;
+  restDuration?: number;
+  onRestDurationChange?: (v: number) => void;
 }
 
 export function AddDetailsCollapsible({
   register,
   setValue,
   watch,
+  restEnabled = false,
+  onRestEnabledChange,
+  restDuration = 90,
+  onRestDurationChange,
 }: AddDetailsCollapsibleProps) {
   const [open, setOpen] = useState(false);
   const [sliderDisplay, setSliderDisplay] = useState(5);
@@ -258,6 +268,51 @@ export function AddDetailsCollapsible({
             </span>
           </div>
         </div>
+
+        {/* Rest timer */}
+        {onRestEnabledChange && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-[#8b949e]">Rest timer</Label>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={restEnabled}
+                onClick={() => onRestEnabledChange(!restEnabled)}
+                className={[
+                  "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors",
+                  restEnabled ? "bg-[#58a6ff]" : "bg-[#30363d]",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "pointer-events-none inline-block h-4 w-4 translate-y-px rounded-full bg-white shadow-sm ring-0 transition-transform",
+                    restEnabled ? "translate-x-4" : "translate-x-0.5",
+                  ].join(" ")}
+                />
+              </button>
+            </div>
+            {restEnabled && (
+              <div className="flex gap-2">
+                {REST_DURATIONS.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => onRestDurationChange?.(d)}
+                    className={[
+                      "flex-1 rounded-md border py-1 font-mono text-xs transition-colors",
+                      restDuration === d
+                        ? "border-[#58a6ff] bg-[#58a6ff]/10 text-[#58a6ff]"
+                        : "border-[#30363d] text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3]",
+                    ].join(" ")}
+                  >
+                    {d}s
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </CollapsibleContent>
     </Collapsible>
   );

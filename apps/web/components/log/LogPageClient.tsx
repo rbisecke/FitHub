@@ -11,9 +11,11 @@ import type { WorkoutSummary, SessionType, WorkoutFormat } from "@/lib/api";
 import { toasts } from "@/lib/toast";
 import { fireInitialCommitToast } from "@/lib/pr-celebrations";
 import { timeTextToSeconds } from "@/lib/time";
+import { useRestTimer } from "@/lib/hooks/useRestTimer";
 import { logFormSchema, type LogFormValues } from "./schema";
 import { MovementRow } from "./MovementRow";
 import { AddDetailsCollapsible } from "./AddDetailsCollapsible";
+import { RestTimer } from "./RestTimer";
 import { TemplatePicker } from "./TemplatePicker";
 
 function toISOLocal(dateStr: string): string {
@@ -37,6 +39,7 @@ export function LogPageClient({
   isFirstWorkout = false,
 }: LogPageClientProps) {
   const router = useRouter();
+  const timer = useRestTimer();
   const [nlText, setNlText] = useState("");
   const [nlLoading, setNlLoading] = useState(false);
   const [nlPreview, setNlPreview] = useState<string | null>(null);
@@ -271,6 +274,7 @@ export function LogPageClient({
                   register={register}
                   setValue={setValue}
                   remove={remove}
+                  onSetConfirmed={timer.enabled ? timer.start : undefined}
                 />
               ))}
             </div>
@@ -300,6 +304,10 @@ export function LogPageClient({
               register={register}
               setValue={setValue}
               watch={watch}
+              restEnabled={timer.enabled}
+              onRestEnabledChange={timer.setEnabled}
+              restDuration={timer.duration}
+              onRestDurationChange={timer.setDuration}
             />
 
             {/* Error */}
@@ -339,6 +347,9 @@ export function LogPageClient({
           </div>
         </div>
       </div>
+
+      {/* Rest timer overlay */}
+      <RestTimer remaining={timer.remaining} onSkip={timer.stop} />
     </div>
   );
 }
