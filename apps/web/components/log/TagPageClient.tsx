@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api/client";
 import type { Movement, LastResult } from "@/lib/api";
 import { timeTextToSeconds } from "@/lib/time";
-import { logFormSchema, type LogFormValues } from "./schema";
+import {
+  logFormSchema,
+  type LogFormValues,
+  type SetEntryValues,
+} from "./schema";
 import { ResultFields, type ResultTypeValue } from "./ResultFields";
 import { MovementChips } from "./MovementChips";
 import { MovementSearch } from "@/components/workout/MovementSearch";
@@ -22,9 +26,32 @@ import { relativeDate } from "@/lib/display";
 
 const today = new Date().toISOString().slice(0, 10);
 
+const EMPTY_SET: SetEntryValues = {
+  set_index: 0,
+  set_type: "working",
+  load_kg: "",
+  load_display: "",
+  reps: "",
+  time_text: "",
+  distance_m: "",
+  rounds: "",
+  partial_reps: "",
+  calories: "",
+  height_cm: "",
+  watts: "",
+  pace_text: "",
+  variant_annotation: "",
+};
+
 function toISOLocal(dateStr: string): string {
   if (dateStr.includes("T")) return dateStr;
   return `${dateStr}T00:00:00Z`;
+}
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 interface TagPageClientProps {
@@ -75,36 +102,20 @@ export function TagPageClient({
           result_type:
             (prefillLastResult?.result_type as LogFormValues["movement_entries"][number]["result_type"]) ??
             "weight",
-          sets: [
-            {
-              set_index: 0,
-              set_type: "working",
-              load_kg: "",
-              load_display: "",
-              reps: "",
-              time_text: "",
-              distance_m: "",
-              rounds: "",
-              partial_reps: "",
-              calories: "",
-              height_cm: "",
-              watts: "",
-              pace_text: "",
-              variant_annotation: "",
-            },
-          ],
+          sets: [EMPTY_SET],
           order_index: 0,
         },
       ],
     },
   });
 
-  // Watch the single set's values for live PR feedback
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const resultValues = useWatch({
+  // Watch the first movement entry's sets; extract [0] for live PR feedback
+  const watchedSets = useWatch({
     control,
-    name: "movement_entries.0.sets.0" as any,
+    name: "movement_entries.0.sets",
   });
+  const resultValues = Array.isArray(watchedSets) ? watchedSets[0] : undefined;
+
   const noteValue = useWatch({ control, name: "notes" });
 
   // Sync result_type into form when lastResult changes
@@ -139,27 +150,8 @@ export function TagPageClient({
     setSelectedMovement(movement);
     setValue("movement_entries.0.movement_id", movement.id);
     setValue("movement_entries.0.movement_name", movement.name);
-    // Clear the single set's field values
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setValue("movement_entries.0.sets.0.load_kg" as any, "");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setValue("movement_entries.0.sets.0.reps" as any, "");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setValue("movement_entries.0.sets.0.time_text" as any, "");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setValue("movement_entries.0.sets.0.distance_m" as any, "");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setValue("movement_entries.0.sets.0.rounds" as any, "");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setValue("movement_entries.0.sets.0.partial_reps" as any, "");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setValue("movement_entries.0.sets.0.calories" as any, "");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setValue("movement_entries.0.sets.0.height_cm" as any, "");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setValue("movement_entries.0.sets.0.watts" as any, "");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setValue("movement_entries.0.sets.0.pace_text" as any, "");
+    // Reset sets[0] to empty values
+    setValue("movement_entries.0.sets", [EMPTY_SET]);
 
     if (knownLastResult !== undefined) {
       setLastResult(knownLastResult);
@@ -181,42 +173,20 @@ export function TagPageClient({
   }
 
   function handleFill(r: LastResult) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (r.load_kg)
-      setValue("movement_entries.0.sets.0.load_kg" as any, String(r.load_kg));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (r.reps)
-      setValue("movement_entries.0.sets.0.reps" as any, String(r.reps));
-    if (r.time_s != null) {
-      const m = Math.floor(r.time_s / 60);
-      const s = r.time_s % 60;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setValue(
-        "movement_entries.0.sets.0.time_text" as any,
-        `${m}:${String(s).padStart(2, "0")}`,
-      );
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (r.distance_m)
-      setValue(
-        "movement_entries.0.sets.0.distance_m" as any,
-        String(r.distance_m),
-      );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (r.rounds != null)
-      setValue("movement_entries.0.sets.0.rounds" as any, String(r.rounds));
-    if (r.partial_reps != null)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setValue(
-        "movement_entries.0.sets.0.partial_reps" as any,
-        String(r.partial_reps),
-      );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (r.calories != null)
-      setValue("movement_entries.0.sets.0.calories" as any, String(r.calories));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (r.watts != null)
-      setValue("movement_entries.0.sets.0.watts" as any, String(r.watts));
+    setValue("movement_entries.0.sets", [
+      {
+        ...EMPTY_SET,
+        load_kg: r.load_kg != null ? String(r.load_kg) : "",
+        load_display: r.load_kg != null ? String(r.load_kg) : "",
+        reps: r.reps != null ? String(r.reps) : "",
+        time_text: r.time_s != null ? formatTime(r.time_s) : "",
+        distance_m: r.distance_m != null ? String(r.distance_m) : "",
+        rounds: r.rounds != null ? String(r.rounds) : "",
+        partial_reps: r.partial_reps != null ? String(r.partial_reps) : "",
+        calories: r.calories != null ? String(r.calories) : "",
+        watts: r.watts != null ? String(r.watts) : "",
+      },
+    ]);
   }
 
   async function onSubmit(values: LogFormValues) {
@@ -269,19 +239,16 @@ export function TagPageClient({
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const prStatus = computePrStatus(resultType, resultValues as any, lastResult);
+  const prStatus = computePrStatus(resultType, resultValues, lastResult);
   const buttonLabel = buildTagLabel(
     selectedMovement?.name,
     resultType,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resultValues as any,
+    resultValues,
   );
 
   const isSubmitReady = (() => {
     if (!selectedMovement) return false;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const v = resultValues as any;
+    const v = resultValues;
     if (!v) return false;
     return (
       (resultType === "weight" && !!v.load_kg) ||
@@ -310,9 +277,7 @@ export function TagPageClient({
         return r.reps != null ? `${r.reps} reps` : null;
       case "time": {
         if (r.time_s == null) return null;
-        const m = Math.floor(r.time_s / 60);
-        const s = r.time_s % 60;
-        return `${m}:${String(s).padStart(2, "0")}`;
+        return formatTime(r.time_s);
       }
       case "distance":
         return r.distance_m != null ? `${r.distance_m} m` : null;
