@@ -220,10 +220,11 @@ export function LogPageClient({
         <div className="space-y-6">
           {/* NL area */}
           <div className="space-y-2">
-            <p className="text-xs text-[#8b949e]">
+            <label htmlFor="nl-textarea" className="text-xs text-[#8b949e]">
               Describe your workout (optional)
-            </p>
+            </label>
             <Textarea
+              id="nl-textarea"
               placeholder={
                 'Describe your workout…\ne.g. "Fran in 6:45" or "5×5 back squat @ 90 kg"'
               }

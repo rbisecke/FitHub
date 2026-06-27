@@ -31,7 +31,7 @@ export function SetTypeBadge({ value, onChange }: SetTypeBadgeProps) {
       type="button"
       aria-label={`Set type: ${value}`}
       onClick={() => onChange(CYCLE[value])}
-      className={`font-mono text-sm w-6 h-6 flex items-center justify-center rounded hover:bg-[#161b22] transition-colors ${COLOURS[value]}`}
+      className={`font-mono text-sm min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-[#161b22] transition-colors ${COLOURS[value]}`}
     >
       {LABELS[value]}
     </button>
