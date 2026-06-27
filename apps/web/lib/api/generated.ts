@@ -334,6 +334,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/movements/{movement_id}/personal-record": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Movement Personal Record */
+    get: operations["get_movement_personal_record_api_v1_movements__movement_id__personal_record_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/profile": {
     parameters: {
       query?: never;
@@ -362,6 +379,24 @@ export interface paths {
     /** Get Profile Stats */
     get: operations["get_profile_stats_api_v1_profile_stats_get"];
     put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/profile/pinned-movements": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Pinned Movements */
+    get: operations["get_pinned_movements_api_v1_profile_pinned_movements_get"];
+    /** Put Pinned Movements */
+    put: operations["put_pinned_movements_api_v1_profile_pinned_movements_put"];
     post?: never;
     delete?: never;
     options?: never;
@@ -1073,6 +1108,8 @@ export interface components {
       is_pr: boolean;
       /** Notes */
       notes?: string | null;
+      /** Variant Annotation */
+      variant_annotation?: string | null;
       /** Rpe */
       rpe?: number | string | null;
       /** Rpe Target */
@@ -1538,6 +1575,28 @@ export interface components {
       checkin_enabled?: boolean | null;
       /** Onboarding Completed */
       onboarding_completed?: boolean | null;
+      /** Display Name */
+      display_name?: string | null;
+      /** Bio */
+      bio?: string | null;
+      /** Location */
+      location?: string | null;
+      /** Box Affiliation */
+      box_affiliation?: string | null;
+      /** Distance Unit */
+      distance_unit?: ("km" | "mi") | null;
+      /** Training Level */
+      training_level?:
+        | (
+            | "recreational"
+            | "intermediate"
+            | "competitive"
+            | "masters"
+            | "elite"
+          )
+        | null;
+      /** Training Since */
+      training_since?: string | null;
     };
     /** PatchTeamSessionRequest */
     PatchTeamSessionRequest: {
@@ -1600,6 +1659,48 @@ export interface components {
       prev_best_1rm_kg?: number | null;
       /** Delta Kg */
       delta_kg?: number | null;
+    };
+    /** PersonalRecordResult */
+    PersonalRecordResult: {
+      /**
+       * Movement Id
+       * Format: uuid
+       */
+      movement_id: string;
+      result_type: components["schemas"]["ResultType"];
+      /** Load Kg */
+      load_kg?: string | null;
+      /** Reps */
+      reps?: number | null;
+      /** Time S */
+      time_s?: number | null;
+      /** Distance M */
+      distance_m?: string | null;
+      /** Estimated 1Rm Kg */
+      estimated_1rm_kg?: string | null;
+      /**
+       * Achieved At
+       * Format: date
+       */
+      achieved_at: string;
+    };
+    /** PinnedMovement */
+    PinnedMovement: {
+      /**
+       * Movement Id
+       * Format: uuid
+       */
+      movement_id: string;
+      /** Movement Name */
+      movement_name: string;
+      /** Modality */
+      modality: string;
+      /** Display Order */
+      display_order: number;
+      /** Personal Record */
+      personal_record?: {
+        [key: string]: unknown;
+      } | null;
     };
     /** PlanDetail */
     PlanDetail: {
@@ -1839,6 +1940,8 @@ export interface components {
       is_pr: boolean;
       /** Notes */
       notes: string | null;
+      /** Variant Annotation */
+      variant_annotation: string | null;
       /** Rpe */
       rpe: string | null;
       /** Rpe Target */
@@ -1913,6 +2016,11 @@ export interface components {
       | "rest"
       | "deload"
       | "active_recovery";
+    /** SetPinnedMovementsRequest */
+    SetPinnedMovementsRequest: {
+      /** Movement Ids */
+      movement_ids?: string[];
+    };
     /** SyncResponse */
     SyncResponse: {
       /** Rows Inserted */
@@ -2085,6 +2193,21 @@ export interface components {
       checkin_enabled: boolean;
       /** Onboarding Completed */
       onboarding_completed: boolean;
+      /** Bio */
+      bio?: string | null;
+      /** Location */
+      location?: string | null;
+      /** Box Affiliation */
+      box_affiliation?: string | null;
+      /**
+       * Distance Unit
+       * @default km
+       */
+      distance_unit: string;
+      /** Training Level */
+      training_level?: string | null;
+      /** Training Since */
+      training_since?: string | null;
     };
     /** ValidationError */
     ValidationError: {
@@ -2839,6 +2962,39 @@ export interface operations {
       };
     };
   };
+  get_movement_personal_record_api_v1_movements__movement_id__personal_record_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        movement_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json":
+            | components["schemas"]["PersonalRecordResult"]
+            | null;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   get_profile_api_v1_profile_get: {
     parameters: {
       query?: never;
@@ -2908,6 +3064,59 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ProfileStats"];
+        };
+      };
+    };
+  };
+  get_pinned_movements_api_v1_profile_pinned_movements_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PinnedMovement"][];
+        };
+      };
+    };
+  };
+  put_pinned_movements_api_v1_profile_pinned_movements_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SetPinnedMovementsRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PinnedMovement"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

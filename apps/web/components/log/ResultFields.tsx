@@ -1,7 +1,11 @@
 "use client";
 
-import type { UseFormRegister } from "react-hook-form";
+import { useState, useMemo } from "react";
+import type { UseFormRegister, UseFormSetValue } from "react-hook-form";
 import { Input } from "@/components/ui/input";
+import { parseTimeInput, timeTextToSeconds } from "@/lib/time";
+import { fmtPace } from "@/lib/distance";
+import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
 import type { LogFormValues } from "./schema";
 
 export type ResultTypeValue =
@@ -22,15 +26,91 @@ interface ResultFieldsProps {
   index: number;
   resultType: ResultTypeValue;
   register: UseFormRegister<LogFormValues>;
+  weightUnit?: "kg" | "lb";
+  setValue?: UseFormSetValue<LogFormValues>;
+  isCardioCompound?: boolean;
+  /** Form field path prefix, e.g. "movement_entries.0.sets.0". Defaults to that pattern using index. */
+  fieldPrefix?: string;
 }
 
 export function ResultFields({
   index,
   resultType,
   register,
+  weightUnit = "kg",
+  setValue,
+  isCardioCompound = false,
+  fieldPrefix,
 }: ResultFieldsProps) {
+  const { distanceUnit } = useUserPrefs();
+  const prefix = fieldPrefix ?? `movement_entries.${index}.sets.0`;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const r = (field: string) => register(`results.${index}.${field}` as any);
+  const r = (field: string) => register(`${prefix}.${field}` as any);
+
+  // Local state for cardio compound pace computation
+  const [cardioDistance, setCardioDistance] = useState("");
+  const [cardioTime, setCardioTime] = useState("");
+
+  const paceLabel = useMemo(() => {
+    const dist = Number(cardioDistance);
+    const timeS = timeTextToSeconds(cardioTime);
+    if (!dist || !timeS) return null;
+    return fmtPace(timeS, dist, distanceUnit);
+  }, [cardioDistance, cardioTime, distanceUnit]);
+
+  // Cardio compound branch — distance + time stacked + read-only pace
+  if (isCardioCompound) {
+    const distReg = r("distance_m");
+    const timeRegCardio = r("time_text");
+
+    return (
+      <div className="space-y-2">
+        <div className="relative">
+          <Input
+            type="number"
+            min={0.01}
+            placeholder="2000"
+            aria-label="Distance in metres"
+            {...distReg}
+            onChange={(e) => {
+              setCardioDistance(e.target.value);
+              distReg.onChange(e);
+            }}
+            className={`${INPUT_CLS} pr-6`}
+          />
+          <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-[#8b949e]">
+            m
+          </span>
+        </div>
+        <div>
+          <Input
+            type="text"
+            inputMode="numeric"
+            placeholder="7:12"
+            aria-label="Time (mm:ss)"
+            {...timeRegCardio}
+            onChange={(e) => {
+              setCardioTime(e.target.value);
+              timeRegCardio.onChange(e);
+            }}
+            onBlur={(e) => {
+              const normalised = parseTimeInput(e.target.value);
+              setCardioTime(normalised);
+              if (setValue) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                setValue(`${prefix}.time_text` as any, normalised);
+              }
+              timeRegCardio.onBlur(e);
+            }}
+            className={INPUT_CLS}
+          />
+        </div>
+        {paceLabel && (
+          <p className="font-mono text-xs text-[#8b949e]">{paceLabel}</p>
+        )}
+      </div>
+    );
+  }
 
   if (resultType === "weight") {
     return (
@@ -42,12 +122,12 @@ export function ResultFields({
             min={0}
             max={1000}
             placeholder="95"
-            aria-label="Weight in kg"
+            aria-label={`Weight in ${weightUnit}`}
             {...r("load_kg")}
             className={`${INPUT_CLS} pr-8`}
           />
           <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-[#8b949e]">
-            kg
+            {weightUnit}
           </span>
         </div>
         <Input
@@ -78,13 +158,22 @@ export function ResultFields({
   }
 
   if (resultType === "time") {
+    const timeReg = r("time_text");
     return (
       <Input
         type="text"
         inputMode="numeric"
         placeholder="6:32"
         aria-label="Time (mm:ss)"
-        {...r("time_text")}
+        {...timeReg}
+        onBlur={(e) => {
+          const normalised = parseTimeInput(e.target.value);
+          if (setValue) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            setValue(`${prefix}.time_text` as any, normalised);
+          }
+          timeReg.onBlur(e);
+        }}
         className={INPUT_CLS}
       />
     );

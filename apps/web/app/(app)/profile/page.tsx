@@ -17,10 +17,13 @@ async function ProfileContent() {
   } = await supabase.auth.getSession();
   const token = session?.access_token ?? "";
 
-  const [profile, stats, partners] = await Promise.all([
+  const [profile, stats, partners, pinned] = await Promise.all([
     api.profile.get(token),
     api.profile.stats(token),
     api.trainingPartners(token),
+    api.profile
+      .getPinnedMovements(token)
+      .catch(() => [] as import("@/lib/api").PinnedMovement[]),
   ]);
 
   return (
@@ -28,6 +31,7 @@ async function ProfileContent() {
       profile={{ ...profile, email: user.email ?? profile.email }}
       stats={stats}
       partners={partners}
+      pinned={pinned}
       token={token}
     />
   );

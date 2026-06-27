@@ -7,7 +7,13 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.auth import UserContext, get_current_user
 from app.db import get_db
-from app.models.profile import PatchProfileRequest, ProfileStats, UserProfile
+from app.models.profile import (
+    PatchProfileRequest,
+    PinnedMovement,
+    ProfileStats,
+    SetPinnedMovementsRequest,
+    UserProfile,
+)
 from app.repositories import profile as repo
 
 router = APIRouter(prefix="/api/v1/profile", tags=["profile"])
@@ -46,3 +52,15 @@ async def patch_profile(user: Auth, conn: DB, body: PatchProfileRequest) -> User
     if profile is None:
         raise HTTPException(status_code=404, detail="Profile not found")
     return profile
+
+
+@router.get("/pinned-movements", response_model=list[PinnedMovement])
+async def get_pinned_movements(user: Auth, conn: DB) -> list[PinnedMovement]:
+    return await repo.list_pinned_movements(conn, user_id=user.user_id)
+
+
+@router.put("/pinned-movements", response_model=list[PinnedMovement])
+async def put_pinned_movements(
+    user: Auth, conn: DB, body: SetPinnedMovementsRequest
+) -> list[PinnedMovement]:
+    return await repo.set_pinned_movements(conn, user_id=user.user_id, body=body)

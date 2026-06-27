@@ -6,6 +6,7 @@ import type {
   ParseNLResponse,
   LoadModelResponse,
   PersonalRecord,
+  PersonalRecordResult,
   E1RMPoint,
   VolumeTrendResponse,
   ReadinessResponse,
@@ -20,6 +21,7 @@ import type {
   SessionMessagesResponse,
   UserProfile,
   ProfileStats,
+  PinnedMovement,
 } from "./index";
 import type {
   PlanDetail,
@@ -118,6 +120,11 @@ export const api = {
         `/api/v1/movements/${movementId}/last-result`,
         token,
       ),
+    personalRecord: (token: string, movementId: string) =>
+      apiFetch<PersonalRecordResult | null>(
+        `/api/v1/movements/${movementId}/personal-record`,
+        token,
+      ),
   },
   analytics: {
     load: (token: string, days = 90) =>
@@ -165,12 +172,26 @@ export const api = {
           | "weight_unit"
           | "checkin_enabled"
           | "onboarding_completed"
+          | "display_name"
+          | "bio"
+          | "location"
+          | "box_affiliation"
+          | "distance_unit"
+          | "training_level"
+          | "training_since"
         >
       >,
     ) =>
       apiFetch<UserProfile>("/api/v1/profile", token, {
         method: "PATCH",
         body: JSON.stringify(body),
+      }),
+    getPinnedMovements: (token: string) =>
+      apiFetch<PinnedMovement[]>("/api/v1/profile/pinned-movements", token),
+    setPinnedMovements: (token: string, movementIds: string[]) =>
+      apiFetch<PinnedMovement[]>("/api/v1/profile/pinned-movements", token, {
+        method: "PUT",
+        body: JSON.stringify({ movement_ids: movementIds }),
       }),
   },
   coach: {

@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import type {
   UserProfile,
   ProfileStats,
   TrainingPartner,
   FrequencyTarget,
+  PinnedMovement,
 } from "@/lib/api";
 import { ProfileHeader } from "./ProfileHeader";
 import { StatsSummaryStrip } from "./StatsSummaryStrip";
@@ -14,16 +16,27 @@ import { FrequencyTargetControl } from "./FrequencyTargetControl";
 import { CheckinToggle } from "./CheckinToggle";
 import { GraphColourToggle } from "./GraphColourToggle";
 import { WeightUnitToggle } from "./WeightUnitToggle";
+import { DistanceUnitToggle } from "./DistanceUnitToggle";
 import { AccountSection } from "./AccountSection";
+import { PinnedMovements } from "./PinnedMovements";
 
 interface Props {
   profile: UserProfile;
   stats: ProfileStats;
   partners: TrainingPartner[];
+  pinned: PinnedMovement[];
   token: string;
 }
 
-export function ProfilePage({ profile, stats, partners, token }: Props) {
+export function ProfilePage({
+  profile: initialProfile,
+  stats,
+  partners,
+  pinned,
+  token,
+}: Props) {
+  const [profile, setProfile] = useState<UserProfile>(initialProfile);
+
   const frequencyTarget = (
     [3, 4, 5, 6].includes(profile.frequency_target_days)
       ? profile.frequency_target_days
@@ -34,13 +47,14 @@ export function ProfilePage({ profile, stats, partners, token }: Props) {
     <div className="animate-fade-in">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <ProfileHeader
-          displayName={profile.display_name}
-          email={profile.email}
-          avatarUrl={profile.avatar_url}
-          firstWorkoutDate={profile.first_workout_date}
+          profile={profile}
+          accessToken={token}
+          onProfileUpdate={setProfile}
         />
 
         <StatsSummaryStrip stats={stats} />
+
+        <PinnedMovements initial={pinned} accessToken={token} />
 
         <SettingsSection label="Training Partners">
           <PartnerList initial={partners} token={token} />
@@ -57,6 +71,7 @@ export function ProfilePage({ profile, stats, partners, token }: Props) {
             token={token}
           />
           <WeightUnitToggle initial={profile.weight_unit} token={token} />
+          <DistanceUnitToggle initial={profile.distance_unit} token={token} />
           <div className="flex items-center justify-between py-3">
             <p className="text-sm text-[--text]">Theme</p>
             <span className="text-sm text-[--muted]">Dark (default)</span>

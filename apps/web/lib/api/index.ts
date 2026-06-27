@@ -46,6 +46,8 @@ export type Citation = components["schemas"]["Citation"];
 export type ChatResponse = components["schemas"]["ChatResponse"];
 export type HistoryMessage = components["schemas"]["HistoryMessage"];
 export type LastResult = components["schemas"]["LastResult"];
+export type PersonalRecordResult =
+  components["schemas"]["PersonalRecordResult"];
 
 // Coach session types — from generated OpenAPI schema
 export type CoachSession = components["schemas"]["CoachSession"];
@@ -54,6 +56,7 @@ export type SessionMessagesResponse =
 
 // Profile types — endpoint not yet in generated types; defined locally
 export type WeightUnit = "kg" | "lb";
+export type DistanceUnit = "km" | "mi";
 export type GraphColourMode = "intensity" | "volume";
 export type FrequencyTarget = 3 | 4 | 5 | 6;
 
@@ -68,6 +71,12 @@ export interface UserProfile {
   weight_unit: WeightUnit;
   checkin_enabled: boolean;
   onboarding_completed: boolean;
+  bio: string | null;
+  location: string | null;
+  box_affiliation: string | null;
+  distance_unit: DistanceUnit;
+  training_level: string | null;
+  training_since: string | null;
 }
 
 export interface ProfileStats {
@@ -76,3 +85,7 @@ export interface ProfileStats {
   best_streak_weeks: number;
   movements_tracked: number;
 }
+
+export type PinnedMovement = components["schemas"]["PinnedMovement"];
+export type SetPinnedMovementsRequest =
+  components["schemas"]["SetPinnedMovementsRequest"];

@@ -2,8 +2,9 @@
 
 import type { LastResult } from "@/lib/api";
 import { relativeDate } from "@/lib/display";
+import { fmtDistance, type DistanceUnit } from "@/lib/distance";
 
-function formatValue(r: LastResult): string {
+function formatValue(r: LastResult, distanceUnit: DistanceUnit): string {
   switch (r.result_type) {
     case "weight": {
       const load = r.load_kg != null ? String(r.load_kg) : null;
@@ -19,7 +20,9 @@ function formatValue(r: LastResult): string {
       return `${m}:${String(s).padStart(2, "0")}`;
     }
     case "distance":
-      return r.distance_m != null ? `${r.distance_m} m` : "";
+      return r.distance_m != null
+        ? fmtDistance(Number(r.distance_m), distanceUnit)
+        : "";
     case "calories":
       return r.calories != null ? `${r.calories} cal` : "";
     case "rounds_reps":
@@ -41,17 +44,19 @@ function formatValue(r: LastResult): string {
 interface PrevSessionBadgeProps {
   lastResult: LastResult | null | undefined;
   onFill: (r: LastResult) => void;
+  distanceUnit: DistanceUnit;
 }
 
 export function PrevSessionBadge({
   lastResult,
   onFill,
+  distanceUnit,
 }: PrevSessionBadgeProps) {
   return (
     <div className="min-h-[1.25rem] mt-1">
       {lastResult &&
         (() => {
-          const value = formatValue(lastResult);
+          const value = formatValue(lastResult, distanceUnit);
           if (!value) return null;
           return (
             <button

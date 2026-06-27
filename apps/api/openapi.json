@@ -896,6 +896,62 @@
         }
       }
     },
+    "/api/v1/movements/{movement_id}/personal-record": {
+      "get": {
+        "tags": [
+          "movements"
+        ],
+        "summary": "Get Movement Personal Record",
+        "operationId": "get_movement_personal_record_api_v1_movements__movement_id__personal_record_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "movement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Movement Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/PersonalRecordResult"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Movement Personal Record Api V1 Movements  Movement Id  Personal Record Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/profile": {
       "get": {
         "tags": [
@@ -980,6 +1036,84 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProfileStats"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/profile/pinned-movements": {
+      "get": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Get Pinned Movements",
+        "operationId": "get_pinned_movements_api_v1_profile_pinned_movements_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PinnedMovement"
+                  },
+                  "type": "array",
+                  "title": "Response Get Pinned Movements Api V1 Profile Pinned Movements Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Put Pinned Movements",
+        "operationId": "put_pinned_movements_api_v1_profile_pinned_movements_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPinnedMovementsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PinnedMovement"
+                  },
+                  "type": "array",
+                  "title": "Response Put Pinned Movements Api V1 Profile Pinned Movements Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -3497,6 +3631,17 @@
             ],
             "title": "Notes"
           },
+          "variant_annotation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variant Annotation"
+          },
           "rpe": {
             "anyOf": [
               {
@@ -4901,6 +5046,96 @@
               }
             ],
             "title": "Onboarding Completed"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "box_affiliation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Box Affiliation"
+          },
+          "distance_unit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "km",
+                  "mi"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance Unit"
+          },
+          "training_level": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "recreational",
+                  "intermediate",
+                  "competitive",
+                  "masters",
+                  "elite"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Level"
+          },
+          "training_since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Since"
           }
         },
         "type": "object",
@@ -5206,6 +5441,129 @@
           "workout_id"
         ],
         "title": "PersonalRecord"
+      },
+      "PersonalRecordResult": {
+        "properties": {
+          "movement_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Movement Id"
+          },
+          "result_type": {
+            "$ref": "#/components/schemas/ResultType"
+          },
+          "load_kg": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Kg"
+          },
+          "reps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reps"
+          },
+          "time_s": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time S"
+          },
+          "distance_m": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance M"
+          },
+          "estimated_1rm_kg": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated 1Rm Kg"
+          },
+          "achieved_at": {
+            "type": "string",
+            "format": "date",
+            "title": "Achieved At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "movement_id",
+          "result_type",
+          "achieved_at"
+        ],
+        "title": "PersonalRecordResult"
+      },
+      "PinnedMovement": {
+        "properties": {
+          "movement_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Movement Id"
+          },
+          "movement_name": {
+            "type": "string",
+            "title": "Movement Name"
+          },
+          "modality": {
+            "type": "string",
+            "title": "Modality"
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order"
+          },
+          "personal_record": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Personal Record"
+          }
+        },
+        "type": "object",
+        "required": [
+          "movement_id",
+          "movement_name",
+          "modality",
+          "display_order"
+        ],
+        "title": "PinnedMovement"
       },
       "PlanDetail": {
         "properties": {
@@ -5957,6 +6315,17 @@
             ],
             "title": "Notes"
           },
+          "variant_annotation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variant Annotation"
+          },
           "rpe": {
             "anyOf": [
               {
@@ -6072,6 +6441,7 @@
           "order_index",
           "is_pr",
           "notes",
+          "variant_annotation",
           "rpe",
           "rpe_target",
           "rir",
@@ -6160,6 +6530,21 @@
           "active_recovery"
         ],
         "title": "SessionType"
+      },
+      "SetPinnedMovementsRequest": {
+        "properties": {
+          "movement_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "Movement Ids"
+          }
+        },
+        "type": "object",
+        "title": "SetPinnedMovementsRequest"
       },
       "SyncResponse": {
         "properties": {
@@ -6676,6 +7061,66 @@
           "onboarding_completed": {
             "type": "boolean",
             "title": "Onboarding Completed"
+          },
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "box_affiliation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Box Affiliation"
+          },
+          "distance_unit": {
+            "type": "string",
+            "title": "Distance Unit",
+            "default": "km"
+          },
+          "training_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Level"
+          },
+          "training_since": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Since"
           }
         },
         "type": "object",

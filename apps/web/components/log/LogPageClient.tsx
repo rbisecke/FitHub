@@ -10,26 +10,13 @@ import { api } from "@/lib/api/client";
 import type { WorkoutSummary, SessionType, WorkoutFormat } from "@/lib/api";
 import { toasts } from "@/lib/toast";
 import { fireInitialCommitToast } from "@/lib/pr-celebrations";
+import { timeTextToSeconds } from "@/lib/time";
+import { useRestTimer } from "@/lib/hooks/useRestTimer";
 import { logFormSchema, type LogFormValues } from "./schema";
 import { MovementRow } from "./MovementRow";
 import { AddDetailsCollapsible } from "./AddDetailsCollapsible";
+import { RestTimer } from "./RestTimer";
 import { TemplatePicker } from "./TemplatePicker";
-
-function parseTimeText(raw: string): number | null {
-  if (!raw) return null;
-  const trimmed = raw.trim();
-  const colonMatch = trimmed.match(/^(\d+):(\d{1,2})$/);
-  if (colonMatch) {
-    return parseInt(colonMatch[1]!, 10) * 60 + parseInt(colonMatch[2]!, 10);
-  }
-  const n = parseInt(trimmed, 10);
-  if (!isNaN(n)) {
-    const mins = Math.floor(n / 100);
-    const secs = n % 100;
-    return mins * 60 + secs;
-  }
-  return null;
-}
 
 function toISOLocal(dateStr: string): string {
   if (dateStr.includes("T")) return dateStr;
@@ -52,6 +39,7 @@ export function LogPageClient({
   isFirstWorkout = false,
 }: LogPageClientProps) {
   const router = useRouter();
+  const timer = useRestTimer();
   const [nlText, setNlText] = useState("");
   const [nlLoading, setNlLoading] = useState(false);
   const [nlPreview, setNlPreview] = useState<string | null>(null);
@@ -68,38 +56,30 @@ export function LogPageClient({
     resolver: zodResolver(logFormSchema) as Resolver<LogFormValues>,
     defaultValues: {
       performed_at: today,
-      results: [],
+      movement_entries: [],
       ...prefillValues,
     },
   });
 
   const { fields, append, remove, replace } = useFieldArray({
     control,
-    name: "results",
+    name: "movement_entries",
   });
 
   const handleTemplateSelect = useCallback(
     async (w: WorkoutSummary) => {
       try {
         const full = await api.workouts.get(accessToken, w.id);
-        const prefillResults = (full.results ?? []).map((r, i) => ({
+        const prefillEntries = (full.results ?? []).map((r, i) => ({
           movement_id: r.movement_id ?? undefined,
           movement_name: r.movement_name ?? undefined,
+          modality: undefined as string | undefined,
           result_type:
-            r.result_type as LogFormValues["results"][number]["result_type"],
-          load_kg: "",
-          reps: "",
-          time_text: "",
-          distance_m: "",
-          rounds: "",
-          partial_reps: "",
-          calories: "",
-          height_cm: "",
-          watts: "",
-          pace_text: "",
+            r.result_type as LogFormValues["movement_entries"][number]["result_type"],
+          sets: [] as LogFormValues["movement_entries"][number]["sets"],
           order_index: i,
         }));
-        replace(prefillResults);
+        replace(prefillEntries);
         setNlText("");
         setNlPreview(null);
       } catch {
@@ -128,28 +108,29 @@ export function LogPageClient({
           .join(" · ");
         setNlPreview(preview || "Parsed — review below before committing");
 
-        // Prefill form from parse result
         if (entry.title) setValue("performed_at", today);
         const prefill = entry.results.map((r, i) => ({
-          movement_id: undefined,
+          movement_id: undefined as string | undefined,
           movement_name: r.movement_name,
+          modality: undefined as string | undefined,
           result_type: "weight" as const,
-          load_kg: r.load_kg != null ? String(r.load_kg) : "",
-          reps: r.reps != null ? String(r.reps) : "",
-          time_text:
-            r.time_s != null
-              ? `${Math.floor(r.time_s / 60)}:${String(r.time_s % 60).padStart(
-                  2,
-                  "0",
-                )}`
-              : "",
-          distance_m: "",
-          rounds: "",
-          partial_reps: "",
-          calories: "",
-          height_cm: "",
-          watts: "",
-          pace_text: "",
+          sets: [
+            {
+              set_index: 0,
+              set_type: "working" as const,
+              load_kg: r.load_kg != null ? String(r.load_kg) : "",
+              load_display: r.load_kg != null ? String(r.load_kg) : "",
+              reps: r.reps != null ? String(r.reps) : "",
+              time_text:
+                r.time_s != null
+                  ? `${Math.floor(r.time_s / 60)}:${String(
+                      r.time_s % 60,
+                    ).padStart(2, "0")}`
+                  : "",
+              distance_m: "",
+              variant_annotation: "",
+            },
+          ],
           order_index: i,
         }));
         replace(prefill);
@@ -164,27 +145,33 @@ export function LogPageClient({
   async function onSubmit(values: LogFormValues) {
     setSubmitError(null);
     try {
-      const results = values.results.map((r, i) => ({
-        movement_id: r.movement_id ?? undefined,
-        result_type: r.result_type,
-        load_kg: r.load_kg ? Number(r.load_kg) : undefined,
-        reps: r.reps ? parseInt(r.reps, 10) : undefined,
-        time_s: r.time_text
-          ? parseTimeText(r.time_text) ?? undefined
-          : undefined,
-        distance_m: r.distance_m ? Number(r.distance_m) : undefined,
-        rounds: r.rounds ? parseInt(r.rounds, 10) : undefined,
-        partial_reps: r.partial_reps ? parseInt(r.partial_reps, 10) : undefined,
-        calories: r.calories ? parseInt(r.calories, 10) : undefined,
-        height_cm: r.height_cm ? Number(r.height_cm) : undefined,
-        watts: r.watts ? parseInt(r.watts, 10) : undefined,
-        pace_s: r.pace_text
-          ? parseTimeText(r.pace_text) ?? undefined
-          : undefined,
-        order_index: i,
-        is_pr: false,
-        pace_distance_m: 500,
-      }));
+      // Flatten movement_entries[].sets[] → API results array
+      const results = values.movement_entries.flatMap((entry, entryIdx) =>
+        entry.sets.map((set, setIdx) => ({
+          movement_id: entry.movement_id ?? undefined,
+          result_type: entry.result_type,
+          load_kg: set.load_kg ? Number(set.load_kg) : undefined,
+          reps: set.reps ? parseInt(set.reps, 10) : undefined,
+          time_s: set.time_text
+            ? timeTextToSeconds(set.time_text) ?? undefined
+            : undefined,
+          distance_m: set.distance_m ? Number(set.distance_m) : undefined,
+          rounds: set.rounds ? parseInt(set.rounds, 10) : undefined,
+          partial_reps: set.partial_reps
+            ? parseInt(set.partial_reps, 10)
+            : undefined,
+          calories: set.calories ? parseInt(set.calories, 10) : undefined,
+          height_cm: set.height_cm ? Number(set.height_cm) : undefined,
+          watts: set.watts ? parseInt(set.watts, 10) : undefined,
+          pace_s: set.pace_text
+            ? timeTextToSeconds(set.pace_text) ?? undefined
+            : undefined,
+          variant_annotation: set.variant_annotation || undefined,
+          order_index: entryIdx * 100 + setIdx,
+          is_pr: false,
+          pace_distance_m: 500,
+        })),
+      );
 
       const workout = await api.workouts.create(accessToken, {
         performed_at: toISOLocal(values.performed_at),
@@ -209,7 +196,6 @@ export function LogPageClient({
         fireInitialCommitToast();
         router.push("/history");
       } else if (hasPR) {
-        // Dashboard will fire the PR toast + animation via ?pr=1
         router.push("/dashboard?pr=1");
       } else {
         toasts.workoutLogged(values.title || undefined);
@@ -288,6 +274,7 @@ export function LogPageClient({
                   register={register}
                   setValue={setValue}
                   remove={remove}
+                  onSetConfirmed={timer.enabled ? timer.start : undefined}
                 />
               ))}
             </div>
@@ -300,17 +287,9 @@ export function LogPageClient({
                   append({
                     movement_id: undefined,
                     movement_name: undefined,
+                    modality: undefined,
                     result_type: "weight",
-                    load_kg: "",
-                    reps: "",
-                    time_text: "",
-                    distance_m: "",
-                    rounds: "",
-                    partial_reps: "",
-                    calories: "",
-                    height_cm: "",
-                    watts: "",
-                    pace_text: "",
+                    sets: [],
                     order_index: fields.length,
                   })
                 }
@@ -325,6 +304,10 @@ export function LogPageClient({
               register={register}
               setValue={setValue}
               watch={watch}
+              restEnabled={timer.enabled}
+              onRestEnabledChange={timer.setEnabled}
+              restDuration={timer.duration}
+              onRestDurationChange={timer.setDuration}
             />
 
             {/* Error */}
@@ -364,6 +347,9 @@ export function LogPageClient({
           </div>
         </div>
       </div>
+
+      {/* Rest timer overlay */}
+      <RestTimer remaining={timer.remaining} onSkip={timer.stop} />
     </div>
   );
 }

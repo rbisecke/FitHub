@@ -6,7 +6,13 @@ from typing import Any
 import psycopg
 from psycopg.rows import dict_row
 
-from app.models.profile import PatchProfileRequest, ProfileStats, UserProfile
+from app.models.profile import (
+    PatchProfileRequest,
+    PinnedMovement,
+    ProfileStats,
+    SetPinnedMovementsRequest,
+    UserProfile,
+)
 
 
 async def get_profile(
@@ -27,6 +33,13 @@ async def get_profile(
                 p.graph_colour_mode,
                 p.checkin_enabled,
                 p.onboarding_completed,
+                p.bio,
+                p.location,
+                p.box_affiliation,
+                p.distance_unit,
+                p.training_level,
+                p.training_since::text   AS training_since,
+                p.avatar_url             AS db_avatar_url,
                 (
                     SELECT performed_at::date::text
                     FROM   public.workouts
@@ -45,7 +58,7 @@ async def get_profile(
     return UserProfile(
         display_name=row["display_name"],
         email=email,
-        avatar_url=avatar_url,
+        avatar_url=row.get("db_avatar_url") or avatar_url,
         timezone=row["timezone"],
         first_workout_date=row["first_workout_date"],
         frequency_target_days=row["frequency_target_days"],
@@ -53,6 +66,12 @@ async def get_profile(
         weight_unit=row["weight_unit"],
         checkin_enabled=row["checkin_enabled"],
         onboarding_completed=row["onboarding_completed"],
+        bio=row["bio"],
+        location=row["location"],
+        box_affiliation=row["box_affiliation"],
+        distance_unit=row["distance_unit"],
+        training_level=row["training_level"],
+        training_since=row["training_since"],
     )
 
 
@@ -156,11 +175,25 @@ async def patch_profile(
     if patch.graph_colour_mode is not None:
         updates["graph_colour_mode"] = patch.graph_colour_mode
     if patch.weight_unit is not None:
-        updates["unit_preference"] = patch.weight_unit  # DB column name
+        updates["unit_preference"] = patch.weight_unit  # DB column name differs
     if patch.checkin_enabled is not None:
         updates["checkin_enabled"] = patch.checkin_enabled
     if patch.onboarding_completed is not None:
         updates["onboarding_completed"] = patch.onboarding_completed
+    if patch.display_name is not None:
+        updates["display_name"] = patch.display_name
+    if patch.bio is not None:
+        updates["bio"] = patch.bio
+    if patch.location is not None:
+        updates["location"] = patch.location
+    if patch.box_affiliation is not None:
+        updates["box_affiliation"] = patch.box_affiliation
+    if patch.distance_unit is not None:
+        updates["distance_unit"] = patch.distance_unit
+    if patch.training_level is not None:
+        updates["training_level"] = patch.training_level
+    if patch.training_since is not None:
+        updates["training_since"] = patch.training_since.isoformat()
 
     if updates:
         set_clause = ", ".join(f"{col} = %s" for col in updates)
@@ -197,3 +230,58 @@ async def find_user_by_email(
         )
         row = await cur.fetchone()
     return dict(row) if row else None
+
+
+async def list_pinned_movements(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    user_id: uuid.UUID,
+) -> list[PinnedMovement]:
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT
+                pm.movement_id,
+                m.name        AS movement_name,
+                m.modality,
+                pm.display_order
+            FROM public.user_pinned_movements pm
+            JOIN public.movements m ON m.id = pm.movement_id
+            WHERE pm.user_id = %s
+            ORDER BY pm.display_order
+            """,
+            (user_id,),
+        )
+        rows = await cur.fetchall()
+    return [
+        PinnedMovement(
+            movement_id=row["movement_id"],
+            movement_name=row["movement_name"],
+            modality=row["modality"],
+            display_order=row["display_order"],
+        )
+        for row in rows
+    ]
+
+
+async def set_pinned_movements(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    user_id: uuid.UUID,
+    body: SetPinnedMovementsRequest,
+) -> list[PinnedMovement]:
+    async with conn.cursor() as cur:
+        await cur.execute(
+            "DELETE FROM public.user_pinned_movements WHERE user_id = %s",
+            (user_id,),
+        )
+        if body.movement_ids:
+            await cur.executemany(
+                """
+                INSERT INTO public.user_pinned_movements
+                    (user_id, movement_id, display_order)
+                VALUES (%s, %s, %s)
+                """,
+                [(user_id, mid, idx) for idx, mid in enumerate(body.movement_ids)],
+            )
+    return await list_pinned_movements(conn, user_id=user_id)
