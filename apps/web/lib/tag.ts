@@ -250,10 +250,11 @@ export interface RecentMovement {
   movement_id: string;
   movement_name: string;
   result_type: ResultTypeValue;
+  modality?: string;
 }
 
 const CACHE_KEY = "fithub:recent_movements";
-const CACHE_LIMIT = 5;
+const CACHE_LIMIT = 8;
 
 export function readRecentMovements(): RecentMovement[] {
   try {
@@ -267,6 +268,7 @@ export function writeRecentMovements(
   movementId: string,
   movementName: string,
   resultType: ResultTypeValue,
+  modality?: string,
 ) {
   try {
     const cached = readRecentMovements();
@@ -275,6 +277,7 @@ export function writeRecentMovements(
         movement_id: movementId,
         movement_name: movementName,
         result_type: resultType,
+        modality,
       },
       ...cached.filter((m) => m.movement_id !== movementId),
     ].slice(0, CACHE_LIMIT);

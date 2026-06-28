@@ -14,9 +14,11 @@ import { timeTextToSeconds } from "@/lib/time";
 import { useRestTimer } from "@/lib/hooks/useRestTimer";
 import { logFormSchema, type LogFormValues } from "./schema";
 import { MovementRow } from "./MovementRow";
+import { MovementChips } from "./MovementChips";
 import { AddDetailsCollapsible } from "./AddDetailsCollapsible";
 import { RestTimer } from "./RestTimer";
 import { TemplatePicker } from "./TemplatePicker";
+import type { RecentMovement } from "@/lib/tag";
 
 function toISOLocal(dateStr: string): string {
   if (dateStr.includes("T")) return dateStr;
@@ -264,6 +266,34 @@ export function LogPageClient({
             )}
             className="space-y-4"
           >
+            {/* Recent movement chips — quick-add from history */}
+            <MovementChips
+              selectedId={null}
+              onSelect={(m: RecentMovement) => {
+                if (fields.length >= 10) return;
+                append({
+                  movement_id: m.movement_id,
+                  movement_name: m.movement_name,
+                  modality: m.modality,
+                  result_type:
+                    m.result_type as LogFormValues["movement_entries"][number]["result_type"],
+                  sets: [],
+                  order_index: fields.length,
+                });
+              }}
+              onSearchRequest={() => {
+                if (fields.length >= 10) return;
+                append({
+                  movement_id: undefined,
+                  movement_name: undefined,
+                  modality: undefined,
+                  result_type: "weight",
+                  sets: [],
+                  order_index: fields.length,
+                });
+              }}
+            />
+
             {/* Movement rows */}
             <div className="space-y-3">
               {fields.map((field, idx) => (

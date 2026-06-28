@@ -4,12 +4,12 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MovementVariantChips } from "@/components/log/MovementVariantChips";
 
 describe("MovementVariantChips", () => {
-  it("renders null when modality is not weightlifting", () => {
+  it("renders null when modality is in the hidden set (mono_structural)", () => {
     const { container } = render(
       <MovementVariantChips
         value=""
         onChange={vi.fn()}
-        modality="gymnastics"
+        modality="mono_structural"
       />,
     );
     expect(container.firstChild).toBeNull();
@@ -22,7 +22,7 @@ describe("MovementVariantChips", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders 5 chips when modality is weightlifting", () => {
+  it("renders 4 chips with label for weightlifting modality", () => {
     render(
       <MovementVariantChips
         value=""
@@ -30,10 +30,22 @@ describe("MovementVariantChips", () => {
         modality="weightlifting"
       />,
     );
-    expect(screen.getByText("Hang")).toBeTruthy();
-    expect(screen.getByText("Power")).toBeTruthy();
-    expect(screen.getByText("Squat")).toBeTruthy();
+    expect(screen.getByText("Annotate variant")).toBeTruthy();
+    expect(screen.getByText("Pause")).toBeTruthy();
     expect(screen.getByText("Block")).toBeTruthy();
+    expect(screen.getByText("Tempo")).toBeTruthy();
+    expect(screen.getByText("Strict")).toBeTruthy();
+  });
+
+  it("renders chips for gymnastics modality (not hidden)", () => {
+    const { container } = render(
+      <MovementVariantChips
+        value=""
+        onChange={vi.fn()}
+        modality="gymnastics"
+      />,
+    );
+    expect(container.firstChild).not.toBeNull();
     expect(screen.getByText("Pause")).toBeTruthy();
   });
 
@@ -46,35 +58,35 @@ describe("MovementVariantChips", () => {
         modality="weightlifting"
       />,
     );
-    fireEvent.click(screen.getByText("Hang"));
-    expect(onChange).toHaveBeenCalledWith("hang");
+    fireEvent.click(screen.getByText("Pause"));
+    expect(onChange).toHaveBeenCalledWith("pause");
   });
 
   it("clicking a selected chip removes it from the value", () => {
     const onChange = vi.fn();
     render(
       <MovementVariantChips
-        value="hang,power"
+        value="pause,block"
         onChange={onChange}
         modality="weightlifting"
       />,
     );
-    fireEvent.click(screen.getByText("Hang"));
-    expect(onChange).toHaveBeenCalledWith("power");
+    fireEvent.click(screen.getByText("Pause"));
+    expect(onChange).toHaveBeenCalledWith("block");
   });
 
   it("multiple chips can be selected simultaneously", () => {
     const onChange = vi.fn();
     render(
       <MovementVariantChips
-        value="hang"
+        value="pause"
         onChange={onChange}
         modality="weightlifting"
       />,
     );
-    fireEvent.click(screen.getByText("Power"));
+    fireEvent.click(screen.getByText("Block"));
     const result = (onChange.mock.calls[0] as [string])[0];
     const parts = result.split(",").sort();
-    expect(parts).toEqual(["hang", "power"]);
+    expect(parts).toEqual(["block", "pause"]);
   });
 });

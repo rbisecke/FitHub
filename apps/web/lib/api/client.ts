@@ -104,10 +104,14 @@ export const api = {
       }),
   },
   movements: {
-    search: (token: string, params: { q?: string; modality?: string }) => {
+    search: (
+      token: string,
+      params: { q?: string; modality?: string; limit?: number },
+    ) => {
       const qs = new URLSearchParams();
       if (params.q) qs.set("query", params.q);
       if (params.modality) qs.set("modality", params.modality);
+      if (params.limit != null) qs.set("limit", String(params.limit));
       return apiFetch<Movement[]>(`/api/v1/movements?${qs}`, token);
     },
     create: (token: string, body: { name: string; modality: string }) =>
