@@ -83,19 +83,16 @@ export function MovementSearch({
 
   useEffect(() => {
     if (!open) return;
-    // No query + no filter: show empty state, no network call
-    if (!query && !modalityFilter) {
-      setResults([]);
-      return;
-    }
+    // No query + no filter: no network call; stale results are hidden via displayResults below
+    if (!query && !modalityFilter) return;
     const t = setTimeout(() => search(query, modalityFilter), 300);
     return () => clearTimeout(t);
   }, [open, query, modalityFilter, search]);
 
-  // Clear query when popover closes
-  useEffect(() => {
-    if (!open) setQuery("");
-  }, [open]);
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+    if (!nextOpen) setQuery("");
+  }
 
   function handleSelect(m: Movement) {
     setSelected(m);
@@ -111,14 +108,17 @@ export function MovementSearch({
 
   const displayName = selected?.name ?? initialName ?? "Search movements…";
 
+  // Hide stale results when picker is in the no-query/no-filter empty state
+  const displayResults = query || modalityFilter ? results : [];
+
   // Group results in MODALITY_ORDER, drop empty groups
   const groupedResults: Array<{ modality: string; movements: Movement[] }> =
     MODALITY_ORDER.map((mod) => ({
       modality: mod,
-      movements: results.filter((m) => m.modality === mod),
+      movements: displayResults.filter((m) => m.modality === mod),
     })).filter(({ movements }) => movements.length > 0);
 
-  const showLimitHint = results.length >= 20 && query.length > 0;
+  const showLimitHint = displayResults.length >= 20 && query.length > 0;
 
   const triggerClass =
     "inline-flex w-full min-h-[44px] items-center justify-start rounded-lg border border-[#30363d] bg-[#161b22] px-3 text-left text-sm text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3] transition-colors";
@@ -188,7 +188,7 @@ export function MovementSearch({
 
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={setOpen}>
+      <Sheet open={open} onOpenChange={handleOpenChange}>
         <SheetTrigger className={triggerClass} aria-label="Search movements">
           {displayName}
         </SheetTrigger>
@@ -208,7 +208,7 @@ export function MovementSearch({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger className={triggerClass} aria-label="Search movements">
         {displayName}
       </PopoverTrigger>
