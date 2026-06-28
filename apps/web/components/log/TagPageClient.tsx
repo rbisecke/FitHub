@@ -232,6 +232,7 @@ export function TagPageClient({
         selectedMovement.id,
         selectedMovement.name,
         resultType,
+        selectedMovement.modality,
       );
       router.push("/history");
     } catch {
