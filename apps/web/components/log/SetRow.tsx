@@ -55,7 +55,7 @@ export function SetRow({
         : null;
 
   return (
-    <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem_auto] gap-2 items-center">
+    <div className="grid grid-cols-[2rem_1fr_1fr_3rem_auto] gap-2 items-center">
       <span className="font-mono text-xs text-[#8b949e] text-right">
         #{setNumber}
       </span>

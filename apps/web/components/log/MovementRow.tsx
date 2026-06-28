@@ -226,7 +226,6 @@ export function MovementRow({
           <SetTable
             movementIndex={index}
             control={control}
-            register={register}
             setValue={setValue}
             resultType={resultType}
             weightUnit={weightUnit}

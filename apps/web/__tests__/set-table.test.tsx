@@ -20,7 +20,7 @@ function Wrapper({
   prThreshold = null,
   weightUnit = "kg",
 }: WrapperProps) {
-  const { control, register, setValue } = useForm<LogFormValues>({
+  const { control, setValue } = useForm<LogFormValues>({
     defaultValues: {
       performed_at: "2026-01-01",
       movement_entries: [
@@ -37,7 +37,6 @@ function Wrapper({
     <SetTable
       movementIndex={0}
       control={control}
-      register={register}
       setValue={setValue}
       resultType={resultType}
       weightUnit={weightUnit}

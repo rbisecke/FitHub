@@ -52,9 +52,9 @@ export function ProfileHeader({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-base font-semibold text-[#e6edf3] truncate">
+            <h1 className="text-base font-semibold text-[#e6edf3] truncate">
               {profile.display_name ?? profile.email.split("@")[0]}
-            </p>
+            </h1>
             <Button
               variant="ghost"
               size="icon"

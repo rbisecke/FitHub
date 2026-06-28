@@ -24,7 +24,7 @@ export function PinnedMovements({
     <section className="space-y-1 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between pb-1">
-        <h2 className="font-mono text-[10px] uppercase tracking-widest text-[#8b949e]">
+        <h2 className="font-mono text-xs uppercase tracking-widest text-[#8b949e]">
           Pinned movements
         </h2>
         <button
