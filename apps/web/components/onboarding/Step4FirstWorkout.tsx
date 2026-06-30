@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api/client";
 
@@ -32,61 +31,72 @@ export function Step4FirstWorkout({ token, onNext, onSkip, onBack }: Props) {
       onNext();
     } catch {
       setError(
-        "Couldn't save the workout. You can log it later from the dashboard.",
+        "Couldn't save the result. You can log it later from the dashboard.",
       );
     } finally {
       setSaving(false);
     }
   }
 
+  const hasText = text.trim().length > 0;
+
   return (
-    <div className="flex min-h-[calc(100dvh-48px)] flex-col px-6 py-8 md:min-h-0">
-      <p className="font-mono text-xs text-[#8b949e]">
-        $ git commit -m &quot;first workout&quot;
+    <div className="animate-fadeUp flex flex-col">
+      <p
+        className="font-data mb-2 text-[13px]"
+        style={{ color: "var(--accent)" }}
+      >
+        $ git commit -m &quot;first result&quot;
       </p>
-
-      <h2 className="mt-6 text-xl font-semibold text-[#e6edf3]">
-        Log your first workout
+      <h2 className="font-heading mb-2 text-[28px] text-[var(--foreground)]">
+        Log your first result?
       </h2>
-      <p className="mt-2 text-sm text-[#8b949e]">
-        Describe what you did in plain English — we&apos;ll parse it into a
-        commit.
+      <p className="mb-6 text-[14px] text-[var(--muted)]">
+        Drop in one lift to seed your graph — totally optional.
       </p>
 
-      <div className="mt-6">
-        <Textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={`"21-15-9 thrusters and pull-ups, Fran, ~8 min"`}
-          aria-label="Describe your workout"
-          rows={4}
-          className="resize-none border-[#30363d] bg-[#161b22] font-mono text-sm text-[#e6edf3] placeholder:text-[#8b949e] focus-visible:ring-[#58a6ff]"
-        />
-        {error && <p className="mt-2 text-xs text-[#ff7b72]">{error}</p>}
-      </div>
+      <Textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder={`"21-15-9 thrusters and pull-ups, Fran, ~8 min"`}
+        aria-label="Describe your workout"
+        rows={4}
+        className="font-data mb-1 resize-none border-[var(--border)] bg-[var(--card)] text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus-visible:ring-[var(--accent)]"
+      />
+      {error && (
+        <p className="mb-3 text-xs" style={{ color: "var(--destructive)" }}>
+          {error}
+        </p>
+      )}
 
-      <div className="flex-1" />
-
-      <div className="space-y-3 pb-8 md:pb-0">
-        <Button
-          onClick={handleLog}
-          disabled={!text.trim() || saving}
-          className="min-h-[48px] w-full bg-[#58a6ff] font-medium text-[#0d1117] hover:bg-[#79b8ff] disabled:opacity-50"
-        >
-          {saving ? "Saving…" : "Log workout"}
-        </Button>
-        <div className="flex justify-center gap-2">
+      <div className="mt-6 flex flex-col gap-3">
+        {hasText ? (
           <button
-            onClick={onBack}
-            className="inline-flex min-h-[44px] items-center px-4 text-xs text-[#8b949e] transition-colors hover:text-[#e6edf3]"
+            onClick={handleLog}
+            disabled={saving}
+            className="w-full rounded-[13px] py-[15px] text-[15px] font-extrabold transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+            style={{ background: "var(--accent)", color: "#0A0D12" }}
           >
-            Back
+            {saving ? "Saving…" : "Commit result"}
           </button>
+        ) : (
           <button
             onClick={onSkip}
-            className="inline-flex min-h-[44px] items-center px-4 text-xs text-[#8b949e] transition-colors hover:text-[#e6edf3]"
+            className="w-full rounded-[13px] py-[15px] text-[15px] font-semibold text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
+            style={{
+              background: "transparent",
+              border: "1px solid var(--border)",
+            }}
           >
-            Skip for now
+            Skip →
+          </button>
+        )}
+        <div className="flex justify-center">
+          <button
+            onClick={onBack}
+            className="inline-flex min-h-[44px] items-center px-4 text-[13px] text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
+          >
+            Back
           </button>
         </div>
       </div>

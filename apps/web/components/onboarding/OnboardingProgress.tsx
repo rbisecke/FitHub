@@ -1,24 +1,26 @@
-import { Progress } from "@/components/ui/progress";
-
 interface Props {
   step: number;
   totalSteps: number;
 }
 
 export function OnboardingProgress({ step, totalSteps }: Props) {
-  const pct = Math.round((step / totalSteps) * 100);
   return (
-    <div className="w-full">
-      <Progress
-        value={pct}
-        className="h-1.5 rounded-none bg-[#30363d] [&>div]:bg-[#58a6ff]"
-        aria-label="Onboarding progress"
-      />
-      <div className="px-6 pb-0 pt-3">
-        <span aria-live="polite" className="font-mono text-xs text-[#8b949e]">
-          {step} of {totalSteps}
-        </span>
-      </div>
+    <div
+      className="flex flex-1 gap-1.5"
+      role="progressbar"
+      aria-valuenow={step}
+      aria-valuemax={totalSteps}
+    >
+      {Array.from({ length: totalSteps }, (_, i) => (
+        <div
+          key={i}
+          className="h-[3px] rounded-full transition-all duration-300"
+          style={{
+            background: i < step ? "var(--accent)" : "var(--border)",
+            flexBasis: i < step ? "24px" : "16px",
+          }}
+        />
+      ))}
     </div>
   );
 }
