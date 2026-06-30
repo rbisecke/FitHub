@@ -158,13 +158,18 @@ export function TrainingBalanceSection({ data, className }: Props) {
       {/* Mobile: collapsible, collapsed by default */}
       <div
         className={cn(
-          "md:hidden rounded-lg border border-[--border] bg-[--surface]",
+          "md:hidden bg-[var(--card)] border border-[var(--border)] rounded-2xl",
           className,
         )}
       >
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger className="w-full flex items-center justify-between p-4 text-sm font-medium text-[--text]">
-            Training balance · {period === "28" ? "4 weeks" : "12 weeks"}
+            <span className="text-[15px] font-bold text-[var(--foreground)]">
+              Training balance
+            </span>
+            <span className="text-[12px] text-[var(--muted-foreground)] ml-1">
+              · {period === "28" ? "4 weeks" : "12 weeks"}
+            </span>
             <ChevronRight
               className={cn(
                 "h-4 w-4 text-[--muted] transition-transform",
@@ -180,11 +185,13 @@ export function TrainingBalanceSection({ data, className }: Props) {
       {/* Desktop: always visible */}
       <div
         className={cn(
-          "hidden md:block rounded-lg border border-[--border] bg-[--surface] p-4 space-y-3",
+          "hidden md:block bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 space-y-3",
           className,
         )}
       >
-        <p className="text-sm font-medium text-[--text]">Training balance</p>
+        <p className="text-[15px] font-bold text-[var(--foreground)]">
+          Training balance
+        </p>
         {inner}
       </div>
     </>

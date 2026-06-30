@@ -168,13 +168,13 @@ export function StrengthProgressSection({
   return (
     <div
       className={cn(
-        "rounded-lg border border-[--border] bg-[--surface] p-4 space-y-3",
+        "bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 space-y-3",
         className,
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium text-[--text]">
-          How your lifts are trending
+        <p className="text-[15px] font-bold text-[var(--foreground)]">
+          Strength progress
         </p>
         <PeriodSelector
           options={PERIOD_OPTIONS}

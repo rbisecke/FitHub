@@ -64,16 +64,18 @@ export function VolumeTrendSection({ initialWeeks, token, className }: Props) {
   return (
     <div
       className={cn(
-        "rounded-lg border border-[--border] bg-[--surface] p-4 space-y-3",
+        "bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 space-y-3",
         className,
       )}
     >
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-medium text-[--text]">
-            Weekly training volume
+          <p className="text-[15px] font-bold text-[var(--foreground)]">
+            Volume trend
           </p>
-          <p className="text-xs text-[--muted]">Sets × load each week</p>
+          <p className="text-[12px] text-[var(--muted-foreground)]">
+            Total weight moved per week
+          </p>
         </div>
         <PeriodSelector
           options={PERIOD_OPTIONS}
