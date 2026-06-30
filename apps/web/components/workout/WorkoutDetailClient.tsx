@@ -144,16 +144,22 @@ export function WorkoutDetailClient({
       {/* Breadcrumb */}
       <Link
         href="/history"
-        className="inline-flex items-center gap-1 text-sm text-[--muted] hover:text-[--text] transition-colors"
+        className="inline-flex items-center gap-1 text-sm text-[--muted] hover:text-[var(--accent)] transition-colors"
       >
-        ← git log
+        ← back to git log
       </Link>
 
-      {/* Header — hash + badges row with actions top-right */}
+      {/* Header — git show subhead + title + badges */}
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2 min-w-0">
+          <p className="font-data text-[13px] text-[var(--accent)]">
+            $ git show {workout.short_hash}
+          </p>
+          <h1 className="font-heading text-[28px] text-[var(--foreground)] tracking-[-0.6px] truncate">
+            {workout.title ?? "Untitled workout"}
+          </h1>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-sm text-[--muted-strong]">
+            <span className="font-data text-[12px] text-[var(--gold)] font-semibold">
               {workout.short_hash}
             </span>
             {workout.session_type && (
@@ -177,9 +183,6 @@ export function WorkoutDetailClient({
               </span>
             )}
           </div>
-          <h1 className="text-2xl font-bold text-[--text] truncate">
-            {workout.title ?? "Untitled workout"}
-          </h1>
           <p className="text-sm text-[--muted]">{dateStr}</p>
         </div>
 
