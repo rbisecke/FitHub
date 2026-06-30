@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { SidebarBrand } from "./SidebarBrand";
 import { SidebarNav } from "./SidebarNav";
+import { SidebarStreakWidget } from "./SidebarStreakWidget";
 import { SidebarProfileFooter } from "./SidebarProfileFooter";
 
 function InitialCollapseGuard() {
@@ -45,6 +46,8 @@ export function DesktopSidebar({ user }: Props) {
         </SidebarHeader>
 
         <SidebarNav />
+
+        <SidebarStreakWidget streak={0} />
 
         <SidebarProfileFooter user={user} />
       </Sidebar>

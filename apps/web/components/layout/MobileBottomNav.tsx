@@ -4,8 +4,9 @@ import { NAV_ITEMS } from "./nav-config";
 import { MobileNavTab } from "./MobileNavTab";
 import { MobileFAB } from "./MobileFAB";
 
-const LEFT_TABS = NAV_ITEMS.slice(0, 2); // Dashboard, Records
-const RIGHT_TABS = NAV_ITEMS.slice(2); // History, Progress
+const MOBILE_TABS = NAV_ITEMS.filter((item) => item.mobileShow);
+const LEFT_TABS = MOBILE_TABS.slice(0, 2); // Dashboard, Track
+const RIGHT_TABS = MOBILE_TABS.slice(2); // Records, History
 
 export function MobileBottomNav() {
   return (
