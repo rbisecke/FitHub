@@ -30,21 +30,18 @@ export function SidebarNavItem({ href, label, icon: Icon, gitCommand }: Props) {
       aria-current={active ? "page" : undefined}
       className={cn(
         // Base
-        "flex w-full rounded-md text-sm transition-colors",
+        "flex w-full rounded-[10px] text-sm transition-colors",
         "ring-sidebar-ring outline-hidden focus-visible:ring-2",
-        // Hover
-        "hover:bg-sidebar-accent",
+        // Hover (default, overridden when active)
+        "hover:bg-[var(--surface-2)] hover:text-[var(--text)]",
         // Expanded: two-line flex-col layout with left padding
         "flex-col items-start gap-0.5 py-2.5 px-3",
         // Collapsed: centered icon square
         "group-data-[collapsible=icon]:flex-row group-data-[collapsible=icon]:items-center",
         "group-data-[collapsible=icon]:justify-center",
         "group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:p-0",
-        // Active: accent left border (expanded) + surface bg
-        active &&
-          "bg-sidebar-accent border-l-2 border-[var(--accent)] pl-[10px]",
-        active &&
-          "group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:pl-0",
+        // Active: green tint background
+        active && "bg-[rgba(74,222,128,0.10)] hover:bg-[rgba(74,222,128,0.14)]",
       )}
     >
       <div className="flex items-center gap-2.5">
@@ -57,7 +54,9 @@ export function SidebarNavItem({ href, label, icon: Icon, gitCommand }: Props) {
         <span
           className={cn(
             "text-sm group-data-[collapsible=icon]:hidden",
-            active ? "text-[var(--accent)] font-medium" : "text-[var(--text)]",
+            active
+              ? "text-[var(--accent)] font-bold"
+              : "text-[var(--muted)] font-medium",
           )}
         >
           {label}
@@ -80,11 +79,11 @@ export function SidebarNavItem({ href, label, icon: Icon, gitCommand }: Props) {
                 aria-label={label}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex w-full rounded-md text-sm transition-colors",
+                  "flex w-full rounded-[10px] text-sm transition-colors",
                   "ring-sidebar-ring outline-hidden focus-visible:ring-2",
-                  "hover:bg-sidebar-accent",
+                  "hover:bg-[var(--surface-2)]",
                   "items-center justify-center h-10 w-10 p-0",
-                  active && "bg-sidebar-accent",
+                  active && "bg-[rgba(74,222,128,0.10)]",
                 )}
               />
             }
