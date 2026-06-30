@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { api } from "@/lib/api/client";
-import { TrainingSummaryHero } from "@/components/analytics/TrainingSummaryHero";
 import { StrengthProgressSection } from "@/components/analytics/StrengthProgressSection";
 import { VolumeTrendSection } from "@/components/analytics/VolumeTrendSection";
 import { TrainingBalanceSection } from "@/components/analytics/TrainingBalanceSection";
@@ -9,12 +8,46 @@ import { BenchmarkProgressSection } from "@/components/analytics/BenchmarkProgre
 import { PRSummaryStrip } from "@/components/analytics/PRSummaryStrip";
 import { ACWRChart } from "@/components/analytics/ACWRChart";
 import { EmptyAnalyticsState } from "@/components/analytics/EmptyAnalyticsState";
+import { PerformanceCards } from "@/components/analytics/PerformanceCards";
+import { ZoneBanner } from "@/components/analytics/ZoneBanner";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
+import type { DailyLoadPoint } from "@/lib/api";
+
+function getCtlTrend(
+  ctlNow: number,
+  series: DailyLoadPoint[],
+): { direction: "up" | "down" | "flat"; label: string } {
+  if (series.length < 7)
+    return { direction: "flat", label: "Stable vs last week" };
+  const weekAgo = series[Math.max(0, series.length - 7)];
+  const diff = ctlNow - (weekAgo?.ctl ?? ctlNow);
+  if (diff > 1)
+    return { direction: "up", label: `+${diff.toFixed(1)} vs last week` };
+  if (diff < -1)
+    return { direction: "down", label: `${diff.toFixed(1)} vs last week` };
+  return { direction: "flat", label: "Stable vs last week" };
+}
+
+function getAtlTrend(
+  atlNow: number,
+  series: DailyLoadPoint[],
+): { direction: "up" | "down" | "flat"; label: string } {
+  if (series.length < 7)
+    return { direction: "flat", label: "Stable vs last week" };
+  const weekAgo = series[Math.max(0, series.length - 7)];
+  const diff = atlNow - (weekAgo?.atl ?? atlNow);
+  if (diff > 1)
+    return { direction: "up", label: `+${diff.toFixed(1)} vs last week` };
+  if (diff < -1)
+    return { direction: "down", label: `${diff.toFixed(1)} vs last week` };
+  return { direction: "flat", label: "Stable vs last week" };
+}
 
 export default async function AnalyticsPage() {
   const supabase = await createClient();
@@ -39,39 +72,54 @@ export default async function AnalyticsPage() {
     ]);
 
   const nonZeroDays = load.series.filter((pt) => pt.load_au > 0).length;
-  const isCalibrating = nonZeroDays < 14;
+
+  const ctlTrend = getCtlTrend(load.ctl_now, load.series);
+  const atlTrend = getAtlTrend(load.atl_now, load.series);
+  const tsbIsNeg = load.tsb_now < 0;
 
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-xl font-semibold text-[--text]">
-          <span className="font-mono text-[--muted] mr-2 text-sm">$</span>
-          git diff · Progress
-        </h1>
-        <p className="text-sm text-[--muted] mt-0.5">
-          How you&apos;ve progressed
-        </p>
-      </div>
+    <div className="p-4 md:p-6 max-w-5xl mx-auto">
+      <PageHeader
+        gitCommand="$ git diff --stat HEAD~30"
+        title="Analytics"
+        sub="Your performance science dashboard"
+      />
 
       {nonZeroDays < 7 ? (
         <EmptyAnalyticsState />
       ) : (
-        <>
+        <div className="animate-fadeUp space-y-0">
+          {/* CTL / ATL / TSB cards */}
+          <PerformanceCards
+            ctl={{
+              label: "Fitness (CTL)",
+              value: Math.round(load.ctl_now),
+              sub: "chronic training load",
+              trendDirection: ctlTrend.direction,
+              trendValue: ctlTrend.label,
+            }}
+            atl={{
+              label: "Fatigue (ATL)",
+              value: Math.round(load.atl_now),
+              sub: "acute training load",
+              trendDirection: atlTrend.direction,
+              trendValue: atlTrend.label,
+            }}
+            tsb={{
+              label: "Form (TSB)",
+              value: Math.round(load.tsb_now),
+              sub: "fitness minus fatigue",
+              trendDirection: tsbIsNeg ? "down" : "up",
+              trendValue: "",
+              valueIsNegative: tsbIsNeg,
+            }}
+          />
+
+          {/* Zone banner */}
+          <ZoneBanner zone={load.acwr_zone} acwr={load.acwr_now} />
+
           {/* 2-col grid for md+; single col on mobile */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Hero — full width */}
-            <TrainingSummaryHero
-              ctlNow={load.ctl_now}
-              atlNow={load.atl_now}
-              tsbNow={load.tsb_now}
-              acwrNow={load.acwr_now}
-              acwrZone={load.acwr_zone}
-              isCalibrating={isCalibrating}
-              series={load.series}
-              className="col-span-1 md:col-span-2"
-            />
-
             {/* Strength Progress */}
             <StrengthProgressSection
               personalRecords={personalRecords}
@@ -88,17 +136,61 @@ export default async function AnalyticsPage() {
             <BenchmarkProgressSection data={benchmarks} />
 
             {/* Load detail (ACWR chart) — collapsed by default */}
-            <div className="col-span-1 md:col-span-2 rounded-lg border border-[--border] bg-[--surface]">
+            <div className="col-span-1 md:col-span-2 bg-[var(--card)] border border-[var(--border)] rounded-2xl">
               <Collapsible>
-                <CollapsibleTrigger className="w-full flex items-center justify-between p-4 text-sm font-medium text-[--text] group">
-                  Load detail · last 90 days
-                  <ChevronRight className="h-4 w-4 text-[--muted] transition-transform group-data-[state=open]:rotate-90" />
+                <CollapsibleTrigger className="w-full flex items-center justify-between p-5 group">
+                  <div>
+                    <p className="text-[15px] font-bold text-[var(--foreground)] text-left">
+                      Acute : Chronic Workload Ratio
+                    </p>
+                    <p className="text-[12px] text-[var(--muted-foreground)] text-left">
+                      7-day load vs 28-day load — the injury-risk gauge
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    {load.acwr_now !== null && (
+                      <div className="text-right">
+                        <div
+                          className="font-heading text-[20px] leading-none"
+                          style={{
+                            color:
+                              load.acwr_zone === "overreaching"
+                                ? "var(--hot)"
+                                : load.acwr_zone === "caution"
+                                  ? "var(--gold)"
+                                  : "var(--accent)",
+                          }}
+                        >
+                          {load.acwr_now.toFixed(2)}
+                        </div>
+                        <div
+                          className="text-[10.5px] mt-0.5"
+                          style={{
+                            color:
+                              load.acwr_zone === "overreaching"
+                                ? "var(--hot)"
+                                : load.acwr_zone === "caution"
+                                  ? "var(--gold)"
+                                  : "var(--accent)",
+                          }}
+                        >
+                          {load.acwr_zone === "sweet_spot"
+                            ? "optimal"
+                            : load.acwr_zone === "undertraining"
+                              ? "low"
+                              : load.acwr_zone === "caution"
+                                ? "caution"
+                                : load.acwr_zone === "overreaching"
+                                  ? "high risk"
+                                  : "calibrating"}
+                        </div>
+                      </div>
+                    )}
+                    <ChevronRight className="h-4 w-4 text-[var(--muted-foreground)] transition-transform group-data-[state=open]:rotate-90" />
+                  </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <div className="px-4 pb-4 space-y-2">
-                    <p className="text-xs text-[--muted]">
-                      Acute:Chronic Workload Ratio — optimal zone is 0.8–1.3
-                    </p>
+                  <div className="px-5 pb-5 space-y-2">
                     <ACWRChart series={load.series} />
                   </div>
                 </CollapsibleContent>
@@ -111,7 +203,7 @@ export default async function AnalyticsPage() {
               className="col-span-1 md:col-span-2"
             />
           </div>
-        </>
+        </div>
       )}
     </div>
   );
