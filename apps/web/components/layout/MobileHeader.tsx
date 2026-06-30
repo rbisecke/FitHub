@@ -13,9 +13,10 @@ function initials(name: string): string {
 
 interface Props {
   user: User;
+  streak?: number;
 }
 
-export function MobileHeader({ user }: Props) {
+export function MobileHeader({ user, streak = 0 }: Props) {
   const pathname = usePathname();
   const { title, gitCommand } = getPageMeta(pathname);
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
@@ -41,6 +42,13 @@ export function MobileHeader({ user }: Props) {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Streak badge — compact, only when streak > 0 */}
+        {streak > 0 && (
+          <span className="font-data text-[11px] font-bold text-[var(--hot)] bg-[rgba(255,122,69,0.12)] border border-[rgba(255,122,69,0.3)] px-2.5 py-0.5 rounded-full">
+            🔥 {streak}
+          </span>
+        )}
+
         <Link
           href="/coach"
           aria-label="Open Coach chat"
