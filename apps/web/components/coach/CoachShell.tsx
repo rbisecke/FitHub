@@ -8,6 +8,7 @@ import type { CoachSession } from "@/lib/api";
 import { SessionList } from "./SessionList";
 import { SessionDrawer } from "./SessionDrawer";
 import { ChatPanel } from "./ChatPanel";
+import { CoachHeader } from "./CoachHeader";
 
 interface CoachShellProps {
   token: string;
@@ -64,9 +65,9 @@ export function CoachShell({
   return (
     <div className="flex h-full overflow-hidden">
       {/* Desktop session list panel */}
-      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-[#30363d] bg-[#0d1117] h-full">
-        <div className="flex items-center justify-between px-3 py-3 border-b border-[#30363d] shrink-0">
-          <span className="font-mono text-xs text-[#8b949e]">
+      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--background)] h-full">
+        <div className="flex items-center justify-between px-3 py-3 border-b border-[var(--border)] shrink-0">
+          <span className="font-mono text-xs text-[var(--muted-foreground)]">
             $ git coach --sessions
           </span>
         </div>
@@ -83,9 +84,12 @@ export function CoachShell({
 
       {/* Main chat area */}
       <div className="flex flex-1 flex-col min-w-0 h-full">
-        {/* Mobile session action bar — sits below AppShell MobileHeader */}
-        <div className="md:hidden flex items-center justify-between px-3 py-1.5 border-b border-[#30363d] bg-[#0d1117] shrink-0">
-          <span className="font-mono text-[10px] text-[#8b949e]">
+        {/* Coach identity header — always visible */}
+        <CoachHeader />
+
+        {/* Mobile session action bar — sits below CoachHeader */}
+        <div className="md:hidden flex items-center justify-between px-3 py-1.5 border-b border-[var(--border)] bg-[var(--background)] shrink-0">
+          <span className="font-mono text-[10px] text-[var(--muted-foreground)]">
             {activeSessionId
               ? sessions
                   .find((s) => s.id === activeSessionId)
@@ -96,14 +100,14 @@ export function CoachShell({
             <button
               onClick={handleNewSession}
               aria-label="New session"
-              className="flex h-11 w-11 items-center justify-center rounded-md text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#161b22] transition-colors"
+              className="flex h-11 w-11 items-center justify-center rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-colors"
             >
               <Plus size={14} aria-hidden />
             </button>
             <button
               onClick={() => setDrawerOpen(true)}
               aria-label="View sessions"
-              className="flex h-11 w-11 items-center justify-center rounded-md text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#161b22] transition-colors"
+              className="flex h-11 w-11 items-center justify-center rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-colors"
             >
               <LayoutList size={14} aria-hidden />
             </button>
@@ -111,15 +115,15 @@ export function CoachShell({
         </div>
 
         {/* Desktop session bar */}
-        <div className="hidden md:flex items-center justify-between px-6 py-3 border-b border-[#30363d] bg-[#0d1117] shrink-0">
-          <p className="font-mono text-sm text-[#e6edf3]">
+        <div className="hidden md:flex items-center justify-between px-6 py-3 border-b border-[var(--border)] bg-[var(--background)] shrink-0">
+          <p className="font-mono text-sm text-[var(--foreground)]">
             {activeSessionId
               ? sessions.find((s) => s.id === activeSessionId)?.title ?? "Coach"
               : "New session"}
           </p>
           <button
             onClick={handleNewSession}
-            className="flex items-center gap-1.5 font-mono text-xs text-[#58a6ff] border border-[#30363d] rounded-md px-3 py-1.5 hover:bg-[#161b22] transition-colors"
+            className="flex items-center gap-1.5 font-mono text-xs text-[var(--blue)] border border-[var(--border)] rounded-md px-3 py-1.5 hover:bg-[var(--card)] transition-colors"
           >
             <Plus size={12} aria-hidden />
             new session

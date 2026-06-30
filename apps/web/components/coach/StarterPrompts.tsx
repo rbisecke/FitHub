@@ -1,36 +1,20 @@
 "use client";
 
-const STARTER_PROMPTS = [
-  "Analyze my last month of training",
-  "What should I work on next?",
-  "Help me plan a deload week",
-  "Can I attempt a PR this week?",
-];
-
-interface StarterPromptsProps {
-  onSelect: (prompt: string) => void;
-}
-
-export function StarterPrompts({ onSelect }: StarterPromptsProps) {
+// Empty state shown when there are no messages in the chat session.
+// Suggestion pills are rendered separately via SuggestionPills below the scroll area.
+export function StarterPrompts() {
   return (
-    <div className="flex flex-col gap-4 py-8 px-2">
-      <div>
-        <p className="font-mono text-xs text-[--muted]">$ git coach --help</p>
-        <p className="font-mono text-xs text-[--muted] mt-1">
-          # click a prompt or ask anything about your training
-        </p>
+    <div className="flex flex-col items-center justify-center flex-1 py-12 text-center px-6">
+      <div className="w-16 h-16 rounded-full bg-[var(--blue)] flex items-center justify-center mb-4">
+        <span className="font-heading text-[22px] text-[#0A0D12]">FH</span>
       </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {STARTER_PROMPTS.map((prompt) => (
-          <button
-            key={prompt}
-            onClick={() => onSelect(prompt)}
-            className="rounded-md border border-[--border] bg-[--surface] px-3 py-3 min-h-[44px] flex items-center text-left font-mono text-xs text-[--muted] hover:border-[--accent] hover:text-[--text] transition-colors duration-100"
-          >
-            &ldquo;{prompt}&rdquo;
-          </button>
-        ))}
+      <div className="font-heading text-[22px] text-[var(--foreground)] mb-2">
+        Your AI Coach
       </div>
+      <p className="text-[14px] text-[var(--muted-foreground)] max-w-[300px] leading-relaxed">
+        Trained on your training history. Ask about recovery, volume, or what to
+        focus on next.
+      </p>
     </div>
   );
 }
