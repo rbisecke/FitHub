@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
+import { ToggleSwitch } from "./ToggleSwitch";
 
 interface Props {
   initial: boolean;
@@ -32,16 +32,17 @@ export function CheckinToggle({ initial, token }: Props) {
   return (
     <div className="flex items-center justify-between py-3 gap-4">
       <div className="min-w-0">
-        <p className="text-sm text-[#e6edf3]">4-week check-in</p>
-        <p className="text-xs text-[#8b949e]">
+        <p className="text-sm font-semibold text-[var(--foreground)]">
+          Session reminders
+        </p>
+        <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
           Show a prompt every 4 weeks to review your frequency goal
         </p>
       </div>
-      <Switch
+      <ToggleSwitch
         checked={checked}
-        onCheckedChange={handleChange}
-        aria-label="4-week check-in"
-        className="data-[state=checked]:bg-[#58a6ff] shrink-0"
+        onChange={handleChange}
+        aria-label="4-week check-in reminders"
       />
     </div>
   );

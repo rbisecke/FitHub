@@ -8,11 +8,11 @@ import type {
   FrequencyTarget,
   PinnedMovement,
 } from "@/lib/api";
-import { ProfileHeader } from "./ProfileHeader";
-import { StatsSummaryStrip } from "./StatsSummaryStrip";
+import { PageHeader } from "@/components/ui/page-header";
+import { ProfileHeroCard } from "./ProfileHeroCard";
 import { PartnerList } from "./PartnerList";
 import { SettingsSection } from "./SettingsSection";
-import { FrequencyTargetControl } from "./FrequencyTargetControl";
+import { FrequencyStepper } from "./FrequencyStepper";
 import { CheckinToggle } from "./CheckinToggle";
 import { GraphColourToggle } from "./GraphColourToggle";
 import { WeightUnitToggle } from "./WeightUnitToggle";
@@ -44,15 +44,19 @@ export function ProfilePage({
   ) as FrequencyTarget;
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fadeUp">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        <ProfileHeader
+        <PageHeader
+          gitCommand="$ git config --global user.name"
+          title="Profile"
+        />
+
+        <ProfileHeroCard
           profile={profile}
+          stats={stats}
           accessToken={token}
           onProfileUpdate={setProfile}
         />
-
-        <StatsSummaryStrip stats={stats} />
 
         <PinnedMovements initial={pinned} accessToken={token} />
 
@@ -61,7 +65,7 @@ export function ProfilePage({
         </SettingsSection>
 
         <SettingsSection label="Settings">
-          <FrequencyTargetControl initial={frequencyTarget} token={token} />
+          <FrequencyStepper initial={frequencyTarget} token={token} />
           <CheckinToggle initial={profile.checkin_enabled} token={token} />
         </SettingsSection>
 
@@ -73,13 +77,15 @@ export function ProfilePage({
           <WeightUnitToggle initial={profile.weight_unit} token={token} />
           <DistanceUnitToggle initial={profile.distance_unit} token={token} />
           <div className="flex items-center justify-between py-3">
-            <p className="text-sm text-[--text]">Theme</p>
-            <span className="text-sm text-[--muted]">Dark (default)</span>
+            <p className="text-sm text-[var(--foreground)]">Theme</p>
+            <span className="text-sm text-[var(--muted-foreground)]">
+              Dark (default)
+            </span>
           </div>
         </SettingsSection>
 
         <SettingsSection label="Notifications">
-          <p className="py-3 text-sm text-[#8b949e]">
+          <p className="py-3 text-sm text-[var(--muted-foreground)]">
             Notifications — coming soon.
           </p>
         </SettingsSection>
