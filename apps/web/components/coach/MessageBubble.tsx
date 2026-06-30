@@ -31,17 +31,21 @@ const markdownComponents: Components = {
   ol: ({ children }) => (
     <ol className="mb-2 ml-4 list-decimal space-y-1">{children}</ol>
   ),
-  li: ({ children }) => <li className="text-sm text-[#e6edf3]">{children}</li>,
+  li: ({ children }) => (
+    <li className="text-sm text-[var(--foreground)]">{children}</li>
+  ),
   strong: ({ children }) => (
-    <strong className="font-semibold text-[#e6edf3]">{children}</strong>
+    <strong className="font-semibold text-[var(--foreground)]">
+      {children}
+    </strong>
   ),
   code: ({ children }) => (
-    <code className="rounded bg-[#0d1117] px-1 py-0.5 font-mono text-xs text-[#58a6ff]">
+    <code className="rounded bg-[var(--background)] px-1 py-0.5 font-mono text-xs text-[var(--blue)]">
       {children}
     </code>
   ),
   pre: ({ children }) => (
-    <pre className="my-2 overflow-x-auto rounded-md bg-[#0d1117] p-3 font-mono text-xs text-[#e6edf3]">
+    <pre className="my-2 overflow-x-auto rounded-md bg-[var(--background)] p-3 font-mono text-xs text-[var(--foreground)]">
       {children}
     </pre>
   ),
@@ -72,23 +76,25 @@ export function MessageBubble({
     : msg.safetyTier === "stop"
       ? "border-l-2 border-[#d29922]"
       : isUser
-        ? "border-r-2 border-[#30363d]"
-        : "border-l-2 border-[#58a6ff]";
+        ? "border border-[rgba(74,222,128,0.3)]"
+        : "border border-[var(--border)]";
 
-  const bgClass = isUser ? "bg-[#161b22]/60" : "bg-[#161b22]";
+  const bgClass = isUser
+    ? "bg-[rgba(74,222,128,0.12)]"
+    : "bg-[var(--surface-2)]";
 
   const radiusClass = isUser
-    ? "rounded-l-lg rounded-br-lg"
-    : "rounded-r-lg rounded-bl-lg";
+    ? "rounded-[16px_4px_16px_16px]"
+    : "rounded-[4px_16px_16px_16px]";
 
   return (
     <div
-      className={`flex flex-col gap-1 max-w-[82%] md:max-w-[67%] ${
+      className={`flex flex-col gap-1 max-w-[85%] md:max-w-[75%] ${
         isUser ? "self-end items-end" : "self-start items-start"
       }`}
     >
       {/* Header row */}
-      <div className="flex items-center gap-1.5 text-xs text-[#8b949e] font-mono">
+      <div className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] font-mono">
         {!isUser && <Terminal size={11} aria-hidden />}
         <span>{isUser ? userInitial ?? "You" : "Coach"}</span>
         <span>·</span>
@@ -97,7 +103,7 @@ export function MessageBubble({
 
       {/* Bubble */}
       <div
-        className={`px-3 py-2 text-sm text-[#e6edf3] ${bgClass} ${borderClass} ${radiusClass}`}
+        className={`px-3 py-2.5 text-sm text-[var(--foreground)] leading-relaxed ${bgClass} ${borderClass} ${radiusClass}`}
         data-testid={msg.role === "assistant" ? "chat-response" : undefined}
       >
         {msg.error ? (
@@ -105,13 +111,13 @@ export function MessageBubble({
             <p className="font-mono text-xs text-[#ff7b72]">
               ✗ Coach is unavailable.
             </p>
-            <p className="font-mono text-xs text-[#8b949e] mt-0.5">
+            <p className="font-mono text-xs text-[var(--muted-foreground)] mt-0.5">
               Check your connection and try again.
             </p>
             {onRetry && (
               <button
                 onClick={onRetry}
-                className="mt-1.5 font-mono text-xs text-[#8b949e] underline hover:text-[#e6edf3]"
+                className="mt-1.5 font-mono text-xs text-[var(--muted-foreground)] underline hover:text-[var(--foreground)]"
               >
                 retry ↩
               </button>
@@ -123,7 +129,7 @@ export function MessageBubble({
           <div>
             <Markdown components={markdownComponents}>{msg.content}</Markdown>
             {msg.streaming && (
-              <span className="inline-block w-0.5 h-3.5 bg-[#58a6ff] animate-pulse ml-0.5 align-middle" />
+              <span className="inline-block w-0.5 h-3.5 bg-[var(--blue)] animate-pulse ml-0.5 align-middle" />
             )}
           </div>
         )}
@@ -144,9 +150,12 @@ export function MessageBubble({
         )}
 
         {msg.citations && msg.citations.length > 0 && (
-          <ul className="mt-2 space-y-0.5 border-t border-[#30363d] pt-1.5">
+          <ul className="mt-2 space-y-0.5 border-t border-[var(--border)] pt-1.5">
             {msg.citations.map((c, j) => (
-              <li key={j} className="font-mono text-xs text-[#8b949e]">
+              <li
+                key={j}
+                className="font-mono text-xs text-[var(--muted-foreground)]"
+              >
                 [{c.source_type}] {c.title}
               </li>
             ))}

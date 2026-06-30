@@ -3,17 +3,13 @@
 export function TypingIndicator() {
   return (
     <div
-      className="self-start flex items-center gap-1 px-4 py-3 rounded-r-lg rounded-bl-lg bg-[#161b22] border-l-2 border-[#58a6ff]"
+      className="self-start flex items-center gap-1.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-[4px_16px_16px_16px] px-4 py-3.5 w-fit"
       role="status"
       aria-label="Coach is typing"
     >
-      {[0, 150, 300].map((delay) => (
-        <span
-          key={delay}
-          className="h-1.5 w-1.5 rounded-full bg-[#8b949e] animate-bounce"
-          style={{ animationDelay: `${delay}ms` }}
-        />
-      ))}
+      <span className="w-[7px] h-[7px] rounded-full bg-[var(--accent)] animate-typing" />
+      <span className="w-[7px] h-[7px] rounded-full bg-[var(--accent)] animate-typing-2" />
+      <span className="w-[7px] h-[7px] rounded-full bg-[var(--accent)] animate-typing-3" />
     </div>
   );
 }
