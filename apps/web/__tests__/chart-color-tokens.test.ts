@@ -15,7 +15,7 @@ const CHART_FILES = [
   "analytics/BenchmarkProgressSection.tsx",
   "analytics/TrainingBalanceSection.tsx",
   "records/PRSparkline.tsx",
-  "records/TimelineView.tsx",
+  // TimelineView.tsx removed from chart guards — redesigned to plain HTML/SVG rail (no Recharts)
   "ui/donut-chart.tsx",
 ];
 

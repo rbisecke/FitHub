@@ -2,17 +2,20 @@ import Link from "next/link";
 
 export function EmptyRecords() {
   return (
-    <div className="flex flex-col items-center py-24 gap-4 text-center px-4">
-      <p className="font-mono text-sm text-[--muted]">$ git tag</p>
-      <p className="text-sm text-[--muted]">Your repo has no tags yet.</p>
-      <p className="text-sm text-[--muted]">
-        Log a workout and set your first PR to see your fitness milestones here.
+    <div className="flex flex-col items-center text-center px-[42px] py-[52px] bg-[var(--card)] border border-dashed border-[var(--border)] rounded-2xl max-w-xl mx-auto mt-2 animate-fadeUp">
+      <div className="text-[40px] mb-3" aria-hidden="true">
+        🏷️
+      </div>
+      <h2 className="font-heading text-[20px] mb-2">No records tagged yet</h2>
+      <p className="text-[13px] text-[var(--muted)] max-w-[420px] mx-auto mb-5">
+        Log workouts with weighted movements to automatically track your
+        personal records. Every PR gets tagged like a git release.
       </p>
       <Link
         href="/log/new"
-        className="border border-[--border] text-[--text] font-mono text-xs px-4 py-2 rounded hover:border-[--muted] hover:text-[--text] transition-colors"
+        className="inline-flex items-center gap-2 bg-[var(--accent)] text-[#0A0D12] font-bold text-[13px] px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
       >
-        $ git commit → Log a workout
+        Log your first result
       </Link>
     </div>
   );
