@@ -1,29 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { SlidersHorizontal } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import type { PersonalRecord, E1RMPoint } from "@/lib/api";
 import type { PRCategory } from "@/lib/records/categorise";
-import {
-  categorise,
-  CATEGORY_ORDER,
-  CATEGORY_LABEL,
-} from "@/lib/records/categorise";
+import { categorise, CATEGORY_ORDER } from "@/lib/records/categorise";
 import { RecordsHeader } from "./RecordsHeader";
 import { CategoryTabs } from "./CategoryTabs";
+import type { CategoryFilter } from "./CategoryTabs";
 import { CategorySection } from "./CategorySection";
 import { TimelineView } from "./TimelineView";
 import { EmptyRecords } from "./EmptyRecords";
-import { EmptyCategoryState } from "./EmptyCategoryState";
 import { NewPRBanner } from "./NewPRBanner";
-import { PRCard } from "./PRCard";
 
 interface Props {
   prs: PersonalRecord[];
@@ -33,17 +20,23 @@ interface Props {
 
 export function RecordsShell({ prs, trendMap, recentPRIds }: Props) {
   const [viewMode, setViewMode] = useState<"current" | "timeline">("current");
-  const [activeCategory, setActiveCategory] = useState<PRCategory>("strength");
+  const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
 
+  // Empty state
   if (prs.length === 0) {
     return (
       <div className="px-4 py-6 max-w-5xl mx-auto">
-        <RecordsHeader viewMode={viewMode} onToggle={setViewMode} />
+        <RecordsHeader
+          viewMode={viewMode}
+          onToggle={setViewMode}
+          totalCount={0}
+        />
         <EmptyRecords />
       </div>
     );
   }
 
+  // Categorise all PRs
   const categorised: Record<PRCategory, PersonalRecord[]> = {
     strength: [],
     gymnastics: [],
@@ -51,133 +44,54 @@ export function RecordsShell({ prs, trendMap, recentPRIds }: Props) {
     endurance: [],
   };
   for (const pr of prs) {
-    const cat = categorise(pr.movement_name);
-    categorised[cat].push(pr);
+    categorised[categorise(pr.movement_name)].push(pr);
   }
 
-  const availableCategories = new Set<PRCategory>(
-    CATEGORY_ORDER.filter((c) => categorised[c].length > 0),
-  );
+  // Banner: use first recent PR's name and value
+  const recentPR = prs.find((pr) => recentPRIds.includes(pr.movement_id));
+  const recentMovement = recentPR?.movement_name ?? "";
+  const recentValue = recentPR ? `${recentPR.best_1rm_kg.toFixed(1)} kg` : "";
 
-  const effectiveCategory: PRCategory = availableCategories.has(activeCategory)
-    ? activeCategory
-    : CATEGORY_ORDER.find((c) => availableCategories.has(c)) ?? "strength";
+  // Which category sections to show
+  const categoriesToShow: PRCategory[] =
+    activeCategory === "all"
+      ? CATEGORY_ORDER.filter((c) => categorised[c].length > 0)
+      : [activeCategory as PRCategory];
 
   return (
     <div className="px-4 py-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="mb-4">
-        {/* Mobile header row */}
-        <div className="flex items-start justify-between md:hidden mb-2">
-          <div>
-            <p className="font-mono text-xs text-[--muted] mb-1">$ git tag</p>
-            <h1 className="text-2xl font-bold text-[--text]">
-              Personal Records
-            </h1>
-          </div>
-          <Sheet>
-            <SheetTrigger
-              className="mt-1 p-2 rounded text-[--muted] hover:text-[--text] min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Open filter options"
-            >
-              <SlidersHorizontal className="h-5 w-5" />
-            </SheetTrigger>
-            <SheetContent
-              side="bottom"
-              className="bg-[--surface] border-[--border]"
-            >
-              <SheetHeader>
-                <SheetTitle className="font-mono text-sm text-[--text]">
-                  View options
-                </SheetTitle>
-              </SheetHeader>
-              <div className="mt-4">
-                <p className="text-xs text-[--muted] font-mono mb-2">
-                  View mode
-                </p>
-                <div
-                  role="group"
-                  aria-label="View mode"
-                  className="flex rounded border border-[--border] overflow-hidden w-fit"
-                >
-                  {(["current", "timeline"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      aria-pressed={viewMode === mode}
-                      onClick={() => setViewMode(mode)}
-                      className={`px-4 py-2 font-mono text-xs capitalize transition-colors min-h-[44px] ${
-                        viewMode === mode
-                          ? "bg-[#21262d] text-[--text]"
-                          : "text-[--muted] hover:text-[--text]"
-                      }`}
-                    >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
+      <RecordsHeader
+        viewMode={viewMode}
+        onToggle={setViewMode}
+        totalCount={prs.length}
+      />
 
-        {/* Desktop header */}
-        <div className="hidden md:block">
-          <RecordsHeader viewMode={viewMode} onToggle={setViewMode} />
-        </div>
-      </div>
+      <NewPRBanner
+        movement={recentMovement}
+        value={recentValue}
+        count={recentPRIds.length}
+      />
 
-      {/* New PR banner */}
-      <NewPRBanner count={recentPRIds.length} />
-
-      {/* Mobile: category tabs */}
-      <div className="md:hidden mb-4">
+      {/* Category filter pills */}
+      <div className="mb-6">
         <CategoryTabs
-          activeCategory={effectiveCategory}
-          availableCategories={availableCategories}
+          activeCategory={activeCategory}
           onSelect={setActiveCategory}
         />
       </div>
 
-      {/* Content */}
       {viewMode === "current" ? (
-        <>
-          {/* Mobile: single category */}
-          <div
-            className="md:hidden"
-            role="tabpanel"
-            aria-label={`${CATEGORY_LABEL[effectiveCategory]} records`}
-          >
-            {categorised[effectiveCategory].length === 0 ? (
-              <EmptyCategoryState
-                category={CATEGORY_LABEL[effectiveCategory]}
-              />
-            ) : (
-              <div className="grid grid-cols-1 gap-3">
-                {categorised[effectiveCategory].map((pr) => (
-                  <PRCard
-                    key={pr.movement_id}
-                    pr={pr}
-                    points={trendMap[pr.movement_id] ?? []}
-                    isRecent={recentPRIds.includes(pr.movement_id)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Desktop: all categories */}
-          <div className="hidden md:block space-y-8">
-            {CATEGORY_ORDER.map((cat) => (
-              <CategorySection
-                key={cat}
-                category={cat}
-                prs={categorised[cat]}
-                trendMap={trendMap}
-                recentPRIds={recentPRIds}
-              />
-            ))}
-          </div>
-        </>
+        <div className="space-y-8">
+          {categoriesToShow.map((cat) => (
+            <CategorySection
+              key={cat}
+              category={cat}
+              prs={categorised[cat]}
+              trendMap={trendMap}
+              recentPRIds={recentPRIds}
+            />
+          ))}
+        </div>
       ) : (
         <TimelineView categorised={categorised} trendMap={trendMap} />
       )}
