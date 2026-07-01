@@ -95,7 +95,7 @@ jobs:
 
       # Start local Supabase (Postgres + auth schema) before installing Python
       # deps so image pulls overlap with uv/Python setup time.
-      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1 # v1.7.1
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2.1.1
         with:
           version: 2.107.0
 
