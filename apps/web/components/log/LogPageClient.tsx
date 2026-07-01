@@ -2,6 +2,7 @@
 
 // CANARY: THIS IS THE NEW VERSION - feat/dsr-log-result
 import { useState, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -48,6 +49,11 @@ export function LogPageClient({
   const [nlLoading, setNlLoading] = useState(false);
   const [nlPreview, setNlPreview] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [mobileSelectedId, setMobileSelectedId] = useState<string | null>(null);
+  const [mobileSelectedMovement, setMobileSelectedMovement] =
+    useState<RecentMovement | null>(null);
+  const [mobileValue, setMobileValue] = useState("");
+  const [mobileSubmitting, setMobileSubmitting] = useState(false);
 
   const {
     register,
@@ -146,6 +152,56 @@ export function LogPageClient({
     }
   }, [accessToken, nlText, setValue, replace]);
 
+  const handleMobileSubmit = useCallback(async () => {
+    if (!mobileSelectedMovement || !mobileValue.trim()) return;
+    setMobileSubmitting(true);
+    setSubmitError(null);
+    try {
+      const rt =
+        mobileSelectedMovement.result_type as LogFormValues["movement_entries"][number]["result_type"];
+      const workout = await api.workouts.create(accessToken, {
+        performed_at: toISOLocal(today),
+        is_tag: false,
+        results: [
+          {
+            movement_id: mobileSelectedMovement.movement_id,
+            result_type: rt,
+            load_kg: rt === "weight" ? Number(mobileValue) : undefined,
+            reps: rt === "reps" ? parseInt(mobileValue, 10) : undefined,
+            time_s:
+              rt === "time"
+                ? timeTextToSeconds(mobileValue) ?? undefined
+                : undefined,
+            distance_m: rt === "distance" ? Number(mobileValue) : undefined,
+            order_index: 0,
+            is_pr: false,
+            pace_distance_m: 500,
+          },
+        ],
+      });
+      const hasPR = workout.results?.some((r) => r.is_pr) ?? false;
+      if (isFirstWorkout) {
+        fireInitialCommitToast();
+        router.push("/history");
+      } else if (hasPR) {
+        router.push("/dashboard?pr=1");
+      } else {
+        toasts.workoutLogged(undefined);
+        router.push("/history");
+      }
+    } catch {
+      setSubmitError("Failed to commit workout. Please try again.");
+    } finally {
+      setMobileSubmitting(false);
+    }
+  }, [
+    mobileSelectedMovement,
+    mobileValue,
+    accessToken,
+    isFirstWorkout,
+    router,
+  ]);
+
   async function onSubmit(values: LogFormValues) {
     setSubmitError(null);
     try {
@@ -210,18 +266,42 @@ export function LogPageClient({
   }
 
   return (
-    <div className="mx-auto max-w-lg pb-nav-safe md:max-w-5xl px-4 md:px-8 py-6">
+    <div className="mx-auto max-w-lg pb-nav-safe md:max-w-5xl px-[18px] pt-[14px] pb-2 md:px-8 md:py-6">
+      {/* Mobile back button */}
+      <div className="md:hidden flex items-center gap-[9px] mb-[14px]">
+        <Link
+          href="/dashboard"
+          className="flex text-[var(--muted-foreground)]"
+          aria-label="Back to home"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+        </Link>
+        <span className="font-data text-[11.5px] text-[var(--muted-foreground)]">
+          Home
+        </span>
+      </div>
       <PageHeader
         gitCommand='$ git commit -m "<result>"'
-        title="Log Result"
+        title="Log a result"
         sub="Record your latest attempt. Beat your record and we'll tag a release. 🏷️"
       />
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,520px)_1fr] md:items-start md:gap-10">
         {/* LEFT: primary form */}
         <div className="space-y-6">
-          {/* NL area */}
-          <div className="space-y-2">
+          {/* NL area — desktop only */}
+          <div className="hidden md:block space-y-2">
             <label
               htmlFor="nl-textarea"
               className="text-xs text-[var(--muted-foreground)]"
@@ -255,8 +335,8 @@ export function LogPageClient({
             )}
           </div>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3">
+          {/* Divider — desktop only */}
+          <div className="hidden md:flex items-center gap-3">
             <div className="h-px flex-1 bg-[var(--border)]" />
             <span className="text-xs text-[var(--muted-foreground)]">
               or add movements
@@ -264,10 +344,14 @@ export function LogPageClient({
             <div className="h-px flex-1 bg-[var(--border)]" />
           </div>
 
-          {/* Movement grid — replaces chips for improved visual hierarchy */}
+          {/* Movement grid */}
           <MovementGrid
-            selectedId={null}
+            accessToken={accessToken}
+            selectedId={mobileSelectedId}
             onSelect={(m: RecentMovement) => {
+              setMobileSelectedId(m.movement_id);
+              setMobileSelectedMovement(m);
+              setMobileValue("");
               if (fields.length >= 10) return;
               append({
                 movement_id: m.movement_id,
@@ -292,12 +376,108 @@ export function LogPageClient({
             }}
           />
 
-          {/* Form */}
+          {/* Mobile: empty state when no movement selected */}
+          {!mobileSelectedMovement && (
+            <div
+              className="md:hidden rounded-[16px] p-[28px_20px] text-center font-data text-[12px] text-[var(--muted-foreground)]"
+              style={{
+                background: "var(--card)",
+                border: "1px dashed var(--border)",
+              }}
+            >
+              ↑ Tap a movement to log your latest attempt.
+            </div>
+          )}
+
+          {/* Mobile: inline entry panel */}
+          {mobileSelectedMovement && (
+            <div
+              className="md:hidden rounded-[18px] p-[20px]"
+              style={{
+                background: "var(--card)",
+                border: "1px solid var(--accent)",
+              }}
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between mb-[16px]">
+                <div>
+                  <div className="font-data text-[10.5px] text-[var(--muted-foreground)] uppercase tracking-[0.5px]">
+                    New attempt
+                  </div>
+                  <div className="font-heading text-[20px] mt-[3px] text-[var(--foreground)]">
+                    {mobileSelectedMovement.movement_name}
+                  </div>
+                </div>
+                <div className="text-right shrink-0 ml-3">
+                  <div className="font-data text-[10px] text-[var(--muted-foreground)]">
+                    Current record
+                  </div>
+                  <div
+                    className="font-heading text-[17px] mt-[2px]"
+                    style={{ color: "var(--gold)" }}
+                  >
+                    —
+                  </div>
+                </div>
+              </div>
+
+              {/* Value input */}
+              <div
+                className="flex items-center rounded-[12px] mb-[14px] px-[14px] py-[2px]"
+                style={{
+                  background: "var(--surface-2)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={mobileValue}
+                  onChange={(e) => setMobileValue(e.target.value)}
+                  className="flex-1 min-w-0 bg-transparent border-none font-heading text-[26px] py-[12px] text-[var(--foreground)] outline-none"
+                />
+                <span className="font-data text-[13px] font-semibold text-[var(--muted-foreground)] ml-2">
+                  {mobileSelectedMovement.result_type === "time"
+                    ? "min:sec"
+                    : mobileSelectedMovement.result_type === "reps"
+                      ? "reps"
+                      : mobileSelectedMovement.result_type === "distance"
+                        ? "m"
+                        : "kg"}
+                </span>
+              </div>
+
+              {/* Submit */}
+              {submitError && (
+                <p
+                  role="alert"
+                  className="text-xs text-[var(--destructive)] mb-2"
+                >
+                  {submitError}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handleMobileSubmit}
+                disabled={mobileSubmitting || !mobileValue.trim()}
+                className="w-full min-h-[48px] font-heading font-bold text-[14px] py-[13px] rounded-[12px] disabled:opacity-60"
+                style={{ background: "var(--accent)", color: "#0d1117" }}
+              >
+                {mobileSubmitting ? "Committing…" : "Commit result →"}
+              </button>
+              <p className="font-data text-[11px] text-[var(--muted-foreground)] text-center mt-[10px]">
+                For multiple sets, use the desktop view.
+              </p>
+            </div>
+          )}
+
+          {/* Form — desktop only */}
           <form
             onSubmit={handleSubmit(
               onSubmit as Parameters<typeof handleSubmit>[0],
             )}
-            className="space-y-4"
+            className="hidden md:block space-y-4"
           >
             {/* Movement rows */}
             <div className="space-y-3">

@@ -131,6 +131,11 @@ export const api = {
         `/api/v1/movements/${movementId}/personal-record`,
         token,
       ),
+    personalRecordsBatch: (token: string, movementIds: string[]) =>
+      apiFetch<PersonalRecordResult[]>(
+        `/api/v1/movements/personal-records?ids=${movementIds.join(",")}`,
+        token,
+      ),
   },
   analytics: {
     load: (token: string, days = 90) =>
