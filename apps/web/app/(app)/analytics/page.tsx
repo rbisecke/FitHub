@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { api } from "@/lib/api/client";
@@ -78,9 +79,34 @@ export default async function AnalyticsPage() {
   const tsbIsNeg = load.tsb_now < 0;
 
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto">
+    <div className="px-[18px] pt-[14px] pb-2 md:p-6 max-w-5xl mx-auto">
+      {/* Mobile back button */}
+      <div className="md:hidden flex items-center gap-[9px] mb-[14px]">
+        <Link
+          href="/dashboard"
+          className="flex text-[var(--muted)]"
+          aria-label="Back to home"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+        </Link>
+        <span className="font-data text-[11.5px] text-[var(--muted)]">
+          Home
+        </span>
+      </div>
+
       <PageHeader
-        gitCommand="$ git diff --stat HEAD~8 weeks"
+        gitCommand="$ git diff --stat HEAD~8w"
         title="Analytics"
         sub="How your training has changed over the last 8 weeks."
       />
@@ -89,46 +115,90 @@ export default async function AnalyticsPage() {
         <EmptyAnalyticsState />
       ) : (
         <div className="animate-fadeUp space-y-0">
-          {/* CTL / ATL / TSB cards */}
-          <PerformanceCards
-            ctl={{
-              label: "Fitness · CTL",
-              value: Math.round(load.ctl_now),
-              sub: "chronic training load — how fit you are",
-              trendDirection: ctlTrend.direction,
-              trendValue: ctlTrend.label,
-              metricKey: "ctl",
-              badge: "42-day load",
-              badgeColor: "blue",
-            }}
-            atl={{
-              label: "Fatigue · ATL",
-              value: Math.round(load.atl_now),
-              sub: "acute training load — how tired you are",
-              trendDirection: atlTrend.direction,
-              trendValue: atlTrend.label,
-              metricKey: "atl",
-              badge: "7-day load",
-              badgeColor: "hot",
-            }}
-            tsb={{
-              label: "Form · TSB",
-              value: Math.round(load.tsb_now),
-              sub: "readiness balance",
-              trendDirection: tsbIsNeg ? "down" : "up",
-              trendValue: "",
-              valueIsNegative: tsbIsNeg,
-              metricKey: "tsb",
-              badge: "CTL − ATL",
-              badgeColor: "muted",
-            }}
-          />
+          {/* Mobile: compact 3-col metric strip */}
+          <div className="md:hidden flex gap-[8px] mb-[12px]">
+            {[
+              {
+                label: "Fitness",
+                value: Math.round(load.ctl_now),
+                color: "var(--foreground)",
+                sub: "CTL",
+              },
+              {
+                label: "Fatigue",
+                value: Math.round(load.atl_now),
+                color: "var(--hot)",
+                sub: "ATL",
+              },
+              {
+                label: "Form",
+                value: Math.round(load.tsb_now),
+                color: "var(--gold)",
+                sub: "TSB",
+              },
+            ].map((m) => (
+              <div
+                key={m.sub}
+                className="flex-1 bg-[var(--card)] border border-[var(--border)] rounded-[12px] p-[12px]"
+              >
+                <div className="font-data text-[9.5px] text-[var(--muted)] uppercase tracking-[0.5px]">
+                  {m.label}
+                </div>
+                <div
+                  className="font-heading text-[22px] mt-[3px]"
+                  style={{ color: m.color }}
+                >
+                  {m.value}
+                </div>
+                <div className="font-data text-[9.5px] text-[var(--muted)] mt-[1px]">
+                  {m.sub}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: full CTL / ATL / TSB cards */}
+          <div className="hidden md:block">
+            <PerformanceCards
+              ctl={{
+                label: "Fitness · CTL",
+                value: Math.round(load.ctl_now),
+                sub: "chronic training load — how fit you are",
+                trendDirection: ctlTrend.direction,
+                trendValue: ctlTrend.label,
+                metricKey: "ctl",
+                badge: "42-day load",
+                badgeColor: "blue",
+              }}
+              atl={{
+                label: "Fatigue · ATL",
+                value: Math.round(load.atl_now),
+                sub: "acute training load — how tired you are",
+                trendDirection: atlTrend.direction,
+                trendValue: atlTrend.label,
+                metricKey: "atl",
+                badge: "7-day load",
+                badgeColor: "hot",
+              }}
+              tsb={{
+                label: "Form · TSB",
+                value: Math.round(load.tsb_now),
+                sub: "readiness balance",
+                trendDirection: tsbIsNeg ? "down" : "up",
+                trendValue: "",
+                valueIsNegative: tsbIsNeg,
+                metricKey: "tsb",
+                badge: "CTL − ATL",
+                badgeColor: "muted",
+              }}
+            />
+          </div>
 
           {/* Zone banner */}
           <ZoneBanner zone={load.acwr_zone} acwr={load.acwr_now} />
 
-          {/* 2-col grid for md+; single col on mobile */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Desktop 2-col grid (hidden on mobile) */}
+          <div className="hidden md:grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Strength Progress */}
             <StrengthProgressSection
               personalRecords={personalRecords}
@@ -211,6 +281,13 @@ export default async function AnalyticsPage() {
               records={personalRecords}
               className="col-span-1 md:col-span-2"
             />
+          </div>
+
+          {/* Mobile sections */}
+          <div className="md:hidden space-y-[14px]">
+            <VolumeTrendSection initialWeeks={volume.weeks} token={token} />
+            <TrainingBalanceSection data={balance} />
+            <PRSummaryStrip records={personalRecords} />
           </div>
         </div>
       )}
