@@ -334,6 +334,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/movements/personal-records": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Personal Records Batch Route */
+    get: operations["get_personal_records_batch_route_api_v1_movements_personal_records_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/movements/{movement_id}/last-result": {
     parameters: {
       query?: never;
@@ -3054,6 +3071,38 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Movement"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_personal_records_batch_route_api_v1_movements_personal_records_get: {
+    parameters: {
+      query: {
+        /** @description Comma-separated movement UUIDs, max 20 */
+        ids: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PersonalRecordResult"][];
         };
       };
       /** @description Validation Error */

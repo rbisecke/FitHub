@@ -266,6 +266,7 @@ export function LogPageClient({
 
           {/* Movement grid — replaces chips for improved visual hierarchy */}
           <MovementGrid
+            accessToken={accessToken}
             selectedId={null}
             onSelect={(m: RecentMovement) => {
               if (fields.length >= 10) return;
