@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
+import time
 from functools import lru_cache
 
 import psycopg
 from sentence_transformers import SentenceTransformer
+
+log = logging.getLogger("fithub.rag")
 
 _EMBED_MODEL = os.environ.get("EMBED_MODEL", "BAAI/bge-small-en-v1.5")
 
@@ -23,14 +27,21 @@ def _encode_sync(query: str) -> list[float]:
 
 async def hybrid_retrieve(
     query: str, db: psycopg.AsyncConnection[object], top_k: int = 5
-) -> list[dict[str, object]]:
+) -> tuple[list[dict[str, object]], float]:
     """Reciprocal Rank Fusion of vector + full-text results.
+
+    Returns (chunks, max_rrf_score). max_rrf_score is 0.0 when the corpus is
+    empty or no documents matched; callers can use it to detect unanswerable
+    queries (score < 0.01).
 
     Filters by embedding_model so queries never mix vectors from different
     model versions.
     """
     loop = asyncio.get_running_loop()
+    t0 = time.perf_counter()
     q_vec = await loop.run_in_executor(None, _encode_sync, query)
+    embed_ms = round((time.perf_counter() - t0) * 1000)
+    log.debug("embed_ms=%d query_len=%d", embed_ms, len(query))
 
     sql = """
     WITH vector_ranked AS (
@@ -58,8 +69,13 @@ async def hybrid_retrieve(
     async with db.cursor() as cur:  # type: ignore[attr-defined]
         await cur.execute(sql, [q_vec, _EMBED_MODEL, q_vec, query, _EMBED_MODEL, top_k])
         if cur.description is None:
-            return []
+            return [], 0.0
         cols = [d.name for d in cur.description]
         rows = await cur.fetchall()
 
-    return [dict(zip(cols, row, strict=False)) for row in rows]  # type: ignore[call-overload]
+    if not rows:
+        return [], 0.0
+
+    result = [dict(zip(cols, row, strict=False)) for row in rows]  # type: ignore[call-overload]
+    max_score = float(result[0]["score"])  # rows are already ordered DESC
+    return result, max_score

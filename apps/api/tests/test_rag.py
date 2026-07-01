@@ -14,9 +14,10 @@ async def test_hybrid_retrieve_returns_results() -> None:
     from tests.conftest import TEST_DB_DSN
 
     async with await psycopg.AsyncConnection.connect(TEST_DB_DSN) as db:
-        results = await hybrid_retrieve("what is ACWR?", db, top_k=5)
+        results, max_score = await hybrid_retrieve("what is ACWR?", db, top_k=5)
 
     assert isinstance(results, list)
+    assert isinstance(max_score, float)
     for r in results:
         assert "title" in r and "body" in r and "score" in r
 
@@ -29,9 +30,10 @@ async def test_hybrid_retrieve_score_ordering() -> None:
     from tests.conftest import TEST_DB_DSN
 
     async with await psycopg.AsyncConnection.connect(TEST_DB_DSN) as db:
-        results = await hybrid_retrieve("pull-up", db, top_k=10)
+        results, max_score = await hybrid_retrieve("pull-up", db, top_k=10)
 
     if len(results) >= 2:
+        assert max_score == float(results[0]["score"]), "max_score must equal top result score"
         scores: list[float] = [float(r["score"]) for r in results]  # type: ignore[arg-type]
         assert scores == sorted(scores, reverse=True), "results must be sorted by score DESC"
 
