@@ -11,15 +11,15 @@ describe("FitHubMark", () => {
     expect(html).toContain('viewBox="0 0 24 24"');
   });
 
-  it("draws the green tile and the carved F (three rects in the page-bg colour)", () => {
+  it("draws the accent-coloured tile with a git-graph cut-out", () => {
     const html = renderToStaticMarkup(<FitHubMark />);
-    // tile colour tracks the --green token via currentColor
+    // tile colour tracks the --accent token via currentColor
     expect(html).toContain("currentColor");
-    expect(html).toContain("text-[var(--green)]");
-    // the F is three rects filled with the page background so it reads as a cut-out
-    const carved = html.match(/fill="#0d1117"/g) ?? [];
-    expect(carved.length).toBe(1); // single <g fill> wrapping the three rects
-    expect((html.match(/<rect/g) ?? []).length).toBe(4); // tile + 3 F strokes
+    expect(html).toContain("text-[var(--accent)]");
+    // git-graph: tile rect + main-branch rect + 3 commit circles, all cut-out in page-bg
+    const cutOuts = html.match(/fill="#0d1117"/g) ?? [];
+    expect(cutOuts.length).toBeGreaterThanOrEqual(4); // rect + 3 circles + path stroke
+    expect((html.match(/<circle/g) ?? []).length).toBe(3); // 3 commit nodes
   });
 
   it("is an accessible image named FitHub by default", () => {

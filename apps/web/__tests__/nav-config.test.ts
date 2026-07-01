@@ -43,7 +43,7 @@ describe("getPageMeta", () => {
 
   it("returns meta for dynamic sub-routes", () => {
     expect(getPageMeta("/history/abc123").title).toBe("History");
-    expect(getPageMeta("/log/new").title).toBe("Log Workout");
+    expect(getPageMeta("/log/new").title).toBe("Log Result");
   });
 
   it("falls back gracefully for unknown routes", () => {
