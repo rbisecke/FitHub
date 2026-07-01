@@ -28,7 +28,7 @@ async def report_injury(
     user: Annotated[UserContext, Depends(get_current_user)],
     db: _Db,
 ) -> InjuryOut:
-    referral = has_red_flags(req.notes, req.pain_level)
+    referral = has_red_flags(req.notes, req.pain_level, req.body_region)
     substitutions: list[str] = []
     contraindicated = get_contraindicated_movements(req.body_region)
 
