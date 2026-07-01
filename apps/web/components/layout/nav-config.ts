@@ -35,7 +35,6 @@ export const NAV_ITEMS: NavItem[] = [
     mobileLabel: "Track",
     icon: GitCommit,
     gitCommand: "$ git commit -m",
-    mobileShow: true,
   },
   {
     href: "/log/new",
@@ -57,7 +56,6 @@ export const NAV_ITEMS: NavItem[] = [
     mobileLabel: "Records",
     icon: Tag,
     gitCommand: "$ git tag --list",
-    mobileShow: true,
   },
   {
     href: "/analytics",
@@ -80,6 +78,7 @@ export const NAV_ITEMS: NavItem[] = [
     mobileLabel: "Coach",
     icon: MessageSquare,
     gitCommand: "$ git coach",
+    mobileShow: true,
   },
   {
     href: "/profile",
@@ -87,6 +86,7 @@ export const NAV_ITEMS: NavItem[] = [
     mobileLabel: "Profile",
     icon: User,
     gitCommand: "$ git config --user",
+    mobileShow: true,
   },
 ];
 

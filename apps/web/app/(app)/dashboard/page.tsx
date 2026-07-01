@@ -5,6 +5,7 @@ import type { PersonalRecord, WorkoutSummary } from "@/lib/api";
 import type { ReadinessResponse } from "@/lib/api";
 
 import { prGoals } from "@/lib/dashboard/prDelta";
+import Link from "next/link";
 import { ContributionGraphRevamp } from "@/components/dashboard/ContributionGraphRevamp";
 import { OnboardingToast } from "@/components/onboarding/OnboardingToast";
 import { StatGrid } from "@/components/dashboard/StatGrid";
@@ -13,6 +14,7 @@ import { RecentCommitsFeed } from "@/components/dashboard/RecentCommitsFeed";
 import { OpenPRsWidget } from "@/components/dashboard/OpenPRsWidget";
 import { CoachPreviewCard } from "@/components/dashboard/CoachPreviewCard";
 import { QuickCommitWidget } from "@/components/dashboard/QuickCommitWidget";
+import { HubGrid } from "@/components/dashboard/HubGrid";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -122,8 +124,46 @@ export default async function DashboardPage() {
   const currentStreak = recentStreak > 0 ? Math.min(recentStreak, 30) : 0;
 
   return (
-    <div className="p-4 md:p-6 max-w-[1200px] mx-auto">
-      <div className="mb-6 animate-fadeUp">
+    <div className="px-[18px] pt-[14px] pb-2 md:p-6 max-w-[1200px] mx-auto">
+      {/* Mobile brand row */}
+      <div className="md:hidden flex items-center justify-between mb-4">
+        <div className="flex items-center gap-[10px]">
+          <div className="font-heading text-[17px] tracking-[-0.5px]">
+            FitHub
+          </div>
+          <div className="font-data text-[10px] text-[var(--muted)] flex items-center gap-1">
+            <span className="w-[6px] h-[6px] rounded-full bg-[var(--accent)] inline-block" />
+            main
+          </div>
+        </div>
+        <div className="flex items-center gap-[10px]">
+          {currentStreak > 0 && (
+            <div
+              className="font-data text-[11.5px] font-bold"
+              style={{
+                color: "var(--hot)",
+                background: "rgba(255,122,69,0.12)",
+                border: "1px solid rgba(255,122,69,0.3)",
+                padding: "5px 9px",
+                borderRadius: 8,
+              }}
+            >
+              🔥 {currentStreak}
+            </div>
+          )}
+          <Link href="/profile">
+            <div
+              className="w-8 h-8 rounded-full bg-[var(--blue)] flex items-center justify-center font-bold text-[13px]"
+              style={{ color: "#0d1117" }}
+            >
+              {firstName.charAt(0).toUpperCase()}
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Desktop greeting */}
+      <div className="hidden md:block mb-6 animate-fadeUp">
         <p className="font-data text-[11px] text-[var(--muted)] mb-1">
           $ fithub status
         </p>
@@ -136,7 +176,38 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="animate-fadeUp">
+      {/* Mobile stat cards */}
+      <div className="md:hidden grid grid-cols-2 gap-[10px] mb-4">
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-[13px] p-[13px_14px]">
+          <div className="font-data text-[10px] text-[var(--muted)] uppercase tracking-[0.5px]">
+            Commits / yr
+          </div>
+          <div className="font-heading text-[24px] mt-1">{workouts.length}</div>
+          <div
+            className="font-data text-[10.5px] mt-0.5"
+            style={{ color: "var(--accent)" }}
+          >
+            {currentStreak > 0 ? `${currentStreak}-day streak` : "Keep going"}
+          </div>
+        </div>
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-[13px] p-[13px_14px]">
+          <div className="font-data text-[10px] text-[var(--muted)] uppercase tracking-[0.5px]">
+            PRs this month
+          </div>
+          <div
+            className="font-heading text-[24px] mt-1"
+            style={{ color: "var(--gold)" }}
+          >
+            {prs.length}
+          </div>
+          <div className="font-data text-[10.5px] text-[var(--muted)] mt-0.5">
+            {weekCount} this week
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop stat grid */}
+      <div className="hidden md:block animate-fadeUp">
         <StatGrid stats={stats} />
       </div>
 
@@ -144,6 +215,7 @@ export default async function DashboardPage() {
         {/* Left column */}
         <div className="space-y-[18px]">
           <ContributionGraphRevamp workouts={workouts} />
+          <HubGrid />
           <TerminalWidget handle={terminalHandle} commits={terminalCommits} />
           <RecentCommitsFeed commits={feedCommits} weekCount={weekCount} />
         </div>

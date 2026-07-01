@@ -19,6 +19,8 @@ interface Props {
 export function MobileHeader({ user, streak = 0 }: Props) {
   const pathname = usePathname();
   const { title, gitCommand } = getPageMeta(pathname);
+
+  if (pathname === "/dashboard") return null;
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
   const displayEmail = user.email ?? "";
 
