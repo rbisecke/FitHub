@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
-import { readRecentMovements, type RecentMovement } from "@/lib/tag";
+import {
+  readRecentMovements,
+  formatCurrentBest,
+  type RecentMovement,
+} from "@/lib/tag";
+import type { LastResult, PersonalRecordResult } from "@/lib/api";
+import { api } from "@/lib/api/client";
 
 const CATEGORIES: Array<{ value: string | null; label: string }> = [
   { value: null, label: "All" },
@@ -26,12 +32,14 @@ interface MovementGridProps {
   selectedId: string | null;
   onSelect: (m: RecentMovement) => void;
   onSearchRequest: () => void;
+  accessToken: string;
 }
 
 export function MovementGrid({
   selectedId,
   onSelect,
   onSearchRequest,
+  accessToken,
 }: MovementGridProps) {
   const [recent] = useState<RecentMovement[]>(() => {
     if (typeof window === "undefined") return [];
@@ -39,6 +47,24 @@ export function MovementGrid({
   });
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [prMap, setPrMap] = useState<Map<string, PersonalRecordResult>>(
+    new Map(),
+  );
+
+  useEffect(() => {
+    if (recent.length === 0) return;
+    api.movements
+      .personalRecordsBatch(
+        accessToken,
+        recent.map((m) => m.movement_id),
+      )
+      .then((results) => {
+        setPrMap(new Map(results.map((r) => [r.movement_id, r])));
+      })
+      .catch(() => {
+        // PR display is non-critical; silently skip on error
+      });
+  }, [accessToken, recent]);
 
   const filtered = recent.filter((m) => {
     const matchesQuery =
@@ -102,6 +128,10 @@ export function MovementGrid({
         <div className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,minmax(180px,1fr))]">
           {filtered.map((m) => {
             const isSelected = m.movement_id === selectedId;
+            const pr = prMap.get(m.movement_id);
+            const prDisplay = pr
+              ? formatCurrentBest(pr as unknown as LastResult)
+              : null;
             return (
               <button
                 key={m.movement_id}
@@ -118,12 +148,20 @@ export function MovementGrid({
                   <span className="font-bold text-[14px] leading-snug text-[var(--foreground)] text-left">
                     {m.movement_name}
                   </span>
-                  {m.modality && (
+                  {!prDisplay && m.modality && (
                     <span className="shrink-0 text-[10px] text-[var(--muted-foreground)] bg-[var(--surface-2)] px-[7px] py-[2px] rounded-[6px]">
                       {MODALITY_LABEL[m.modality] ?? m.modality}
                     </span>
                   )}
                 </div>
+                {prDisplay && (
+                  <div className="font-data text-[10.5px] text-[var(--muted-foreground)] mt-[7px] text-left">
+                    PR{" "}
+                    <span style={{ color: "var(--gold)", fontWeight: 700 }}>
+                      {prDisplay}
+                    </span>
+                  </div>
+                )}
               </button>
             );
           })}

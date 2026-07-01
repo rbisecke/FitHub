@@ -20,6 +20,7 @@ from app.repositories.movements import (
     create_movement,
     get_last_result_for_movement,
     get_personal_record,
+    get_personal_records_batch,
     search_movements,
 )
 
@@ -53,6 +54,22 @@ async def create_movement_route(
             status_code=status.HTTP_409_CONFLICT,
             detail="A movement with that name or slug already exists.",
         ) from None
+
+
+@router.get("/personal-records", response_model=list[PersonalRecordResult])
+async def get_personal_records_batch_route(
+    user: Auth,
+    conn: DBConn,
+    ids: str = Query(..., description="Comma-separated movement UUIDs, max 20"),
+) -> list[PersonalRecordResult]:
+    raw_ids = [s.strip() for s in ids.split(",") if s.strip()]
+    if not raw_ids or len(raw_ids) > 20:
+        raise HTTPException(status_code=400, detail="ids must contain 1-20 UUIDs")
+    try:
+        parsed = [uuid.UUID(i) for i in raw_ids]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ids contains an invalid UUID") from None
+    return await get_personal_records_batch(conn, user_id=user.user_id, movement_ids=parsed)
 
 
 @router.get("/{movement_id}/last-result", response_model=LastResult)

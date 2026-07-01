@@ -154,3 +154,34 @@ async def get_personal_record(
     if row is None:
         return None
     return PersonalRecordResult(**row)
+
+
+async def get_personal_records_batch(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    user_id: uuid.UUID,
+    movement_ids: list[uuid.UUID],
+) -> list[PersonalRecordResult]:
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT DISTINCT ON (r.movement_id)
+                r.movement_id,
+                r.result_type,
+                r.load_kg,
+                r.reps,
+                r.time_s,
+                r.distance_m,
+                r.estimated_1rm_kg,
+                w.performed_at::date AS achieved_at
+            FROM   public.results r
+            JOIN   public.workouts w ON w.id = r.workout_id
+            WHERE  r.user_id      = %s
+              AND  r.movement_id  = ANY(%s)
+              AND  r.is_pr        = TRUE
+            ORDER  BY r.movement_id, r.estimated_1rm_kg DESC NULLS LAST
+            """,
+            [user_id, list(movement_ids)],
+        )
+        rows = await cur.fetchall()
+    return [PersonalRecordResult(**r) for r in rows]
