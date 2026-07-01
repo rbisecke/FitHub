@@ -31,6 +31,7 @@ jobs:
       web: ${{ steps.filter.outputs.web }}
       shared: ${{ steps.filter.outputs.shared }}
       contract: ${{ steps.filter.outputs.contract }}
+      migrations: ${{ steps.filter.outputs.migrations }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
@@ -52,6 +53,8 @@ jobs:
               - 'apps/api/**'
               - 'apps/web/lib/api/**'
               - '.github/workflows/ci.yml'
+            migrations:
+              - 'apps/api/alembic/versions/*.py'
 
   # ── Web ───────────────────────────────────────────────────────────────────
   web:
@@ -236,6 +239,44 @@ jobs:
           echo "Secret pattern matches in git history: $count"
           [ "$count" -eq "0" ] || { echo "❌ Secrets found in git history"; exit 1; }
           echo "✓ No secrets in history"
+
+  # ── Migrate production DB ─────────────────────────────────────────────────
+  # Runs only on pushes to main when Alembic migration files changed AND the
+  # api test job passed. Uses the direct Supabase connection (port 5432) — the
+  # PgBouncer pooler (6543) is incompatible with Alembic's DDL statements.
+  #
+  # Required GitHub secret: PROD_DATABASE_URL
+  #   Format: postgresql+psycopg://<user>:<password>@<host>:5432/<db>
+  #   Use the Supabase "direct connection" string, NOT the pooler string.
+  migrate:
+    name: Migrate production database
+    needs: [changes, api]
+    # Only on main pushes; only when migration files changed; only when api
+    # tests passed (guards against a broken migration reaching production).
+    # Explicit needs.api.result check is required because GitHub does not
+    # automatically skip dependents when a needed job is skipped.
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.changes.outputs.migrations == 'true' &&
+      needs.api.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          python-version: "3.14"
+
+      # Install only what alembic/env.py needs — avoids pulling torch and
+      # sentence-transformers (~2 GB) that the full project sync would require.
+      - name: Install migration dependencies
+        run: uv pip install --system alembic "psycopg[binary]" python-dotenv
+
+      - name: Apply migrations
+        run: alembic -c apps/api/alembic.ini upgrade head
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
 
   # ── Commit lint ───────────────────────────────────────────────────────────
   # Enforces conventional commits on PRs; informational only (not a required
