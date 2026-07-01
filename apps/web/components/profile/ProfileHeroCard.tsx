@@ -47,10 +47,65 @@ export function ProfileHeroCard({
 
   return (
     <>
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 mb-4 animate-fadeUp">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="bg-[var(--card)] border border-[var(--border)] rounded-[16px] p-[16px] mb-[12px] md:rounded-2xl md:p-5 md:mb-4 animate-fadeUp">
+        {/* Mobile layout: avatar + edit button top row */}
+        <div className="flex items-start justify-between md:hidden">
+          <div
+            className="flex items-center justify-center shrink-0"
+            style={{
+              width: 54,
+              height: 54,
+              borderRadius: 14,
+              background: "var(--blue)",
+            }}
+          >
+            <span
+              className="font-heading text-[20px] leading-none"
+              style={{ color: "#0d1117" }}
+            >
+              {initials}
+            </span>
+          </div>
+          <button
+            onClick={() => setEditOpen(true)}
+            className="shrink-0 text-[var(--foreground)] text-[12px] font-semibold px-3 py-2 rounded-[9px] transition-colors"
+            style={{
+              background: "var(--surface-2)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            ✎
+          </button>
+        </div>
+
+        {/* Mobile name + handle + badge row */}
+        <div className="flex items-baseline gap-[7px] flex-wrap mt-[12px] md:hidden">
+          <span
+            className="font-heading text-[19px]"
+            style={{ letterSpacing: "-0.5px" }}
+          >
+            {displayName}
+          </span>
+          <span
+            className="font-data text-[12px]"
+            style={{ color: "var(--accent)" }}
+          >
+            @{emailUser}
+          </span>
+          <span
+            className="font-data text-[9.5px] text-[var(--muted)] px-[8px] py-[2px] rounded-full flex-shrink-0"
+            style={{
+              background: "var(--surface-2)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            ● main
+          </span>
+        </div>
+
+        {/* Desktop layout: avatar + identity side by side */}
+        <div className="hidden md:flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-start gap-[18px]">
-            {/* Avatar — rounded square, blue background */}
             <div
               className="flex items-center justify-center shrink-0"
               style={{
@@ -64,7 +119,6 @@ export function ProfileHeroCard({
                 {initials}
               </span>
             </div>
-            {/* Identity */}
             <div>
               <div
                 className="font-heading text-[24px]"
@@ -72,14 +126,12 @@ export function ProfileHeroCard({
               >
                 {displayName}
               </div>
-              {/* Branch badge */}
               <span className="mt-2 inline-flex items-center font-data text-[12px] font-semibold text-[var(--accent)] bg-[rgba(74,222,128,0.12)] border border-[rgba(74,222,128,0.3)] px-[11px] py-1 rounded-full gap-1.5">
                 <span className="text-[8px]">●</span>
                 main
               </span>
             </div>
           </div>
-          {/* Edit button */}
           <button
             onClick={() => setEditOpen(true)}
             className="shrink-0 bg-[var(--surface-2)] border border-[var(--border)] text-[var(--foreground)] text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] hover:border-[var(--muted-foreground)] transition-colors min-h-[44px]"
@@ -88,22 +140,27 @@ export function ProfileHeroCard({
           </button>
         </div>
 
-        {/* 4-up mini stats — individual bordered cells */}
-        <div className="grid grid-cols-4 gap-[10px] mt-5">
+        {/* 4-up mini stats — responsive sizing */}
+        <div className="grid grid-cols-4 gap-[8px] md:gap-[10px] mt-[16px] md:mt-5">
           {miniStats.map((stat) => (
             <div
               key={stat.label}
-              className="rounded-[12px] border border-[var(--border)] p-[13px_14px]"
+              className="rounded-[10px] md:rounded-[12px] border border-[var(--border)] p-[9px_8px] md:p-[13px_14px]"
               style={{ background: "var(--surface-2)" }}
             >
               <div
-                className="font-heading text-[22px] leading-none"
-                style={{ color: stat.color }}
+                className="font-heading text-[16px] md:text-[22px] leading-none"
+                style={{
+                  color:
+                    stat.label === "Streak" && stat.value === 0
+                      ? "var(--muted)"
+                      : stat.color,
+                }}
               >
-                {stat.prefix}
+                {stat.label === "Streak" && stat.value === 0 ? "" : stat.prefix}
                 {stat.value}
               </div>
-              <div className="text-[10.5px] text-[var(--muted-foreground)] uppercase tracking-[0.5px] mt-1">
+              <div className="text-[8.5px] md:text-[10.5px] text-[var(--muted-foreground)] uppercase tracking-[0.3px] md:tracking-[0.5px] mt-[2px] md:mt-1">
                 {stat.label}
               </div>
             </div>

@@ -78,16 +78,16 @@ export function MovementGrid({
       {/* Search + browse row */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-[15px] w-[15px] -translate-y-1/2 text-[var(--muted-foreground)]" />
           <input
             type="text"
             placeholder="Search movements..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] py-2.5 pl-9 pr-16 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] transition-colors focus:border-[var(--accent)] focus:outline-none"
+            className="w-full rounded-[11px] md:rounded-xl border border-[var(--border)] bg-[var(--surface-2)] py-[9px] md:py-2.5 pl-9 pr-4 md:pr-16 text-[13px] md:text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] transition-colors focus:border-[var(--accent)] focus:outline-none"
           />
           {query && filtered.length > 0 && (
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[var(--muted-foreground)] shrink-0">
+            <span className="pointer-events-none hidden md:block absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[var(--muted-foreground)] shrink-0">
               {filtered.length} hits
             </span>
           )}
@@ -95,14 +95,14 @@ export function MovementGrid({
         <button
           type="button"
           onClick={onSearchRequest}
-          className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm text-[var(--muted-foreground)] transition-colors hover:border-[var(--accent)] hover:text-[var(--foreground)]"
+          className="hidden md:block shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm text-[var(--muted-foreground)] transition-colors hover:border-[var(--accent)] hover:text-[var(--foreground)]"
         >
           Browse all
         </button>
       </div>
 
-      {/* Category pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+      {/* Category pills — desktop only */}
+      <div className="hidden md:flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none">
         {CATEGORIES.map(({ value, label }) => {
           const isActive = categoryFilter === value;
           return (
@@ -125,7 +125,7 @@ export function MovementGrid({
 
       {/* Movement card grid */}
       {filtered.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,minmax(180px,1fr))]">
+        <div className="grid grid-cols-2 gap-[10px] md:gap-3 md:grid-cols-[repeat(auto-fill,minmax(180px,1fr))]">
           {filtered.map((m) => {
             const isSelected = m.movement_id === selectedId;
             const pr = prMap.get(m.movement_id);
@@ -138,18 +138,18 @@ export function MovementGrid({
                 type="button"
                 onClick={() => onSelect(m)}
                 className={[
-                  "font-data flex flex-col items-start rounded-[14px] border p-[15px_16px] text-left transition-all cursor-pointer",
+                  "font-data flex flex-col items-start rounded-[13px] md:rounded-[14px] border p-[13px_14px] md:p-[15px_16px] text-left transition-all cursor-pointer",
                   isSelected
-                    ? "animate-glow border-[var(--accent)] bg-[var(--card)]"
+                    ? "animate-glow border-[var(--accent)] bg-[var(--surface-2)]"
                     : "border-[var(--border)] bg-[var(--card)] hover:border-[var(--accent)] hover:shadow-[0_0_0_1px_rgba(74,222,128,0.2)]",
                 ].join(" ")}
               >
                 <div className="flex items-center justify-between w-full gap-2">
-                  <span className="font-bold text-[14px] leading-snug text-[var(--foreground)] text-left">
+                  <span className="font-bold text-[13px] md:text-[14px] leading-snug text-[var(--foreground)] text-left">
                     {m.movement_name}
                   </span>
                   {!prDisplay && m.modality && (
-                    <span className="shrink-0 text-[10px] text-[var(--muted-foreground)] bg-[var(--surface-2)] px-[7px] py-[2px] rounded-[6px]">
+                    <span className="hidden md:block shrink-0 text-[10px] text-[var(--muted-foreground)] bg-[var(--surface-2)] px-[7px] py-[2px] rounded-[6px]">
                       {MODALITY_LABEL[m.modality] ?? m.modality}
                     </span>
                   )}

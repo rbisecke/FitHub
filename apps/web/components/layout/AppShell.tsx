@@ -72,7 +72,7 @@ export function AppShell({
             animate={animate}
             exit={{ opacity: 0 }}
             transition={transition}
-            className="flex-1 overflow-auto outline-none pb-[calc(64px+env(safe-area-inset-bottom))] md:pb-0"
+            className="flex-1 overflow-auto outline-none pb-[calc(104px+env(safe-area-inset-bottom))] md:pb-0"
           >
             {children}
           </motion.main>

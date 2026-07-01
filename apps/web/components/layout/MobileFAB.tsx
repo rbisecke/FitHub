@@ -22,7 +22,7 @@ export function MobileFAB() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  // Auto-dismiss after 3 s of inactivity (Option A from design doc)
+  // Auto-dismiss after 3 s of inactivity
   useEffect(() => {
     if (!open) return;
     const t = setTimeout(() => setOpen(false), 3000);
@@ -34,16 +34,7 @@ export function MobileFAB() {
     : { duration: 0.15, ease: "easeOut" as const };
 
   return (
-    <div
-      ref={containerRef}
-      className="relative flex flex-1 items-center justify-center"
-    >
-      {/* Notch */}
-      <div
-        aria-hidden
-        className="absolute top-0 -translate-y-1/2 h-[60px] w-[60px] rounded-full bg-[var(--bg)]"
-      />
-
+    <div ref={containerRef}>
       {/* Speed-dial options */}
       <AnimatePresence>
         {open && (
@@ -52,7 +43,13 @@ export function MobileFAB() {
             animate={{ opacity: 1, y: 0 }}
             exit={prefersReduced ? {} : { opacity: 0, y: 8 }}
             transition={transition}
-            className="absolute bottom-[calc(100%+8px)] z-20 flex flex-col gap-2 items-center"
+            className="z-20 flex flex-col gap-2 items-center"
+            style={{
+              position: "absolute",
+              left: "50%",
+              transform: "translateX(-50%)",
+              bottom: "calc(env(safe-area-inset-bottom) + 108px)",
+            }}
           >
             {/* $ tag option */}
             <Link
@@ -81,15 +78,24 @@ export function MobileFAB() {
         aria-label={open ? "Close log options" : "Log workout or milestone"}
         aria-expanded={open}
         className={[
-          "absolute top-0 -translate-y-3",
-          "h-14 w-14 rounded-full z-10",
+          "z-10",
           "bg-[var(--accent)] hover:bg-[var(--accent)]/90",
           "flex items-center justify-center",
           "transition-colors",
           "focus-visible:outline-none focus-visible:ring-2",
           "focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2",
-          "focus-visible:ring-offset-[var(--bg)]",
+          "focus-visible:ring-offset-[var(--background)]",
         ].join(" ")}
+        style={{
+          position: "absolute",
+          left: "50%",
+          bottom: "calc(env(safe-area-inset-bottom) + 44px)",
+          transform: "translateX(-50%)",
+          width: 60,
+          height: 60,
+          borderRadius: "50%",
+          border: "4px solid var(--background)",
+        }}
       >
         <motion.div
           animate={open ? { rotate: 45 } : { rotate: 0 }}
@@ -97,12 +103,12 @@ export function MobileFAB() {
         >
           {open ? (
             <X
-              className="h-5 w-5 text-[var(--bg)] shrink-0"
+              className="h-5 w-5 text-[var(--background)] shrink-0"
               strokeWidth={2.5}
             />
           ) : (
             <Plus
-              className="h-5 w-5 text-[var(--bg)] shrink-0"
+              className="h-5 w-5 text-[var(--background)] shrink-0"
               strokeWidth={2.5}
             />
           )}

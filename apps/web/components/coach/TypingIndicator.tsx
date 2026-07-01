@@ -7,9 +7,9 @@ export function TypingIndicator() {
       role="status"
       aria-label="Coach is typing"
     >
-      <span className="w-[7px] h-[7px] rounded-full bg-[var(--accent)] animate-typing" />
-      <span className="w-[7px] h-[7px] rounded-full bg-[var(--accent)] animate-typing-2" />
-      <span className="w-[7px] h-[7px] rounded-full bg-[var(--accent)] animate-typing-3" />
+      <span className="w-[7px] h-[7px] rounded-full bg-[var(--blue)] animate-typing" />
+      <span className="w-[7px] h-[7px] rounded-full bg-[var(--blue)] animate-typing-2" />
+      <span className="w-[7px] h-[7px] rounded-full bg-[var(--blue)] animate-typing-3" />
     </div>
   );
 }

@@ -28,7 +28,7 @@ export function MobileNavTab({ href, label, icon: Icon }: Props) {
       )}
     >
       <Icon className="h-5 w-5 shrink-0" />
-      <span className="text-[10px] font-mono">{label}</span>
+      <span className="font-data text-[9.5px] font-semibold">{label}</span>
     </Link>
   );
 }

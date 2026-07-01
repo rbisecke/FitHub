@@ -14,7 +14,7 @@ interface Props {
 
 export function SuggestionPills({ onSelect }: Props) {
   return (
-    <div className="flex gap-2 overflow-x-auto py-3 px-[22px] scrollbar-none flex-shrink-0">
+    <div className="flex gap-[7px] overflow-x-auto pb-[10px] px-[14px] scrollbar-none flex-shrink-0">
       {SUGGESTIONS.map((s) => (
         <button
           key={s}
