@@ -16,8 +16,15 @@ class Settings(BaseSettings):
     supabase_service_role_key: str
     database_url: str  # postgresql+psycopg://... (Alembic/SQLAlchemy format)
     anthropic_monthly_budget_usd: float = 5.0
+    # Comma-separated admin UUIDs. Stored as str so pydantic-settings doesn't
+    # try to JSON-decode the value; parse with admin_user_ids property.
+    admin_user_ids_csv: str = ""
 
     model_config = SettingsConfigDict(env_file=(_ENV_FILE, ".env"), extra="ignore")
+
+    @property
+    def admin_user_ids(self) -> list[str]:
+        return [x.strip() for x in self.admin_user_ids_csv.split(",") if x.strip()]
 
     @property
     def postgres_dsn(self) -> str:

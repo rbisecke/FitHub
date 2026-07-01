@@ -19,6 +19,7 @@ from app.logging_config import configure_logging
 from app.middleware.logging import RequestLoggingMiddleware
 from app.middleware.rate_limit import limiter
 from app.routers.adaptations import router as adaptations_router  # noqa: F401
+from app.routers.admin import router as admin_router
 from app.routers.analytics import router as analytics_router
 from app.routers.coach import router as coach_router
 from app.routers.injuries import router as injuries_router  # noqa: F401
@@ -50,6 +51,7 @@ app = FastAPI(title="FitHub API", version="0.2.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
+app.include_router(admin_router)
 app.include_router(analytics_router)
 app.include_router(coach_router)
 app.include_router(integrations_router)
