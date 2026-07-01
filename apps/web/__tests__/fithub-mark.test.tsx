@@ -3,23 +3,21 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { FitHubMark } from "@/components/layout/FitHubMark";
 
 describe("FitHubMark", () => {
-  it("renders an svg at the requested size", () => {
+  it("renders a container div at the requested size", () => {
     const html = renderToStaticMarkup(<FitHubMark size={40} />);
-    expect(html).toContain("<svg");
-    expect(html).toContain('width="40"');
-    expect(html).toContain('height="40"');
-    expect(html).toContain('viewBox="0 0 24 24"');
+    expect(html).toContain("width:40px");
+    expect(html).toContain("height:40px");
   });
 
-  it("draws the accent-coloured tile with a git-graph cut-out", () => {
+  it("renders an accent-coloured square container with an inner git-graph SVG", () => {
     const html = renderToStaticMarkup(<FitHubMark />);
-    // tile colour tracks the --accent token via currentColor
-    expect(html).toContain("currentColor");
-    expect(html).toContain("text-[var(--accent)]");
-    // git-graph: tile rect + main-branch rect + 3 commit circles, all cut-out in page-bg
-    const cutOuts = html.match(/fill="#0d1117"/g) ?? [];
-    expect(cutOuts.length).toBeGreaterThanOrEqual(4); // rect + 3 circles + path stroke
-    expect((html.match(/<circle/g) ?? []).length).toBe(3); // 3 commit nodes
+    // Green accent background on the container div
+    expect(html).toContain("var(--accent)");
+    // Stroke-based inner SVG (no fill cut-outs)
+    expect(html).toContain("<svg");
+    expect(html).toContain('viewBox="0 0 24 24"');
+    // 3 commit nodes
+    expect((html.match(/<circle/g) ?? []).length).toBe(3);
   });
 
   it("is an accessible image named FitHub by default", () => {

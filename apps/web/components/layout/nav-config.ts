@@ -96,31 +96,82 @@ export const LOG_CTA = {
   gitCommand: "$ git commit",
 } as const;
 
-export const PAGE_META: Record<string, { title: string; gitCommand: string }> =
-  {
-    "/dashboard": { title: "Dashboard", gitCommand: "$ fithub status" },
-    "/track": { title: "Track", gitCommand: "$ git commit -m" },
-    "/records": { title: "Records", gitCommand: "$ git tag --list" },
-    "/history": { title: "History", gitCommand: "$ git log --all" },
-    "/analytics": { title: "Analytics", gitCommand: "$ git diff" },
-    "/log/new": { title: "Log Result", gitCommand: "$ git add ." },
-    "/log/tag": { title: "Tag Milestone", gitCommand: "$ git tag" },
-    "/log": { title: "Log Workout", gitCommand: "$ git commit" },
-    "/plans": { title: "Plans", gitCommand: "$ git branch" },
-    "/coach": { title: "Coach", gitCommand: "$ git coach" },
-    "/settings": { title: "Settings", gitCommand: "$ git config" },
-    "/profile": { title: "Profile", gitCommand: "$ git config --user" },
-  };
+export const PAGE_META: Record<
+  string,
+  { title: string; gitCommand: string; slug: string }
+> = {
+  "/dashboard": {
+    title: "Dashboard",
+    gitCommand: "$ fithub status",
+    slug: "dashboard",
+  },
+  "/track": {
+    title: "Track",
+    gitCommand: "$ git commit -m",
+    slug: "track",
+  },
+  "/records": {
+    title: "Records",
+    gitCommand: "$ git tag --list",
+    slug: "records",
+  },
+  "/history": {
+    title: "History",
+    gitCommand: "$ git log --all",
+    slug: "history",
+  },
+  "/analytics": {
+    title: "Analytics",
+    gitCommand: "$ git diff",
+    slug: "analytics",
+  },
+  "/log/new": {
+    title: "Log Result",
+    gitCommand: "$ git add .",
+    slug: "log/new",
+  },
+  "/log/tag": {
+    title: "Tag Milestone",
+    gitCommand: "$ git tag",
+    slug: "log/tag",
+  },
+  "/log": {
+    title: "Log Workout",
+    gitCommand: "$ git commit",
+    slug: "log",
+  },
+  "/plans": {
+    title: "Plans",
+    gitCommand: "$ git branch",
+    slug: "plans",
+  },
+  "/coach": {
+    title: "Coach",
+    gitCommand: "$ git coach",
+    slug: "coach",
+  },
+  "/settings": {
+    title: "Settings",
+    gitCommand: "$ git config",
+    slug: "settings",
+  },
+  "/profile": {
+    title: "Profile",
+    gitCommand: "$ git config --user",
+    slug: "profile",
+  },
+};
 
 export function getPageMeta(pathname: string): {
   title: string;
   gitCommand: string;
+  slug: string;
 } {
   if (PAGE_META[pathname]) return PAGE_META[pathname];
   for (const [route, meta] of Object.entries(PAGE_META)) {
     if (pathname.startsWith(route + "/")) return meta;
   }
-  return { title: "FitHub", gitCommand: "$ fithub" };
+  return { title: "FitHub", gitCommand: "$ fithub", slug: "fithub" };
 }
 
 // Guards against the /dashboard → /dashboard/... false-positive

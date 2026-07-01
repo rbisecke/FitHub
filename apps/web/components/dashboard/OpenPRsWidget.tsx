@@ -1,41 +1,92 @@
 import Link from "next/link";
 
-interface PRItem {
-  category: string;
+interface GoalItem {
   name: string;
-  value: string;
-  improvement?: string;
+  branch: string;
+  progressPct: number;
+  currentValue: string;
+  targetValue: string;
+  gapText: string;
+  color: "accent" | "blue" | "hot";
 }
 
 interface Props {
-  prs?: PRItem[];
+  goals?: GoalItem[];
 }
 
-export function OpenPRsWidget({ prs = [] }: Props) {
+const colorMap = {
+  accent: "var(--accent)",
+  blue: "var(--blue)",
+  hot: "var(--hot)",
+};
+
+function GitMergeIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--accent)"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="18" cy="18" r="3" />
+      <circle cx="6" cy="6" r="3" />
+      <path d="M6 21V9a9 9 0 009 9" />
+    </svg>
+  );
+}
+
+export function OpenPRsWidget({ goals = [] }: Props) {
   return (
     <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5">
-      <div className="font-semibold text-[15px] mb-0.5">Open PRs</div>
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-0.5">
+        <GitMergeIcon />
+        <span className="font-semibold text-[15px]">Open PRs</span>
+      </div>
       <div className="text-[12px] text-[var(--muted)] mb-4">
-        recent records worth reviewing
+        Goals you&apos;re working to merge
       </div>
 
-      {prs.length === 0 ? (
+      {goals.length === 0 ? (
         <div className="text-[13px] text-[var(--muted)]">
-          No PRs yet — log your first result.
+          No active goals — keep training to unlock.
         </div>
       ) : (
-        <div className="space-y-3">
-          {prs.map((pr) => (
-            <div key={pr.name} className="flex items-center gap-3">
-              <span className="text-[10px] font-bold bg-[rgba(255,200,61,0.14)] text-[var(--gold)] border border-[rgba(255,200,61,0.3)] px-2 py-0.5 rounded-full flex-shrink-0">
-                {pr.category}
-              </span>
-              <span className="text-[13px] font-semibold flex-1 truncate">
-                {pr.name}
-              </span>
-              <span className="font-heading text-[18px] text-[var(--gold)]">
-                {pr.value}
-              </span>
+        <div className="space-y-4">
+          {goals.map((g) => (
+            <div key={g.name}>
+              {/* Name + percentage */}
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="font-semibold text-[13px]">{g.name}</span>
+                <span
+                  className="font-data text-[11px] font-bold"
+                  style={{ color: colorMap[g.color] }}
+                >
+                  {g.progressPct}%
+                </span>
+              </div>
+              {/* Branch name */}
+              <div className="font-data text-[10.5px] text-[var(--purple)] mb-1.5">
+                ⎇ {g.branch}
+              </div>
+              {/* Progress bar */}
+              <div className="h-[6px] bg-[var(--surface-2)] rounded-full overflow-hidden mb-1.5">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${Math.min(g.progressPct, 100)}%`,
+                    background: colorMap[g.color],
+                  }}
+                />
+              </div>
+              {/* Gap text */}
+              <div className="font-data text-[10.5px] text-[var(--muted)]">
+                {g.gapText}
+              </div>
             </div>
           ))}
         </div>

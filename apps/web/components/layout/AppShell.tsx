@@ -19,10 +19,16 @@ const SIDEBAR_STYLE: CSSProperties = {
 interface Props {
   user: User;
   defaultSidebarOpen: boolean;
+  handle?: string;
   children: React.ReactNode;
 }
 
-export function AppShell({ user, defaultSidebarOpen, children }: Props) {
+export function AppShell({
+  user,
+  defaultSidebarOpen,
+  handle = "user",
+  children,
+}: Props) {
   const pathname = usePathname();
   const mainRef = useRef<HTMLElement>(null);
   const prefersReducedMotion = useReducedMotion();
@@ -54,7 +60,7 @@ export function AppShell({ user, defaultSidebarOpen, children }: Props) {
       {/* Content column */}
       <div className="flex flex-1 flex-col min-h-screen overflow-hidden">
         <MobileHeader user={user} streak={0} />
-        <DesktopHeader streak={0} branch="main" />
+        <DesktopHeader handle={handle} streak={0} branch="main" />
 
         <AnimatePresence mode="wait" initial={false}>
           <motion.main
