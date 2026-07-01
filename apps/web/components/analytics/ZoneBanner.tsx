@@ -74,21 +74,24 @@ export function ZoneBanner({ zone, acwr, note }: ZoneBannerProps) {
 
   return (
     <div
-      className="flex flex-row items-start gap-3.5 rounded-[14px] px-4 py-3.5 mb-[18px]"
+      className="flex flex-row items-start gap-[10px] rounded-[13px] px-[14px] py-[12px] md:px-4 md:py-3.5 mb-[16px] md:mb-[18px]"
       style={{
         border: `1px solid ${config.border}`,
         background: config.bg,
       }}
     >
       <div
-        className="h-2 w-2 rounded-full flex-shrink-0 mt-[3px]"
+        className="h-[11px] w-[11px] rounded-[3px] flex-shrink-0 mt-[3px]"
         style={{ backgroundColor: config.color }}
       />
       <div>
-        <div className="text-[14px] font-bold" style={{ color: config.color }}>
+        <div
+          className="text-[12.5px] font-bold"
+          style={{ color: config.color }}
+        >
           {config.label}
         </div>
-        <div className="text-[12px] text-[var(--muted-foreground)] mt-0.5">
+        <div className="text-[10.5px] text-[var(--muted-foreground)] mt-[2px]">
           {displayNote}
         </div>
       </div>

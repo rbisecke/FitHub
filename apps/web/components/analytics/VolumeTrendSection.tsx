@@ -61,28 +61,60 @@ export function VolumeTrendSection({ initialWeeks, token, className }: Props) {
     void fetchVolume(value);
   };
 
+  const weekStarts = [...new Set(weeks.map((w) => w.week_start))].sort();
+  const latestWeekStart = weekStarts[weekStarts.length - 1];
+  const prevWeekStart = weekStarts[weekStarts.length - 2];
+  const latestTotal = weeks
+    .filter((w) => w.week_start === latestWeekStart)
+    .reduce((s, w) => s + w.total_load, 0);
+  const prevTotal = weeks
+    .filter((w) => w.week_start === prevWeekStart)
+    .reduce((s, w) => s + w.total_load, 0);
+  const deltaLoad = latestTotal - prevTotal;
+  const deltaText =
+    deltaLoad >= 0 ? `+${Math.round(deltaLoad)}` : `${Math.round(deltaLoad)}`;
+
   return (
     <div
       className={cn(
-        "bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 space-y-3",
+        "bg-[var(--card)] border border-[var(--border)] rounded-[14px] p-[15px] space-y-3",
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-[15px] font-bold text-[var(--foreground)]">
+          <p className="text-[13px] font-bold text-[var(--foreground)]">
             Volume trend
           </p>
-          <p className="text-[12px] text-[var(--muted-foreground)]">
+          <p className="text-[10.5px] text-[var(--muted-foreground)] mt-[1px]">
             Total weight moved per week
           </p>
         </div>
-        <PeriodSelector
-          options={PERIOD_OPTIONS}
-          value={period}
-          onChange={handlePeriodChange}
-          label="Volume period"
-        />
+        <div className="flex items-start gap-2">
+          {latestTotal > 0 && (
+            <div className="text-right md:hidden">
+              <div className="font-heading text-[18px] leading-none">
+                {Math.round(latestTotal).toLocaleString()}
+              </div>
+              <div
+                className="font-data text-[10px] font-semibold mt-[2px]"
+                style={{
+                  color: deltaLoad >= 0 ? "var(--accent)" : "var(--hot)",
+                }}
+              >
+                {deltaText}
+              </div>
+            </div>
+          )}
+          <div className="hidden md:block">
+            <PeriodSelector
+              options={PERIOD_OPTIONS}
+              value={period}
+              onChange={handlePeriodChange}
+              label="Volume period"
+            />
+          </div>
+        </div>
       </div>
 
       {loading ? (
