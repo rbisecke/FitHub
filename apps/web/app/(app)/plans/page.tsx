@@ -27,7 +27,7 @@ export default async function PlansPage() {
   const action = (
     <Link
       href="/plans/new"
-      className="flex items-center gap-2 bg-[var(--accent)] text-[#0A0D12] font-bold text-[13px] px-4 py-[11px] rounded-[10px] hover:brightness-110 transition-all"
+      className="hidden md:flex items-center gap-2 bg-[var(--accent)] text-[#0A0D12] font-bold text-[13px] px-4 py-[11px] rounded-[10px] hover:brightness-110 transition-all"
     >
       <svg
         width="15"
@@ -46,7 +46,30 @@ export default async function PlansPage() {
   );
 
   return (
-    <div className="mx-auto max-w-[1100px] px-4 py-8">
+    <div className="mx-auto max-w-[1100px] px-[18px] pt-[14px] pb-2 md:px-4 md:py-8">
+      <div className="md:hidden flex items-center gap-[9px] mb-[14px]">
+        <Link
+          href="/dashboard"
+          className="flex text-[var(--muted)]"
+          aria-label="Back to home"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+        </Link>
+        <span className="font-data text-[11.5px] text-[var(--muted)]">
+          Home
+        </span>
+      </div>
       <PageHeader
         gitCommand="$ git branch --list"
         title="Plans"
@@ -64,7 +87,7 @@ export default async function PlansPage() {
         </div>
       ) : (
         <div
-          className="grid gap-[14px] mt-4"
+          className="grid gap-[11px] md:gap-[14px] mt-4"
           style={{
             gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))",
           }}
