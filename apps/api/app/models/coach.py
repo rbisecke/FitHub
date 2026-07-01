@@ -2,11 +2,41 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+# ---------------------------------------------------------------------------
+# Internal context models (not serialised — used to build system prompts)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ActiveInjurySummary:
+    body_region: str
+    pain_level: int
+    notes: str | None
+    requires_referral: bool
+    contraindicated: list[str] = field(default_factory=list)
+
+
+@dataclass
+class PlannedItem:
+    movement_name: str
+    sets: int | None
+    reps: str | None
+    load_kg: float | None
+    load_pct_1rm: float | None
+
+
+@dataclass
+class TodaySessionContext:
+    session_type: str
+    title: str
+    items: list[PlannedItem] = field(default_factory=list)
 
 
 class MovementResult(BaseModel):
@@ -85,3 +115,27 @@ class _ChatAnswer(BaseModel):
     """Internal instructor response model for chat — required by Mode.JSON providers (Ollama)."""
 
     answer: str
+
+
+# ---------------------------------------------------------------------------
+# modify-workout endpoint models
+# ---------------------------------------------------------------------------
+
+
+class MovementModification(BaseModel):
+    original_movement: str
+    driven_by: list[str]
+    substitutions: list[str]
+    confidence: Literal["curated", "llm_generated"] = "curated"
+
+
+class ModifyWorkoutRequest(BaseModel):
+    session_id: UUID
+
+
+class ModifyWorkoutResponse(BaseModel):
+    session_id: str
+    modifications: list[MovementModification]
+    safe_movements: list[str]
+    any_referral_required: bool
+    referral_regions: list[str]

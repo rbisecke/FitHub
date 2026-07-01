@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api/client";
-import type { PlannedSessionOut } from "@/lib/api/plans";
+import type { PlannedSessionOut, ModifyWorkoutResponse } from "@/lib/api/plans";
+import { WorkoutModifications } from "@/components/injuries/WorkoutModifications";
 
 interface Props {
   accessToken: string;
@@ -14,6 +15,9 @@ export function TodayPrescription({ accessToken, planId }: Props) {
   const [session, setSession] = useState<PlannedSessionOut | null | undefined>(
     undefined,
   );
+  const [modifications, setModifications] =
+    useState<ModifyWorkoutResponse | null>(null);
+  const [modLoading, setModLoading] = useState(false);
 
   useEffect(() => {
     api.plans
@@ -75,12 +79,45 @@ export function TodayPrescription({ accessToken, planId }: Props) {
           )}
         </ul>
       )}
-      <Link
-        href={`/plans/${planId}`}
-        className="mt-3 inline-block font-mono text-xs text-indigo-400 hover:text-indigo-300"
-      >
-        view plan →
-      </Link>
+      <div className="mt-3 flex items-center gap-3">
+        <Link
+          href={`/plans/${planId}`}
+          className="font-mono text-xs text-indigo-400 hover:text-indigo-300"
+        >
+          view plan →
+        </Link>
+        {session.items.length > 0 && (
+          <button
+            data-testid="modify-workout-btn"
+            disabled={modLoading}
+            onClick={async () => {
+              setModLoading(true);
+              try {
+                const result = await api.coach.modifyWorkout(
+                  accessToken,
+                  session.id,
+                );
+                setModifications(result);
+              } finally {
+                setModLoading(false);
+              }
+            }}
+            className="font-mono text-xs text-amber-500 hover:text-amber-400 disabled:opacity-40"
+          >
+            {modLoading ? "checking…" : "$ modify --injuries"}
+          </button>
+        )}
+      </div>
+      {modifications && (
+        <div className="mt-4">
+          <WorkoutModifications
+            modifications={modifications.modifications}
+            safeMovements={modifications.safe_movements}
+            anyReferralRequired={modifications.any_referral_required}
+            referralRegions={modifications.referral_regions}
+          />
+        </div>
+      )}
     </div>
   );
 }

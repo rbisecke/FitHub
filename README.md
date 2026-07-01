@@ -26,7 +26,7 @@ The app is invite-only and in active development. Email [rbisecke@gmail.com](mai
 | **Personal records**    | `git tag --list` — gold hero numbers at 42px, category pills, timeline rail; named-benchmark progress (e.g. Fran 4:47 → 3:48)                                             |
 | **AI coach & planning** | SSE streaming chat with session history; hybrid RAG (BM25 + pgvector RRF fusion); adaptive plan generator with deterministic ACWR/readiness triggers; injury train-around |
 | **Data model depth**    | Poliquin 4-digit tempo notation; Epley e1RM cached at write time; VBT fields; wearable-ready schema; IDOR-safe team session consent model                                 |
-| **Engineering**         | Invite-only multi-user from day one; deterministic safety logic; 559 tests across four suites; openapi-typescript contract check in CI                                    |
+| **Engineering**         | Invite-only multi-user from day one; deterministic safety logic; 690 tests across four suites; openapi-typescript contract check in CI                                    |
 
 ---
 
@@ -97,6 +97,8 @@ The core principle: **safety-critical logic is deterministic Python; the LLM gen
 **Adaptive plan generator** — returns HTTP 202 immediately and exposes a polling URL (async task pattern). Inputs are structured: Epley 1RM estimates, current ACWR, and Hooper readiness score. Output is validated against the sports-science knowledge base before persisting.
 
 **Adaptation engine** — deterministic triggers fire when ACWR >1.5, readiness <0.4, consecutive missed sessions, or RPE drift exceeds threshold. When a trigger fires, it is passed to the LLM with full context to generate a rationale. The LLM does not decide _whether_ to adapt.
+
+**Injury train-around engine** — fully deterministic, no LLM. 21 body regions (9 joint, 8 muscle belly, 3 soft-tissue/connective: `hamstring`, `quad`, `calf`, `glute`, `upper_back`, `chest`, `bicep`, `tricep`, `lat`, `hip_flexor`, `it_band`, `forearm`). Curated `CONTRAINDICATIONS` and `SUBSTITUTES` dicts map region → blocked movements → swap options. `CHRONIC_REGIONS` suppress acute-rupture red-flag language for overuse conditions. `POST /coach/modify-workout` cross-references the athlete's active injuries against every planned movement and returns blocked movements, the regions driving each block (`driven_by`), and curated substitutions — no LLM, no heuristics. Injury context (contraindicated movements, MEDICAL ALERT for referral injuries, today's prescribed session) is injected into the coach system prompt at every chat turn.
 
 **Safety classifier** — evaluated on a 60-case golden set with 100% STOP accuracy on dangerous requests. Injury red-flag detection is rule-based Python, not LLM.
 
@@ -174,7 +176,7 @@ FitHub has four test suites and passes strict static analysis. pgTAP is worth hi
 
 | Suite              | Tool        | Count | Covers                                                  |
 | ------------------ | ----------- | ----- | ------------------------------------------------------- |
-| Unit + integration | pytest      | 252   | API routes, repositories, AI stubs, rate limiting, auth |
+| Unit + integration | pytest      | 383   | API routes, repositories, AI stubs, rate limiting, auth |
 | DB isolation       | pgTAP       | 52    | RLS policies on every table, cross-user data isolation  |
 | Browser E2E        | Playwright  | 65    | Auth flow, workout CRUD, coach chat, plan generation    |
 | Unit (frontend)    | Vitest      | 190   | Utility functions, hooks, API client, component logic   |
@@ -212,7 +214,7 @@ Dependabot keeps Actions SHAs current monthly and pip/npm dependencies weekly.
 
 ## Status & roadmap
 
-The design system revamp shipped in full — 13 scopes across every page and route, including the new `/track` NL workout entry flow, git-graph brand mark, Archivo Black headings, JetBrains Mono data font, and green accent (`#4ADE80`) throughout. Deployment to Railway + Vercel + Supabase production is the current milestone.
+The design system revamp shipped in full — 13 scopes across every page and route, including the new `/track` NL workout entry flow, git-graph brand mark, Archivo Black headings, JetBrains Mono data font, and green accent (`#4ADE80`) throughout. The injury-aware coach feature is in review: 21 body regions, 3-state status lifecycle, prompt context injection, and the deterministic `modify-workout` endpoint. Deployment to Railway + Vercel + Supabase production is the current milestone.
 
 Near-term:
 

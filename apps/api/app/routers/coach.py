@@ -11,7 +11,7 @@ from typing import Annotated, Any
 
 import psycopg
 import psycopg.rows
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
 from app.ai.chat_history import fetch_session_history, rag_query_text
@@ -19,16 +19,22 @@ from app.ai.kill_switch import require_llm_enabled
 from app.ai.parse_log import parse_log_text
 from app.auth import UserContext, get_current_user
 from app.db import get_db
+from app.engine.injury import resolve_substitution, union_contraindications
 from app.middleware.rate_limit import limiter
 from app.models.coach import (
+    ActiveInjurySummary,
     ChatRequest,
     ChatResponse,
     ChatStreamRequest,
     CoachSession,
     HistoryMessage,
+    ModifyWorkoutRequest,
+    ModifyWorkoutResponse,
+    MovementModification,
     ParseLogRequest,
     ParseLogResponse,
     SessionMessagesResponse,
+    TodaySessionContext,
 )
 from app.models.profile import UserProfile
 
@@ -54,16 +60,70 @@ _COACH_SYSTEM_PROMPT_BASE = (
 COACH_SYSTEM_PROMPT = _COACH_SYSTEM_PROMPT_BASE
 
 
-def build_system_prompt(profile: UserProfile | None) -> str:
-    """Return the coach system prompt, optionally enriched with athlete context."""
+def build_system_prompt(
+    profile: UserProfile | None,
+    injuries: list[ActiveInjurySummary] | None = None,
+    today_session: TodaySessionContext | None = None,
+) -> str:
+    """Return the coach system prompt enriched with athlete context, injuries, and today's plan."""
     prompt = _COACH_SYSTEM_PROMPT_BASE
-    if profile is None:
-        return prompt
-    if profile.training_level:
-        prompt += f"\nAthlete level: {profile.training_level}"
-    effective_since = profile.training_since or profile.first_workout_date
-    if effective_since:
-        prompt += f"\nTraining since: {effective_since}"
+
+    if profile is not None:
+        if profile.training_level:
+            prompt += f"\nAthlete level: {profile.training_level}"
+        effective_since = profile.training_since or profile.first_workout_date
+        if effective_since:
+            prompt += f"\nTraining since: {effective_since}"
+
+    if injuries:
+        referral_flagged = [i for i in injuries if i.requires_referral]
+        training_injuries = [i for i in injuries if not i.requires_referral]
+
+        if referral_flagged:
+            prompt += (
+                "\n\nMEDICAL ALERT — athlete has injuries requiring professional evaluation. "
+                "Do not prescribe loading for the following regions and advise them to see a "
+                "physio before resuming: "
+                + ", ".join(i.body_region for i in referral_flagged)
+                + "."
+            )
+
+        if training_injuries:
+            prompt += "\n\nActive injuries — do NOT prescribe contraindicated movements:"
+            for injury in training_injuries:
+                notes_str = f' ("{injury.notes}")' if injury.notes else ""
+                prompt += f"\n- {injury.body_region} (pain {injury.pain_level}/10){notes_str}"
+                if injury.contraindicated:
+                    prompt += "\n  Contraindicated: " + ", ".join(
+                        f"`{m}`" for m in injury.contraindicated
+                    )
+            prompt += (
+                "\nIf the athlete asks about any of these movements, explain the restriction "
+                "and suggest an appropriate substitution."
+            )
+
+    if today_session is not None:
+        prompt += (
+            f'\n\nToday\'s planned session ({today_session.session_type}): "{today_session.title}"'
+        )
+        if today_session.items:
+            prompt += "\nPrescribed movements:"
+            for item in today_session.items:
+                line = f"  - {item.movement_name}"
+                if item.sets:
+                    line += f" × {item.sets}"
+                if item.reps:
+                    line += f" × {item.reps}"
+                if item.load_pct_1rm:
+                    line += f" @ {item.load_pct_1rm:.0f}% 1RM"
+                elif item.load_kg:
+                    line += f" @ {item.load_kg:.1f} kg"
+                prompt += f"\n{line}"
+        prompt += (
+            "\nIf the athlete asks about today's workout, cross-reference it with their "
+            "active injuries and flag any contraindicated movements proactively."
+        )
+
     return prompt
 
 
@@ -190,12 +250,18 @@ async def chat(
     from app.ai.errors import call_llm
     from app.models.coach import Citation, _ChatAnswer
     from app.repositories import profile as profile_repo
+    from app.repositories.coach import fetch_today_session
+    from app.repositories.injuries import fetch_active_injuries
 
     context = "\n\n".join(str(c["body"]) for c in chunks)
     llm = get_client()
 
+    from datetime import date
+
     profile = await profile_repo.get_profile(db, user_id=user.user_id, email="", avatar_url=None)
-    system_prompt = build_system_prompt(profile)
+    injuries = await fetch_active_injuries(db, user.user_id)
+    today_session = await fetch_today_session(db, user.user_id, date.today())
+    system_prompt = build_system_prompt(profile, injuries=injuries, today_session=today_session)
 
     # XML delimiters separate retrieved data from user input so the model
     # cannot be manipulated by injection payloads in the knowledge corpus.
@@ -350,10 +416,16 @@ async def _do_stream(
         rag_text = rag_query_text(question, history)
         chunks = await hybrid_retrieve(rag_text, db, top_k=5)
 
+    from datetime import date
+
     from app.repositories import profile as profile_repo
+    from app.repositories.coach import fetch_today_session
+    from app.repositories.injuries import fetch_active_injuries
 
     profile = await profile_repo.get_profile(db, user_id=user_id, email="", avatar_url=None)
-    system_prompt = build_system_prompt(profile)
+    injuries = await fetch_active_injuries(db, user_id)
+    today_session = await fetch_today_session(db, user_id, date.today())
+    system_prompt = build_system_prompt(profile, injuries=injuries, today_session=today_session)
 
     context = "\n\n".join(str(c["body"]) for c in chunks)
     user_content = (
@@ -391,3 +463,104 @@ async def _do_stream(
     )
 
     yield sse_event({"type": "done", "session_id": str(session_id)})
+
+
+# ── Modify workout endpoint ───────────────────────────────────────────────────
+
+
+@router.post("/modify-workout", response_model=ModifyWorkoutResponse)
+async def modify_workout(
+    body: ModifyWorkoutRequest,
+    user: Annotated[UserContext, Depends(get_current_user)],
+    db: _Db,
+) -> ModifyWorkoutResponse:
+    # 1. Verify session ownership and fetch its movements
+    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT ps.id
+            FROM planned_sessions ps
+            JOIN plans p ON p.id = ps.plan_id
+            WHERE ps.id = %s AND p.user_id = %s
+            """,
+            [str(body.session_id), str(user.user_id)],
+        )
+        session_row = await cur.fetchone()
+
+    if session_row is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT movement_name
+            FROM planned_items
+            WHERE session_id = %s
+            ORDER BY item_order
+            """,
+            [str(body.session_id)],
+        )
+        item_rows = await cur.fetchall()
+
+    movements = [str(r["movement_name"]) for r in item_rows]
+
+    # 2. Fetch active injuries
+    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT body_region, requires_referral
+            FROM injuries
+            WHERE user_id = %s AND active = true
+            ORDER BY reported_at DESC
+            """,
+            [str(user.user_id)],
+        )
+        injury_rows = await cur.fetchall()
+
+    if not injury_rows:
+        return ModifyWorkoutResponse(
+            session_id=str(body.session_id),
+            modifications=[],
+            safe_movements=movements,
+            any_referral_required=False,
+            referral_regions=[],
+        )
+
+    injury_tuples = [(str(r["body_region"]), bool(r["requires_referral"])) for r in injury_rows]
+    referral_regions = [region for region, ref in injury_tuples if ref]
+    blocked_map = union_contraindications(injury_tuples)
+
+    modifications: list[MovementModification] = []
+    safe_movements: list[str] = []
+
+    for movement in movements:
+        key = movement.lower().replace(" ", "_")
+        driven_by = blocked_map.get(key, [])
+        if not driven_by:
+            safe_movements.append(movement)
+            continue
+
+        subs: list[str] = []
+        seen: set[str] = set()
+        for region in driven_by:
+            for s in resolve_substitution(region, key):
+                if s not in seen:
+                    seen.add(s)
+                    subs.append(s)
+
+        modifications.append(
+            MovementModification(
+                original_movement=movement,
+                driven_by=driven_by,
+                substitutions=subs,
+                confidence="curated",
+            )
+        )
+
+    return ModifyWorkoutResponse(
+        session_id=str(body.session_id),
+        modifications=modifications,
+        safe_movements=safe_movements,
+        any_referral_required=bool(referral_regions),
+        referral_regions=referral_regions,
+    )
