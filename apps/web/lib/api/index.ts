@@ -118,3 +118,49 @@ export interface AdminMetricsSummary {
   daily_costs: AdminDailyCostPoint[];
   budget_usd: number;
 }
+
+export interface AdminAccessRequest {
+  id: string;
+  created_at: string;
+  email: string;
+  name: string;
+  motivation: string;
+  status: "pending" | "approved" | "rejected";
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  review_note: string | null;
+}
+
+export interface AdminUser {
+  user_id: string;
+  email: string | null;
+  display_name: string | null;
+  created_at: string | null;
+  banned_until: string | null;
+  interactions_30d: number;
+}
+
+export interface AdminRecentError {
+  created_at: string;
+  path: string;
+  status_code: number;
+  error_type: string | null;
+  error_msg: string | null;
+}
+
+export interface AdminLLMError {
+  created_at: string;
+  endpoint: string;
+  error_code: string | null;
+  error_msg: string | null;
+}
+
+export interface AdminHealth {
+  api_version: string;
+  uptime_seconds: number;
+  last_llm_call_at: string | null;
+  errors_last_hour: number;
+  recent_errors: AdminRecentError[];
+  recent_llm_errors: AdminLLMError[];
+  safety_trigger_count_7d: number;
+}
