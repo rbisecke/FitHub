@@ -8,9 +8,9 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-![FitHub progress page](screenshots/readme/progress.png)
+![FitHub Dashboard](screenshots/readme/revamp-dashboard.png)
 
-FitHub is a training tracker built on a git mental model: every workout is a commit with a short hash ID, the history page is `git log`, and the sidebar is styled like a terminal prompt. Under the surface it applies the sports-science models that most fitness apps skip — sRPE-based load, ACWR, and Hooper readiness — plus a deterministic AI layer that generates plans and coaching prose without ever being the source of safety decisions.
+FitHub is a training tracker built on a git mental model: every workout is a commit with a short hash ID, the history page is `git log --all`, and every page has a `$ git command` subtitle above its Archivo Black heading. Under the surface it applies the sports-science models that most fitness apps skip — sRPE-based load, ACWR, and Hooper readiness — plus a deterministic AI layer that generates plans and coaching prose without ever being the source of safety decisions.
 
 The app is invite-only and in active development. Email [rbisecke@gmail.com](mailto:rbisecke@gmail.com) to request access, or [run it locally](#getting-started).
 
@@ -20,12 +20,31 @@ The app is invite-only and in active development. Email [rbisecke@gmail.com](mai
 
 | Theme                   | Details                                                                                                                                                                   |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Training log**        | `git commit --fit` — short hash IDs, PR badges, benchmark / partner / AMRAP / EMOM / strength WOD support; NL parser turns plain text into structured sets                |
+| **Track**               | `git commit -m` — NL input box parses free-text workout descriptions into structured sets; staged-changes panel for review before committing; RPE stepper                 |
+| **Training log**        | `git log --all` — short hash IDs, PR badges, benchmark / partner / AMRAP / EMOM / strength WOD support; tap any commit to expand full detail                              |
 | **Load management**     | sRPE × duration perceived load; ACWR via EWMA; ATL/CTL/TSB; Hooper index check-ins; training balance breakdown by muscle group                                            |
-| **Personal records**    | `git tag` — milestone screen for quick PR logging; Records page with sparklines, trend projections, and named-benchmark progress (e.g. Fran 4:47 → 3:48)                  |
+| **Personal records**    | `git tag --list` — gold hero numbers at 42px, category pills, timeline rail; named-benchmark progress (e.g. Fran 4:47 → 3:48)                                             |
 | **AI coach & planning** | SSE streaming chat with session history; hybrid RAG (BM25 + pgvector RRF fusion); adaptive plan generator with deterministic ACWR/readiness triggers; injury train-around |
 | **Data model depth**    | Poliquin 4-digit tempo notation; Epley e1RM cached at write time; VBT fields; wearable-ready schema; IDOR-safe team session consent model                                 |
-| **Engineering**         | Invite-only multi-user from day one; deterministic safety logic; 462 tests across four suites; openapi-typescript contract check in CI                                    |
+| **Engineering**         | Invite-only multi-user from day one; deterministic safety logic; 559 tests across four suites; openapi-typescript contract check in CI                                    |
+
+---
+
+## Screenshots
+
+_1280px desktop · dark git-developer aesthetic · Archivo Black headings · JetBrains Mono data_
+
+|                       Dashboard                       |                     Track                     |                       Log Result                        |
+| :---------------------------------------------------: | :-------------------------------------------: | :-----------------------------------------------------: |
+| ![Dashboard](screenshots/readme/revamp-dashboard.png) | ![Track](screenshots/readme/revamp-track.png) | ![Log Result](screenshots/readme/revamp-log-result.png) |
+
+|                     Coach                     |                     Plans                     |                       Analytics                       |
+| :-------------------------------------------: | :-------------------------------------------: | :---------------------------------------------------: |
+| ![Coach](screenshots/readme/revamp-coach.png) | ![Plans](screenshots/readme/revamp-plans.png) | ![Analytics](screenshots/readme/revamp-analytics.png) |
+
+|                      Records                      |                      History                      |                      Profile                      |
+| :-----------------------------------------------: | :-----------------------------------------------: | :-----------------------------------------------: |
+| ![Records](screenshots/readme/revamp-records.png) | ![History](screenshots/readme/revamp-history.png) | ![Profile](screenshots/readme/revamp-profile.png) |
 
 ---
 
@@ -59,7 +78,7 @@ The frontend calls FastAPI exclusively. Supabase handles auth (magic-link + Goog
 | Database | Supabase Postgres + pgvector, RLS on every table                                 |
 | Auth     | Supabase magic-link + Google OAuth, ES256 JWT via JWKS                           |
 | AI       | Claude Haiku 4.5 via Instructor, SSE streaming, hybrid RAG (BM25 + pgvector RRF) |
-| Testing  | pytest (252), pgTAP RLS (52), Playwright E2E (65), Vitest unit (93)              |
+| Testing  | pytest (252), pgTAP RLS (52), Playwright E2E (65), Vitest unit (190)             |
 | CI       | GitHub Actions: lint, typecheck, test, contract drift, security audit            |
 | Hosting  | Railway (API) · Vercel (web) · Supabase (DB / auth)                              |
 
@@ -87,28 +106,6 @@ The core principle: **safety-critical logic is deterministic Python; the LLM gen
 | ----------- | ----------------------------------------------------------------- | ----------------------- |
 | Dev / CI    | `STUB_LLM=true` (deterministic fixture responses, zero API calls) | $0                      |
 | Production  | Claude Haiku 4.5                                                  | $1 / $5 per MTok in/out |
-
----
-
-## Screenshots
-
-_1280px desktop · design system revamp (all 13 scopes)_
-
-|                       Dashboard                       |                     Track                     |                       Log Result                        |
-| :---------------------------------------------------: | :-------------------------------------------: | :-----------------------------------------------------: |
-| ![Dashboard](screenshots/readme/revamp-dashboard.png) | ![Track](screenshots/readme/revamp-track.png) | ![Log Result](screenshots/readme/revamp-log-result.png) |
-
-|                     Coach                     |                     Plans                     |                       Analytics                       |
-| :-------------------------------------------: | :-------------------------------------------: | :---------------------------------------------------: |
-| ![Coach](screenshots/readme/revamp-coach.png) | ![Plans](screenshots/readme/revamp-plans.png) | ![Analytics](screenshots/readme/revamp-analytics.png) |
-
-|                      Records                      |                      History                      |                      Profile                      |
-| :-----------------------------------------------: | :-----------------------------------------------: | :-----------------------------------------------: |
-| ![Records](screenshots/readme/revamp-records.png) | ![History](screenshots/readme/revamp-history.png) | ![Profile](screenshots/readme/revamp-profile.png) |
-
-|                       Onboarding                        |     |     |
-| :-----------------------------------------------------: | :-: | :-: |
-| ![Onboarding](screenshots/readme/revamp-onboarding.png) |     |     |
 
 ---
 
@@ -180,7 +177,7 @@ FitHub has four test suites and passes strict static analysis. pgTAP is worth hi
 | Unit + integration | pytest      | 252   | API routes, repositories, AI stubs, rate limiting, auth |
 | DB isolation       | pgTAP       | 52    | RLS policies on every table, cross-user data isolation  |
 | Browser E2E        | Playwright  | 65    | Auth flow, workout CRUD, coach chat, plan generation    |
-| Unit (frontend)    | Vitest      | 93    | Utility functions, hooks, API client, component logic   |
+| Unit (frontend)    | Vitest      | 190   | Utility functions, hooks, API client, component logic   |
 | Static analysis    | mypy + ruff | —     | Strict mypy, zero `Any` in models, ruff format          |
 
 ```bash
@@ -215,14 +212,14 @@ Dependabot keeps Actions SHAs current monthly and pip/npm dependencies weekly.
 
 ## Status & roadmap
 
-The full UI redesign — new navigation, dashboard, history, logger, records, coach, profile, onboarding, and the `git tag` quick-milestone screen — shipped as part of the `feat/ui-revamp` branch and is now on `main`. Deployment (Railway + Vercel + Supabase production) is the current milestone.
+The design system revamp shipped in full — 13 scopes across every page and route, including the new `/track` NL workout entry flow, git-graph brand mark, Archivo Black headings, JetBrains Mono data font, and green accent (`#4ADE80`) throughout. Deployment to Railway + Vercel + Supabase production is the current milestone.
 
 Near-term:
 
 - **Wearable data sync** — schema is wearable-ready; Oura / Apple Health pipeline not yet wired
 - **Nutrition tracking** — schema and feature design complete; deferred post-deployment
 - **Mobile PWA** — manifest and offline strategy planned; not yet implemented
-- **Training balance** — muscle-group categories on movements; balance widget ready on the progress page once movements are tagged
+- **Training balance** — muscle-group categories on movements; balance widget ready once movements are tagged
 
 **Access:** Email [rbisecke@gmail.com](mailto:rbisecke@gmail.com) to request an invite, or clone and [run locally](#getting-started).
 
