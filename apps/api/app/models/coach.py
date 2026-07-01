@@ -115,3 +115,27 @@ class _ChatAnswer(BaseModel):
     """Internal instructor response model for chat — required by Mode.JSON providers (Ollama)."""
 
     answer: str
+
+
+# ---------------------------------------------------------------------------
+# modify-workout endpoint models
+# ---------------------------------------------------------------------------
+
+
+class MovementModification(BaseModel):
+    original_movement: str
+    driven_by: list[str]
+    substitutions: list[str]
+    confidence: Literal["curated", "llm_generated"] = "curated"
+
+
+class ModifyWorkoutRequest(BaseModel):
+    session_id: UUID
+
+
+class ModifyWorkoutResponse(BaseModel):
+    session_id: str
+    modifications: list[MovementModification]
+    safe_movements: list[str]
+    any_referral_required: bool
+    referral_regions: list[str]

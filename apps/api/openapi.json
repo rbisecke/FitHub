@@ -619,6 +619,52 @@
         ]
       }
     },
+    "/api/v1/coach/modify-workout": {
+      "post": {
+        "tags": [
+          "coach"
+        ],
+        "summary": "Modify Workout",
+        "operationId": "modify_workout_api_v1_coach_modify_workout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyWorkoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModifyWorkoutResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/integrations/apple-health/connect": {
       "post": {
         "tags": [
@@ -4569,6 +4615,62 @@
         ],
         "title": "Modality"
       },
+      "ModifyWorkoutRequest": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id"
+        ],
+        "title": "ModifyWorkoutRequest"
+      },
+      "ModifyWorkoutResponse": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "modifications": {
+            "items": {
+              "$ref": "#/components/schemas/MovementModification"
+            },
+            "type": "array",
+            "title": "Modifications"
+          },
+          "safe_movements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Safe Movements"
+          },
+          "any_referral_required": {
+            "type": "boolean",
+            "title": "Any Referral Required"
+          },
+          "referral_regions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Referral Regions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "modifications",
+          "safe_movements",
+          "any_referral_required",
+          "referral_regions"
+        ],
+        "title": "ModifyWorkoutResponse"
+      },
       "Movement": {
         "properties": {
           "id": {
@@ -4743,6 +4845,44 @@
           "updated_at"
         ],
         "title": "Movement"
+      },
+      "MovementModification": {
+        "properties": {
+          "original_movement": {
+            "type": "string",
+            "title": "Original Movement"
+          },
+          "driven_by": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Driven By"
+          },
+          "substitutions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Substitutions"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "curated",
+              "llm_generated"
+            ],
+            "title": "Confidence",
+            "default": "curated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "original_movement",
+          "driven_by",
+          "substitutions"
+        ],
+        "title": "MovementModification"
       },
       "MovementPattern": {
         "type": "string",

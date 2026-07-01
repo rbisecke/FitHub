@@ -11,7 +11,7 @@ from typing import Annotated, Any
 
 import psycopg
 import psycopg.rows
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
 from app.ai.chat_history import fetch_session_history, rag_query_text
@@ -19,6 +19,7 @@ from app.ai.kill_switch import require_llm_enabled
 from app.ai.parse_log import parse_log_text
 from app.auth import UserContext, get_current_user
 from app.db import get_db
+from app.engine.injury import resolve_substitution, union_contraindications
 from app.middleware.rate_limit import limiter
 from app.models.coach import (
     ActiveInjurySummary,
@@ -27,6 +28,9 @@ from app.models.coach import (
     ChatStreamRequest,
     CoachSession,
     HistoryMessage,
+    ModifyWorkoutRequest,
+    ModifyWorkoutResponse,
+    MovementModification,
     ParseLogRequest,
     ParseLogResponse,
     SessionMessagesResponse,
@@ -459,3 +463,104 @@ async def _do_stream(
     )
 
     yield sse_event({"type": "done", "session_id": str(session_id)})
+
+
+# ── Modify workout endpoint ───────────────────────────────────────────────────
+
+
+@router.post("/modify-workout", response_model=ModifyWorkoutResponse)
+async def modify_workout(
+    body: ModifyWorkoutRequest,
+    user: Annotated[UserContext, Depends(get_current_user)],
+    db: _Db,
+) -> ModifyWorkoutResponse:
+    # 1. Verify session ownership and fetch its movements
+    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT ps.id
+            FROM planned_sessions ps
+            JOIN plans p ON p.id = ps.plan_id
+            WHERE ps.id = %s AND p.user_id = %s
+            """,
+            [str(body.session_id), str(user.user_id)],
+        )
+        session_row = await cur.fetchone()
+
+    if session_row is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT movement_name
+            FROM planned_items
+            WHERE session_id = %s
+            ORDER BY item_order
+            """,
+            [str(body.session_id)],
+        )
+        item_rows = await cur.fetchall()
+
+    movements = [str(r["movement_name"]) for r in item_rows]
+
+    # 2. Fetch active injuries
+    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT body_region, requires_referral
+            FROM injuries
+            WHERE user_id = %s AND active = true
+            ORDER BY reported_at DESC
+            """,
+            [str(user.user_id)],
+        )
+        injury_rows = await cur.fetchall()
+
+    if not injury_rows:
+        return ModifyWorkoutResponse(
+            session_id=str(body.session_id),
+            modifications=[],
+            safe_movements=movements,
+            any_referral_required=False,
+            referral_regions=[],
+        )
+
+    injury_tuples = [(str(r["body_region"]), bool(r["requires_referral"])) for r in injury_rows]
+    referral_regions = [region for region, ref in injury_tuples if ref]
+    blocked_map = union_contraindications(injury_tuples)
+
+    modifications: list[MovementModification] = []
+    safe_movements: list[str] = []
+
+    for movement in movements:
+        key = movement.lower().replace(" ", "_")
+        driven_by = blocked_map.get(key, [])
+        if not driven_by:
+            safe_movements.append(movement)
+            continue
+
+        subs: list[str] = []
+        seen: set[str] = set()
+        for region in driven_by:
+            for s in resolve_substitution(region, key):
+                if s not in seen:
+                    seen.add(s)
+                    subs.append(s)
+
+        modifications.append(
+            MovementModification(
+                original_movement=movement,
+                driven_by=driven_by,
+                substitutions=subs,
+                confidence="curated",
+            )
+        )
+
+    return ModifyWorkoutResponse(
+        session_id=str(body.session_id),
+        modifications=modifications,
+        safe_movements=safe_movements,
+        any_referral_required=bool(referral_regions),
+        referral_regions=referral_regions,
+    )

@@ -330,3 +330,19 @@ def resolve_substitution(body_region: str, movement_name: str) -> list[str]:
 
 def get_contraindicated_movements(body_region: str) -> list[str]:
     return CONTRAINDICATIONS.get(body_region, [])
+
+
+def union_contraindications(
+    injuries: list[tuple[str, bool]],
+) -> dict[str, list[str]]:
+    """Return {movement: [body_regions_that_block_it]} for a set of active injuries.
+
+    Each element of injuries is (body_region, requires_referral).
+    Referral-flagged injuries block ALL movements for their region — the athlete
+    should not train that area at all until cleared by a physio.
+    """
+    blocked: dict[str, list[str]] = {}
+    for body_region, _ in injuries:
+        for movement in CONTRAINDICATIONS.get(body_region, []):
+            blocked.setdefault(movement, []).append(body_region)
+    return blocked
