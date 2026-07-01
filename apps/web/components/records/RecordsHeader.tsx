@@ -32,11 +32,12 @@ export function RecordsHeader({ viewMode, onToggle, totalCount }: Props) {
               key={mode}
               aria-pressed={viewMode === mode}
               onClick={() => onToggle(mode)}
-              className={`px-3 py-1.5 text-[12px] font-semibold capitalize rounded-lg transition-colors min-h-[30px] ${
+              className="px-3 py-1.5 text-[12px] font-semibold capitalize rounded-lg transition-colors min-h-[30px]"
+              style={
                 viewMode === mode
-                  ? "bg-[var(--surface-2)] text-[var(--foreground)]"
-                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
-              }`}
+                  ? { background: "var(--accent)", color: "rgb(10, 13, 18)" }
+                  : { background: "transparent", color: "var(--muted)" }
+              }
             >
               {mode === "current" ? "Current records" : "Timeline"}
             </button>

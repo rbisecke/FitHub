@@ -32,11 +32,20 @@ export function CategoryTabs({ activeCategory, onSelect }: Props) {
             key={value}
             aria-pressed={active}
             onClick={() => onSelect(value)}
-            className={`px-3 py-1.5 text-[12px] font-semibold rounded-full transition-colors min-h-[32px] ${
+            className={`font-data px-3 py-1.5 text-[11.5px] font-semibold rounded-full transition-colors min-h-[32px] ${
               active
-                ? "bg-[var(--accent)] text-[#0A0D12]"
+                ? ""
                 : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
+            style={
+              active
+                ? {
+                    border: "1px solid var(--accent)",
+                    background: "rgba(74, 222, 128, 0.14)",
+                    color: "var(--accent)",
+                  }
+                : undefined
+            }
           >
             {label}
           </button>
