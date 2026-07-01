@@ -29,11 +29,20 @@ export function CategorySection({
       {/* Section header: colored dot + name + count + rule */}
       <div className="flex items-center gap-3 mb-4">
         <span
-          className="w-2.5 h-2.5 rounded-full shrink-0"
-          style={{ background: DOT_COLOR[category] }}
+          className="shrink-0"
+          style={{
+            width: 11,
+            height: 11,
+            borderRadius: 3,
+            background: DOT_COLOR[category],
+            display: "inline-block",
+          }}
           aria-hidden="true"
         />
-        <span className="font-heading text-[17px] text-[var(--foreground)]">
+        <span
+          className="font-heading text-[17px] text-[var(--foreground)]"
+          style={{ letterSpacing: "-0.3px" }}
+        >
           {CATEGORY_LABEL[category]}
         </span>
         <span className="text-[13px] text-[var(--muted)]">

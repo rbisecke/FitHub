@@ -4,9 +4,7 @@ import { api } from "@/lib/api/client";
 import type { PersonalRecord, WorkoutSummary } from "@/lib/api";
 import type { ReadinessResponse } from "@/lib/api";
 
-import { prDelta } from "@/lib/dashboard/prDelta";
-
-import { PageHeader } from "@/components/ui/page-header";
+import { prGoals } from "@/lib/dashboard/prDelta";
 import { ContributionGraphRevamp } from "@/components/dashboard/ContributionGraphRevamp";
 import { OnboardingToast } from "@/components/onboarding/OnboardingToast";
 import { StatGrid } from "@/components/dashboard/StatGrid";
@@ -41,6 +39,15 @@ export default async function DashboardPage() {
 
   const showOnboardingToast =
     profileRes.status === "fulfilled" && !profileRes.value.onboarding_completed;
+
+  const profile = profileRes.status === "fulfilled" ? profileRes.value : null;
+  const firstName = profile?.display_name?.split(" ")[0] ?? "there";
+  const terminalHandle = profile?.display_name
+    ? profile.display_name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")
+    : (session.user.email ?? "user").split("@")[0] ?? "user";
 
   // ── Stat grid data ────────────────────────────────────────────────────────
   const today = new Date().toLocaleDateString("en-CA");
@@ -85,6 +92,10 @@ export default async function DashboardPage() {
 
   // ── Recent commits feed ───────────────────────────────────────────────────
   const nowMs = new Date().getTime();
+  const oneWeekAgo = new Date(nowMs - 7 * 86_400_000);
+  const weekCount = workouts.filter(
+    (w) => new Date(w.performed_at) >= oneWeekAgo,
+  ).length;
   const feedCommits = workouts.slice(0, 8).map((w) => {
     const diffMs = nowMs - new Date(w.performed_at).getTime();
     const diffD = Math.floor(diffMs / 86_400_000);
@@ -98,22 +109,31 @@ export default async function DashboardPage() {
     };
   });
 
-  // ── Open PRs widget ───────────────────────────────────────────────────────
-  const recentPRs = prDelta(prs);
-  const prItems = recentPRs.map((pr) => ({
-    category: "PR",
-    name: pr.movementName,
-    value: Number.isInteger(pr.bestKg)
-      ? `${pr.bestKg}kg`
-      : `${pr.bestKg.toFixed(1)}kg`,
-    improvement:
-      pr.deltaKg != null && pr.deltaKg > 0 ? `▲ +${pr.deltaKg}kg` : undefined,
-  }));
+  // ── Open PRs widget (goals-in-progress) ──────────────────────────────────
+  const goals = prGoals(prs);
+
+  // ── Greeting streak count (simple day-based, 30-day window) ──────────────
+  const recentStreak = workouts.filter((w) => {
+    const diffD = Math.floor(
+      (nowMs - new Date(w.performed_at).getTime()) / 86_400_000,
+    );
+    return diffD < 30;
+  }).length;
+  const currentStreak = recentStreak > 0 ? Math.min(recentStreak, 30) : 0;
 
   return (
     <div className="p-4 md:p-6 max-w-[1200px] mx-auto">
-      <div className="animate-fadeUp">
-        <PageHeader gitCommand="$ fithub status" title="Dashboard" />
+      <div className="mb-6 animate-fadeUp">
+        <p className="font-data text-[11px] text-[var(--muted)] mb-1">
+          $ fithub status
+        </p>
+        <h1 className="font-heading text-[26px] text-[var(--text)] tracking-[-0.03em] leading-tight">
+          Good to see you, {firstName}.
+        </h1>
+        <p className="text-[13px] text-[var(--muted)] mt-1">
+          {hasWorkoutToday ? "You trained today." : "Rest day."}{" "}
+          {currentStreak > 0 && `${currentStreak}-day streak active.`}
+        </p>
       </div>
 
       <div className="animate-fadeUp">
@@ -124,13 +144,13 @@ export default async function DashboardPage() {
         {/* Left column */}
         <div className="space-y-[18px]">
           <ContributionGraphRevamp workouts={workouts} />
-          <TerminalWidget commits={terminalCommits} />
-          <RecentCommitsFeed commits={feedCommits} />
+          <TerminalWidget handle={terminalHandle} commits={terminalCommits} />
+          <RecentCommitsFeed commits={feedCommits} weekCount={weekCount} />
         </div>
 
         {/* Right sidebar */}
         <div className="space-y-[18px]">
-          <OpenPRsWidget prs={prItems} />
+          <OpenPRsWidget goals={goals} />
           <CoachPreviewCard />
           <QuickCommitWidget />
         </div>

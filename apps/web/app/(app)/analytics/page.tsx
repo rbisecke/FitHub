@@ -80,9 +80,9 @@ export default async function AnalyticsPage() {
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <PageHeader
-        gitCommand="$ git diff"
+        gitCommand="$ git diff --stat HEAD~8 weeks"
         title="Analytics"
-        sub="Your performance science dashboard"
+        sub="How your training has changed over the last 8 weeks."
       />
 
       {nonZeroDays < 7 ? (
@@ -92,26 +92,35 @@ export default async function AnalyticsPage() {
           {/* CTL / ATL / TSB cards */}
           <PerformanceCards
             ctl={{
-              label: "Fitness (CTL)",
+              label: "Fitness · CTL",
               value: Math.round(load.ctl_now),
-              sub: "chronic training load",
+              sub: "chronic training load — how fit you are",
               trendDirection: ctlTrend.direction,
               trendValue: ctlTrend.label,
+              metricKey: "ctl",
+              badge: "42-day load",
+              badgeColor: "blue",
             }}
             atl={{
-              label: "Fatigue (ATL)",
+              label: "Fatigue · ATL",
               value: Math.round(load.atl_now),
-              sub: "acute training load",
+              sub: "acute training load — how tired you are",
               trendDirection: atlTrend.direction,
               trendValue: atlTrend.label,
+              metricKey: "atl",
+              badge: "7-day load",
+              badgeColor: "hot",
             }}
             tsb={{
-              label: "Form (TSB)",
+              label: "Form · TSB",
               value: Math.round(load.tsb_now),
-              sub: "fitness minus fatigue",
+              sub: "readiness balance",
               trendDirection: tsbIsNeg ? "down" : "up",
               trendValue: "",
               valueIsNegative: tsbIsNeg,
+              metricKey: "tsb",
+              badge: "CTL − ATL",
+              badgeColor: "muted",
             }}
           />
 

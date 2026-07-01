@@ -34,6 +34,11 @@ const archivoBlack = Archivo_Black({
 export const metadata: Metadata = {
   title: "FitHub",
   description: "Git for your fitness.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export const viewport: Viewport = {
