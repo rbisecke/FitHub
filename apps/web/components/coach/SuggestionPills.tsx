@@ -19,7 +19,7 @@ export function SuggestionPills({ onSelect }: Props) {
         <button
           key={s}
           onClick={() => onSelect(s)}
-          className="flex-shrink-0 bg-[var(--surface-2)] border border-[var(--border)] rounded-full px-[15px] py-2 text-[13px] text-[var(--foreground)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors whitespace-nowrap"
+          className="flex-shrink-0 bg-[var(--card)] border border-[var(--border)] rounded-full px-3 py-1.5 text-[11.5px] text-[var(--muted-foreground)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors whitespace-nowrap"
         >
           {s}
         </button>

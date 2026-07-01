@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { Send, Square } from "lucide-react";
+import { Square } from "lucide-react";
 
 const MAX_HEIGHT_PX = 120;
 const CHAR_LIMIT = 2000;
@@ -65,8 +65,16 @@ export function ChatInput({
   }, [value]);
 
   return (
-    <div className="shrink-0 border-t border-[var(--border)] bg-[var(--background)] px-[22px] py-3.5 pb-[calc(0.875rem+env(safe-area-inset-bottom))]">
-      <div className="flex items-end gap-2.5">
+    <div className="shrink-0 px-[22px] py-3.5 pb-[calc(0.875rem+env(safe-area-inset-bottom))]">
+      {/* Unified input container — matches mockup */}
+      <div
+        className="flex items-end gap-2.5 border border-[var(--border)]"
+        style={{
+          background: "var(--card)",
+          borderRadius: 14,
+          padding: "8px 8px 8px 16px",
+        }}
+      >
         <textarea
           ref={textareaRef}
           rows={1}
@@ -75,11 +83,11 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           disabled={disabled || isStreaming}
           maxLength={CHAR_LIMIT}
-          placeholder="Ask your coach..."
+          placeholder="Ask your coach anything…"
           aria-label="Message the coach"
           aria-describedby="chat-input-hint"
           data-testid="coach-chat-input"
-          className="flex-1 resize-none overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-3 text-[14px] leading-relaxed text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-[var(--accent)] min-h-[44px] max-h-[120px] disabled:opacity-50"
+          className="flex-1 resize-none bg-transparent border-0 text-[14px] leading-relaxed text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none min-h-[24px] max-h-[120px] py-1.5 disabled:opacity-50"
         />
 
         {isStreaming ? (
@@ -87,7 +95,8 @@ export function ChatInput({
             type="button"
             onClick={onStop}
             aria-label="Stop generating"
-            className="shrink-0 flex items-center justify-center rounded-[11px] bg-[var(--border)] hover:bg-[var(--border)]/80 w-11 h-11"
+            className="shrink-0 flex items-center justify-center w-10 h-10"
+            style={{ borderRadius: 10, background: "var(--border)" }}
           >
             <Square
               size={14}
@@ -102,9 +111,22 @@ export function ChatInput({
             disabled={disabled || !value.trim()}
             aria-label="Send message"
             data-testid="coach-submit"
-            className="shrink-0 flex items-center justify-center rounded-[11px] bg-[var(--blue)] hover:brightness-110 transition-all w-11 h-11 disabled:opacity-40"
+            className="shrink-0 flex items-center justify-center w-10 h-10 hover:brightness-110 transition-all disabled:opacity-40"
+            style={{ borderRadius: 10, background: "var(--accent)" }}
           >
-            <Send size={14} className="text-[#0A0D12]" aria-hidden />
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#0A0D12"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+            </svg>
           </button>
         )}
       </div>
