@@ -1880,6 +1880,18 @@ export interface components {
         | "elbow"
         | "ankle"
         | "neck"
+        | "hamstring"
+        | "quad"
+        | "calf"
+        | "glute"
+        | "upper_back"
+        | "chest"
+        | "bicep"
+        | "tricep"
+        | "lat"
+        | "hip_flexor"
+        | "it_band"
+        | "forearm"
         | "other";
       /** Pain Level */
       pain_level: number;
