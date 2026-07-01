@@ -138,7 +138,7 @@ export function HistoryPage({
   const isEmptyDueToFilter = isEmpty && filtersActive;
 
   return (
-    <div className="p-6 max-w-2xl mx-auto pb-nav-safe">
+    <div className="px-6 py-6 max-w-[920px] mx-auto pb-nav-safe">
       {/* Page header */}
       <PageHeader
         gitCommand="$ git log --all"
