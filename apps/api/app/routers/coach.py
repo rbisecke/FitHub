@@ -150,7 +150,7 @@ async def parse_log(
     db: _Db,
     _kill: Annotated[None, Depends(require_llm_enabled)],
 ) -> ParseLogResponse:
-    result = await parse_log_text(body.text)
+    result = await parse_log_text(body.text, user_id=user.user_id, db=db)
 
     await db.execute(
         """
@@ -293,6 +293,8 @@ async def chat(
                 response_model=_ChatAnswer,
             ),
             context="coach_chat",
+            user_id=user.user_id,
+            db=db,
         )
     else:
         chat_result = await call_llm(
@@ -303,6 +305,8 @@ async def chat(
                 response_model=_ChatAnswer,
             ),
             context="coach_chat",
+            user_id=user.user_id,
+            db=db,
         )
 
     answer_text = chat_result.answer

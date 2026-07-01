@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import uuid
+
+import psycopg
+
 from app.ai.stub import stubbed
 from app.models.coach import ParsedLogEntry, ParseLogResponse
 
@@ -41,7 +45,12 @@ STUB_PARSE_LOG = _make_stub()
 
 
 @stubbed(STUB_PARSE_LOG)
-async def parse_log_text(text: str) -> ParseLogResponse:
+async def parse_log_text(
+    text: str,
+    *,
+    user_id: uuid.UUID | None = None,
+    db: psycopg.AsyncConnection[object] | None = None,
+) -> ParseLogResponse:
     """Parse a free-text workout log into structured data via LLM + instructor."""
     from app.ai.client import get_client
     from app.ai.errors import call_llm
@@ -82,5 +91,7 @@ async def parse_log_text(text: str) -> ParseLogResponse:
             response_model=ParsedLogEntry,
         ),
         context="parse_log",
+        user_id=user_id,
+        db=db,
     )
     return ParseLogResponse(parsed=result, confidence=0.85, stub=False)
