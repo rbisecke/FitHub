@@ -13,8 +13,14 @@ export default async function OnboardingLayout({
   if (!user) redirect("/login");
 
   return (
-    <div className="min-h-[100dvh] bg-[#0d1117] md:flex md:items-center">
-      <div className="mx-auto w-full max-w-md">{children}</div>
+    <div
+      className="fixed inset-0 z-[90] flex flex-col overflow-y-auto"
+      style={{
+        background:
+          "radial-gradient(1000px 500px at 50% -10%, rgba(74,222,128,0.07), transparent 60%), var(--background)",
+      }}
+    >
+      {children}
     </div>
   );
 }

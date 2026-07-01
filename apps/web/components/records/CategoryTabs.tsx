@@ -3,41 +3,42 @@
 import type { PRCategory } from "@/lib/records/categorise";
 import { CATEGORY_LABEL, CATEGORY_ORDER } from "@/lib/records/categorise";
 
+export type CategoryFilter = PRCategory | "all";
+
 interface Props {
-  activeCategory: PRCategory;
-  availableCategories: Set<PRCategory>;
-  onSelect: (cat: PRCategory) => void;
+  activeCategory: CategoryFilter;
+  onSelect: (cat: CategoryFilter) => void;
 }
 
-export function CategoryTabs({
-  activeCategory,
-  availableCategories,
-  onSelect,
-}: Props) {
+const PILLS: { value: CategoryFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  ...CATEGORY_ORDER.map((c) => ({
+    value: c as CategoryFilter,
+    label: CATEGORY_LABEL[c],
+  })),
+];
+
+export function CategoryTabs({ activeCategory, onSelect }: Props) {
   return (
     <div
-      role="tablist"
-      aria-label="Record categories"
-      className="overflow-x-auto scrollbar-none flex gap-2 border-b border-[--border] px-4"
+      role="group"
+      aria-label="Filter by category"
+      className="flex flex-wrap gap-2"
     >
-      {CATEGORY_ORDER.map((cat) => {
-        const available = availableCategories.has(cat);
-        const active = cat === activeCategory;
+      {PILLS.map(({ value, label }) => {
+        const active = value === activeCategory;
         return (
           <button
-            key={cat}
-            role="tab"
-            aria-selected={active}
-            onClick={() => onSelect(cat)}
-            className={`text-xs font-mono px-3 py-1.5 shrink-0 border-b-2 transition-colors min-h-[44px] ${
+            key={value}
+            aria-pressed={active}
+            onClick={() => onSelect(value)}
+            className={`px-3 py-1.5 text-[12px] font-semibold rounded-full transition-colors min-h-[32px] ${
               active
-                ? "text-[--text] border-[--accent]"
-                : available
-                  ? "text-[--muted] border-transparent hover:text-[--text]"
-                  : "text-[--muted]/50 border-transparent cursor-default"
+                ? "bg-[var(--accent)] text-[#0A0D12]"
+                : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
           >
-            {CATEGORY_LABEL[cat]}
+            {label}
           </button>
         );
       })}

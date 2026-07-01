@@ -1,73 +1,95 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 
-const OPTIONS = [2, 3, 4, 5] as const;
+const OPTIONS = [
+  { label: "3-4×", value: 4, sub: "ideal", recommended: true },
+  { label: "5-6×", value: 5, sub: "competitive", recommended: false },
+  { label: "1-2×", value: 2, sub: "easy pace", recommended: false },
+] as const;
+
+function closestOptionValue(n: number): number {
+  if (n >= 5) return 5;
+  if (n <= 2) return 2;
+  return 4;
+}
 
 interface Props {
   defaultValue?: number;
   onNext: (value: number) => void;
-  onBack: () => void;
 }
 
-export function Step2Frequency({ defaultValue = 3, onNext, onBack }: Props) {
-  const [selected, setSelected] = useState<number>(defaultValue);
+export function Step2Frequency({ defaultValue = 4, onNext }: Props) {
+  const [selected, setSelected] = useState<number>(
+    closestOptionValue(defaultValue),
+  );
 
   return (
-    <div className="flex min-h-[calc(100dvh-48px)] flex-col px-6 py-8 md:min-h-0">
-      <p className="font-mono text-xs text-[#8b949e]">
-        $ git config --global training.frequency
+    <div className="animate-fadeUp flex flex-col">
+      <p className="font-data mb-2 text-[13px] text-[var(--accent)]">
+        $ git config streak.target
       </p>
-
-      <h2 className="mt-6 text-xl font-semibold text-[#e6edf3]">
+      <h2
+        className="font-heading mb-2 text-[28px] text-[var(--foreground)]"
+        style={{ letterSpacing: "-0.6px" }}
+      >
         How often do you train?
       </h2>
-      <p className="mt-2 text-sm text-[#8b949e]">
-        We&apos;ll use this to track your consistency and flag overtraining.
+      <p className="mb-6 text-[14px] text-[var(--muted)]">
+        We use this to track your streak and flag overtraining.
       </p>
 
-      <div className="mt-8 grid grid-cols-2 gap-3">
-        {OPTIONS.map((days) => (
-          <button
-            key={days}
-            onClick={() => setSelected(days)}
-            aria-pressed={selected === days}
-            className={[
-              "min-h-[48px] rounded-md border py-4 text-center transition-colors",
-              selected === days
-                ? "border-[#58a6ff] bg-[#58a6ff]/10 text-[#58a6ff]"
-                : "border-[#30363d] bg-[#161b22] text-[#e6edf3] hover:border-[#58a6ff]/50",
-            ].join(" ")}
-          >
-            <span className="block font-mono text-2xl font-semibold">
-              {days}
-            </span>
-            <span className="mt-0.5 block text-xs text-[#8b949e]">
-              {days === 2 ? "days / week" : "days / week"}
-            </span>
-          </button>
-        ))}
+      <div className="mb-7 flex flex-col gap-[11px]">
+        {OPTIONS.map(({ label, value, sub, recommended }) => {
+          const active = selected === value;
+          return (
+            <button
+              key={value}
+              onClick={() => setSelected(value)}
+              aria-pressed={active}
+              className="flex w-full items-center gap-[10px] rounded-[14px] border px-[18px] py-[16px] text-left transition-colors hover:border-[var(--accent)]"
+              style={{
+                background: active ? "rgba(74,222,128,0.05)" : "var(--card)",
+                borderColor: active ? "var(--accent)" : "var(--border)",
+              }}
+            >
+              <div>
+                <span
+                  className="font-heading block text-[20px]"
+                  style={{
+                    color: active ? "var(--accent)" : "var(--foreground)",
+                  }}
+                >
+                  {label}
+                </span>
+                <span className="block text-[12px] text-[var(--muted)]">
+                  {sub}
+                </span>
+              </div>
+              <div className="flex flex-1 justify-end">
+                {recommended && (
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase"
+                    style={{
+                      background: "rgba(74,222,128,0.15)",
+                      color: "var(--accent)",
+                    }}
+                  >
+                    RECOMMENDED
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="flex-1" />
-
-      <div className="space-y-3 pb-8 md:pb-0">
-        <Button
-          onClick={() => onNext(selected)}
-          className="min-h-[48px] w-full bg-[#58a6ff] font-medium text-[#0d1117] hover:bg-[#79b8ff]"
-        >
-          Continue
-        </Button>
-        <div className="flex justify-center">
-          <button
-            onClick={onBack}
-            className="inline-flex min-h-[44px] items-center px-4 text-xs text-[#8b949e] transition-colors hover:text-[#e6edf3]"
-          >
-            Back
-          </button>
-        </div>
-      </div>
+      <button
+        onClick={() => onNext(selected)}
+        className="min-h-[48px] w-full rounded-[13px] bg-[var(--accent)] py-[15px] text-[15px] font-extrabold text-[#0A0D12] transition-opacity hover:opacity-90 active:scale-[0.98]"
+      >
+        Continue
+      </button>
     </div>
   );
 }

@@ -1,242 +1,172 @@
-"use client";
-
-import { useState } from "react";
-import { ChevronDown } from "lucide-react";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { Card } from "@/components/ui/card";
-import { PRSparkline } from "./PRSparkline";
-import { PRProjection } from "./PRProjection";
-import { BenchmarkBadge } from "./BenchmarkBadge";
 import type { PersonalRecord, E1RMPoint } from "@/lib/api";
-import { isBenchmark } from "@/lib/records/benchmarks";
+import type { PRCategory } from "@/lib/records/categorise";
 
-function formatValue(pr: PersonalRecord): string {
-  return `${pr.best_1rm_kg.toFixed(1)} kg`;
-}
+// Category accent colors
+const CAT_COLOR: Record<PRCategory, string> = {
+  strength: "#58a6ff",
+  gymnastics: "#bc8cff",
+  metcon: "#FF7A45",
+  endurance: "#4ADE80",
+};
 
-function toTagSlug(movementName: string, bestKg: number): string {
-  const base = movementName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-  const val = `${Math.round(bestKg)}kg`;
-  return `${base}-${val}`;
-}
-
-function formatDate(isoDate: string): string {
+function relativeDate(isoDate: string): string {
   const d = new Date(isoDate);
   const now = new Date();
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  if (d.getFullYear() === now.getFullYear()) {
-    return `${months[d.getMonth()]} ${d.getDate()}`;
-  }
-  return `${months[d.getMonth()]} ${d.getFullYear()}`;
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+  return `${Math.floor(diffDays / 365)}y ago`;
+}
+
+function computeSparkline(points: E1RMPoint[]): string {
+  if (points.length < 2) return "";
+  const values = points.map((p) => p.estimated_1rm_kg);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const W = 120;
+  const H = 34;
+  return points
+    .map((p, i) => {
+      const x = (i / (points.length - 1)) * W;
+      const y = H - ((p.estimated_1rm_kg - min) / range) * H;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
 }
 
 interface Props {
   pr: PersonalRecord;
   points: E1RMPoint[];
   isRecent: boolean;
+  category: PRCategory;
 }
 
-export function PRCard({ pr, points, isRecent }: Props) {
-  const [open, setOpen] = useState(false);
-  // Reduced-motion is handled by CSS (.shimmer-overlay in globals.css)
-  const [shimmer, setShimmer] = useState(isRecent);
-
-  const slug = toTagSlug(pr.movement_name, pr.best_1rm_kg);
-  const value = formatValue(pr);
-  const benchmark = isBenchmark(pr.movement_name);
-
+export function PRCard({ pr, points, isRecent, category }: Props) {
   const sortedPoints = [...points].sort((a, b) => a.day.localeCompare(b.day));
+  const catColor = CAT_COLOR[category];
+  const sparklinePts = computeSparkline(sortedPoints);
 
-  let deltaNode: React.ReactNode = null;
+  // Improvement badge: delta from penultimate to latest point
+  let improvement: string | null = null;
   if (sortedPoints.length >= 2) {
     const prev = sortedPoints[sortedPoints.length - 2]!.estimated_1rm_kg;
     const curr = sortedPoints[sortedPoints.length - 1]!.estimated_1rm_kg;
     const delta = curr - prev;
-    if (Math.abs(delta) > 0.01) {
-      const positive = delta > 0;
-      deltaNode = (
-        <span
-          className={`text-xs font-mono ${
-            positive ? "text-[--green]" : "text-[--red]"
-          }`}
-        >
-          {positive ? "▲" : "▼"} {positive ? "+" : ""}
-          {Math.abs(delta).toFixed(1)} kg
-        </span>
-      );
+    if (delta > 0.01) {
+      improvement = `+${delta.toFixed(1)} kg`;
     }
-  } else if (sortedPoints.length === 0) {
-    deltaNode = (
-      <span className="text-xs font-mono text-[--muted]">First logged</span>
-    );
   }
 
+  const dateLabel = relativeDate(pr.achieved_at);
+  const isToday = dateLabel === "Today";
+
   return (
-    <Card className="relative overflow-hidden bg-[--surface] border-[--border] p-0">
-      {shimmer && (
+    <article
+      className="relative overflow-hidden bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 hover:border-[var(--accent)] transition-colors"
+      aria-label={`${
+        pr.movement_name
+      } personal record: ${pr.best_1rm_kg.toFixed(1)} kg`}
+    >
+      {/* TODAY ribbon */}
+      {isToday && (
         <div
-          className="shimmer-overlay absolute inset-0 rounded-lg pointer-events-none z-10"
-          style={{
-            background:
-              "linear-gradient(135deg, rgba(210,153,34,0.15) 0%, transparent 60%)",
-            animation: "shimmer-fade 2s 0.3s ease-out forwards",
-          }}
-          onAnimationEnd={() => setShimmer(false)}
-        />
-      )}
-      <Collapsible open={open} onOpenChange={setOpen}>
-        <CollapsibleTrigger
-          className="w-full text-left p-4 cursor-pointer focus-visible:ring-2 focus-visible:ring-[--accent] focus-visible:outline-none rounded-lg min-h-[44px]"
-          aria-label={`${pr.movement_name} personal record, ${value}`}
+          className="absolute top-[13px] right-[-32px] rotate-45 text-[#0A0D12] text-[9px] font-extrabold tracking-[1.5px] py-[3px] px-9"
+          style={{ background: "var(--accent)" }}
+          aria-label="Set today"
         >
-          <div className="flex items-center gap-2 mb-1 overflow-hidden">
-            <span
-              aria-hidden="true"
-              className="inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10px] text-[--muted] border border-[--border] bg-[--surface] shrink-0 truncate max-w-full"
-            >
-              tag&nbsp;{slug}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm font-medium text-[--text]">
-              {pr.movement_name}
-            </span>
-            {benchmark && <BenchmarkBadge />}
-          </div>
-          <hr className="border-[--border] mb-2" />
-          <div className="flex items-end justify-between gap-2">
-            <div>
-              <span className="text-2xl font-bold font-mono text-[--text]">
-                {value}
-              </span>
-              <PRProjection
-                points={sortedPoints}
-                currentBestKg={pr.best_1rm_kg}
-              />
-            </div>
-            <div className="flex flex-col items-end gap-0.5 shrink-0">
-              <span
-                className="text-xs font-mono text-[--muted]"
-                title={pr.achieved_at}
-              >
-                {formatDate(pr.achieved_at)}
-              </span>
-              {deltaNode}
-            </div>
-          </div>
-          <div className="flex justify-end mt-1">
-            <ChevronDown
-              className={`h-4 w-4 text-[--muted] transition-transform duration-200 ${
-                open ? "rotate-180" : ""
-              }`}
-            />
-          </div>
-        </CollapsibleTrigger>
+          TODAY
+        </div>
+      )}
 
-        <CollapsibleContent>
-          <div className="px-4 pb-4 space-y-3">
-            <div>
-              <p className="text-xs text-[--muted] font-mono mb-1">
-                PR progression
-              </p>
-              <PRSparkline points={sortedPoints} />
-            </div>
+      {/* Category pill */}
+      <div className="flex items-center justify-between mb-3">
+        <span
+          className="inline-flex items-center gap-1.5 text-[11px] font-semibold rounded-full px-2 py-0.5"
+          style={{
+            background: `${catColor}1a`,
+            color: catColor,
+            border: `1px solid ${catColor}40`,
+          }}
+        >
+          {category}
+        </span>
+        {isRecent && !isToday && (
+          <span
+            className="text-[10px] font-bold tracking-wide rounded-full px-2 py-0.5 animate-popIn"
+            style={{
+              background: "rgba(255,200,61,0.14)",
+              color: "var(--gold)",
+              border: "1px solid rgba(255,200,61,0.3)",
+            }}
+          >
+            NEW PR
+          </span>
+        )}
+        {isToday && (
+          <span
+            className="text-[10px] font-bold tracking-wide rounded-full px-2 py-0.5 animate-popIn"
+            style={{
+              background: "rgba(255,200,61,0.14)",
+              color: "var(--gold)",
+              border: "1px solid rgba(255,200,61,0.3)",
+            }}
+          >
+            NEW PR
+          </span>
+        )}
+      </div>
 
-            {sortedPoints.length > 0 && (
-              <div>
-                <p className="text-xs text-[--muted] font-mono mb-1">
-                  PR history
-                </p>
-                <table className="w-full text-xs font-mono">
-                  <thead>
-                    <tr>
-                      <th
-                        scope="col"
-                        className="text-left text-[--muted] font-normal pb-1"
-                      >
-                        Date
-                      </th>
-                      <th
-                        scope="col"
-                        className="text-left text-[--muted] font-normal pb-1"
-                      >
-                        Value
-                      </th>
-                      <th
-                        scope="col"
-                        className="text-left text-[--muted] font-normal pb-1"
-                      >
-                        Change
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedPoints.map((pt, idx) => {
-                      const isCurrent = idx === sortedPoints.length - 1;
-                      const prevKg =
-                        idx > 0
-                          ? sortedPoints[idx - 1]!.estimated_1rm_kg
-                          : null;
-                      const delta =
-                        prevKg !== null ? pt.estimated_1rm_kg - prevKg : null;
-                      return (
-                        <tr key={`${pt.day}-${idx}`}>
-                          <td className="text-[--muted] pr-3 py-0.5">
-                            {formatDate(pt.day)}
-                          </td>
-                          <td className="text-[--text] pr-3 py-0.5">
-                            {pt.estimated_1rm_kg.toFixed(1)} kg
-                          </td>
-                          <td className="py-0.5">
-                            {delta === null ? (
-                              <span className="text-[--muted]">
-                                First logged
-                              </span>
-                            ) : delta > 0.01 ? (
-                              <span className="text-[--green]">
-                                ▲ +{delta.toFixed(1)} kg
-                              </span>
-                            ) : delta < -0.01 ? (
-                              <span className="text-[--red]">
-                                ▼ {Math.abs(delta).toFixed(1)} kg
-                              </span>
-                            ) : null}
-                            {isCurrent && (
-                              <span className="text-[--muted] italic ml-1">
-                                ← current
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-    </Card>
+      {/* Movement name */}
+      <p className="text-[14px] font-semibold text-[var(--foreground)] mb-1 truncate">
+        {pr.movement_name}
+      </p>
+
+      {/* Hero number */}
+      <p
+        className="font-heading leading-none mb-3"
+        style={{ fontSize: "42px", color: "var(--gold)" }}
+      >
+        {pr.best_1rm_kg.toFixed(1)}
+        <span className="text-[20px] ml-1.5 text-[var(--muted)]">kg</span>
+      </p>
+
+      {/* Improvement + date row */}
+      <div className="flex items-center justify-between mb-3">
+        {improvement ? (
+          <span className="text-[12px] font-semibold text-[var(--accent)]">
+            {improvement}
+          </span>
+        ) : (
+          <span className="text-[12px] text-[var(--muted)]">First PR</span>
+        )}
+        <span className="text-[12px] text-[var(--muted)]">{dateLabel}</span>
+      </div>
+
+      {/* SVG sparkline */}
+      {sparklinePts && (
+        <svg
+          width="100%"
+          height="34"
+          viewBox="0 0 120 34"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          className="opacity-70"
+        >
+          <polyline
+            points={sparklinePts}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+    </article>
   );
 }

@@ -7,6 +7,7 @@ import { MessageBubble } from "./MessageBubble";
 import type { Message } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { StarterPrompts } from "./StarterPrompts";
+import { SuggestionPills } from "./SuggestionPills";
 import { ChatInput } from "./ChatInput";
 import { api } from "@/lib/api/client";
 
@@ -293,6 +294,15 @@ export function ChatPanel({
   const showTypingDots =
     isStreaming && !messages.some((m) => m.streaming && m.content.length > 0);
 
+  // Show suggestion pills when chat is empty or after the last AI response
+  const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+  const showSuggestionsAfterResponse =
+    hasMessages &&
+    !isStreaming &&
+    lastMsg?.role === "assistant" &&
+    !lastMsg.streaming &&
+    !lastMsg.error;
+
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Accessibility live region */}
@@ -329,17 +339,17 @@ export function ChatPanel({
             {historyLoading ? (
               <div className="flex flex-col gap-3">
                 <div className="self-start w-[55%]">
-                  <Skeleton className="h-14 rounded-r-lg rounded-bl-lg bg-[#161b22]" />
+                  <Skeleton className="h-14 rounded-[4px_16px_16px_16px] bg-[var(--surface-2)]" />
                 </div>
                 <div className="self-end w-[40%]">
-                  <Skeleton className="h-10 rounded-l-lg rounded-br-lg bg-[#161b22]/60" />
+                  <Skeleton className="h-10 rounded-[16px_4px_16px_16px] bg-[var(--surface-2)]/60" />
                 </div>
                 <div className="self-start w-[65%]">
-                  <Skeleton className="h-20 rounded-r-lg rounded-bl-lg bg-[#161b22]" />
+                  <Skeleton className="h-20 rounded-[4px_16px_16px_16px] bg-[var(--surface-2)]" />
                 </div>
               </div>
             ) : !hasMessages ? (
-              <StarterPrompts onSelect={(p) => setInput(p)} />
+              <StarterPrompts />
             ) : (
               messages.map((msg) => (
                 <MessageBubble
@@ -362,12 +372,17 @@ export function ChatPanel({
               messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
               setShowScrollPill(false);
             }}
-            className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-[#58a6ff] px-3 py-1 font-mono text-xs text-[#0d1117] shadow-lg"
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--blue)] px-3 py-1 font-mono text-xs text-[#0A0D12] shadow-lg"
           >
             ↓ new message
           </button>
         )}
       </section>
+
+      {/* Suggestion pills — shown in empty state and after each AI response */}
+      {(!hasMessages || showSuggestionsAfterResponse) && (
+        <SuggestionPills onSelect={(p) => setInput(p)} />
+      )}
 
       <ChatInput
         value={input}

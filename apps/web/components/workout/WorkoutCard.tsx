@@ -119,7 +119,7 @@ export function WorkoutCard({
             >
               ◉
             </span>
-            <span className="font-mono text-xs text-[--muted-strong]">
+            <span className="font-data text-[12px] text-[var(--gold)] font-semibold">
               <span className="sr-only">Workout ID: </span>
               {workout.short_hash}
             </span>
@@ -396,23 +396,23 @@ function ExpandedContent({
         </p>
       )}
 
-      {/* Footer: git show + links */}
+      {/* Footer: git show + action buttons */}
       <div className="flex items-center justify-between pt-2 border-t border-[#30363d]">
-        <span className="font-mono text-xs text-[#8b949e]">
+        <span className="font-data text-xs text-[var(--muted-foreground)]">
           git show {summary.short_hash}
         </span>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <Link
             href={`/history/${summary.id}`}
-            className="text-xs text-[#58a6ff] hover:underline font-mono"
+            className="flex items-center gap-1 text-[12px] font-semibold bg-[var(--surface-2)] border border-[var(--border)] text-[var(--foreground)] px-[13px] py-2 rounded-[9px] hover:border-[var(--muted-foreground)] transition-colors"
           >
-            Edit →
+            ✎ Edit
           </Link>
           <Link
             href={`/history/${summary.id}`}
-            className="text-xs text-[#8b949e] hover:text-[#e6edf3] font-mono"
+            className="flex items-center gap-1 text-[12px] font-bold bg-[rgba(74,222,128,0.12)] border border-[rgba(74,222,128,0.3)] text-[var(--accent)] px-[13px] py-2 rounded-[9px] hover:bg-[rgba(74,222,128,0.2)] transition-colors"
           >
-            Full page →
+            View full detail →
           </Link>
         </div>
       </div>

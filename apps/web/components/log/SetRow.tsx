@@ -27,7 +27,7 @@ interface SetRowProps {
 }
 
 const INPUT_CLS =
-  "h-9 bg-[#0d1117] border-[#30363d] text-[#e6edf3] font-mono text-sm placeholder:text-[#8b949e]";
+  "h-9 bg-[var(--background)] border-[var(--border)] text-[var(--foreground)] font-data text-sm placeholder:text-[var(--muted-foreground)]";
 
 export function SetRow({
   setNumber,
@@ -56,7 +56,7 @@ export function SetRow({
 
   return (
     <div className="grid grid-cols-[2rem_1fr_1fr_3rem_auto] gap-2 items-center">
-      <span className="font-mono text-xs text-[#8b949e] text-right">
+      <span className="font-data text-xs text-[var(--muted-foreground)] text-right">
         #{setNumber}
       </span>
       <div className="relative">
@@ -71,7 +71,7 @@ export function SetRow({
           onChange={(e) => onLoadChange(e.target.value)}
           className={`${INPUT_CLS} pr-8`}
         />
-        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-[#8b949e]">
+        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-data text-xs text-[var(--muted-foreground)]">
           {weightUnit}
         </span>
       </div>

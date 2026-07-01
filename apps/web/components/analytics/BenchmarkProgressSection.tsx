@@ -55,11 +55,18 @@ export function BenchmarkProgressSection({ data, className }: Props) {
   return (
     <div
       className={cn(
-        "rounded-lg border border-[--border] bg-[--surface] p-4 space-y-3",
+        "bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 space-y-3",
         className,
       )}
     >
-      <p className="text-sm font-medium text-[--text]">Named workouts</p>
+      <div>
+        <p className="text-[15px] font-bold text-[var(--foreground)]">
+          Benchmark WODs
+        </p>
+        <p className="text-[12px] text-[var(--muted-foreground)]">
+          The girls &amp; heroes — your standardised test scores
+        </p>
+      </div>
 
       {data === null || data.benchmarks.length === 0 ? (
         <div className="py-4 text-center space-y-2">
@@ -82,11 +89,11 @@ export function BenchmarkProgressSection({ data, className }: Props) {
           {data.benchmarks.map((b) => (
             <li key={b.name}>
               <div className="flex items-baseline justify-between gap-2 mb-1">
-                <span className="text-sm font-medium text-[--text]">
+                <span className="text-sm font-medium text-[var(--foreground)]">
                   {b.name}
                 </span>
-                <span className="font-mono text-xs text-[--muted]">
-                  {b.attempts[0]?.result_display} → {b.pr_display}
+                <span className="font-data text-xs text-[var(--gold)]">
+                  {b.pr_display}
                 </span>
               </div>
               {b.improvement_display && (

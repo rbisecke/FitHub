@@ -20,13 +20,18 @@ export function PRSummaryStrip({ records, className }: Props) {
   return (
     <div
       className={cn(
-        "rounded-lg border border-[--border] bg-[--surface] p-4 space-y-2",
+        "bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 space-y-2",
         className,
       )}
     >
-      <p className="text-sm font-medium text-[--text]">
-        Recent personal records
-      </p>
+      <div>
+        <p className="text-[15px] font-bold text-[var(--foreground)]">
+          Recent PRs
+        </p>
+        <p className="text-[12px] text-[var(--muted-foreground)]">
+          latest tagged releases
+        </p>
+      </div>
 
       {top.length === 0 ? (
         <p className="text-xs text-[--muted]">
@@ -43,7 +48,7 @@ export function PRSummaryStrip({ records, className }: Props) {
                 <span className="text-sm text-[--text] group-hover:text-[--accent] transition-colors truncate">
                   {pr.movement_name}
                 </span>
-                <span className="font-mono text-xs text-[--muted] flex-shrink-0">
+                <span className="font-data text-xs text-[var(--gold)] flex-shrink-0">
                   {Number(pr.best_1rm_kg).toFixed(1)} kg ·{" "}
                   {formatDate(pr.achieved_at)}
                 </span>

@@ -196,9 +196,11 @@ export function MovementRow({
   const cardioFieldPrefix = `movement_entries.${index}.sets.0`;
 
   return (
-    <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-4 space-y-3">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 space-y-3">
       <div className="flex items-center gap-2">
-        <span className="font-mono text-xs text-[#8b949e]">#{index + 1}</span>
+        <span className="font-data text-xs text-[var(--muted-foreground)]">
+          #{index + 1}
+        </span>
         <div className="flex-1">
           <MovementSearch
             accessToken={accessToken}
@@ -210,7 +212,7 @@ export function MovementRow({
           type="button"
           onClick={() => remove(index)}
           aria-label={`Remove ${selectedName ?? "movement"} row`}
-          className="ml-1 min-h-[44px] min-w-[44px] flex items-center justify-center text-[#8b949e] hover:text-[#e6edf3] transition-colors text-xl leading-none"
+          className="ml-1 min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors text-xl leading-none"
         >
           ×
         </button>
@@ -235,7 +237,9 @@ export function MovementRow({
         </div>
       ) : (
         <div>
-          <p className="text-xs text-[#8b949e] mb-1.5">Result</p>
+          <p className="text-xs text-[var(--muted-foreground)] mb-1.5">
+            Result
+          </p>
           <ResultFields
             index={index}
             resultType={resultType}

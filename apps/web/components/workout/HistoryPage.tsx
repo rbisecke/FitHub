@@ -4,15 +4,13 @@ import { useState, useMemo } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/ui/page-header";
+import { FilterBar } from "@/components/history/FilterBar";
+import { DateGroupHeader } from "@/components/history/DateGroupHeader";
 import { WorkoutCard } from "./WorkoutCard";
 import { WorkoutCardSkeleton } from "./WorkoutCardSkeleton";
-import { DateSeparator } from "./DateSeparator";
 import {
-  HistoryControls,
   DEFAULT_FILTERS,
   isFilterActive,
   type HistoryFilters,
@@ -28,6 +26,7 @@ function isTagEntry(item: WorkoutSummary): boolean {
 function applyClientFilters(
   items: WorkoutSummary[],
   filters: HistoryFilters,
+  movementFilter: string | null,
 ): WorkoutSummary[] {
   return items.filter((item) => {
     if (filters.sessionType && item.session_type !== filters.sessionType)
@@ -49,6 +48,12 @@ function applyClientFilters(
       return false;
     if (filters.tagsFilter === "tags-only" && !isTagEntry(item)) return false;
     if (filters.tagsFilter === "no-tags" && isTagEntry(item)) return false;
+    if (
+      movementFilter &&
+      (item.title?.toLowerCase().indexOf(movementFilter.toLowerCase()) ??
+        -1) === -1
+    )
+      return false;
     return true;
   });
 }
@@ -88,13 +93,14 @@ export function HistoryPage({
   const [allLoaded, setAllLoaded] = useState(!initialNextCursor);
   const [filters, setFilters] = useState<HistoryFilters>(DEFAULT_FILTERS);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [movementFilter, setMovementFilter] = useState<string | null>(null);
 
   const prefersReduced = useReducedMotion();
-  const filtersActive = isFilterActive(filters);
+  const filtersActive = isFilterActive(filters) || !!movementFilter;
 
   const displayedItems = useMemo(
-    () => applyClientFilters(items, filters),
-    [items, filters],
+    () => applyClientFilters(items, filters, movementFilter),
+    [items, filters, movementFilter],
   );
 
   const groups = useMemo(() => groupByDate(displayedItems), [displayedItems]);
@@ -121,8 +127,8 @@ export function HistoryPage({
     setExpandedId((prev) => (prev === id ? null : id));
   }
 
-  function handleMovementFilter() {
-    // Movement filter deferred pending backend support (no movement_names[] in WorkoutSummary yet)
+  function handleMovementFilter(m: { id: string; name: string }) {
+    setMovementFilter(m.name);
     setExpandedId(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -132,91 +138,76 @@ export function HistoryPage({
   const isEmptyDueToFilter = isEmpty && filtersActive;
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      {/* Heading row: h1 + mobile-only filter trigger */}
-      <div className="flex items-start justify-between gap-3 mb-1">
-        <h1
-          className="text-xl font-semibold text-[#e6edf3] whitespace-nowrap"
-          aria-label="$ git log"
-        >
-          <span
-            aria-hidden="true"
-            className="font-mono text-[#8b949e] mr-2 text-sm"
-          >
-            $
-          </span>
-          git log
-        </h1>
-        {/* Mobile trigger only — desktop row is below the subtitle */}
-        <HistoryControls
-          filters={filters}
-          onFiltersChange={setFilters}
-          onClear={() => setFilters(DEFAULT_FILTERS)}
-          showDesktopRow={false}
-        />
-      </div>
-      <p className="text-xs font-mono text-[#8b949e] mb-3">
-        Your workout history
-      </p>
-      {/* Desktop filter row — full-width below subtitle, hidden on mobile */}
-      <div className="hidden md:block mb-6">
-        <HistoryControls
-          filters={filters}
-          onFiltersChange={setFilters}
-          onClear={() => setFilters(DEFAULT_FILTERS)}
-          showMobileTrigger={false}
-        />
-      </div>
+    <div className="p-6 max-w-2xl mx-auto pb-nav-safe">
+      {/* Page header */}
+      <PageHeader
+        gitCommand="$ git log --all --graph"
+        title="History"
+        sub="Every session you've ever committed — newest first. Tap a commit to expand it."
+      />
+
+      {/* Filter bar — pills + advanced panel */}
+      <FilterBar
+        filters={filters}
+        onFiltersChange={setFilters}
+        onClear={() => setFilters(DEFAULT_FILTERS)}
+        movementFilter={movementFilter}
+        onClearMovementFilter={() => setMovementFilter(null)}
+      />
 
       {/* Empty: clean slate */}
       {isEmptyCleanSlate && (
-        <div className="py-24 flex flex-col items-center gap-4 text-center">
-          <p className="text-[#8b949e] font-mono text-sm">
-            Your commit history is empty.
+        <div className="bg-[var(--card)] border border-dashed border-[var(--border)] rounded-2xl p-[42px] text-center animate-fadeUp">
+          <div className="text-[30px] opacity-40 mb-3">🌱</div>
+          <p className="font-heading text-xl text-[var(--foreground)] mb-2">
+            No commits yet
           </p>
-          <p className="text-[#8b949e] font-mono text-sm">
-            Log your first workout to start building your repo.
+          <p className="text-sm text-[var(--muted-foreground)] mb-6">
+            Every workout you log becomes a commit in your fitness repository.
           </p>
           <Link
             href="/log/new"
-            className={cn(
-              buttonVariants({ variant: "outline" }),
-              "font-mono border-[#30363d] text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3]",
-            )}
+            className="inline-flex items-center gap-2 bg-[rgba(74,222,128,0.15)] border border-[rgba(74,222,128,0.4)] text-[var(--accent)] font-semibold text-sm px-4 py-2.5 rounded-lg hover:bg-[rgba(74,222,128,0.25)] transition-colors"
           >
-            git commit --fit
+            Track your first workout
           </Link>
         </div>
       )}
 
       {/* Empty: filter has no results */}
       {isEmptyDueToFilter && (
-        <div className="py-24 flex flex-col items-center gap-4 text-center">
-          <p className="text-[#8b949e] font-mono text-sm">
-            No workouts match this filter.
+        <div className="bg-[var(--card)] border border-dashed border-[var(--border)] rounded-2xl p-[42px] text-center animate-fadeUp">
+          <div className="text-[30px] opacity-40 mb-3 select-none">∅</div>
+          <p className="font-bold text-[14px] text-[var(--foreground)] mb-2">
+            No commits match these filters
           </p>
-          <p className="text-[#8b949e] font-mono text-sm">
-            Broaden your search or clear the filter.
+          <p className="text-sm text-[var(--muted-foreground)] mb-6">
+            Try widening the date range or clearing a filter.
           </p>
-          <Button
-            variant="outline"
-            onClick={() => setFilters(DEFAULT_FILTERS)}
-            className="font-mono border-[#30363d] text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3]"
+          <button
+            onClick={() => {
+              setFilters(DEFAULT_FILTERS);
+              setMovementFilter(null);
+            }}
+            className="inline-flex items-center gap-2 bg-[rgba(74,222,128,0.15)] border border-[rgba(74,222,128,0.4)] text-[var(--accent)] font-semibold text-sm px-4 py-2.5 rounded-lg hover:bg-[rgba(74,222,128,0.25)] transition-colors"
           >
-            Clear filter
-          </Button>
+            Clear filters
+          </button>
         </div>
       )}
 
       {/* Feed */}
       {!isEmpty && (
-        <div className="space-y-6">
+        <div>
           {(() => {
             let cardIndex = 0;
             return groups.map((group) => (
               <div key={group.date}>
-                <DateSeparator date={group.date} />
-                <div className="space-y-3">
+                <DateGroupHeader
+                  date={group.date}
+                  count={group.workouts.length}
+                />
+                <div>
                   {group.workouts.map((workout) => {
                     const thisIndex = cardIndex++;
                     return (
@@ -243,45 +234,53 @@ export function HistoryPage({
               </div>
             ));
           })()}
-        </div>
-      )}
 
-      {/* Skeleton cards during load-more */}
-      {loadingMore && (
-        <div className="space-y-3 mt-6">
-          {Array.from({ length: 3 }, (_, i) => (
-            <WorkoutCardSkeleton key={i} />
-          ))}
-        </div>
-      )}
+          {/* Skeleton cards during load-more */}
+          {loadingMore && (
+            <div className="mt-2">
+              {Array.from({ length: 3 }, (_, i) => (
+                <WorkoutCardSkeleton key={i} />
+              ))}
+            </div>
+          )}
 
-      {/* Load more — hidden when filters active (client-side filters don't interact well with pagination) */}
-      {!filtersActive && !allLoaded && (
-        <div className="mt-8 flex justify-center">
-          <Button
-            variant="outline"
-            onClick={loadMore}
-            disabled={loadingMore}
-            className="font-mono text-sm text-[#8b949e] border-[#30363d] hover:border-[#58a6ff]/40 hover:text-[#e6edf3]"
-          >
-            {loadingMore ? (
-              <>
-                <Loader2 className="animate-spin h-3 w-3 mr-2" />
-                Loading…
-              </>
-            ) : (
-              "Load more workouts ↓"
-            )}
-          </Button>
-        </div>
-      )}
+          {/* Load more */}
+          {!filtersActive && !allLoaded && !loadingMore && (
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 text-xs font-data text-[var(--muted-foreground)] border border-[var(--border)] rounded-lg px-4 py-2 hover:border-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+              >
+                <Loader2 className="h-3 w-3" />
+                Load more commits ↓
+              </button>
+            </div>
+          )}
 
-      {/* Note when filters are active and limiting load-more */}
-      {filtersActive && !isEmpty && (
-        <p className="mt-6 text-center text-xs font-mono text-[#8b949e]">
-          Filtering over {items.length} loaded workout
-          {items.length !== 1 ? "s" : ""}
-        </p>
+          {/* End-of-history marker */}
+          {allLoaded && !filtersActive && (
+            <div className="flex items-stretch gap-0 mt-4">
+              <div className="w-[38px] flex-shrink-0 flex justify-center relative">
+                <div className="absolute top-0 h-4 w-0.5 bg-[var(--border)]" />
+                <div className="mt-4 z-10 w-[9px] h-[9px] rounded-full border-2 border-[var(--border)] bg-[var(--background)]" />
+              </div>
+              <div className="flex-1 min-w-0 mt-[18px] pb-4">
+                <p className="text-[11.5px] text-[var(--muted-foreground)] font-data">
+                  root commit · the beginning of your journey
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Note when filters are active */}
+          {filtersActive && !isEmpty && (
+            <p className="mt-6 text-center text-xs font-data text-[var(--muted-foreground)]">
+              Filtering over {items.length} loaded commit
+              {items.length !== 1 ? "s" : ""}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

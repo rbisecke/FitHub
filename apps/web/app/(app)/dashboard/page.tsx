@@ -1,30 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { api } from "@/lib/api/client";
-import type {
-  PersonalRecord,
-  TrainingPartner,
-  WorkoutSummary,
-} from "@/lib/api";
+import type { PersonalRecord, WorkoutSummary } from "@/lib/api";
 import type { ReadinessResponse } from "@/lib/api";
 
-import { readinessSentence } from "@/lib/dashboard/readinessSentence";
-import { streakCalc } from "@/lib/dashboard/streakCalc";
 import { prDelta } from "@/lib/dashboard/prDelta";
 
-import { HeroBlock } from "@/components/dashboard/HeroBlock";
-import { StreakWidget } from "@/components/dashboard/StreakWidget";
-import { WeekMiniGraph } from "@/components/dashboard/WeekMiniGraph";
+import { PageHeader } from "@/components/ui/page-header";
 import { ContributionGraphRevamp } from "@/components/dashboard/ContributionGraphRevamp";
-import { RecentPRsStrip } from "@/components/dashboard/RecentPRsStrip";
-import { TrainingPartnersSummary } from "@/components/dashboard/TrainingPartnersSummary";
 import { OnboardingToast } from "@/components/onboarding/OnboardingToast";
+import { StatGrid } from "@/components/dashboard/StatGrid";
+import { TerminalWidget } from "@/components/dashboard/TerminalWidget";
+import { RecentCommitsFeed } from "@/components/dashboard/RecentCommitsFeed";
+import { OpenPRsWidget } from "@/components/dashboard/OpenPRsWidget";
+import { CoachPreviewCard } from "@/components/dashboard/CoachPreviewCard";
+import { QuickCommitWidget } from "@/components/dashboard/QuickCommitWidget";
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ pr?: string }>;
-}) {
+export default async function DashboardPage() {
   const supabase = await createClient();
   const {
     data: { session },
@@ -33,10 +25,9 @@ export default async function DashboardPage({
 
   const token = session.access_token;
 
-  const [workoutRes, partnersRes, prRes, readinessRes, profileRes] =
+  const [workoutRes, prRes, readinessRes, profileRes] =
     await Promise.allSettled([
       api.workouts.list(token, { limit: 365 }),
-      api.trainingPartners(token),
       api.analytics.personalRecords(token),
       api.analytics.readiness(token),
       api.profile.get(token),
@@ -44,70 +35,106 @@ export default async function DashboardPage({
 
   const workouts: WorkoutSummary[] =
     workoutRes.status === "fulfilled" ? workoutRes.value.items : [];
-  const partners: TrainingPartner[] =
-    partnersRes.status === "fulfilled" ? partnersRes.value : [];
   const prs: PersonalRecord[] = prRes.status === "fulfilled" ? prRes.value : [];
   const readiness: ReadinessResponse | null =
     readinessRes.status === "fulfilled" ? readinessRes.value : null;
 
-  const streak = streakCalc(workouts);
-  const sentence = readinessSentence(readiness, streak.isComeback);
-  const readinessLabel = readiness?.label ?? "unknown";
-  const recentPRs = prDelta(prs);
   const showOnboardingToast =
     profileRes.status === "fulfilled" && !profileRes.value.onboarding_completed;
 
-  const params = await searchParams;
-  const isNewPR = params.pr === "1";
+  // ── Stat grid data ────────────────────────────────────────────────────────
+  const today = new Date().toLocaleDateString("en-CA");
+  const hasWorkoutToday = workouts.some(
+    (w) => new Date(w.performed_at).toLocaleDateString("en-CA") === today,
+  );
+
+  const tsbValue = readiness ? Math.round(readiness.tsb) : 0;
+  const fitnessValue = readiness ? Math.round(readiness.score * 100) : 0;
+  const acwrDisplay =
+    readiness?.acwr != null ? Math.round(readiness.acwr * 100) : "—";
+
+  const stats = [
+    {
+      label: "Status",
+      value: hasWorkoutToday ? "Active" : "Day off",
+      sub: new Date().toLocaleDateString("en-US", { weekday: "long" }),
+    },
+    {
+      label: "Fitness",
+      value: fitnessValue,
+      sub: "readiness score",
+    },
+    {
+      label: "Fatigue",
+      value: acwrDisplay,
+      sub: "acute workload ratio",
+    },
+    {
+      label: "Form",
+      value: tsbValue,
+      sub: "training stress balance",
+      valueColor: (tsbValue < 0 ? "hot" : "accent") as "hot" | "accent",
+    },
+  ];
+
+  // ── Terminal widget commits ───────────────────────────────────────────────
+  const terminalCommits = workouts.slice(0, 5).map((w) => ({
+    hash: w.short_hash,
+    message: w.title ?? (w.session_type ? w.session_type : "session"),
+  }));
+
+  // ── Recent commits feed ───────────────────────────────────────────────────
+  const nowMs = new Date().getTime();
+  const feedCommits = workouts.slice(0, 8).map((w) => {
+    const diffMs = nowMs - new Date(w.performed_at).getTime();
+    const diffD = Math.floor(diffMs / 86_400_000);
+    const diffH = Math.round(diffMs / 3_600_000);
+    const relTime = diffD >= 1 ? `${diffD}d ago` : `${diffH}h ago`;
+    return {
+      hash: w.short_hash,
+      title: w.title ?? "Untitled session",
+      sessionType: w.session_type ?? "mixed",
+      relTime,
+    };
+  });
+
+  // ── Open PRs widget ───────────────────────────────────────────────────────
+  const recentPRs = prDelta(prs);
+  const prItems = recentPRs.map((pr) => ({
+    category: "PR",
+    name: pr.movementName,
+    value: Number.isInteger(pr.bestKg)
+      ? `${pr.bestKg}kg`
+      : `${pr.bestKg.toFixed(1)}kg`,
+    improvement:
+      pr.deltaKg != null && pr.deltaKg > 0 ? `▲ +${pr.deltaKg}kg` : undefined,
+  }));
 
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto">
-      <header className="mb-6">
-        <p className="font-mono text-xs text-[--muted] mb-1">$ fithub status</p>
-        <h1 className="text-2xl font-bold text-[--text]">Dashboard</h1>
-      </header>
-
-      <HeroBlock
-        sentence={sentence}
-        readinessLabel={readinessLabel}
-        isComeback={streak.isComeback}
-      />
-
-      {/* Mobile: stack vertically. Desktop (lg:): two-column grid */}
-      <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-6">
-        {/* Left column — streak, week, partners */}
-        <aside className="flex flex-col gap-3 mb-6 lg:mb-0">
-          {/* Mobile: streak + week side-by-side */}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-            <StreakWidget streak={streak} />
-            <WeekMiniGraph
-              workouts={workouts}
-              frequencyTarget={streak.frequencyTarget}
-            />
-          </div>
-
-          {partners.length > 0 && (
-            <div className="hidden md:block">
-              <TrainingPartnersSummary partners={partners} />
-            </div>
-          )}
-        </aside>
-
-        {/* Right column — contribution graph */}
-        <section>
-          <ContributionGraphRevamp workouts={workouts} />
-        </section>
+    <div className="p-4 md:p-6 max-w-[1200px] mx-auto">
+      <div className="animate-fadeUp">
+        <PageHeader gitCommand="$ git log --oneline" title="Dashboard" />
       </div>
 
-      {/* Recent PRs — full width below the grid */}
-      <RecentPRsStrip prs={recentPRs} isNewPR={isNewPR} />
+      <div className="animate-fadeUp">
+        <StatGrid stats={stats} />
+      </div>
 
-      {/* Training partners on mobile (low priority, after PRs) */}
-      {partners.length > 0 && (
-        <div className="mt-4 md:hidden">
-          <TrainingPartnersSummary partners={partners} />
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_340px] gap-[18px] animate-fadeUp">
+        {/* Left column */}
+        <div className="space-y-[18px]">
+          <ContributionGraphRevamp workouts={workouts} />
+          <TerminalWidget commits={terminalCommits} />
+          <RecentCommitsFeed commits={feedCommits} />
         </div>
-      )}
+
+        {/* Right sidebar */}
+        <div className="space-y-[18px]">
+          <OpenPRsWidget prs={prItems} />
+          <CoachPreviewCard />
+          <QuickCommitWidget />
+        </div>
+      </div>
 
       {showOnboardingToast && <OnboardingToast />}
     </div>
