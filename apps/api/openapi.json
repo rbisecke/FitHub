@@ -2096,6 +2096,63 @@
         ]
       }
     },
+    "/api/v1/injuries/{injury_id}/status": {
+      "patch": {
+        "tags": [
+          "injuries"
+        ],
+        "summary": "Update Injury Status",
+        "operationId": "update_injury_status_api_v1_injuries__injury_id__status_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "injury_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Injury Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInjuryStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InjuryOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/team-sessions/role-suggestions": {
       "get": {
         "tags": [
@@ -4178,6 +4235,11 @@
             "type": "boolean",
             "title": "Active"
           },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "active"
+          },
           "requires_referral": {
             "type": "boolean",
             "title": "Requires Referral"
@@ -4221,6 +4283,34 @@
               }
             ],
             "title": "Resolved At"
+          },
+          "cleared_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cleared At"
+          },
+          "restriction_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restriction Notes"
+          },
+          "staleness_days": {
+            "type": "integer",
+            "title": "Staleness Days",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -4230,7 +4320,8 @@
           "body_region",
           "pain_level",
           "active",
-          "requires_referral"
+          "requires_referral",
+          "staleness_days"
         ],
         "title": "InjuryOut"
       },
@@ -7010,6 +7101,35 @@
           "most_common_format"
         ],
         "title": "TrainingPartner"
+      },
+      "UpdateInjuryStatusRequest": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "cleared_with_restrictions",
+              "resolved"
+            ],
+            "title": "Status"
+          },
+          "restriction_notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restriction Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "UpdateInjuryStatusRequest"
       },
       "UserProfile": {
         "properties": {
