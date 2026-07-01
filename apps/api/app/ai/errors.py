@@ -47,6 +47,14 @@ def _handle_llm_error(exc: Exception, context: str) -> None:
         log.warning("LLM timeout [%s]: %s", context, exc)
         raise HTTPException(status_code=504, detail="LLM request timed out") from exc
 
+    # Billing / credit exhaustion (Anthropic returns 400 with "credit balance" message)
+    if any(k in exc_str for k in ("credit balance", "billing", "insufficient_quota")):
+        log.warning("LLM billing error [%s]: %s", context, exc)
+        raise HTTPException(
+            status_code=503,
+            detail="AI coaching is temporarily unavailable. Please try again later.",
+        ) from exc
+
     # Rate limit / quota exhaustion
     if any(k in exc_str for k in ("rate", "429", "quota", "too many")):
         log.warning("LLM rate limited [%s]: %s", context, exc)

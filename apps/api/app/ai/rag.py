@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 from functools import lru_cache
 
@@ -16,6 +17,10 @@ def _embedder() -> SentenceTransformer:
     return SentenceTransformer(_EMBED_MODEL)
 
 
+def _encode_sync(query: str) -> list[float]:
+    return _embedder().encode(query).tolist()  # type: ignore[return-value]
+
+
 async def hybrid_retrieve(
     query: str, db: psycopg.AsyncConnection[object], top_k: int = 5
 ) -> list[dict[str, object]]:
@@ -24,7 +29,8 @@ async def hybrid_retrieve(
     Filters by embedding_model so queries never mix vectors from different
     model versions.
     """
-    q_vec = _embedder().encode(query).tolist()
+    loop = asyncio.get_running_loop()
+    q_vec = await loop.run_in_executor(None, _encode_sync, query)
 
     sql = """
     WITH vector_ranked AS (

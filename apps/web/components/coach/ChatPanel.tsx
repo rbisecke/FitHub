@@ -129,6 +129,7 @@ export function ChatPanel({
       : abortRef.current.signal;
 
     let firstToken = false;
+    let streamCompleted = false;
 
     try {
       const res = await fetch(`${BASE}/api/v1/coach/chat/stream`, {
@@ -180,7 +181,6 @@ export function ChatPanel({
           if (event.type === "token" && typeof event.text === "string") {
             if (!firstToken) {
               firstToken = true;
-              // Replace typing indicator with streaming bubble
             }
             setMessages((prev) =>
               prev.map((m) =>
@@ -215,6 +215,7 @@ export function ChatPanel({
                 ? "Coach flagged a medical concern."
                 : "Coach is unavailable. Try again.",
             );
+            streamCompleted = true;
             return;
           }
 
@@ -242,8 +243,25 @@ export function ChatPanel({
             } else {
               announce("Coach responded");
             }
+            streamCompleted = true;
           }
         }
+      }
+
+      // Stream closed without a done or error event — the server crashed mid-stream.
+      if (!streamCompleted) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId
+              ? { ...m, content: "", error: true, streaming: false }
+              : m,
+          ),
+        );
+        announce("Coach is unavailable. Try again.");
+        toast.error("Coach is unavailable", {
+          description: "Check your connection and try again.",
+          duration: 6000,
+        });
       }
     } catch (err) {
       const isAbort =

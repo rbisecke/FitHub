@@ -439,9 +439,16 @@ async def _do_stream(
     messages: list[dict[str, str]] = list(history) + [{"role": "user", "content": user_content}]
 
     full_answer: list[str] = []
-    async for token in stream_llm_tokens(messages, system_prompt):
-        full_answer.append(token)
-        yield sse_event({"type": "token", "text": token})
+    try:
+        async for token in stream_llm_tokens(messages, system_prompt):
+            full_answer.append(token)
+            yield sse_event({"type": "token", "text": token})
+    except Exception as exc:  # noqa: BLE001
+        log.exception("LLM stream error for user=%s: %s", user_id, exc)
+        yield sse_event(
+            {"type": "error", "message": "Coach is temporarily unavailable. Please try again."}
+        )
+        return
 
     answer_text = sanitize_answer("".join(full_answer))
 
