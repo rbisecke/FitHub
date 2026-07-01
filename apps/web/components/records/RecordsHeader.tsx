@@ -25,7 +25,7 @@ export function RecordsHeader({ viewMode, onToggle, totalCount }: Props) {
         <div
           role="group"
           aria-label="View mode"
-          className="flex rounded-[10px] bg-[var(--card)] border border-[var(--border)] p-[3px] gap-[2px] shrink-0"
+          className="hidden md:flex rounded-[10px] bg-[var(--card)] border border-[var(--border)] p-[3px] gap-[2px] shrink-0"
         >
           {(["current", "timeline"] as const).map((mode) => (
             <button
