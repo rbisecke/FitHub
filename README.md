@@ -32,19 +32,42 @@ The app is invite-only and in active development. Email [rbisecke@gmail.com](mai
 
 ## Screenshots
 
-_1280px desktop · dark git-developer aesthetic · Archivo Black headings · JetBrains Mono data_
+<p align="center"><em>1280 × 900 · dark git-developer aesthetic · Archivo Black headings · JetBrains Mono data</em></p>
 
-|                       Dashboard                       |                     Track                     |                       Log Result                        |
-| :---------------------------------------------------: | :-------------------------------------------: | :-----------------------------------------------------: |
-| ![Dashboard](screenshots/readme/revamp-dashboard.png) | ![Track](screenshots/readme/revamp-track.png) | ![Log Result](screenshots/readme/revamp-log-result.png) |
-
-|                     Coach                     |                     Plans                     |                       Analytics                       |
-| :-------------------------------------------: | :-------------------------------------------: | :---------------------------------------------------: |
-| ![Coach](screenshots/readme/revamp-coach.png) | ![Plans](screenshots/readme/revamp-plans.png) | ![Analytics](screenshots/readme/revamp-analytics.png) |
-
-|                      Records                      |                      History                      |                      Profile                      |
-| :-----------------------------------------------: | :-----------------------------------------------: | :-----------------------------------------------: |
-| ![Records](screenshots/readme/revamp-records.png) | ![History](screenshots/readme/revamp-history.png) | ![Profile](screenshots/readme/revamp-profile.png) |
+<table>
+  <tr>
+    <td><img src="screenshots/readme/revamp-dashboard.png" alt="Dashboard"></td>
+    <td><img src="screenshots/readme/revamp-history.png" alt="History"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><strong>Dashboard</strong></sub></td>
+    <td align="center"><sub><strong>History</strong> &mdash; <code>git log --all</code></sub></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/readme/revamp-log-result.png" alt="Log Result"></td>
+    <td><img src="screenshots/readme/revamp-coach.png" alt="AI Coach"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><strong>Log Result</strong> &mdash; <code>git commit -m</code></sub></td>
+    <td align="center"><sub><strong>AI Coach</strong> &mdash; streaming RAG chat</sub></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/readme/revamp-plans.png" alt="Plans"></td>
+    <td><img src="screenshots/readme/revamp-analytics.png" alt="Analytics"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><strong>Plans</strong> &mdash; <code>git branch --list</code></sub></td>
+    <td align="center"><sub><strong>Analytics</strong> &mdash; CTL / ATL / TSB</sub></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/readme/revamp-records.png" alt="Records"></td>
+    <td><img src="screenshots/readme/revamp-profile.png" alt="Profile"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><strong>Records</strong> &mdash; <code>git tag --list</code></sub></td>
+    <td align="center"><sub><strong>Profile</strong></sub></td>
+  </tr>
+</table>
 
 ---
 
