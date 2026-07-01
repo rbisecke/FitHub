@@ -76,12 +76,14 @@ export function MessageBubble({
     : msg.safetyTier === "stop"
       ? "border-l-2 border-[#d29922]"
       : isUser
-        ? "border border-[rgba(74,222,128,0.3)]"
+        ? ""
         : "border border-[var(--border)]";
 
-  const bgClass = isUser
-    ? "bg-[rgba(74,222,128,0.12)]"
-    : "bg-[var(--surface-2)]";
+  const bgClass = isUser ? "bg-[var(--accent)]" : "bg-[var(--surface-2)]";
+
+  const bubbleTextClass = isUser
+    ? "text-[#0d1117] font-medium"
+    : "text-[var(--foreground)]";
 
   const radiusClass = isUser
     ? "rounded-[16px_4px_16px_16px]"
@@ -103,7 +105,7 @@ export function MessageBubble({
 
       {/* Bubble */}
       <div
-        className={`px-3 py-2.5 text-sm text-[var(--foreground)] leading-relaxed ${bgClass} ${borderClass} ${radiusClass}`}
+        className={`px-3 py-2.5 text-sm leading-relaxed ${bgClass} ${borderClass} ${radiusClass} ${bubbleTextClass}`}
         data-testid={msg.role === "assistant" ? "chat-response" : undefined}
       >
         {msg.error ? (

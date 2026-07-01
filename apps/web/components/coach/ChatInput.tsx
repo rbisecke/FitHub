@@ -65,7 +65,7 @@ export function ChatInput({
   }, [value]);
 
   return (
-    <div className="shrink-0 px-[22px] py-3.5 pb-[calc(0.875rem+env(safe-area-inset-bottom))]">
+    <div className="shrink-0 px-[14px] pt-[10px] pb-[calc(14px+env(safe-area-inset-bottom))]">
       {/* Unified input container — matches mockup */}
       <div
         className="flex items-end gap-2.5 border border-[var(--border)]"

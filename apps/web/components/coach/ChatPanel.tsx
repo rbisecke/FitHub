@@ -335,7 +335,7 @@ export function ChatPanel({
             setShowScrollPill(!nearBottom);
           }}
         >
-          <div className="flex flex-col gap-3 px-4 py-4">
+          <div className="flex flex-col gap-[13px] px-[16px] py-[16px]">
             {historyLoading ? (
               <div className="flex flex-col gap-3">
                 <div className="self-start w-[55%]">
