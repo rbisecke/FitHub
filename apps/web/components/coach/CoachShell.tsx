@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, LayoutList } from "lucide-react";
+import { Plus } from "lucide-react";
 import { api } from "@/lib/api/client";
 import type { CoachSession } from "@/lib/api";
 import { SessionList } from "./SessionList";
@@ -86,33 +86,6 @@ export function CoachShell({
       <div className="flex flex-1 flex-col min-w-0 h-full">
         {/* Coach identity header — always visible */}
         <CoachHeader />
-
-        {/* Mobile session action bar — sits below CoachHeader */}
-        <div className="md:hidden flex items-center justify-between px-3 py-1.5 border-b border-[var(--border)] bg-[var(--background)] shrink-0">
-          <span className="font-mono text-[10px] text-[var(--muted-foreground)]">
-            {activeSessionId
-              ? sessions
-                  .find((s) => s.id === activeSessionId)
-                  ?.title?.slice(0, 32) ?? "session"
-              : "new session"}
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={handleNewSession}
-              aria-label="New session"
-              className="flex h-11 w-11 items-center justify-center rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-colors"
-            >
-              <Plus size={14} aria-hidden />
-            </button>
-            <button
-              onClick={() => setDrawerOpen(true)}
-              aria-label="View sessions"
-              className="flex h-11 w-11 items-center justify-center rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-colors"
-            >
-              <LayoutList size={14} aria-hidden />
-            </button>
-          </div>
-        </div>
 
         {/* Desktop session bar */}
         <div className="hidden md:flex items-center justify-between px-6 py-3 border-b border-[var(--border)] bg-[var(--background)] shrink-0">
