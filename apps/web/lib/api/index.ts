@@ -89,3 +89,32 @@ export interface ProfileStats {
 export type PinnedMovement = components["schemas"]["PinnedMovement"];
 export type SetPinnedMovementsRequest =
   components["schemas"]["SetPinnedMovementsRequest"];
+
+// Admin types — not yet in generated schema; defined locally from app/models/admin.py
+export interface AdminUserCostRow {
+  user_id: string;
+  display_name: string | null;
+  email: string | null;
+  interactions_30d: number;
+  cost_30d_usd: number;
+}
+
+export interface AdminDailyCostPoint {
+  day: string; // ISO date "YYYY-MM-DD"
+  cost_usd: number;
+}
+
+export interface AdminMetricsSummary {
+  cost_30d_usd: number;
+  cost_mtd_usd: number;
+  projected_month_end_usd: number;
+  avg_cost_per_interaction_usd: number;
+  cache_hit_rate: number;
+  ttft_p50_ms: number | null;
+  ttft_p95_ms: number | null;
+  error_rate_7d: number;
+  interactions_30d: number;
+  per_user: AdminUserCostRow[];
+  daily_costs: AdminDailyCostPoint[];
+  budget_usd: number;
+}

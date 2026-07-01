@@ -1,3 +1,4 @@
+import type { AdminMetricsSummary } from "./index";
 import type {
   Movement,
   Workout,
@@ -314,5 +315,9 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify(body),
       }),
+  },
+  admin: {
+    metrics: (token: string) =>
+      apiFetch<AdminMetricsSummary>("/api/v1/admin/metrics", token),
   },
 };
