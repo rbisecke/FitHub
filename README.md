@@ -92,38 +92,23 @@ The core principle: **safety-critical logic is deterministic Python; the LLM gen
 
 ## Screenshots
 
-<table>
-<tr>
-  <td align="center" width="50%">
-    <img src="screenshots/readme/history.png" alt="History" />
-    <br /><sub>History — <code>$ git log</code>, date-grouped commits, short hash IDs, PR and benchmark badges</sub>
-  </td>
-  <td align="center" width="50%">
-    <img src="screenshots/readme/logger.png" alt="Log workout" />
-    <br /><sub>Logger — <code>$ git commit --fit</code>, NL parser or manual movement entry with template picker</sub>
-  </td>
-</tr>
-<tr>
-  <td align="center" width="50%">
-    <img src="screenshots/readme/records.png" alt="Personal records" />
-    <br /><sub>Records — <code>$ git tag</code>, per-movement PRs with e1RM trend projections and sparklines</sub>
-  </td>
-  <td align="center" width="50%">
-    <img src="screenshots/readme/coach.png" alt="AI coach" />
-    <br /><sub>Coach — SSE streaming chat with session history and starter prompts</sub>
-  </td>
-</tr>
-<tr>
-  <td align="center" width="50%">
-    <img src="screenshots/readme/history-mobile.png" alt="Mobile history" />
-    <br /><sub>Mobile — bottom tab bar, inset FAB, safe-area insets; full feature parity at 375px</sub>
-  </td>
-  <td align="center" width="50%">
-    <img src="screenshots/readme/progress.png" alt="Progress" />
-    <br /><sub>Progress — <code>$ git diff</code>, ACWR/CTL/TSB, lift trends, weekly volume, named benchmark progress</sub>
-  </td>
-</tr>
-</table>
+_1280px desktop · design system revamp (all 13 scopes)_
+
+|                       Dashboard                       |                     Track                     |                       Log Result                        |
+| :---------------------------------------------------: | :-------------------------------------------: | :-----------------------------------------------------: |
+| ![Dashboard](screenshots/readme/revamp-dashboard.png) | ![Track](screenshots/readme/revamp-track.png) | ![Log Result](screenshots/readme/revamp-log-result.png) |
+
+|                     Coach                     |                     Plans                     |                       Analytics                       |
+| :-------------------------------------------: | :-------------------------------------------: | :---------------------------------------------------: |
+| ![Coach](screenshots/readme/revamp-coach.png) | ![Plans](screenshots/readme/revamp-plans.png) | ![Analytics](screenshots/readme/revamp-analytics.png) |
+
+|                      Records                      |                      History                      |                      Profile                      |
+| :-----------------------------------------------: | :-----------------------------------------------: | :-----------------------------------------------: |
+| ![Records](screenshots/readme/revamp-records.png) | ![History](screenshots/readme/revamp-history.png) | ![Profile](screenshots/readme/revamp-profile.png) |
+
+|                       Onboarding                        |     |     |
+| :-----------------------------------------------------: | :-: | :-: |
+| ![Onboarding](screenshots/readme/revamp-onboarding.png) |     |     |
 
 ---
 
