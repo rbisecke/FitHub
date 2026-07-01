@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -59,24 +58,31 @@ export function PeriodSelector({
           </SelectContent>
         </Select>
       </div>
-      {/* Desktop: button row */}
+      {/* Desktop: pill toggle */}
       <div
-        className="hidden md:flex items-center gap-1"
+        className="hidden md:flex gap-[2px] rounded-[10px] p-[3px]"
+        style={{ background: "var(--card)", border: "1px solid var(--border)" }}
         role="group"
         aria-label={label ?? "Period selector"}
       >
-        {options.map((opt) => (
-          <Button
-            key={opt.value}
-            variant={value === opt.value ? "default" : "outline"}
-            size="sm"
-            className="h-7 text-xs px-2"
-            onClick={() => onChange(opt.value)}
-            aria-pressed={value === opt.value}
-          >
-            {opt.label}
-          </Button>
-        ))}
+        {options.map((opt) => {
+          const isActive = value === opt.value;
+          return (
+            <button
+              key={opt.value}
+              onClick={() => onChange(opt.value)}
+              aria-pressed={isActive}
+              className="font-data text-[12px] font-bold px-[15px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors"
+              style={
+                isActive
+                  ? { background: "var(--accent)", color: "rgb(10, 13, 18)" }
+                  : { background: "transparent", color: "var(--muted)" }
+              }
+            >
+              {opt.label}
+            </button>
+          );
+        })}
       </div>
     </>
   );
