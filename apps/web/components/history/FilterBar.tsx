@@ -56,9 +56,9 @@ export function FilterBar({
               onClick={() =>
                 onFiltersChange({ ...filters, sessionType: pill.value })
               }
-              className={`text-[12px] font-semibold px-3 py-1.5 rounded-full border transition-colors whitespace-nowrap ${
+              className={`font-data text-[11.5px] font-semibold px-3 py-1.5 rounded-full border transition-colors whitespace-nowrap ${
                 isActive
-                  ? "bg-[rgba(74,222,128,0.12)] border-[rgba(74,222,128,0.4)] text-[var(--accent)]"
+                  ? "bg-[rgba(74,222,128,0.14)] border-[var(--accent)] text-[var(--accent)]"
                   : "bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)] hover:text-[var(--foreground)]"
               }`}
             >

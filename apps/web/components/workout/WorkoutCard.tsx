@@ -100,7 +100,11 @@ export function WorkoutCard({
   return (
     <div
       data-testid="workout-card"
-      className="rounded-lg border border-[#30363d] bg-[#161b22] overflow-hidden transition-colors hover:border-[#58a6ff]/40"
+      className={`rounded-lg border bg-[var(--card)] overflow-hidden transition-colors ${
+        workout.has_pr
+          ? "border-[var(--border)] hover:border-[rgba(255,200,61,0.5)]"
+          : "border-[var(--border)] hover:border-[var(--muted-foreground)]/40"
+      }`}
     >
       {/* Collapsed header */}
       <button
@@ -113,12 +117,18 @@ export function WorkoutCard({
         {/* Row 1: hash + title + badges */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap min-w-0">
-            <span
+            <div
+              className="shrink-0 z-[1]"
+              style={{
+                width: 13,
+                height: 13,
+                borderRadius: "50%",
+                background: "var(--card)",
+                border: "2px solid var(--gold)",
+                boxShadow: "0 0 0 3px var(--background)",
+              }}
               aria-hidden="true"
-              className="text-[--muted-strong] text-xs select-none"
-            >
-              ◉
-            </span>
+            />
             <span className="font-data text-[12px] text-[var(--gold)] font-semibold">
               <span className="sr-only">Workout ID: </span>
               {workout.short_hash}
@@ -141,13 +151,31 @@ export function WorkoutCard({
                 Co-authored-by
               </span>
             )}
+            {workout.session_type && (
+              <span
+                className="text-[10.5px] font-bold px-[9px] py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
+                style={{
+                  color: "var(--hot)",
+                  background: "rgba(255, 122, 69, 0.14)",
+                  border: "1px solid rgba(255, 122, 69, 0.3)",
+                }}
+              >
+                {workout.session_type.charAt(0).toUpperCase() +
+                  workout.session_type.slice(1)}
+              </span>
+            )}
             {workout.has_pr && (
               <span
-                className="text-xs font-semibold px-1.5 py-0.5 rounded bg-[--green]/15 text-[--green]"
+                className="text-[10.5px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
+                style={{
+                  background: "rgba(255, 200, 61, 0.14)",
+                  color: "var(--gold)",
+                  border: "1px solid rgba(255, 200, 61, 0.3)",
+                }}
                 aria-label="Personal record achieved"
                 data-testid="pr-badge"
               >
-                PR
+                🏆 PR
               </span>
             )}
           </div>
