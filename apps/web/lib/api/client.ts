@@ -33,6 +33,8 @@ import type {
   InjuryOut,
   DetectTriggersResponse,
   AdjustAdaptationRequest,
+  UpdateInjuryStatusRequest,
+  ModifyWorkoutResponse,
 } from "./plans";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -229,6 +231,11 @@ export const api = {
           token,
         ),
     },
+    modifyWorkout: (token: string, sessionId: string) =>
+      apiFetch<ModifyWorkoutResponse>("/api/v1/coach/modify-workout", token, {
+        method: "POST",
+        body: JSON.stringify({ session_id: sessionId }),
+      }),
   },
   plans: {
     list: (token: string) => apiFetch<PlanSummary[]>("/api/v1/plans", token),
@@ -293,5 +300,14 @@ export const api = {
         body: JSON.stringify(body),
       }),
     list: (token: string) => apiFetch<InjuryOut[]>("/api/v1/injuries", token),
+    updateStatus: (
+      token: string,
+      injuryId: string,
+      body: UpdateInjuryStatusRequest,
+    ) =>
+      apiFetch<InjuryOut>(`/api/v1/injuries/${injuryId}/status`, token, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
   },
 };

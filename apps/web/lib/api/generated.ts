@@ -225,6 +225,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/coach/modify-workout": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Modify Workout */
+    post: operations["modify_workout_api_v1_coach_modify_workout_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/integrations/apple-health/connect": {
     parameters: {
       query?: never;
@@ -668,6 +685,23 @@ export interface paths {
     options?: never;
     head?: never;
     patch?: never;
+    trace?: never;
+  };
+  "/api/v1/injuries/{injury_id}/status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Update Injury Status */
+    patch: operations["update_injury_status_api_v1_injuries__injury_id__status_patch"];
     trace?: never;
   };
   "/api/v1/team-sessions/role-suggestions": {
@@ -1270,6 +1304,11 @@ export interface components {
       notes?: string | null;
       /** Active */
       active: boolean;
+      /**
+       * Status
+       * @default active
+       */
+      status: string;
       /** Requires Referral */
       requires_referral: boolean;
       /**
@@ -1286,6 +1325,12 @@ export interface components {
       reported_at?: string | null;
       /** Resolved At */
       resolved_at?: string | null;
+      /** Cleared At */
+      cleared_at?: string | null;
+      /** Restriction Notes */
+      restriction_notes?: string | null;
+      /** Staleness Days */
+      readonly staleness_days: number;
     };
     /** LastResult */
     LastResult: {
@@ -1364,6 +1409,27 @@ export interface components {
       | "plyometric"
       | "carry"
       | "strongman";
+    /** ModifyWorkoutRequest */
+    ModifyWorkoutRequest: {
+      /**
+       * Session Id
+       * Format: uuid
+       */
+      session_id: string;
+    };
+    /** ModifyWorkoutResponse */
+    ModifyWorkoutResponse: {
+      /** Session Id */
+      session_id: string;
+      /** Modifications */
+      modifications: components["schemas"]["MovementModification"][];
+      /** Safe Movements */
+      safe_movements: string[];
+      /** Any Referral Required */
+      any_referral_required: boolean;
+      /** Referral Regions */
+      referral_regions: string[];
+    };
     /** Movement */
     Movement: {
       /**
@@ -1408,6 +1474,21 @@ export interface components {
        * Format: date-time
        */
       updated_at: string;
+    };
+    /** MovementModification */
+    MovementModification: {
+      /** Original Movement */
+      original_movement: string;
+      /** Driven By */
+      driven_by: string[];
+      /** Substitutions */
+      substitutions: string[];
+      /**
+       * Confidence
+       * @default curated
+       * @enum {string}
+       */
+      confidence: "curated" | "llm_generated";
     };
     /**
      * MovementPattern
@@ -2183,6 +2264,16 @@ export interface components {
       /** Most Common Format */
       most_common_format: string | null;
     };
+    /** UpdateInjuryStatusRequest */
+    UpdateInjuryStatusRequest: {
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "cleared_with_restrictions" | "resolved";
+      /** Restriction Notes */
+      restriction_notes?: string | null;
+    };
     /** UserProfile */
     UserProfile: {
       /** Display Name */
@@ -2786,6 +2877,39 @@ export interface operations {
         };
         content: {
           "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  modify_workout_api_v1_coach_modify_workout_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ModifyWorkoutRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ModifyWorkoutResponse"];
         };
       };
       /** @description Validation Error */
@@ -3733,6 +3857,41 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["ReportInjuryRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InjuryOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_injury_status_api_v1_injuries__injury_id__status_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        injury_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateInjuryStatusRequest"];
       };
     };
     responses: {

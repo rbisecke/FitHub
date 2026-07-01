@@ -5,17 +5,42 @@ import { api } from "@/lib/api/client";
 import { ReferralCard } from "./ReferralCard";
 import { SubstitutionList } from "./SubstitutionList";
 
-const BODY_REGIONS = [
-  "shoulder",
-  "knee",
-  "hip",
-  "lower_back",
-  "wrist",
-  "elbow",
-  "ankle",
-  "neck",
-  "other",
+const BODY_REGION_GROUPS = [
+  {
+    label: "joints",
+    regions: [
+      "shoulder",
+      "knee",
+      "hip",
+      "lower_back",
+      "wrist",
+      "elbow",
+      "ankle",
+      "neck",
+      "other",
+    ],
+  },
+  {
+    label: "muscle",
+    regions: [
+      "hamstring",
+      "quad",
+      "calf",
+      "glute",
+      "upper_back",
+      "chest",
+      "bicep",
+      "tricep",
+      "lat",
+    ],
+  },
+  {
+    label: "soft tissue",
+    regions: ["hip_flexor", "it_band", "forearm"],
+  },
 ] as const;
+
+type BodyRegion = (typeof BODY_REGION_GROUPS)[number]["regions"][number];
 
 const MECHANISMS = [
   { value: "overuse", label: "Overuse" },
@@ -35,7 +60,7 @@ interface Props {
 }
 
 export function InjuryReportForm({ accessToken }: Props) {
-  const [bodyRegion, setBodyRegion] = useState<string>("");
+  const [bodyRegion, setBodyRegion] = useState<BodyRegion | "">("");
   const [painLevel, setPainLevel] = useState<number>(3);
   const [mechanism, setMechanism] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
@@ -101,21 +126,30 @@ export function InjuryReportForm({ accessToken }: Props) {
         <label className="mb-3 block font-mono text-sm text-zinc-400">
           body region
         </label>
-        <div className="flex flex-wrap gap-2">
-          {BODY_REGIONS.map((region) => (
-            <button
-              key={region}
-              type="button"
-              data-testid={`body-region-${region}`}
-              onClick={() => setBodyRegion(region)}
-              className={`rounded px-3 py-1.5 font-mono text-xs transition-colors ${
-                bodyRegion === region
-                  ? "bg-indigo-700 text-white"
-                  : "border border-zinc-700 text-zinc-400 hover:border-zinc-500"
-              }`}
-            >
-              {region.replace("_", " ")}
-            </button>
+        <div className="flex flex-col gap-3">
+          {BODY_REGION_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-zinc-600">
+                {group.label}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {group.regions.map((region) => (
+                  <button
+                    key={region}
+                    type="button"
+                    data-testid={`body-region-${region}`}
+                    onClick={() => setBodyRegion(region as BodyRegion)}
+                    className={`rounded px-3 py-1.5 font-mono text-xs transition-colors ${
+                      bodyRegion === region
+                        ? "bg-indigo-700 text-white"
+                        : "border border-zinc-700 text-zinc-400 hover:border-zinc-500"
+                    }`}
+                  >
+                    {region.replace(/_/g, " ")}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>

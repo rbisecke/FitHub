@@ -15,3 +15,11 @@ export type DetectTriggersResponse =
   components["schemas"]["DetectTriggersResponse"];
 export type AdjustAdaptationRequest =
   components["schemas"]["AdjustAdaptationRequest"];
+export type UpdateInjuryStatusRequest =
+  components["schemas"]["UpdateInjuryStatusRequest"];
+export type ModifyWorkoutRequest =
+  components["schemas"]["ModifyWorkoutRequest"];
+export type ModifyWorkoutResponse =
+  components["schemas"]["ModifyWorkoutResponse"];
+export type MovementModification =
+  components["schemas"]["MovementModification"];
