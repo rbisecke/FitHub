@@ -9,32 +9,46 @@ export function FitHubMark({
   className?: string;
   decorative?: boolean;
 }) {
+  const radius = Math.round((size / 24) * 9); // 9px at 24px base
+  const iconSize = Math.round(size * (19 / 34)); // inner icon vs. container ratio
+
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className={cn("shrink-0 text-[var(--accent)]", className)}
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        background: "var(--accent)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
       role={decorative ? undefined : "img"}
       aria-hidden={decorative ? true : undefined}
       aria-label={decorative ? undefined : "FitHub"}
+      className={cn("shrink-0", className)}
     >
-      {!decorative && <title>FitHub</title>}
-      {/* Tile */}
-      <rect x="0" y="0" width="24" height="24" rx="6" />
-      {/* Git graph cut-out: main branch (vertical) + feature branch (curve) + 3 commit nodes */}
-      <rect x="7" y="5.5" width="2" height="14" rx="1" fill="#0d1117" />
-      <path
-        d="M8 12 Q12 9.5 16 7"
-        stroke="#0d1117"
-        strokeWidth="2"
+      <svg
+        width={iconSize}
+        height={iconSize}
+        viewBox="0 0 24 24"
         fill="none"
+        stroke="#0A0D12"
+        strokeWidth="2.4"
         strokeLinecap="round"
-      />
-      <circle cx="8" cy="19" r="2.3" fill="#0d1117" />
-      <circle cx="8" cy="12" r="2.3" fill="#0d1117" />
-      <circle cx="16" cy="7" r="2.3" fill="#0d1117" />
-    </svg>
+        strokeLinejoin="round"
+      >
+        {!decorative && <title>FitHub</title>}
+        {/* Commit nodes */}
+        <circle cx="6" cy="6" r="2.4" />
+        <circle cx="6" cy="18" r="2.4" />
+        <circle cx="18" cy="8" r="2.4" />
+        {/* Main branch (vertical) */}
+        <path d="M6 8.4v7.2" />
+        {/* Feature branch (curve from tip down to main) */}
+        <path d="M18 10.4c0 3.2-4.5 2.2-7.5 4.4" />
+      </svg>
+    </div>
   );
 }

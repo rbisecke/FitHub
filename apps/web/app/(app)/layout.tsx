@@ -29,6 +29,7 @@ export default async function AppLayout({
   let distanceUnit: DistanceUnit = "km";
   let graphColourMode: GraphColourMode = "intensity";
   let shouldRedirectToOnboarding = false;
+  let handle = "user";
   try {
     const {
       data: { session },
@@ -42,6 +43,15 @@ export default async function AppLayout({
       if (!profile.onboarding_completed) {
         shouldRedirectToOnboarding = true;
       }
+      // Derive a handle: display_name → lowercase-hyphenated, or email prefix
+      if (profile.display_name) {
+        handle = profile.display_name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "");
+      } else {
+        handle = (user.email ?? "user").split("@")[0] ?? "user";
+      }
     }
   } catch {
     // Non-fatal: page still renders with safe defaults
@@ -54,7 +64,11 @@ export default async function AppLayout({
       initialDistanceUnit={distanceUnit}
       initialGraphColourMode={graphColourMode}
     >
-      <AppShell user={user} defaultSidebarOpen={defaultSidebarOpen}>
+      <AppShell
+        user={user}
+        defaultSidebarOpen={defaultSidebarOpen}
+        handle={handle}
+      >
         <AppInit />
         {children}
       </AppShell>
