@@ -45,7 +45,7 @@ export function ProfilePage({
 
   return (
     <div className="animate-fadeUp">
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-lg mx-auto px-[18px] pt-[14px] pb-2 md:px-4 md:py-6 space-y-6">
         <PageHeader gitCommand="$ git config --user" title="Profile" />
 
         <ProfileHeroCard
@@ -88,7 +88,7 @@ export function ProfilePage({
         </SettingsSection>
 
         <SettingsSection label="Account">
-          <AccountSection />
+          <AccountSection email={profile.email} />
         </SettingsSection>
       </div>
     </div>
