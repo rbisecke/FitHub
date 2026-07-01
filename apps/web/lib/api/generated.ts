@@ -341,7 +341,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Get Personal Records Batch */
+    /** Get Personal Records Batch Route */
     get: operations["get_personal_records_batch_route_api_v1_movements_personal_records_get"];
     put?: never;
     post?: never;
