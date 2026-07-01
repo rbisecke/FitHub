@@ -39,6 +39,7 @@ export function PlanCard({ plan }: PlanCardProps) {
     plan.weeks,
   );
   const isActive = plan.status === "active";
+  const isMerged = plan.status === "merged" || plan.status === "completed";
   const weeksRemaining = plan.weeks - weeksElapsed;
   const gapText =
     weeksRemaining > 0 ? `${weeksRemaining}w remaining` : "Final week";
@@ -46,52 +47,64 @@ export function PlanCard({ plan }: PlanCardProps) {
   return (
     <Link
       href={`/plans/${plan.id}`}
-      className="flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-[14px] p-[18px] cursor-pointer hover:border-[var(--accent)] transition-colors duration-150 font-data"
+      className={[
+        "flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-[14px] p-[15px] md:p-[18px] cursor-pointer transition-colors duration-150 font-data",
+        isMerged ? "opacity-[0.72]" : "hover:border-[var(--accent)]",
+      ].join(" ")}
       data-testid="plan-card"
     >
       {/* Row 1: branch name + status badge */}
       <div className="flex items-center justify-between gap-2">
         <span
-          className="text-[11.5px] truncate"
+          className="text-[10.5px] md:text-[11.5px] truncate"
           style={{ color: "var(--purple)" }}
         >
           ⎇ {plan.branch_name}
         </span>
         {isActive && (
-          <span className="flex-shrink-0 text-[10px] font-bold text-[var(--accent)] bg-[rgba(74,222,128,0.12)] border border-[rgba(74,222,128,0.35)] px-[9px] py-[2px] rounded-full">
+          <span className="flex-shrink-0 text-[9.5px] font-bold text-[var(--accent)] bg-[rgba(74,222,128,0.12)] border border-[rgba(74,222,128,0.35)] px-[9px] py-[2px] rounded-full">
             active
+          </span>
+        )}
+        {isMerged && (
+          <span className="flex-shrink-0 text-[9.5px] font-bold text-[var(--blue)] bg-[rgba(88,166,255,0.12)] border border-[rgba(88,166,255,0.35)] px-[9px] py-[2px] rounded-full">
+            merged
           </span>
         )}
       </div>
 
       {/* Row 2: plan title */}
-      <div className="font-bold text-[16px] text-[var(--foreground)] mt-[11px]">
+      <div className="font-bold text-[15px] md:text-[16px] text-[var(--foreground)] mt-[9px] md:mt-[11px]">
         {plan.title}
       </div>
 
       {/* Row 3: duration + relative start */}
-      <div className="text-[11.5px] text-[var(--muted)] mt-1">
+      <div className="font-data text-[10.5px] md:text-[11.5px] text-[var(--muted)] mt-[3px]">
         {plan.weeks} weeks · {relativeStart(plan.start_date)}
       </div>
 
       {/* Row 4: progress bar */}
-      <div className="mt-[15px]">
-        <div className="h-[7px] bg-[var(--surface-2)] rounded-[4px] overflow-hidden">
-          <div
-            className="h-full rounded-[4px] bg-[var(--accent)] transition-all"
-            style={{ width: `${Math.min(progress, 100)}%` }}
-          />
-        </div>
-        {/* Row 5: gap text + percentage */}
-        <div className="flex items-center justify-between gap-2 mt-[9px]">
-          <span className="text-[11px] text-[var(--muted)]">{gapText}</span>
-          <span
-            className="text-[12px] font-bold"
-            style={{ color: "var(--accent)" }}
-          >
-            {progress}%
-          </span>
-        </div>
+      <div className="h-[6px] md:h-[7px] bg-[var(--surface-2)] rounded-[4px] overflow-hidden mt-[12px] md:mt-[15px]">
+        <div
+          className="h-full rounded-[4px] transition-all"
+          style={{
+            width: `${isMerged ? 100 : Math.min(progress, 100)}%`,
+            background: isMerged ? "var(--blue)" : "var(--accent)",
+          }}
+        />
+      </div>
+
+      {/* Row 5: gap text + percentage */}
+      <div className="flex items-center justify-between gap-2 mt-[7px]">
+        <span className="font-data text-[10.5px] text-[var(--muted)]">
+          {isMerged ? `Merged · ${plan.end_date}` : gapText}
+        </span>
+        <span
+          className="font-data text-[11.5px] font-bold"
+          style={{ color: isMerged ? "var(--blue)" : "var(--accent)" }}
+        >
+          {isMerged ? 100 : progress}%
+        </span>
       </div>
     </Link>
   );
