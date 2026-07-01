@@ -211,7 +211,7 @@ export function LogPageClient({
 
   return (
     <div className="mx-auto max-w-lg pb-nav-safe md:max-w-5xl px-4 md:px-8 py-6">
-      <PageHeader gitCommand='$ git commit -m "workout"' title="Log Result" />
+      <PageHeader gitCommand="$ git add ." title="Log Result" />
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,520px)_1fr] md:items-start md:gap-10">
         {/* LEFT: primary form */}

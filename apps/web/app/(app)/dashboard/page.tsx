@@ -113,7 +113,7 @@ export default async function DashboardPage() {
   return (
     <div className="p-4 md:p-6 max-w-[1200px] mx-auto">
       <div className="animate-fadeUp">
-        <PageHeader gitCommand="$ git log --oneline" title="Dashboard" />
+        <PageHeader gitCommand="$ fithub status" title="Dashboard" />
       </div>
 
       <div className="animate-fadeUp">

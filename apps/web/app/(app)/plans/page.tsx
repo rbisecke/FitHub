@@ -36,7 +36,7 @@ export default async function PlansPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <PageHeader
-        gitCommand="$ git branch --list 'meso/*'"
+        gitCommand="$ git branch"
         title="Plans"
         sub="Your training programmes"
         action={action}

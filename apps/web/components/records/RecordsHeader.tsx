@@ -18,7 +18,7 @@ export function RecordsHeader({ viewMode, onToggle, totalCount }: Props) {
 
   return (
     <PageHeader
-      gitCommand="$ git tag --list 'pr/*'"
+      gitCommand="$ git tag --list"
       title="Records"
       sub={sub}
       action={

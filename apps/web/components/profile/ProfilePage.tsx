@@ -46,10 +46,7 @@ export function ProfilePage({
   return (
     <div className="animate-fadeUp">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        <PageHeader
-          gitCommand="$ git config --global user.name"
-          title="Profile"
-        />
+        <PageHeader gitCommand="$ git config --user" title="Profile" />
 
         <ProfileHeroCard
           profile={profile}
