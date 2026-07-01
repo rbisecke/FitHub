@@ -5,6 +5,627 @@
     "version": "0.2.0"
   },
   "paths": {
+    "/api/v1/access-requests": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Submit Access Request",
+        "operationId": "submit_access_request_api_v1_access_requests_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessRequestCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Submit Access Request Api V1 Access Requests Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/metrics": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Admin Metrics",
+        "operationId": "admin_metrics_api_v1_admin_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsSummary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/access-requests": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Access Requests",
+        "operationId": "list_access_requests_api_v1_admin_access_requests_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccessRequestRow"
+                  },
+                  "title": "Response List Access Requests Api V1 Admin Access Requests Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/access-requests/{request_id}": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Review Access Request",
+        "operationId": "review_access_request_api_v1_admin_access_requests__request_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessRequestReview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequestRow"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Admin Users",
+        "operationId": "list_admin_users_api_v1_admin_users_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminUser"
+                  },
+                  "type": "array",
+                  "title": "Response List Admin Users Api V1 Admin Users Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/disable": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Disable User",
+        "operationId": "disable_user_api_v1_admin_users__user_id__disable_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{user_id}/magic-link": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Generate Magic Link",
+        "operationId": "generate_magic_link_api_v1_admin_users__user_id__magic_link_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Generate Magic Link Api V1 Admin Users  User Id  Magic Link Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{user_id}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete User",
+        "operationId": "delete_user_api_v1_admin_users__user_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "confirm",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Confirm"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invited-emails": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Invited Emails",
+        "operationId": "list_invited_emails_api_v1_admin_invited_emails_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InvitedEmail"
+                  },
+                  "type": "array",
+                  "title": "Response List Invited Emails Api V1 Admin Invited Emails Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Add Invited Email",
+        "operationId": "add_invited_email_api_v1_admin_invited_emails_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddInviteBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitedEmail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/invited-emails/{email}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Remove Invited Email",
+        "operationId": "remove_invited_email_api_v1_admin_invited_emails__email__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Email"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/health": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Admin Health",
+        "operationId": "admin_health_api_v1_admin_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminHealth"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/knowledge-base": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Knowledge Base",
+        "operationId": "list_knowledge_base_api_v1_admin_knowledge_base_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/KBEntry"
+                  },
+                  "type": "array",
+                  "title": "Response List Knowledge Base Api V1 Admin Knowledge Base Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/knowledge-base/reindex": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Trigger Reindex",
+        "operationId": "trigger_reindex_api_v1_admin_knowledge_base_reindex_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReindexBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReindexJob"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/knowledge-base/reindex/{job_id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get Reindex Status",
+        "operationId": "get_reindex_status_api_v1_admin_knowledge_base_reindex__job_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReindexJob"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/analytics/load": {
       "get": {
         "tags": [
@@ -2925,6 +3546,131 @@
   },
   "components": {
     "schemas": {
+      "AccessRequestCreate": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "motivation": {
+            "type": "string",
+            "title": "Motivation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "name",
+          "motivation"
+        ],
+        "title": "AccessRequestCreate"
+      },
+      "AccessRequestReview": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "title": "AccessRequestReview"
+      },
+      "AccessRequestRow": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "motivation": {
+            "type": "string",
+            "title": "Motivation"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "reviewed_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "email",
+          "name",
+          "motivation",
+          "status",
+          "reviewed_at",
+          "reviewed_by",
+          "review_note"
+        ],
+        "title": "AccessRequestRow"
+      },
       "AdaptationOut": {
         "properties": {
           "id": {
@@ -3030,6 +3776,19 @@
         ],
         "title": "AdaptationOut"
       },
+      "AddInviteBody": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "AddInviteBody"
+      },
       "AddParticipantRequest": {
         "properties": {
           "user_id": {
@@ -3109,6 +3868,131 @@
           "feedback"
         ],
         "title": "AdjustAdaptationRequest"
+      },
+      "AdminHealth": {
+        "properties": {
+          "api_version": {
+            "type": "string",
+            "title": "Api Version"
+          },
+          "uptime_seconds": {
+            "type": "number",
+            "title": "Uptime Seconds"
+          },
+          "last_llm_call_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Llm Call At"
+          },
+          "errors_last_hour": {
+            "type": "integer",
+            "title": "Errors Last Hour"
+          },
+          "recent_errors": {
+            "items": {
+              "$ref": "#/components/schemas/RecentError"
+            },
+            "type": "array",
+            "title": "Recent Errors"
+          },
+          "recent_llm_errors": {
+            "items": {
+              "$ref": "#/components/schemas/LLMError"
+            },
+            "type": "array",
+            "title": "Recent Llm Errors"
+          },
+          "safety_trigger_count_7d": {
+            "type": "integer",
+            "title": "Safety Trigger Count 7D"
+          }
+        },
+        "type": "object",
+        "required": [
+          "api_version",
+          "uptime_seconds",
+          "last_llm_call_at",
+          "errors_last_hour",
+          "recent_errors",
+          "recent_llm_errors",
+          "safety_trigger_count_7d"
+        ],
+        "title": "AdminHealth"
+      },
+      "AdminUser": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "banned_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Banned Until"
+          },
+          "interactions_30d": {
+            "type": "integer",
+            "title": "Interactions 30D"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "email",
+          "display_name",
+          "created_at",
+          "banned_until",
+          "interactions_30d"
+        ],
+        "title": "AdminUser"
       },
       "BenchmarkAttempt": {
         "properties": {
@@ -4128,6 +5012,24 @@
         ],
         "title": "CreateWorkoutRequest"
       },
+      "DailyCostPoint": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "title": "Day"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "cost_usd"
+        ],
+        "title": "DailyCostPoint"
+      },
       "DailyLoadPoint": {
         "properties": {
           "day": {
@@ -4424,6 +5326,136 @@
         ],
         "title": "InjuryOut"
       },
+      "InvitedEmail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "invited_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Invited At"
+          },
+          "used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "invited_at",
+          "used_at"
+        ],
+        "title": "InvitedEmail"
+      },
+      "KBEntry": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "source_type": {
+            "type": "string",
+            "title": "Source Type"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "chunk_count": {
+            "type": "integer",
+            "title": "Chunk Count"
+          },
+          "last_indexed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Indexed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source_type",
+          "title",
+          "chunk_count",
+          "last_indexed_at"
+        ],
+        "title": "KBEntry"
+      },
+      "LLMError": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "endpoint": {
+            "type": "string",
+            "title": "Endpoint"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_msg": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Msg"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created_at",
+          "endpoint",
+          "error_code",
+          "error_msg"
+        ],
+        "title": "LLMError"
+      },
       "LastResult": {
         "properties": {
           "result_type": {
@@ -4654,6 +5686,94 @@
           "focus"
         ],
         "title": "MesocycleOut"
+      },
+      "MetricsSummary": {
+        "properties": {
+          "cost_30d_usd": {
+            "type": "number",
+            "title": "Cost 30D Usd"
+          },
+          "cost_mtd_usd": {
+            "type": "number",
+            "title": "Cost Mtd Usd"
+          },
+          "projected_month_end_usd": {
+            "type": "number",
+            "title": "Projected Month End Usd"
+          },
+          "avg_cost_per_interaction_usd": {
+            "type": "number",
+            "title": "Avg Cost Per Interaction Usd"
+          },
+          "cache_hit_rate": {
+            "type": "number",
+            "title": "Cache Hit Rate"
+          },
+          "ttft_p50_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttft P50 Ms"
+          },
+          "ttft_p95_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttft P95 Ms"
+          },
+          "error_rate_7d": {
+            "type": "number",
+            "title": "Error Rate 7D"
+          },
+          "interactions_30d": {
+            "type": "integer",
+            "title": "Interactions 30D"
+          },
+          "per_user": {
+            "items": {
+              "$ref": "#/components/schemas/UserCostRow"
+            },
+            "type": "array",
+            "title": "Per User"
+          },
+          "daily_costs": {
+            "items": {
+              "$ref": "#/components/schemas/DailyCostPoint"
+            },
+            "type": "array",
+            "title": "Daily Costs"
+          },
+          "budget_usd": {
+            "type": "number",
+            "title": "Budget Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cost_30d_usd",
+          "cost_mtd_usd",
+          "projected_month_end_usd",
+          "avg_cost_per_interaction_usd",
+          "cache_hit_rate",
+          "ttft_p50_ms",
+          "ttft_p95_ms",
+          "error_rate_7d",
+          "interactions_30d",
+          "per_user",
+          "daily_costs",
+          "budget_usd"
+        ],
+        "title": "MetricsSummary"
       },
       "Modality": {
         "type": "string",
@@ -6332,6 +7452,94 @@
         ],
         "title": "ReadinessResponse"
       },
+      "RecentError": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "status_code": {
+            "type": "integer",
+            "title": "Status Code"
+          },
+          "error_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Type"
+          },
+          "error_msg": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Msg"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created_at",
+          "path",
+          "status_code",
+          "error_type",
+          "error_msg"
+        ],
+        "title": "RecentError"
+      },
+      "ReindexBody": {
+        "properties": {
+          "source_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Type"
+          }
+        },
+        "type": "object",
+        "title": "ReindexBody"
+      },
+      "ReindexJob": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "status",
+          "message"
+        ],
+        "title": "ReindexJob"
+      },
       "RejectAdaptationRequest": {
         "properties": {
           "rejection_reason": {
@@ -7323,6 +8531,53 @@
           "status"
         ],
         "title": "UpdateInjuryStatusRequest"
+      },
+      "UserCostRow": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "interactions_30d": {
+            "type": "integer",
+            "title": "Interactions 30D"
+          },
+          "cost_30d_usd": {
+            "type": "number",
+            "title": "Cost 30D Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "display_name",
+          "email",
+          "interactions_30d",
+          "cost_30d_usd"
+        ],
+        "title": "UserCostRow"
       },
       "UserProfile": {
         "properties": {
