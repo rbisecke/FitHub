@@ -103,7 +103,7 @@ export const PAGE_META: Record<string, { title: string; gitCommand: string }> =
     "/records": { title: "Records", gitCommand: "$ git tag --list" },
     "/history": { title: "History", gitCommand: "$ git log --all" },
     "/analytics": { title: "Analytics", gitCommand: "$ git diff" },
-    "/log/new": { title: "Log Workout", gitCommand: "$ git add ." },
+    "/log/new": { title: "Log Result", gitCommand: "$ git add ." },
     "/log/tag": { title: "Tag Milestone", gitCommand: "$ git tag" },
     "/log": { title: "Log Workout", gitCommand: "$ git commit" },
     "/plans": { title: "Plans", gitCommand: "$ git branch" },

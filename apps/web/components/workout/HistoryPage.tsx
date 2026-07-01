@@ -141,7 +141,7 @@ export function HistoryPage({
     <div className="p-6 max-w-2xl mx-auto pb-nav-safe">
       {/* Page header */}
       <PageHeader
-        gitCommand="$ git log --all --graph"
+        gitCommand="$ git log --all"
         title="History"
         sub="Every session you've ever committed — newest first. Tap a commit to expand it."
       />
