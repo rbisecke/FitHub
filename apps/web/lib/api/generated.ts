@@ -4,6 +4,245 @@
  */
 
 export interface paths {
+  "/api/v1/access-requests": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Submit Access Request */
+    post: operations["submit_access_request_api_v1_access_requests_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/metrics": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Admin Metrics */
+    get: operations["admin_metrics_api_v1_admin_metrics_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/access-requests": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Access Requests */
+    get: operations["list_access_requests_api_v1_admin_access_requests_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/access-requests/{request_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Review Access Request */
+    patch: operations["review_access_request_api_v1_admin_access_requests__request_id__patch"];
+    trace?: never;
+  };
+  "/api/v1/admin/users": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Admin Users */
+    get: operations["list_admin_users_api_v1_admin_users_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/users/{user_id}/disable": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Disable User */
+    post: operations["disable_user_api_v1_admin_users__user_id__disable_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/users/{user_id}/magic-link": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Generate Magic Link */
+    post: operations["generate_magic_link_api_v1_admin_users__user_id__magic_link_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/users/{user_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete User */
+    delete: operations["delete_user_api_v1_admin_users__user_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/invited-emails": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Invited Emails */
+    get: operations["list_invited_emails_api_v1_admin_invited_emails_get"];
+    put?: never;
+    /** Add Invited Email */
+    post: operations["add_invited_email_api_v1_admin_invited_emails_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/invited-emails/{email}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove Invited Email */
+    delete: operations["remove_invited_email_api_v1_admin_invited_emails__email__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/health": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Admin Health */
+    get: operations["admin_health_api_v1_admin_health_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/knowledge-base": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Knowledge Base */
+    get: operations["list_knowledge_base_api_v1_admin_knowledge_base_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/knowledge-base/reindex": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Trigger Reindex */
+    post: operations["trigger_reindex_api_v1_admin_knowledge_base_reindex_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/knowledge-base/reindex/{job_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Reindex Status */
+    get: operations["get_reindex_status_api_v1_admin_knowledge_base_reindex__job_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/analytics/load": {
     parameters: {
       query?: never;
@@ -900,6 +1139,49 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** AccessRequestCreate */
+    AccessRequestCreate: {
+      /** Email */
+      email: string;
+      /** Name */
+      name: string;
+      /** Motivation */
+      motivation: string;
+    };
+    /** AccessRequestReview */
+    AccessRequestReview: {
+      /** Action */
+      action: string;
+      /** Note */
+      note?: string | null;
+    };
+    /** AccessRequestRow */
+    AccessRequestRow: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Email */
+      email: string;
+      /** Name */
+      name: string;
+      /** Motivation */
+      motivation: string;
+      /** Status */
+      status: string;
+      /** Reviewed At */
+      reviewed_at: string | null;
+      /** Reviewed By */
+      reviewed_by: string | null;
+      /** Review Note */
+      review_note: string | null;
+    };
     /** AdaptationOut */
     AdaptationOut: {
       /** Id */
@@ -934,6 +1216,11 @@ export interface components {
       /** Rejected At */
       rejected_at?: string | null;
     };
+    /** AddInviteBody */
+    AddInviteBody: {
+      /** Email */
+      email: string;
+    };
     /** AddParticipantRequest */
     AddParticipantRequest: {
       /** User Id */
@@ -954,6 +1241,38 @@ export interface components {
     AdjustAdaptationRequest: {
       /** Feedback */
       feedback: string;
+    };
+    /** AdminHealth */
+    AdminHealth: {
+      /** Api Version */
+      api_version: string;
+      /** Uptime Seconds */
+      uptime_seconds: number;
+      /** Last Llm Call At */
+      last_llm_call_at: string | null;
+      /** Errors Last Hour */
+      errors_last_hour: number;
+      /** Recent Errors */
+      recent_errors: components["schemas"]["RecentError"][];
+      /** Recent Llm Errors */
+      recent_llm_errors: components["schemas"]["LLMError"][];
+      /** Safety Trigger Count 7D */
+      safety_trigger_count_7d: number;
+    };
+    /** AdminUser */
+    AdminUser: {
+      /** User Id */
+      user_id: string;
+      /** Email */
+      email: string | null;
+      /** Display Name */
+      display_name: string | null;
+      /** Created At */
+      created_at: string | null;
+      /** Banned Until */
+      banned_until: string | null;
+      /** Interactions 30D */
+      interactions_30d: number;
     };
     /** BenchmarkAttempt */
     BenchmarkAttempt: {
@@ -1231,6 +1550,13 @@ export interface components {
       /** Results */
       results?: components["schemas"]["CreateResultRequest"][];
     };
+    /** DailyCostPoint */
+    DailyCostPoint: {
+      /** Day */
+      day: string;
+      /** Cost Usd */
+      cost_usd: number;
+    };
     /** DailyLoadPoint */
     DailyLoadPoint: {
       /**
@@ -1349,6 +1675,53 @@ export interface components {
       /** Staleness Days */
       readonly staleness_days: number;
     };
+    /** InvitedEmail */
+    InvitedEmail: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Email */
+      email: string;
+      /**
+       * Invited At
+       * Format: date-time
+       */
+      invited_at: string;
+      /** Used At */
+      used_at: string | null;
+    };
+    /** KBEntry */
+    KBEntry: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Source Type */
+      source_type: string;
+      /** Title */
+      title: string | null;
+      /** Chunk Count */
+      chunk_count: number;
+      /** Last Indexed At */
+      last_indexed_at: string | null;
+    };
+    /** LLMError */
+    LLMError: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Endpoint */
+      endpoint: string;
+      /** Error Code */
+      error_code: string | null;
+      /** Error Msg */
+      error_msg: string | null;
+    };
     /** LastResult */
     LastResult: {
       result_type: components["schemas"]["ResultType"];
@@ -1413,6 +1786,33 @@ export interface components {
       week_end: number;
       /** Focus */
       focus: string | null;
+    };
+    /** MetricsSummary */
+    MetricsSummary: {
+      /** Cost 30D Usd */
+      cost_30d_usd: number;
+      /** Cost Mtd Usd */
+      cost_mtd_usd: number;
+      /** Projected Month End Usd */
+      projected_month_end_usd: number;
+      /** Avg Cost Per Interaction Usd */
+      avg_cost_per_interaction_usd: number;
+      /** Cache Hit Rate */
+      cache_hit_rate: number;
+      /** Ttft P50 Ms */
+      ttft_p50_ms: number | null;
+      /** Ttft P95 Ms */
+      ttft_p95_ms: number | null;
+      /** Error Rate 7D */
+      error_rate_7d: number;
+      /** Interactions 30D */
+      interactions_30d: number;
+      /** Per User */
+      per_user: components["schemas"]["UserCostRow"][];
+      /** Daily Costs */
+      daily_costs: components["schemas"]["DailyCostPoint"][];
+      /** Budget Usd */
+      budget_usd: number;
     };
     /**
      * Modality
@@ -1958,6 +2358,36 @@ export interface components {
       /** Hrv Type */
       hrv_type?: string | null;
     };
+    /** RecentError */
+    RecentError: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Path */
+      path: string;
+      /** Status Code */
+      status_code: number;
+      /** Error Type */
+      error_type: string | null;
+      /** Error Msg */
+      error_msg: string | null;
+    };
+    /** ReindexBody */
+    ReindexBody: {
+      /** Source Type */
+      source_type?: string | null;
+    };
+    /** ReindexJob */
+    ReindexJob: {
+      /** Job Id */
+      job_id: string;
+      /** Status */
+      status: string;
+      /** Message */
+      message: string;
+    };
     /** RejectAdaptationRequest */
     RejectAdaptationRequest: {
       /** Rejection Reason */
@@ -2291,6 +2721,19 @@ export interface components {
       /** Restriction Notes */
       restriction_notes?: string | null;
     };
+    /** UserCostRow */
+    UserCostRow: {
+      /** User Id */
+      user_id: string;
+      /** Display Name */
+      display_name: string | null;
+      /** Email */
+      email: string | null;
+      /** Interactions 30D */
+      interactions_30d: number;
+      /** Cost 30D Usd */
+      cost_30d_usd: number;
+    };
     /** UserProfile */
     UserProfile: {
       /** Display Name */
@@ -2527,6 +2970,426 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  submit_access_request_api_v1_access_requests_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AccessRequestCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: string;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  admin_metrics_api_v1_admin_metrics_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MetricsSummary"];
+        };
+      };
+    };
+  };
+  list_access_requests_api_v1_admin_access_requests_get: {
+    parameters: {
+      query?: {
+        status?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AccessRequestRow"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  review_access_request_api_v1_admin_access_requests__request_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AccessRequestReview"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AccessRequestRow"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_admin_users_api_v1_admin_users_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AdminUser"][];
+        };
+      };
+    };
+  };
+  disable_user_api_v1_admin_users__user_id__disable_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  generate_magic_link_api_v1_admin_users__user_id__magic_link_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: string;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_user_api_v1_admin_users__user_id__delete: {
+    parameters: {
+      query?: {
+        confirm?: boolean;
+      };
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_invited_emails_api_v1_admin_invited_emails_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InvitedEmail"][];
+        };
+      };
+    };
+  };
+  add_invited_email_api_v1_admin_invited_emails_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AddInviteBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InvitedEmail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  remove_invited_email_api_v1_admin_invited_emails__email__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        email: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  admin_health_api_v1_admin_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AdminHealth"];
+        };
+      };
+    };
+  };
+  list_knowledge_base_api_v1_admin_knowledge_base_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["KBEntry"][];
+        };
+      };
+    };
+  };
+  trigger_reindex_api_v1_admin_knowledge_base_reindex_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReindexBody"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReindexJob"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_reindex_status_api_v1_admin_knowledge_base_reindex__job_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        job_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReindexJob"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   load_model_api_v1_analytics_load_get: {
     parameters: {
       query?: {
