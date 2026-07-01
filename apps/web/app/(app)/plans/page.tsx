@@ -27,18 +27,30 @@ export default async function PlansPage() {
   const action = (
     <Link
       href="/plans/new"
-      className="bg-[var(--accent)] text-[#0d1117] font-data text-[13px] font-bold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity"
+      className="flex items-center gap-2 bg-[var(--accent)] text-[#0A0D12] font-bold text-[13px] px-4 py-[11px] rounded-[10px] hover:brightness-110 transition-all"
     >
-      + new branch
+      <svg
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#0A0D12"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        aria-hidden="true"
+      >
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+      New plan
     </Link>
   );
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <div className="mx-auto max-w-[1100px] px-4 py-8">
       <PageHeader
-        gitCommand="$ git branch"
+        gitCommand="$ git branch --list"
         title="Plans"
-        sub="Your training programmes"
+        sub="Each plan is a branch — commit sessions to it, merge it when you hit the goal."
         action={action}
       />
       {plans.length === 0 ? (
@@ -51,7 +63,12 @@ export default async function PlansPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        <div
+          className="grid gap-[14px] mt-4"
+          style={{
+            gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))",
+          }}
+        >
           {plans.map((plan) => (
             <PlanCard key={plan.id} plan={plan} />
           ))}
