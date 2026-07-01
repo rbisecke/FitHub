@@ -6079,6 +6079,18 @@
               "elbow",
               "ankle",
               "neck",
+              "hamstring",
+              "quad",
+              "calf",
+              "glute",
+              "upper_back",
+              "chest",
+              "bicep",
+              "tricep",
+              "lat",
+              "hip_flexor",
+              "it_band",
+              "forearm",
               "other"
             ],
             "title": "Body Region"

@@ -80,3 +80,83 @@ class TestContraindicated:
 
     def test_lower_back_has_deadlift(self) -> None:
         assert "deadlift" in get_contraindicated_movements("lower_back")
+
+
+class TestChronicRegions:
+    def test_it_band_red_flag_keyword_not_triggered(self) -> None:
+        assert has_red_flags("my IT band tore up during the run", 5, "it_band") is False
+
+    def test_it_band_high_pain_still_triggers(self) -> None:
+        assert has_red_flags(None, 8, "it_band") is True
+
+    def test_hip_flexor_red_flag_keyword_not_triggered(self) -> None:
+        assert has_red_flags("it popped", 4, "hip_flexor") is False
+
+    def test_forearm_red_flag_keyword_not_triggered(self) -> None:
+        assert has_red_flags("snapped my forearm tendon", 6, "forearm") is False
+
+    def test_non_chronic_region_still_triggers(self) -> None:
+        assert has_red_flags("I tore my hamstring", 4, "hamstring") is True
+
+    def test_body_region_defaults_empty_string_backward_compat(self) -> None:
+        assert has_red_flags("it popped", 4) is True
+
+
+class TestNewRegions:
+    def test_hamstring_has_deadlift_contraindicated(self) -> None:
+        assert "deadlift" in get_contraindicated_movements("hamstring")
+
+    def test_hamstring_has_sprint_contraindicated(self) -> None:
+        assert "sprint" in get_contraindicated_movements("hamstring")
+
+    def test_hamstring_deadlift_has_substitutions(self) -> None:
+        subs = resolve_substitution("hamstring", "deadlift")
+        assert len(subs) > 0
+        assert any("Trap Bar" in s for s in subs)
+
+    def test_hamstring_rdl_has_substitutions(self) -> None:
+        assert len(resolve_substitution("hamstring", "romanian_deadlift")) > 0
+
+    def test_quad_has_front_squat_contraindicated(self) -> None:
+        assert "front_squat" in get_contraindicated_movements("quad")
+
+    def test_calf_has_double_under_contraindicated(self) -> None:
+        assert "double_under" in get_contraindicated_movements("calf")
+
+    def test_calf_running_has_substitutions(self) -> None:
+        assert len(resolve_substitution("calf", "running")) > 0
+
+    def test_forearm_deadlift_returns_straps_option(self) -> None:
+        subs = resolve_substitution("forearm", "deadlift")
+        assert any("straps" in s.lower() for s in subs)
+
+    def test_forearm_pullup_returns_straps_option(self) -> None:
+        subs = resolve_substitution("forearm", "pull_up")
+        assert any("straps" in s.lower() for s in subs)
+
+    def test_it_band_has_running_contraindicated(self) -> None:
+        assert "running" in get_contraindicated_movements("it_band")
+
+    def test_it_band_running_has_substitutions(self) -> None:
+        assert len(resolve_substitution("it_band", "running")) > 0
+
+    def test_hip_flexor_has_toes_to_bar_contraindicated(self) -> None:
+        assert "toes_to_bar" in get_contraindicated_movements("hip_flexor")
+
+    def test_lat_has_pull_up_contraindicated(self) -> None:
+        assert "pull_up" in get_contraindicated_movements("lat")
+
+    def test_chest_has_pushup_contraindicated(self) -> None:
+        assert "pushup" in get_contraindicated_movements("chest")
+
+    def test_bicep_has_pull_up_contraindicated(self) -> None:
+        assert "pull_up" in get_contraindicated_movements("bicep")
+
+    def test_tricep_has_dip_contraindicated(self) -> None:
+        assert "dip" in get_contraindicated_movements("tricep")
+
+    def test_glute_has_hip_thrust_contraindicated(self) -> None:
+        assert "hip_thrust" in get_contraindicated_movements("glute")
+
+    def test_upper_back_has_deadlift_contraindicated(self) -> None:
+        assert "deadlift" in get_contraindicated_movements("upper_back")

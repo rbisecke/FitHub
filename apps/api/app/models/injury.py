@@ -10,7 +10,31 @@ from pydantic import BaseModel, Field
 
 class ReportInjuryRequest(BaseModel):
     body_region: Literal[
-        "shoulder", "knee", "hip", "lower_back", "wrist", "elbow", "ankle", "neck", "other"
+        # joint regions
+        "shoulder",
+        "knee",
+        "hip",
+        "lower_back",
+        "wrist",
+        "elbow",
+        "ankle",
+        "neck",
+        # muscle belly regions
+        "hamstring",
+        "quad",
+        "calf",
+        "glute",
+        "upper_back",
+        "chest",
+        "bicep",
+        "tricep",
+        "lat",
+        # soft-tissue / connective structures
+        "hip_flexor",
+        "it_band",
+        "forearm",
+        # fallback
+        "other",
     ]
     pain_level: int = Field(..., ge=0, le=10)
     mechanism: Literal["overuse", "acute", "unknown"] | None = None

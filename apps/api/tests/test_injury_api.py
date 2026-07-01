@@ -96,3 +96,51 @@ async def test_injury_pain_level_out_of_range(alice_client: AsyncClient) -> None
         json={"body_region": "knee", "pain_level": 11},
     )
     assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_report_hamstring_injury_red_flag_keyword(alice_client: AsyncClient) -> None:
+    r = await alice_client.post(
+        "/api/v1/injuries",
+        json={"body_region": "hamstring", "pain_level": 4, "notes": "tore it sprinting"},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["body_region"] == "hamstring"
+    assert data["requires_referral"] is True  # "tore" triggers for non-chronic region
+
+
+@pytest.mark.asyncio
+async def test_it_band_tore_keyword_no_referral(alice_client: AsyncClient) -> None:
+    r = await alice_client.post(
+        "/api/v1/injuries",
+        json={
+            "body_region": "it_band",
+            "pain_level": 5,
+            "notes": "my IT band tore up during the run",
+        },
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["requires_referral"] is False  # chronic region — keyword doesn't trigger
+
+
+@pytest.mark.asyncio
+async def test_report_forearm_injury_with_substitutions(alice_client: AsyncClient) -> None:
+    r = await alice_client.post(
+        "/api/v1/injuries",
+        json={"body_region": "forearm", "pain_level": 3, "notes": "wrist flexor tendinopathy"},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["requires_referral"] is False
+    assert len(data["substitutions"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_injury_new_region_invalid_still_rejected(alice_client: AsyncClient) -> None:
+    r = await alice_client.post(
+        "/api/v1/injuries",
+        json={"body_region": "pinky_toe", "pain_level": 3},
+    )
+    assert r.status_code == 422
