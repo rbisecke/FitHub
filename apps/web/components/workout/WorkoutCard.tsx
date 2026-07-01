@@ -98,140 +98,186 @@ export function WorkoutCard({
   }
 
   return (
-    <div
-      data-testid="workout-card"
-      className={`rounded-lg border bg-[var(--card)] overflow-hidden transition-colors ${
-        workout.has_pr
-          ? "border-[var(--border)] hover:border-[rgba(255,200,61,0.5)]"
-          : "border-[var(--border)] hover:border-[var(--muted-foreground)]/40"
-      }`}
-    >
-      {/* Collapsed header */}
-      <button
-        onClick={onToggle}
-        aria-expanded={isExpanded}
-        aria-controls={`workout-detail-${workout.id}`}
-        className="w-full text-left px-4 py-3 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#58a6ff] focus-visible:ring-inset"
-        aria-label={`Toggle details for ${workout.title ?? "Untitled workout"}`}
-      >
-        {/* Row 1: hash + title + badges */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 flex-wrap min-w-0">
-            <div
-              className="shrink-0 z-[1]"
-              style={{
-                width: 13,
-                height: 13,
-                borderRadius: "50%",
-                background: "var(--card)",
-                border: "2px solid var(--gold)",
-                boxShadow: "0 0 0 3px var(--background)",
-              }}
-              aria-hidden="true"
-            />
-            <span className="font-data text-[12px] text-[var(--gold)] font-semibold">
-              <span className="sr-only">Workout ID: </span>
-              {workout.short_hash}
-            </span>
-            <span className="font-medium text-[#e6edf3]">
+    <div data-testid="workout-card">
+      {/* Mobile: flat non-expanding card */}
+      <div className="md:hidden flex gap-[11px] bg-[var(--card)] border border-[var(--border)] rounded-[13px] p-[13px_14px]">
+        <div className="w-[28px] h-[28px] rounded-[7px] bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-center flex-shrink-0 mt-[1px]">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="2"
+          >
+            <circle cx="12" cy="12" r="3.2" />
+            <path d="M12 2v6.8M12 15.2V22" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-[7px] flex-wrap">
+            <span className="font-semibold text-[13px] text-[var(--foreground)]">
               {workout.title ?? "Untitled workout"}
             </span>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-            {showBenchmark && (
-              <span
-                className="text-xs font-mono px-1.5 py-0.5 rounded border border-[#58a6ff]/40 bg-[#58a6ff]/10 text-[#58a6ff]"
-                aria-label="Named CrossFit benchmark workout"
-              >
-                BENCHMARK
-              </span>
-            )}
-            {isPartner && (
-              <span className="text-xs font-mono border border-[--purple]/40 bg-[--purple]/10 text-[--purple] px-1.5 py-0.5 rounded">
-                Co-authored-by
-              </span>
-            )}
-            {workout.session_type && (
-              <span
-                className="text-[10.5px] font-bold px-[9px] py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
-                style={{
-                  color: "var(--hot)",
-                  background: "rgba(255, 122, 69, 0.14)",
-                  border: "1px solid rgba(255, 122, 69, 0.3)",
-                }}
-              >
-                {workout.session_type.charAt(0).toUpperCase() +
-                  workout.session_type.slice(1)}
-              </span>
-            )}
             {workout.has_pr && (
               <span
-                className="text-[10.5px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
+                className="font-data text-[9.5px] font-bold px-[7px] py-[1px] rounded-full flex-shrink-0"
                 style={{
-                  background: "rgba(255, 200, 61, 0.14)",
                   color: "var(--gold)",
-                  border: "1px solid rgba(255, 200, 61, 0.3)",
+                  background: "rgba(255,200,61,0.14)",
+                  border: "1px solid rgba(255,200,61,0.3)",
                 }}
-                aria-label="Personal record achieved"
-                data-testid="pr-badge"
               >
                 🏆 PR
               </span>
             )}
           </div>
+          <div className="font-data text-[10.5px] text-[var(--muted-foreground)] mt-[4px]">
+            <span style={{ color: "var(--gold)" }}>{workout.short_hash}</span>
+            {" · "}
+            {relativeDateLabel}
+            {workout.session_type && ` · ${workout.session_type}`}
+          </div>
         </div>
+      </div>
 
-        {/* Row 2: date — omit the dot+absolute when relativeDate returns same string */}
-        <div className="mt-1 font-mono text-xs text-[#8b949e]">
-          {relativeDateLabel !== absoluteDateLabel ? (
-            <>
-              <span>{relativeDateLabel}</span>
-              <span aria-hidden="true" className="mx-1">
-                ·
+      {/* Desktop: expand/collapse card */}
+      <div
+        className={`hidden md:block rounded-lg border bg-[var(--card)] overflow-hidden transition-colors ${
+          workout.has_pr
+            ? "border-[var(--border)] hover:border-[rgba(255,200,61,0.5)]"
+            : "border-[var(--border)] hover:border-[var(--muted-foreground)]/40"
+        }`}
+      >
+        {/* Collapsed header */}
+        <button
+          onClick={onToggle}
+          aria-expanded={isExpanded}
+          aria-controls={`workout-detail-${workout.id}`}
+          className="w-full text-left px-4 py-3 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#58a6ff] focus-visible:ring-inset"
+          aria-label={`Toggle details for ${
+            workout.title ?? "Untitled workout"
+          }`}
+        >
+          {/* Row 1: hash + title + badges */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
+              <div
+                className="shrink-0 z-[1]"
+                style={{
+                  width: 13,
+                  height: 13,
+                  borderRadius: "50%",
+                  background: "var(--card)",
+                  border: "2px solid var(--gold)",
+                  boxShadow: "0 0 0 3px var(--background)",
+                }}
+                aria-hidden="true"
+              />
+              <span className="font-data text-[12px] text-[var(--gold)] font-semibold">
+                <span className="sr-only">Workout ID: </span>
+                {workout.short_hash}
               </span>
-              <span>{absoluteDateLabel}</span>
-            </>
-          ) : (
-            <span>{absoluteDateLabel}</span>
-          )}
-        </div>
-
-        {/* Row 3: movement summary (count fallback until API adds movement_names[]) */}
-        {workout.result_count > 0 && (
-          <p className="mt-0.5 text-xs text-[#8b949e]">
-            {workout.result_count === 1
-              ? "1 result"
-              : `${workout.result_count} results`}
-          </p>
-        )}
-      </button>
-
-      {/* Expanded content — animated with Motion */}
-      <AnimatePresence initial={false}>
-        {isExpanded && (
-          <motion.div
-            id={`workout-detail-${workout.id}`}
-            key="expanded"
-            initial={prefersReduced ? {} : { opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={prefersReduced ? {} : { opacity: 0, height: 0 }}
-            transition={expandTransition}
-            style={{ overflow: "hidden" }}
-          >
-            <div className="border-t border-[#30363d] px-4 py-4 space-y-4">
-              {detailLoading ? (
-                <ExpandedSkeleton />
-              ) : detail ? (
-                <ExpandedContent
-                  workout={detail}
-                  summary={workout}
-                  onMovementFilter={onMovementFilter}
-                />
-              ) : null}
+              <span className="font-medium text-[#e6edf3]">
+                {workout.title ?? "Untitled workout"}
+              </span>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+              {showBenchmark && (
+                <span
+                  className="text-xs font-mono px-1.5 py-0.5 rounded border border-[#58a6ff]/40 bg-[#58a6ff]/10 text-[#58a6ff]"
+                  aria-label="Named CrossFit benchmark workout"
+                >
+                  BENCHMARK
+                </span>
+              )}
+              {isPartner && (
+                <span className="text-xs font-mono border border-[--purple]/40 bg-[--purple]/10 text-[--purple] px-1.5 py-0.5 rounded">
+                  Co-authored-by
+                </span>
+              )}
+              {workout.session_type && (
+                <span
+                  className="text-[10.5px] font-bold px-[9px] py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
+                  style={{
+                    color: "var(--hot)",
+                    background: "rgba(255, 122, 69, 0.14)",
+                    border: "1px solid rgba(255, 122, 69, 0.3)",
+                  }}
+                >
+                  {workout.session_type.charAt(0).toUpperCase() +
+                    workout.session_type.slice(1)}
+                </span>
+              )}
+              {workout.has_pr && (
+                <span
+                  className="text-[10.5px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
+                  style={{
+                    background: "rgba(255, 200, 61, 0.14)",
+                    color: "var(--gold)",
+                    border: "1px solid rgba(255, 200, 61, 0.3)",
+                  }}
+                  aria-label="Personal record achieved"
+                  data-testid="pr-badge"
+                >
+                  🏆 PR
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Row 2: date — omit the dot+absolute when relativeDate returns same string */}
+          <div className="mt-1 font-mono text-xs text-[#8b949e]">
+            {relativeDateLabel !== absoluteDateLabel ? (
+              <>
+                <span>{relativeDateLabel}</span>
+                <span aria-hidden="true" className="mx-1">
+                  ·
+                </span>
+                <span>{absoluteDateLabel}</span>
+              </>
+            ) : (
+              <span>{absoluteDateLabel}</span>
+            )}
+          </div>
+
+          {/* Row 3: movement summary (count fallback until API adds movement_names[]) */}
+          {workout.result_count > 0 && (
+            <p className="mt-0.5 text-xs text-[#8b949e]">
+              {workout.result_count === 1
+                ? "1 result"
+                : `${workout.result_count} results`}
+            </p>
+          )}
+        </button>
+
+        {/* Expanded content — animated with Motion */}
+        <AnimatePresence initial={false}>
+          {isExpanded && (
+            <motion.div
+              id={`workout-detail-${workout.id}`}
+              key="expanded"
+              initial={prefersReduced ? {} : { opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={prefersReduced ? {} : { opacity: 0, height: 0 }}
+              transition={expandTransition}
+              style={{ overflow: "hidden" }}
+            >
+              <div className="border-t border-[#30363d] px-4 py-4 space-y-4">
+                {detailLoading ? (
+                  <ExpandedSkeleton />
+                ) : detail ? (
+                  <ExpandedContent
+                    workout={detail}
+                    summary={workout}
+                    onMovementFilter={onMovementFilter}
+                  />
+                ) : null}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
@@ -529,49 +575,103 @@ function TagCard({
   });
 
   return (
-    <div
-      data-testid="tag-card"
-      className="rounded-lg border border-[#30363d] px-4 py-3 transition-colors hover:border-[#58a6ff]/20"
-    >
-      {loading ? (
-        <div className="flex items-center gap-2 font-mono text-xs text-[#8b949e]">
-          <span>🏷</span>
-          <span className="text-[#8b949e]">Loading…</span>
+    <div data-testid="tag-card">
+      {/* Mobile: flat dashed card */}
+      <div className="md:hidden flex items-center gap-[11px] bg-[var(--card)] border border-dashed border-[var(--border)] rounded-[13px] p-[11px_14px]">
+        <div
+          className="w-[28px] h-[28px] flex items-center justify-center flex-shrink-0"
+          style={{ color: "var(--gold)" }}
+        >
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20.6 13.4L11 3.8A2 2 0 009.6 3.2H4a1 1 0 00-1 1v5.6a2 2 0 00.6 1.4l9.6 9.6a2 2 0 002.8 0l4.6-4.6a2 2 0 000-2.8z" />
+            <circle cx="7.5" cy="7.5" r="1" />
+          </svg>
         </div>
-      ) : (
-        <>
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2 font-mono text-sm min-w-0">
-              <span aria-hidden>🏷</span>
-              {movementName && (
-                <span className="text-[#e6edf3] truncate">{movementName}</span>
-              )}
-              {resultValue && (
-                <>
-                  <span className="text-[#8b949e]">·</span>
-                  <span className="text-[#e6edf3]">{resultValue}</span>
-                </>
-              )}
-              {workout.has_pr && (
-                <span
-                  className="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded bg-[--green]/15 text-[--green]"
-                  aria-label="Personal record"
-                >
-                  PR
-                </span>
-              )}
-            </div>
-            <span className="shrink-0 font-mono text-xs text-[#8b949e]">
-              {dateLabel}
+        <div className="flex-1 min-w-0">
+          {loading ? (
+            <span className="font-data text-[11px] text-[var(--muted-foreground)]">
+              Loading…
             </span>
-          </div>
-          {localDetail?.notes && (
-            <p className="mt-1 font-mono text-xs text-[#8b949e] pl-6">
-              {localDetail.notes}
-            </p>
+          ) : (
+            <>
+              <div className="flex items-center gap-[7px] flex-wrap">
+                {movementName && (
+                  <span className="font-semibold text-[13px] text-[var(--foreground)] truncate">
+                    {movementName}
+                  </span>
+                )}
+                {resultValue && (
+                  <span className="font-data text-[10.5px] text-[var(--muted-foreground)]">
+                    {resultValue}
+                  </span>
+                )}
+                {workout.has_pr && (
+                  <span className="font-data text-[9px] font-semibold px-[5px] py-[1px] rounded bg-[rgba(63,185,80,0.15)] text-[var(--green)]">
+                    PR
+                  </span>
+                )}
+              </div>
+              <div className="font-data text-[10.5px] text-[var(--muted-foreground)] mt-[3px]">
+                single result · {dateLabel}
+              </div>
+            </>
           )}
-        </>
-      )}
+        </div>
+      </div>
+
+      {/* Desktop: original layout */}
+      <div className="hidden md:block rounded-lg border border-[#30363d] px-4 py-3 transition-colors hover:border-[#58a6ff]/20">
+        {loading ? (
+          <div className="flex items-center gap-2 font-mono text-xs text-[#8b949e]">
+            <span>🏷</span>
+            <span className="text-[#8b949e]">Loading…</span>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 font-mono text-sm min-w-0">
+                <span aria-hidden>🏷</span>
+                {movementName && (
+                  <span className="text-[#e6edf3] truncate">
+                    {movementName}
+                  </span>
+                )}
+                {resultValue && (
+                  <>
+                    <span className="text-[#8b949e]">·</span>
+                    <span className="text-[#e6edf3]">{resultValue}</span>
+                  </>
+                )}
+                {workout.has_pr && (
+                  <span
+                    className="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded bg-[--green]/15 text-[--green]"
+                    aria-label="Personal record"
+                  >
+                    PR
+                  </span>
+                )}
+              </div>
+              <span className="shrink-0 font-mono text-xs text-[#8b949e]">
+                {dateLabel}
+              </span>
+            </div>
+            {localDetail?.notes && (
+              <p className="mt-1 font-mono text-xs text-[#8b949e] pl-6">
+                {localDetail.notes}
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

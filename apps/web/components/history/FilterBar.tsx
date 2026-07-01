@@ -46,8 +46,8 @@ export function FilterBar({
 
   return (
     <div className="mb-6">
-      {/* Row: type pills + Filters button */}
-      <div className="flex items-center gap-2.5 flex-wrap mb-3">
+      {/* Row: type pills (scrollable on mobile) + Filters button (desktop only) */}
+      <div className="flex items-center gap-[7px] overflow-x-auto scrollbar-none mb-[18px] md:flex-wrap md:gap-2.5 md:mb-3">
         {SESSION_TYPE_PILLS.map((pill) => {
           const isActive = filters.sessionType === pill.value;
           return (
@@ -56,10 +56,10 @@ export function FilterBar({
               onClick={() =>
                 onFiltersChange({ ...filters, sessionType: pill.value })
               }
-              className={`font-data text-[11.5px] font-semibold px-3 py-1.5 rounded-full border transition-colors whitespace-nowrap ${
+              className={`flex-shrink-0 font-data text-[11px] px-[13px] py-[6px] rounded-full border transition-colors whitespace-nowrap ${
                 isActive
-                  ? "bg-[rgba(74,222,128,0.14)] border-[var(--accent)] text-[var(--accent)]"
-                  : "bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)] hover:text-[var(--foreground)]"
+                  ? "font-bold bg-[rgba(74,222,128,0.14)] border-[var(--accent)] text-[var(--accent)]"
+                  : "font-semibold bg-[var(--card)] border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)] hover:text-[var(--foreground)]"
               }`}
             >
               {pill.label}
@@ -67,11 +67,11 @@ export function FilterBar({
           );
         })}
 
-        <div className="flex-1" />
+        <div className="hidden md:flex flex-1" />
 
         <button
           onClick={() => setShowAdvanced((v) => !v)}
-          className="flex items-center gap-1.5 bg-[var(--card)] border border-[var(--border)] rounded-[9px] px-3 py-2 text-[12px] font-semibold text-[var(--foreground)] hover:border-[var(--muted-foreground)] transition-colors"
+          className="hidden md:flex items-center gap-1.5 bg-[var(--card)] border border-[var(--border)] rounded-[9px] px-3 py-2 text-[12px] font-semibold text-[var(--foreground)] hover:border-[var(--muted-foreground)] transition-colors flex-shrink-0"
         >
           <SlidersHorizontal className="h-[13px] w-[13px]" />
           Filters
@@ -101,9 +101,9 @@ export function FilterBar({
         </div>
       )}
 
-      {/* Advanced filters panel */}
+      {/* Advanced filters panel - desktop only */}
       {showAdvanced && (
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-[14px] p-[18px] mb-[14px] flex flex-wrap gap-6 items-end">
+        <div className="hidden md:flex bg-[var(--card)] border border-[var(--border)] rounded-[14px] p-[18px] mb-[14px] flex-wrap gap-6 items-end">
           {/* Date range */}
           <div>
             <div className="text-[10.5px] text-[var(--muted-foreground)] uppercase tracking-[1px] mb-2 font-semibold">

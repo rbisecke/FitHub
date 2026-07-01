@@ -138,7 +138,7 @@ export function HistoryPage({
   const isEmptyDueToFilter = isEmpty && filtersActive;
 
   return (
-    <div className="px-6 py-6 max-w-[920px] mx-auto pb-nav-safe">
+    <div className="px-[18px] pt-[14px] pb-2 md:px-6 md:py-6 max-w-[920px] mx-auto pb-nav-safe">
       {/* Page header */}
       <PageHeader
         gitCommand="$ git log --all"
@@ -207,7 +207,7 @@ export function HistoryPage({
                   date={group.date}
                   count={group.workouts.length}
                 />
-                <div>
+                <div className="flex flex-col gap-[9px] md:gap-0">
                   {group.workouts.map((workout) => {
                     const thisIndex = cardIndex++;
                     return (
@@ -279,6 +279,13 @@ export function HistoryPage({
               Filtering over {items.length} loaded commit
               {items.length !== 1 ? "s" : ""}
             </p>
+          )}
+
+          {/* Scroll hint - mobile only */}
+          {!allLoaded && (
+            <div className="md:hidden text-center font-data text-[11px] text-[var(--muted-foreground)] py-[22px] pb-[6px]">
+              ↓ scroll for older commits
+            </div>
           )}
         </div>
       )}
