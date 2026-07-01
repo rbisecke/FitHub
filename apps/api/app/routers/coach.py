@@ -21,6 +21,7 @@ from app.auth import UserContext, get_current_user
 from app.db import get_db
 from app.middleware.rate_limit import limiter
 from app.models.coach import (
+    ActiveInjurySummary,
     ChatRequest,
     ChatResponse,
     ChatStreamRequest,
@@ -29,6 +30,7 @@ from app.models.coach import (
     ParseLogRequest,
     ParseLogResponse,
     SessionMessagesResponse,
+    TodaySessionContext,
 )
 from app.models.profile import UserProfile
 
@@ -54,16 +56,70 @@ _COACH_SYSTEM_PROMPT_BASE = (
 COACH_SYSTEM_PROMPT = _COACH_SYSTEM_PROMPT_BASE
 
 
-def build_system_prompt(profile: UserProfile | None) -> str:
-    """Return the coach system prompt, optionally enriched with athlete context."""
+def build_system_prompt(
+    profile: UserProfile | None,
+    injuries: list[ActiveInjurySummary] | None = None,
+    today_session: TodaySessionContext | None = None,
+) -> str:
+    """Return the coach system prompt enriched with athlete context, injuries, and today's plan."""
     prompt = _COACH_SYSTEM_PROMPT_BASE
-    if profile is None:
-        return prompt
-    if profile.training_level:
-        prompt += f"\nAthlete level: {profile.training_level}"
-    effective_since = profile.training_since or profile.first_workout_date
-    if effective_since:
-        prompt += f"\nTraining since: {effective_since}"
+
+    if profile is not None:
+        if profile.training_level:
+            prompt += f"\nAthlete level: {profile.training_level}"
+        effective_since = profile.training_since or profile.first_workout_date
+        if effective_since:
+            prompt += f"\nTraining since: {effective_since}"
+
+    if injuries:
+        referral_flagged = [i for i in injuries if i.requires_referral]
+        training_injuries = [i for i in injuries if not i.requires_referral]
+
+        if referral_flagged:
+            prompt += (
+                "\n\nMEDICAL ALERT — athlete has injuries requiring professional evaluation. "
+                "Do not prescribe loading for the following regions and advise them to see a "
+                "physio before resuming: "
+                + ", ".join(i.body_region for i in referral_flagged)
+                + "."
+            )
+
+        if training_injuries:
+            prompt += "\n\nActive injuries — do NOT prescribe contraindicated movements:"
+            for injury in training_injuries:
+                notes_str = f' ("{injury.notes}")' if injury.notes else ""
+                prompt += f"\n- {injury.body_region} (pain {injury.pain_level}/10){notes_str}"
+                if injury.contraindicated:
+                    prompt += "\n  Contraindicated: " + ", ".join(
+                        f"`{m}`" for m in injury.contraindicated
+                    )
+            prompt += (
+                "\nIf the athlete asks about any of these movements, explain the restriction "
+                "and suggest an appropriate substitution."
+            )
+
+    if today_session is not None:
+        prompt += (
+            f'\n\nToday\'s planned session ({today_session.session_type}): "{today_session.title}"'
+        )
+        if today_session.items:
+            prompt += "\nPrescribed movements:"
+            for item in today_session.items:
+                line = f"  - {item.movement_name}"
+                if item.sets:
+                    line += f" × {item.sets}"
+                if item.reps:
+                    line += f" × {item.reps}"
+                if item.load_pct_1rm:
+                    line += f" @ {item.load_pct_1rm:.0f}% 1RM"
+                elif item.load_kg:
+                    line += f" @ {item.load_kg:.1f} kg"
+                prompt += f"\n{line}"
+        prompt += (
+            "\nIf the athlete asks about today's workout, cross-reference it with their "
+            "active injuries and flag any contraindicated movements proactively."
+        )
+
     return prompt
 
 
@@ -190,12 +246,18 @@ async def chat(
     from app.ai.errors import call_llm
     from app.models.coach import Citation, _ChatAnswer
     from app.repositories import profile as profile_repo
+    from app.repositories.coach import fetch_today_session
+    from app.repositories.injuries import fetch_active_injuries
 
     context = "\n\n".join(str(c["body"]) for c in chunks)
     llm = get_client()
 
+    from datetime import date
+
     profile = await profile_repo.get_profile(db, user_id=user.user_id, email="", avatar_url=None)
-    system_prompt = build_system_prompt(profile)
+    injuries = await fetch_active_injuries(db, user.user_id)
+    today_session = await fetch_today_session(db, user.user_id, date.today())
+    system_prompt = build_system_prompt(profile, injuries=injuries, today_session=today_session)
 
     # XML delimiters separate retrieved data from user input so the model
     # cannot be manipulated by injection payloads in the knowledge corpus.
@@ -350,10 +412,16 @@ async def _do_stream(
         rag_text = rag_query_text(question, history)
         chunks = await hybrid_retrieve(rag_text, db, top_k=5)
 
+    from datetime import date
+
     from app.repositories import profile as profile_repo
+    from app.repositories.coach import fetch_today_session
+    from app.repositories.injuries import fetch_active_injuries
 
     profile = await profile_repo.get_profile(db, user_id=user_id, email="", avatar_url=None)
-    system_prompt = build_system_prompt(profile)
+    injuries = await fetch_active_injuries(db, user_id)
+    today_session = await fetch_today_session(db, user_id, date.today())
+    system_prompt = build_system_prompt(profile, injuries=injuries, today_session=today_session)
 
     context = "\n\n".join(str(c["body"]) for c in chunks)
     user_content = (

@@ -4,12 +4,19 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import date
 from typing import Any
 
 import psycopg
 from psycopg.rows import dict_row
 
-from app.models.coach import CoachSession, HistoryMessage, SessionMessagesResponse
+from app.models.coach import (
+    CoachSession,
+    HistoryMessage,
+    PlannedItem,
+    SessionMessagesResponse,
+    TodaySessionContext,
+)
 
 MAX_HISTORY_TURNS = 10
 MAX_HISTORY_TOKENS = 5_000
@@ -187,3 +194,59 @@ async def fetch_session_messages_history(
             total_tokens -= _estimate_tokens(dropped2["content"])
 
     return sanitized
+
+
+async def fetch_today_session(
+    db: psycopg.AsyncConnection[Any],
+    user_id: uuid.UUID,
+    today: date,
+) -> TodaySessionContext | None:
+    """Return today's planned session with its items, or None if none scheduled."""
+    async with db.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT
+                ps.session_type,
+                ps.title,
+                COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'movement_name', pi.movement_name,
+                            'sets', pi.sets,
+                            'reps', pi.reps,
+                            'load_kg', pi.load_kg::float,
+                            'load_pct_1rm', pi.load_pct_1rm::float
+                        ) ORDER BY pi.item_order
+                    ) FILTER (WHERE pi.id IS NOT NULL),
+                    '[]'::json
+                ) AS items
+            FROM planned_sessions ps
+            JOIN plans p ON p.id = ps.plan_id
+            LEFT JOIN planned_items pi ON pi.session_id = ps.id
+            WHERE p.user_id = %s AND ps.scheduled_date = %s
+            GROUP BY ps.id, ps.session_type, ps.title
+            LIMIT 1
+            """,
+            [str(user_id), today],
+        )
+        row = await cur.fetchone()
+
+    if row is None:
+        return None
+
+    raw_items: list[dict[str, Any]] = row["items"] or []
+    items = [
+        PlannedItem(
+            movement_name=str(it["movement_name"]),
+            sets=it["sets"],
+            reps=str(it["reps"]) if it["reps"] else None,
+            load_kg=float(it["load_kg"]) if it["load_kg"] is not None else None,
+            load_pct_1rm=float(it["load_pct_1rm"]) if it["load_pct_1rm"] is not None else None,
+        )
+        for it in raw_items
+    ]
+    return TodaySessionContext(
+        session_type=str(row["session_type"]),
+        title=str(row["title"]),
+        items=items,
+    )
