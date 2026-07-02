@@ -21,7 +21,7 @@ import type { WorkoutSummary } from "@/lib/api";
 function applyClientFilters(
   items: WorkoutSummary[],
   filters: HistoryFilters,
-  movementFilter: string | null,
+  _movementFilter: string | null,
 ): WorkoutSummary[] {
   return items.filter((item) => {
     if (filters.sessionType && item.session_type !== filters.sessionType)
@@ -43,12 +43,6 @@ function applyClientFilters(
       return false;
     if (filters.tagsFilter === "tags-only" && !item.is_tag) return false;
     if (filters.tagsFilter === "no-tags" && item.is_tag) return false;
-    if (
-      movementFilter &&
-      (item.title?.toLowerCase().indexOf(movementFilter.toLowerCase()) ??
-        -1) === -1
-    )
-      return false;
     return true;
   });
 }
