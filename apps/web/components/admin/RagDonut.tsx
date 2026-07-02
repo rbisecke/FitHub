@@ -13,6 +13,47 @@ function fmtPct(n: number): string {
 }
 
 export function RagDonut({ hitRate, totalQueries }: Props) {
+  if (totalQueries === 0) {
+    return (
+      <div>
+        <div
+          style={{
+            fontWeight: 700,
+            fontSize: 14,
+            marginBottom: 3,
+            color: "#e6edf3",
+            fontFamily: "var(--font-jetbrains-mono), monospace",
+          }}
+        >
+          Cache hit rate
+        </div>
+        <div
+          style={{
+            fontSize: 11.5,
+            color: "#8b949e",
+            marginBottom: 18,
+            fontFamily: "var(--font-jetbrains-mono), monospace",
+          }}
+        >
+          RAG / prompt cache · last 30d
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: 128,
+            color: "#8b949e",
+            fontSize: 13,
+            fontFamily: "var(--font-jetbrains-mono), monospace",
+          }}
+        >
+          No queries yet
+        </div>
+      </div>
+    );
+  }
+
   const arc = CIRC * hitRate;
   const missRate = 1 - hitRate;
   const missArc = CIRC * missRate;
