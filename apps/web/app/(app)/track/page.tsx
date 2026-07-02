@@ -1,9 +1,9 @@
-import { TrackPage } from "@/components/track/TrackPage";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Track Workout · FitHub",
 };
 
 export default function TrackRoute() {
-  return <TrackPage />;
+  redirect("/log/new");
 }

@@ -1,6 +1,5 @@
 import {
   LayoutDashboard,
-  GitCommit,
   Plus,
   GitBranch,
   Tag,
@@ -28,13 +27,6 @@ export const NAV_ITEMS: NavItem[] = [
     icon: LayoutDashboard,
     gitCommand: "$ fithub status",
     mobileShow: true,
-  },
-  {
-    href: "/track",
-    label: "Track",
-    mobileLabel: "Track",
-    icon: GitCommit,
-    gitCommand: "$ git commit -m",
   },
   {
     href: "/log/new",
