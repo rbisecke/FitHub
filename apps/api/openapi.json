@@ -1590,6 +1590,38 @@
               "format": "uuid",
               "title": "Movement Id"
             }
+          },
+          {
+            "name": "implement",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Implement"
+            }
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Side"
+            }
           }
         ],
         "responses": {
@@ -1637,6 +1669,54 @@
               "type": "string",
               "format": "uuid",
               "title": "Movement Id"
+            }
+          },
+          {
+            "name": "variant_annotation",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Variant Annotation"
+            }
+          },
+          {
+            "name": "implement",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Implement"
+            }
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Side"
             }
           }
         ],
@@ -4681,6 +4761,39 @@
               }
             ],
             "title": "Variant Annotation"
+          },
+          "implement": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implement"
+          },
+          "tempo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tempo"
+          },
+          "side": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Side"
           },
           "rpe": {
             "anyOf": [
@@ -7830,6 +7943,39 @@
             ],
             "title": "Variant Annotation"
           },
+          "implement": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implement"
+          },
+          "tempo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tempo"
+          },
+          "side": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Side"
+          },
           "rpe": {
             "anyOf": [
               {
@@ -7946,6 +8092,9 @@
           "is_pr",
           "notes",
           "variant_annotation",
+          "implement",
+          "tempo",
+          "side",
           "rpe",
           "rpe_target",
           "rir",

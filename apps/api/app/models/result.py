@@ -43,6 +43,9 @@ class Result(BaseModel):
     is_pr: bool
     notes: str | None
     variant_annotation: str | None
+    implement: str | None
+    tempo: str | None
+    side: str | None
     rpe: Decimal | None
     rpe_target: Decimal | None
     rir: int | None
@@ -73,6 +76,9 @@ class CreateResultRequest(BaseModel):
     is_pr: bool = False
     notes: str | None = None
     variant_annotation: str | None = None
+    implement: str | None = None
+    tempo: str | None = None
+    side: str | None = None
     rpe: Decimal | None = Field(default=None, ge=0, le=10)
     rpe_target: Decimal | None = Field(default=None, ge=0, le=10)
     rir: int | None = Field(default=None, ge=0, le=10)

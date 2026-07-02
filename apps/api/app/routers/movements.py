@@ -77,8 +77,16 @@ async def get_last_result(
     movement_id: uuid.UUID,
     user: Auth,
     conn: DBConn,
+    implement: str | None = Query(default=None),
+    side: str | None = Query(default=None),
 ) -> LastResult:
-    result = await get_last_result_for_movement(conn, user_id=user.user_id, movement_id=movement_id)
+    result = await get_last_result_for_movement(
+        conn,
+        user_id=user.user_id,
+        movement_id=movement_id,
+        implement=implement,
+        side=side,
+    )
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -95,9 +103,15 @@ async def get_movement_personal_record(
     movement_id: uuid.UUID,
     user: Auth,
     conn: DBConn,
+    variant_annotation: str | None = Query(default=None),
+    implement: str | None = Query(default=None),
+    side: str | None = Query(default=None),
 ) -> PersonalRecordResult | None:
     return await get_personal_record(
         conn,
         user_id=user.user_id,
         movement_id=movement_id,
+        variant_annotation=variant_annotation,
+        implement=implement,
+        side=side,
     )

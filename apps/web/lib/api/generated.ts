@@ -1480,6 +1480,12 @@ export interface components {
       notes?: string | null;
       /** Variant Annotation */
       variant_annotation?: string | null;
+      /** Implement */
+      implement?: string | null;
+      /** Tempo */
+      tempo?: string | null;
+      /** Side */
+      side?: string | null;
       /** Rpe */
       rpe?: number | string | null;
       /** Rpe Target */
@@ -2482,6 +2488,12 @@ export interface components {
       notes: string | null;
       /** Variant Annotation */
       variant_annotation: string | null;
+      /** Implement */
+      implement: string | null;
+      /** Tempo */
+      tempo: string | null;
+      /** Side */
+      side: string | null;
       /** Rpe */
       rpe: string | null;
       /** Rpe Target */
@@ -3981,7 +3993,10 @@ export interface operations {
   };
   get_last_result_api_v1_movements__movement_id__last_result_get: {
     parameters: {
-      query?: never;
+      query?: {
+        implement?: string | null;
+        side?: string | null;
+      };
       header?: never;
       path: {
         movement_id: string;
@@ -4012,7 +4027,11 @@ export interface operations {
   };
   get_movement_personal_record_api_v1_movements__movement_id__personal_record_get: {
     parameters: {
-      query?: never;
+      query?: {
+        variant_annotation?: string | null;
+        implement?: string | null;
+        side?: string | null;
+      };
       header?: never;
       path: {
         movement_id: string;

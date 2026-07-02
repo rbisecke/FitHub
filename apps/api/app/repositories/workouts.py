@@ -91,10 +91,11 @@ async def _insert_result(
              load_kg, reps, time_s, distance_m, calories, height_cm,
              rounds, partial_reps, watts, pace_s, pace_distance_m,
              set_index, order_index, is_pr, notes, variant_annotation,
+             implement, tempo, side,
              rpe, rpe_target, rir, rest_s,
              mean_velocity_ms, peak_velocity_ms, estimated_1rm_kg)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING *
         """,
         [
@@ -118,6 +119,9 @@ async def _insert_result(
             req.is_pr,
             req.notes,
             req.variant_annotation,
+            req.implement,
+            req.tempo,
+            req.side,
             req.rpe,
             req.rpe_target,
             req.rir,

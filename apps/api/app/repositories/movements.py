@@ -84,10 +84,21 @@ async def get_last_result_for_movement(
     *,
     user_id: uuid.UUID,
     movement_id: uuid.UUID,
+    implement: str | None = None,
+    side: str | None = None,
 ) -> LastResult | None:
+    extra = ""
+    params: list[Any] = [user_id, movement_id]
+    if implement is not None:
+        extra += " AND r.implement = %s"
+        params.append(implement)
+    if side is not None:
+        extra += " AND r.side = %s"
+        params.append(side)
+
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
-            """
+            f"""
             SELECT
                 r.result_type,
                 r.load_kg,
@@ -103,10 +114,11 @@ async def get_last_result_for_movement(
             JOIN   public.workouts w ON w.id = r.workout_id
             WHERE  r.user_id = %s
               AND  r.movement_id = %s
+              {extra}
             ORDER  BY w.performed_at DESC, r.created_at DESC
             LIMIT  1
             """,
-            [user_id, movement_id],
+            params,
         )
         row = await cur.fetchone()
     if row is None:
@@ -120,12 +132,20 @@ async def get_personal_record(
     user_id: uuid.UUID,
     movement_id: uuid.UUID,
     variant_annotation: str | None = None,
+    implement: str | None = None,
+    side: str | None = None,
 ) -> PersonalRecordResult | None:
-    variant_clause = ""
+    extra = ""
     params: list[Any] = [user_id, movement_id]
     if variant_annotation is not None:
-        variant_clause = "AND r.variant_annotation = %s"
+        extra += " AND r.variant_annotation = %s"
         params.append(variant_annotation)
+    if implement is not None:
+        extra += " AND r.implement = %s"
+        params.append(implement)
+    if side is not None:
+        extra += " AND r.side = %s"
+        params.append(side)
 
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
@@ -144,7 +164,7 @@ async def get_personal_record(
             WHERE  r.user_id     = %s
               AND  r.movement_id  = %s
               AND  r.is_pr        = TRUE
-              {variant_clause}
+              {extra}
             ORDER  BY w.performed_at DESC
             LIMIT  1
             """,
