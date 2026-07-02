@@ -86,8 +86,8 @@ export default async function PlanDetailPage({ params }: Props) {
       {/* Plan revision / adaptations form */}
       <PlanBranchView plan={plan} accessToken={token} />
 
-      {/* AI adaptations stub */}
-      <AIAdaptationsPanel />
+      {/* AI adaptations */}
+      <AIAdaptationsPanel planId={plan.id} accessToken={token} />
     </div>
   );
 }

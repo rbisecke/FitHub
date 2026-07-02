@@ -18,15 +18,10 @@ import {
 import { api } from "@/lib/api/client";
 import type { WorkoutSummary } from "@/lib/api";
 
-// Fallback tag detection (until B7 adds is_tag column)
-function isTagEntry(item: WorkoutSummary): boolean {
-  return !item.session_type && item.result_count === 1;
-}
-
 function applyClientFilters(
   items: WorkoutSummary[],
   filters: HistoryFilters,
-  movementFilter: string | null,
+  _movementFilter: string | null,
 ): WorkoutSummary[] {
   return items.filter((item) => {
     if (filters.sessionType && item.session_type !== filters.sessionType)
@@ -46,14 +41,8 @@ function applyClientFilters(
       return false;
     if (filters.dateTo && item.performed_at.slice(0, 10) > filters.dateTo)
       return false;
-    if (filters.tagsFilter === "tags-only" && !isTagEntry(item)) return false;
-    if (filters.tagsFilter === "no-tags" && isTagEntry(item)) return false;
-    if (
-      movementFilter &&
-      (item.title?.toLowerCase().indexOf(movementFilter.toLowerCase()) ??
-        -1) === -1
-    )
-      return false;
+    if (filters.tagsFilter === "tags-only" && !item.is_tag) return false;
+    if (filters.tagsFilter === "no-tags" && item.is_tag) return false;
     return true;
   });
 }
@@ -245,7 +234,7 @@ export function HistoryPage({
           )}
 
           {/* Load more */}
-          {!filtersActive && !allLoaded && !loadingMore && (
+          {!allLoaded && !loadingMore && (
             <div className="mt-6 flex justify-center">
               <button
                 onClick={loadMore}

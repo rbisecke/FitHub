@@ -1,39 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
+import { api } from "@/lib/api/client";
+import type { AdaptationOut } from "@/lib/api/plans";
 
-interface Suggestion {
-  id: string;
-  title: string;
-  body: string;
+interface Props {
+  planId: string;
+  accessToken: string;
 }
 
-const STUB_SUGGESTIONS: Suggestion[] = [
-  {
-    id: "1",
-    title: "Reduce squat volume by 15%",
-    body: "Your ACWR trend suggests accumulated fatigue over the past 10 days. Pulling back on lower-body volume this week will keep adaptation on track.",
-  },
-  {
-    id: "2",
-    title: "Add an active recovery day",
-    body: "Session RPE data shows back-to-back high-intensity days on Wednesday and Thursday. Inserting a light aerobic session between them improves recovery quality.",
-  },
-  {
-    id: "3",
-    title: "Advance deload by one week",
-    body: "PRs have stalled across three consecutive strength sessions — a typical sign of accumulated fatigue. An early deload now protects the next mesocycle's gains.",
-  },
-];
+export function AIAdaptationsPanel({ planId, accessToken }: Props) {
+  const [adaptations, setAdaptations] = useState<AdaptationOut[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [applying, setApplying] = useState<string | null>(null);
+  const [dismissing, setDismissing] = useState<string | null>(null);
 
-export function AIAdaptationsPanel() {
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    let cancelled = false;
+    api.adaptations
+      .list(accessToken, planId)
+      .then((data) => {
+        if (!cancelled)
+          setAdaptations(data.filter((a) => a.status === "proposed"));
+      })
+      .catch(() => {
+        if (!cancelled) setAdaptations([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, planId]);
 
-  const visible = STUB_SUGGESTIONS.filter((s) => !dismissed.has(s.id));
+  const handleApply = useCallback(
+    async (id: string) => {
+      setApplying(id);
+      try {
+        await api.adaptations.merge(accessToken, id);
+        setAdaptations((prev) => prev?.filter((a) => a.id !== id) ?? null);
+      } catch {
+        toast.error("Failed to apply adaptation — please try again.");
+      } finally {
+        setApplying(null);
+      }
+    },
+    [accessToken],
+  );
 
-  function dismiss(id: string) {
-    setDismissed((prev) => new Set([...prev, id]));
-  }
+  const handleDismiss = useCallback(
+    async (id: string) => {
+      setDismissing(id);
+      try {
+        await api.adaptations.reject(accessToken, id);
+        setAdaptations((prev) => prev?.filter((a) => a.id !== id) ?? null);
+      } catch {
+        toast.error("Failed to dismiss adaptation — please try again.");
+      } finally {
+        setDismissing(null);
+      }
+    },
+    [accessToken],
+  );
 
   return (
     <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 animate-fadeUp">
@@ -51,15 +81,28 @@ export function AIAdaptationsPanel() {
         </span>
       </div>
 
-      {visible.length === 0 ? (
+      {loading ? (
+        <div className="flex flex-col gap-3">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl px-4 py-3.5 animate-pulse"
+            >
+              <div className="h-3 bg-[var(--border)] rounded w-3/4 mb-2" />
+              <div className="h-2 bg-[var(--border)] rounded w-full mb-1" />
+              <div className="h-2 bg-[var(--border)] rounded w-5/6" />
+            </div>
+          ))}
+        </div>
+      ) : !adaptations || adaptations.length === 0 ? (
         <p className="font-data text-[13px] text-[var(--muted)] text-center py-4">
           # no adaptations proposed — plan looks good
         </p>
       ) : (
         <div className="flex flex-col gap-3">
-          {visible.map((s) => (
+          {adaptations.map((a) => (
             <div
-              key={s.id}
+              key={a.id}
               className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl px-4 py-3.5"
             >
               <div className="flex items-start gap-2 mb-1.5">
@@ -67,24 +110,28 @@ export function AIAdaptationsPanel() {
                   💡
                 </span>
                 <span className="font-sans text-[14px] font-bold text-[var(--foreground)] leading-snug">
-                  {s.title}
+                  {a.trigger_type.replace(/_/g, " ")}
                 </span>
               </div>
-              <p className="font-sans text-[12.5px] text-[var(--muted)] leading-relaxed mb-3">
-                {s.body}
-              </p>
+              {a.rationale && (
+                <p className="font-sans text-[12.5px] text-[var(--muted)] leading-relaxed mb-3">
+                  {a.rationale}
+                </p>
+              )}
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => dismiss(s.id)}
-                  className="font-data text-[11px] text-[var(--accent)] border border-[rgba(74,222,128,0.4)] px-3 py-1 rounded-full hover:bg-[rgba(74,222,128,0.08)] transition-colors"
+                  onClick={() => handleApply(a.id)}
+                  disabled={applying === a.id || dismissing === a.id}
+                  className="font-data text-[11px] text-[var(--accent)] border border-[rgba(74,222,128,0.4)] px-3 py-1 rounded-full hover:bg-[rgba(74,222,128,0.08)] transition-colors disabled:opacity-50"
                 >
-                  Apply
+                  {applying === a.id ? "Applying…" : "Apply"}
                 </button>
                 <button
-                  onClick={() => dismiss(s.id)}
-                  className="font-data text-[11px] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors px-2 py-1"
+                  onClick={() => handleDismiss(a.id)}
+                  disabled={applying === a.id || dismissing === a.id}
+                  className="font-data text-[11px] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors px-2 py-1 disabled:opacity-50"
                 >
-                  Dismiss
+                  {dismissing === a.id ? "Dismissing…" : "Dismiss"}
                 </button>
               </div>
             </div>

@@ -17,6 +17,7 @@ import { useRestTimer } from "@/lib/hooks/useRestTimer";
 import { logFormSchema, type LogFormValues } from "./schema";
 import { MovementRow } from "./MovementRow";
 import { MovementGrid } from "./MovementGrid";
+import { MovementSearchDialog } from "./MovementSearchDialog";
 import { AddDetailsCollapsible } from "./AddDetailsCollapsible";
 import { RestTimer } from "./RestTimer";
 import { TemplatePicker } from "./TemplatePicker";
@@ -54,6 +55,7 @@ export function LogPageClient({
     useState<RecentMovement | null>(null);
   const [mobileValue, setMobileValue] = useState("");
   const [mobileSubmitting, setMobileSubmitting] = useState(false);
+  const [movementSearchOpen, setMovementSearchOpen] = useState(false);
 
   const {
     register,
@@ -368,15 +370,7 @@ export function LogPageClient({
               });
             }}
             onSearchRequest={() => {
-              if (fields.length >= 10) return;
-              append({
-                movement_id: undefined,
-                movement_name: undefined,
-                modality: undefined,
-                result_type: "weight",
-                sets: [],
-                order_index: fields.length,
-              });
+              if (fields.length < 10) setMovementSearchOpen(true);
             }}
           />
 
@@ -567,6 +561,23 @@ export function LogPageClient({
           </div>
         </div>
       </div>
+
+      {/* Movement search dialog */}
+      <MovementSearchDialog
+        open={movementSearchOpen}
+        onOpenChange={setMovementSearchOpen}
+        accessToken={accessToken}
+        onSelect={(m) => {
+          append({
+            movement_id: m.id,
+            movement_name: m.name,
+            modality: m.modality ?? undefined,
+            result_type: "weight",
+            sets: [],
+            order_index: fields.length,
+          });
+        }}
+      />
 
       {/* Rest timer overlay */}
       <RestTimer remaining={timer.remaining} onSkip={timer.stop} />

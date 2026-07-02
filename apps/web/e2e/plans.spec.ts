@@ -182,6 +182,52 @@ test("unauthenticated plan list returns 401", async () => {
   expect(res.status).toBe(401);
 });
 
+test("plan detail page renders AI adaptations panel with proposed adaptation", async ({
+  page,
+}) => {
+  const token = await loginAndSetSession(page);
+  const planId = LIVE_LLM ? sharedPlanId : await createPlanAndWait(token);
+
+  // Resolve the user_id for the adaptation seed.
+  const meRes = await fetch(`${API_URL}/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const { user_id: userId } = (await meRes.json()) as { user_id: string };
+
+  // Seed a proposed adaptation directly via the Supabase admin API.
+  // status defaults to "proposed" — AIAdaptationsPanel filters for this.
+  const seedRes = await fetch(`${SUPABASE_URL}/rest/v1/adaptations`, {
+    method: "POST",
+    headers: {
+      apikey: SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify({
+      plan_id: planId,
+      user_id: userId,
+      trigger_type: "low_readiness",
+      trigger_data: {},
+      rationale: "Fatigue markers elevated — consider reducing intensity.",
+    }),
+  });
+  if (!seedRes.ok) throw new Error(`seed adaptation failed: ${seedRes.status}`);
+
+  await page.goto(`http://localhost:3000/plans/${planId}`);
+  await expect(page.locator('[data-testid="plan-branch-view"]')).toBeVisible({
+    timeout: 10_000,
+  });
+
+  // The panel heading must be present.
+  await expect(page.getByText("AI Adaptations")).toBeVisible();
+
+  // The seeded trigger_type renders as "low readiness" (underscores replaced).
+  await expect(page.getByText("low readiness")).toBeVisible({
+    timeout: 5_000,
+  });
+});
+
 test.describe("plan revision", () => {
   test("revise plan API returns updated plan detail", async ({ page }) => {
     const token = await loginAndSetSession(page);

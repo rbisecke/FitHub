@@ -369,4 +369,33 @@ test.describe.serial("Workout tracker", () => {
       await deleteWorkout(token, partnerId);
     }
   });
+
+  // ── 6. /track redirect ────────────────────────────────────────────────────
+  test("/track redirects to /log/new", async ({ page }) => {
+    await page.goto("/track");
+    await expect(page).toHaveURL(/\/log\/new$/, { timeout: 5_000 });
+  });
+
+  // ── 7. Browse all opens movement search dialog ────────────────────────────
+  test("Browse all opens movement search dialog and returns results", async ({
+    page,
+  }) => {
+    await page.goto("/log/new");
+
+    // "Browse all" is desktop-only (hidden md:block). Desktop Chrome viewport
+    // is 1280px by default in this playwright config, so it is always visible.
+    await page.getByRole("button", { name: "Browse all" }).click();
+
+    // Dialog content is rendered in a portal with data-slot="dialog-content".
+    const dialog = page.locator('[data-slot="dialog-content"]');
+    await expect(dialog).toBeVisible({ timeout: 2_000 });
+
+    // Type a query — the catalog from migration 0047 always includes Power Snatch.
+    await dialog.getByPlaceholder("Search movements...").fill("snatch");
+
+    // Results appear after the 200ms debounce + API call.
+    await expect(dialog.getByText("Power Snatch")).toBeVisible({
+      timeout: 3_000,
+    });
+  });
 });
