@@ -240,7 +240,7 @@ export function HistoryPage({
           )}
 
           {/* Load more */}
-          {!filtersActive && !allLoaded && !loadingMore && (
+          {!allLoaded && !loadingMore && (
             <div className="mt-6 flex justify-center">
               <button
                 onClick={loadMore}
