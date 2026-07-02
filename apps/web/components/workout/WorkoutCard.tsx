@@ -371,16 +371,22 @@ function ExpandedContent({
                         </span>
                       )}
                     </div>
-                    {r.variant_annotation && (
+                    {(r.implement || r.variant_annotation) && (
                       <div className="flex flex-wrap gap-1 mt-0.5">
-                        {r.variant_annotation.split(",").map((chip) => (
-                          <span
-                            key={chip}
-                            className="font-mono text-[10px] px-1 py-0.5 rounded border border-[#30363d] bg-[#161b22] text-[#8b949e]"
-                          >
-                            {chip}
+                        {r.implement && (
+                          <span className="font-mono text-[10px] px-1 py-0.5 rounded border border-[#30363d] bg-[#161b22] text-[#8b949e]">
+                            {r.implement}
                           </span>
-                        ))}
+                        )}
+                        {r.variant_annotation &&
+                          r.variant_annotation.split(",").map((chip) => (
+                            <span
+                              key={chip}
+                              className="font-mono text-[10px] px-1 py-0.5 rounded border border-[#30363d] bg-[#161b22] text-[#8b949e]"
+                            >
+                              {chip}
+                            </span>
+                          ))}
                       </div>
                     )}
                     {r.notes && (
