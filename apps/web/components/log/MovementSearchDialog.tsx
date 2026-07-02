@@ -37,14 +37,6 @@ export function MovementSearchDialog({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!open) {
-      setQuery("");
-      setResults([]);
-      return;
-    }
-  }, [open]);
-
-  useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!open) return;
 
