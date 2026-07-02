@@ -5,7 +5,7 @@ from logging.config import fileConfig
 from pathlib import Path
 
 from dotenv import load_dotenv
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import pool
 
 from alembic import context
 
@@ -38,12 +38,9 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    _alembic_cfg.set_main_option("sqlalchemy.url", get_url())
-    connectable = engine_from_config(
-        _alembic_cfg.get_section(_alembic_cfg.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    from sqlalchemy import create_engine
+
+    connectable = create_engine(get_url(), poolclass=pool.NullPool)
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=None)
         with context.begin_transaction():
