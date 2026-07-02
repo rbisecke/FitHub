@@ -84,9 +84,13 @@ export function MovementRow({
   const [noteOpen, setNoteOpen] = useState(false);
   const [implement, setImplement] = useState<string | undefined>(undefined);
   const [tempo, setTempo] = useState<string>("");
+  const [side, setSide] = useState<string | undefined>(undefined);
+  const [limbStyle, setLimbStyle] = useState<string | null>(null);
 
-  // keep a ref to the current movement id so handleImplementChange can re-fire queries
+  // keep refs to current movement id, implement, and side for re-fire callbacks
   const movementIdRef = useRef<string | undefined>(undefined);
+  const implementRef = useRef<string | undefined>(undefined);
+  const sideRef = useRef<string | undefined>(undefined);
 
   const resultType = useWatch({
     control,
@@ -95,13 +99,15 @@ export function MovementRow({
   }) as ResultTypeValue;
 
   const fetchPrevData = useCallback(
-    async (movId: string, impl: string | undefined) => {
+    async (movId: string, impl: string | undefined, s: string | undefined) => {
       const [resultData, prData] = await Promise.allSettled([
         api.movements.lastResult(accessToken, movId, {
           implement: impl,
+          side: s,
         }),
         api.movements.personalRecord(accessToken, movId, {
           implement: impl,
+          side: s,
         }),
       ]);
       if (resultData.status === "fulfilled") {
@@ -139,16 +145,27 @@ export function MovementRow({
       setValue(`movement_entries.${index}.tempo`, undefined);
       setNoteOpen(false);
       setValue(`movement_entries.${index}.notes`, undefined);
+      setSide(undefined);
+      setValue(`movement_entries.${index}.side`, undefined);
+      setLimbStyle(m.limb_style ?? null);
 
       const impl = defaultImpl(m.modality ?? undefined, m.implement);
       setImplement(impl);
       setValue(`movement_entries.${index}.implement`, impl);
       movementIdRef.current = m.id;
+      implementRef.current = impl;
+      sideRef.current = undefined;
 
       try {
         const [resultData, prData] = await Promise.allSettled([
-          api.movements.lastResult(accessToken, m.id, { implement: impl }),
-          api.movements.personalRecord(accessToken, m.id, { implement: impl }),
+          api.movements.lastResult(accessToken, m.id, {
+            implement: impl,
+            side: undefined,
+          }),
+          api.movements.personalRecord(accessToken, m.id, {
+            implement: impl,
+            side: undefined,
+          }),
         ]);
 
         if (resultData.status === "fulfilled") {
@@ -228,11 +245,27 @@ export function MovementRow({
     async (newImpl: string | undefined) => {
       setImplement(newImpl);
       setValue(`movement_entries.${index}.implement`, newImpl);
+      implementRef.current = newImpl;
       const movId = movementIdRef.current;
       if (movId) {
         setLastResult(undefined);
         setPrThreshold(null);
-        await fetchPrevData(movId, newImpl);
+        await fetchPrevData(movId, newImpl, sideRef.current);
+      }
+    },
+    [index, setValue, fetchPrevData],
+  );
+
+  const handleSideChange = useCallback(
+    async (newSide: string | undefined) => {
+      setSide(newSide);
+      setValue(`movement_entries.${index}.side`, newSide);
+      sideRef.current = newSide;
+      const movId = movementIdRef.current;
+      if (movId) {
+        setLastResult(undefined);
+        setPrThreshold(null);
+        await fetchPrevData(movId, implementRef.current, newSide);
       }
     },
     [index, setValue, fetchPrevData],
@@ -392,6 +425,30 @@ export function MovementRow({
           </div>
         </div>
       )}
+
+      {/* Side selector — unilateral / alternating movements only */}
+      {selectedName &&
+        (limbStyle === "unilateral" || limbStyle === "alternating") && (
+          <div className="space-y-1.5">
+            <p className="text-xs text-[#8b949e]">Side</p>
+            <div className="flex gap-1">
+              {(["left", "right", "both"] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => handleSideChange(side === s ? undefined : s)}
+                  className={`text-xs px-2 py-0.5 rounded border font-mono cursor-pointer capitalize ${
+                    side === s
+                      ? "bg-[rgba(255,200,61,0.2)] border-[rgba(255,200,61,0.6)] text-[var(--gold)]"
+                      : "bg-transparent border-[#30363d] text-[#8b949e]"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
       {/* Per-result note */}
       {selectedName && (

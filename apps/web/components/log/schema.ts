@@ -41,6 +41,7 @@ const resultRowSchema = z.object({
   notes: z.string().optional(),
   implement: z.string().optional(),
   tempo: z.string().optional(),
+  side: z.string().optional(),
 });
 
 export const logFormSchema = z.object({
