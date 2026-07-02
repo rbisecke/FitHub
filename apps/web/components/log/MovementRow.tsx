@@ -83,6 +83,7 @@ export function MovementRow({
   const [variantAnnotation, setVariantAnnotation] = useState<string>("");
   const [noteOpen, setNoteOpen] = useState(false);
   const [implement, setImplement] = useState<string | undefined>(undefined);
+  const [tempo, setTempo] = useState<string>("");
 
   // keep a ref to the current movement id so handleImplementChange can re-fire queries
   const movementIdRef = useRef<string | undefined>(undefined);
@@ -134,6 +135,8 @@ export function MovementRow({
       setLastResult(undefined); // clear while loading
       setPrThreshold(null);
       setVariantAnnotation("");
+      setTempo("");
+      setValue(`movement_entries.${index}.tempo`, undefined);
       setNoteOpen(false);
       setValue(`movement_entries.${index}.notes`, undefined);
 
@@ -294,9 +297,40 @@ export function MovementRow({
         <div className="space-y-2">
           <MovementVariantChips
             value={variantAnnotation}
-            onChange={setVariantAnnotation}
+            onChange={(v) => {
+              setVariantAnnotation(v);
+              if (!v.split(",").includes("tempo")) {
+                setTempo("");
+                setValue(`movement_entries.${index}.tempo`, undefined);
+              }
+            }}
             modality={modality}
           />
+          {variantAnnotation.split(",").includes("tempo") && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-[#8b949e] shrink-0">Tempo</label>
+              <input
+                type="text"
+                value={tempo}
+                onChange={(e) => {
+                  const raw = e.target.value
+                    .toUpperCase()
+                    .replace(/[^0-9X]/g, "")
+                    .slice(0, 4);
+                  setTempo(raw);
+                  setValue(`movement_entries.${index}.tempo`, raw || undefined);
+                }}
+                placeholder="e.g. 3131"
+                maxLength={4}
+                className="w-24 rounded border border-[var(--border)] bg-[var(--card)] px-2 py-1 font-mono text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40"
+              />
+              {tempo && (
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-[#58a6ff]/40 bg-[#58a6ff]/10 text-[#58a6ff]">
+                  {tempo}
+                </span>
+              )}
+            </div>
+          )}
           <SetTable
             movementIndex={index}
             control={control}

@@ -228,6 +228,7 @@ export function LogPageClient({
           variant_annotation: set.variant_annotation || undefined,
           notes: entry.notes || undefined,
           implement: entry.implement || undefined,
+          tempo: entry.tempo || undefined,
           order_index: entryIdx * 100 + setIdx,
           is_pr: false,
           pace_distance_m: 500,
