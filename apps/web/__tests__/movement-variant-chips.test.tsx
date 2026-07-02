@@ -22,7 +22,7 @@ describe("MovementVariantChips", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders 4 chips with label for weightlifting modality", () => {
+  it("renders 8 chips with Modifiers label for weightlifting modality", () => {
     render(
       <MovementVariantChips
         value=""
@@ -30,11 +30,15 @@ describe("MovementVariantChips", () => {
         modality="weightlifting"
       />,
     );
-    expect(screen.getByText("Annotate variant")).toBeTruthy();
+    expect(screen.getByText("Modifiers")).toBeTruthy();
     expect(screen.getByText("Pause")).toBeTruthy();
     expect(screen.getByText("Block")).toBeTruthy();
     expect(screen.getByText("Tempo")).toBeTruthy();
     expect(screen.getByText("Strict")).toBeTruthy();
+    expect(screen.getByText("Deficit")).toBeTruthy();
+    expect(screen.getByText("Banded")).toBeTruthy();
+    expect(screen.getByText("Chains")).toBeTruthy();
+    expect(screen.getByText("Dead Stop")).toBeTruthy();
   });
 
   it("renders chips for gymnastics modality (not hidden)", () => {
