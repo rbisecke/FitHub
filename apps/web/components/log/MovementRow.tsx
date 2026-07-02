@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type {
   UseFormRegister,
   UseFormSetValue,
@@ -30,6 +30,17 @@ interface MovementRowProps {
 /** Result types that are mono-structural / cardio — use single ResultFields, no SetTable. */
 const CARDIO_RESULT_TYPES: ResultTypeValue[] = ["time", "distance"];
 
+const IMPL_LIST = [
+  { key: "barbell", label: "Barbell" },
+  { key: "dumbbell", label: "Dumbbell" },
+  { key: "kettlebell", label: "Kettlebell" },
+  { key: "bodyweight", label: "Bodyweight" },
+  { key: "band", label: "Band" },
+  { key: "cable", label: "Cable" },
+  { key: "machine", label: "Machine" },
+  { key: "other", label: "Other" },
+] as const;
+
 function isStrengthMovement(
   resultType: ResultTypeValue,
   modality: string | undefined,
@@ -37,6 +48,18 @@ function isStrengthMovement(
   if (modality === "mono_structural") return false;
   if (CARDIO_RESULT_TYPES.includes(resultType)) return false;
   return true;
+}
+
+function defaultImpl(
+  modality: string | undefined,
+  movementOverride: string | null,
+): string | undefined {
+  if (movementOverride) return movementOverride;
+  if (!modality) return undefined;
+  if (["strength", "weightlifting", "strongman"].includes(modality))
+    return "barbell";
+  if (["gymnastics", "plyometric"].includes(modality)) return "bodyweight";
+  return undefined;
 }
 
 export function MovementRow({
@@ -59,12 +82,43 @@ export function MovementRow({
   const [prThreshold, setPrThreshold] = useState<number | null>(null);
   const [variantAnnotation, setVariantAnnotation] = useState<string>("");
   const [noteOpen, setNoteOpen] = useState(false);
+  const [implement, setImplement] = useState<string | undefined>(undefined);
+
+  // keep a ref to the current movement id so handleImplementChange can re-fire queries
+  const movementIdRef = useRef<string | undefined>(undefined);
 
   const resultType = useWatch({
     control,
     name: `movement_entries.${index}.result_type`,
     defaultValue: "weight",
   }) as ResultTypeValue;
+
+  const fetchPrevData = useCallback(
+    async (movId: string, impl: string | undefined) => {
+      const [resultData, prData] = await Promise.allSettled([
+        api.movements.lastResult(accessToken, movId, {
+          implement: impl,
+        }),
+        api.movements.personalRecord(accessToken, movId, {
+          implement: impl,
+        }),
+      ]);
+      if (resultData.status === "fulfilled") {
+        setLastResult(resultData.value);
+      } else {
+        setLastResult(null);
+      }
+      if (prData.status === "fulfilled" && prData.value != null) {
+        const pr = prData.value as PersonalRecordResult;
+        setPrThreshold(
+          pr.estimated_1rm_kg != null ? Number(pr.estimated_1rm_kg) : null,
+        );
+      } else {
+        setPrThreshold(null);
+      }
+    },
+    [accessToken],
+  );
 
   const handleMovementSelect = useCallback(
     async (m: Movement) => {
@@ -83,11 +137,15 @@ export function MovementRow({
       setNoteOpen(false);
       setValue(`movement_entries.${index}.notes`, undefined);
 
-      // Parallel: fetch lastResult + personalRecord
+      const impl = defaultImpl(m.modality ?? undefined, m.implement);
+      setImplement(impl);
+      setValue(`movement_entries.${index}.implement`, impl);
+      movementIdRef.current = m.id;
+
       try {
         const [resultData, prData] = await Promise.allSettled([
-          api.movements.lastResult(accessToken, m.id),
-          api.movements.personalRecord(accessToken, m.id),
+          api.movements.lastResult(accessToken, m.id, { implement: impl }),
+          api.movements.personalRecord(accessToken, m.id, { implement: impl }),
         ]);
 
         if (resultData.status === "fulfilled") {
@@ -102,7 +160,6 @@ export function MovementRow({
           const isStrength = isStrengthMovement(rType, m.modality ?? undefined);
 
           if (isStrength) {
-            // Pre-populate sets[0] for strength movements
             setValue(`movement_entries.${index}.sets`, [
               {
                 set_index: 0,
@@ -121,7 +178,6 @@ export function MovementRow({
               },
             ]);
           } else {
-            // Cardio: initialize sets[0] as empty so the flatten works
             setValue(`movement_entries.${index}.sets`, [
               {
                 set_index: 0,
@@ -139,7 +195,6 @@ export function MovementRow({
           }
         } else {
           setLastResult(null);
-          // For cardio with no last result, still initialize sets[0]
           if (m.modality === "mono_structural") {
             setValue(`movement_entries.${index}.sets`, [
               {
@@ -155,15 +210,29 @@ export function MovementRow({
 
         if (prData.status === "fulfilled" && prData.value != null) {
           const pr = prData.value as PersonalRecordResult;
-          const threshold =
-            pr.estimated_1rm_kg != null ? Number(pr.estimated_1rm_kg) : null;
-          setPrThreshold(threshold);
+          setPrThreshold(
+            pr.estimated_1rm_kg != null ? Number(pr.estimated_1rm_kg) : null,
+          );
         }
       } catch {
         setLastResult(null);
       }
     },
     [accessToken, index, setValue, weightUnit],
+  );
+
+  const handleImplementChange = useCallback(
+    async (newImpl: string | undefined) => {
+      setImplement(newImpl);
+      setValue(`movement_entries.${index}.implement`, newImpl);
+      const movId = movementIdRef.current;
+      if (movId) {
+        setLastResult(undefined);
+        setPrThreshold(null);
+        await fetchPrevData(movId, newImpl);
+      }
+    },
+    [index, setValue, fetchPrevData],
   );
 
   const handleFill = useCallback(
@@ -257,6 +326,36 @@ export function MovementRow({
             onFill={handleFill}
             distanceUnit={distanceUnit}
           />
+        </div>
+      )}
+
+      {/* Implement picker — shown after movement selection */}
+      {selectedName && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-[#8b949e]">
+            Implement · optional, applies to all sets
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {IMPL_LIST.map((item) => {
+              const isSelected = implement === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() =>
+                    handleImplementChange(isSelected ? undefined : item.key)
+                  }
+                  className={`text-xs px-2 py-0.5 rounded border font-mono cursor-pointer ${
+                    isSelected
+                      ? "bg-[#58a6ff]/20 border-[#58a6ff] text-[#58a6ff]"
+                      : "bg-transparent border-[#30363d] text-[#8b949e]"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 

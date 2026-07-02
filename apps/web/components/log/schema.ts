@@ -39,6 +39,7 @@ const resultRowSchema = z.object({
   sets: z.array(setEntrySchema).default([]),
   order_index: z.number().default(0),
   notes: z.string().optional(),
+  implement: z.string().optional(),
 });
 
 export const logFormSchema = z.object({

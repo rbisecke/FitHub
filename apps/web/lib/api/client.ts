@@ -127,16 +127,38 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    lastResult: (token: string, movementId: string) =>
-      apiFetch<LastResult>(
-        `/api/v1/movements/${movementId}/last-result`,
+    lastResult: (
+      token: string,
+      movementId: string,
+      params?: { implement?: string; side?: string },
+    ) => {
+      const qs = new URLSearchParams();
+      if (params?.implement) qs.set("implement", params.implement);
+      if (params?.side) qs.set("side", params.side);
+      const query = qs.toString();
+      return apiFetch<LastResult>(
+        `/api/v1/movements/${movementId}/last-result${
+          query ? `?${query}` : ""
+        }`,
         token,
-      ),
-    personalRecord: (token: string, movementId: string) =>
-      apiFetch<PersonalRecordResult | null>(
-        `/api/v1/movements/${movementId}/personal-record`,
+      );
+    },
+    personalRecord: (
+      token: string,
+      movementId: string,
+      params?: { implement?: string; side?: string },
+    ) => {
+      const qs = new URLSearchParams();
+      if (params?.implement) qs.set("implement", params.implement);
+      if (params?.side) qs.set("side", params.side);
+      const query = qs.toString();
+      return apiFetch<PersonalRecordResult | null>(
+        `/api/v1/movements/${movementId}/personal-record${
+          query ? `?${query}` : ""
+        }`,
         token,
-      ),
+      );
+    },
     personalRecordsBatch: (token: string, movementIds: string[]) =>
       apiFetch<PersonalRecordResult[]>(
         `/api/v1/movements/personal-records?ids=${movementIds.join(",")}`,

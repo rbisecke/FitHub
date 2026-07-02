@@ -227,6 +227,7 @@ export function LogPageClient({
             : undefined,
           variant_annotation: set.variant_annotation || undefined,
           notes: entry.notes || undefined,
+          implement: entry.implement || undefined,
           order_index: entryIdx * 100 + setIdx,
           is_pr: false,
           pace_distance_m: 500,
