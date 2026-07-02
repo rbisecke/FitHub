@@ -11,6 +11,8 @@ function fmtCost(n: number): string {
 export function TopUsersTable({ users }: Props) {
   const GRID = "28px minmax(0,2fr) 1fr 1fr";
 
+  const rows = users.slice(0, 10);
+
   return (
     <div>
       {/* Table card header */}
@@ -47,29 +49,7 @@ export function TopUsersTable({ users }: Props) {
         </div>
       </div>
 
-      {/* Column headers */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: GRID,
-          gap: 12,
-          padding: "11px 20px",
-          borderBottom: "1px solid #30363d",
-          fontSize: 10.5,
-          color: "#8b949e",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-          fontFamily: "var(--font-jetbrains-mono), monospace",
-        }}
-      >
-        <span>#</span>
-        <span>User</span>
-        <span style={{ textAlign: "right" }}>Sessions</span>
-        <span style={{ textAlign: "right" }}>Cost</span>
-      </div>
-
-      {/* Data rows */}
-      {users.length === 0 ? (
+      {rows.length === 0 ? (
         <div
           style={{
             padding: "44px",
@@ -82,53 +62,149 @@ export function TopUsersTable({ users }: Props) {
           No usage data yet.
         </div>
       ) : (
-        users.slice(0, 10).map((user, idx) => {
-          const displayName =
-            user.display_name ??
-            user.email ??
-            `user-${user.user_id.slice(0, 8)}`;
-          return (
+        <>
+          {/* Desktop column headers */}
+          <div className="hidden md:block">
             <div
-              key={user.user_id}
               style={{
                 display: "grid",
                 gridTemplateColumns: GRID,
                 gap: 12,
-                padding: "13px 20px",
+                padding: "11px 20px",
                 borderBottom: "1px solid #30363d",
-                alignItems: "center",
-                fontSize: 13,
+                fontSize: 10.5,
+                color: "#8b949e",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
                 fontFamily: "var(--font-jetbrains-mono), monospace",
               }}
             >
-              <span style={{ color: "#8b949e", fontWeight: 700 }}>
-                {idx + 1}
-              </span>
-              <span
-                style={{
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  color: "#e6edf3",
-                }}
-              >
-                {displayName}
-              </span>
-              <span style={{ textAlign: "right", color: "#8b949e" }}>
-                {user.interactions_30d.toLocaleString()}
-              </span>
-              <span
-                style={{
-                  textAlign: "right",
-                  fontWeight: 700,
-                  color: "#FFC83D",
-                }}
-              >
-                {fmtCost(user.cost_30d_usd)}
-              </span>
+              <span>#</span>
+              <span>User</span>
+              <span style={{ textAlign: "right" }}>Sessions</span>
+              <span style={{ textAlign: "right" }}>Cost</span>
             </div>
-          );
-        })
+          </div>
+
+          {rows.map((user, idx) => {
+            const displayName =
+              user.display_name ??
+              user.email ??
+              `user-${user.user_id.slice(0, 8)}`;
+            return (
+              <div key={user.user_id}>
+                {/* Desktop row */}
+                <div className="hidden md:block">
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: GRID,
+                      gap: 12,
+                      padding: "13px 20px",
+                      borderBottom: "1px solid #30363d",
+                      alignItems: "center",
+                      fontSize: 13,
+                      fontFamily: "var(--font-jetbrains-mono), monospace",
+                    }}
+                  >
+                    <span style={{ color: "#8b949e", fontWeight: 700 }}>
+                      {idx + 1}
+                    </span>
+                    <span
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        color: "#e6edf3",
+                      }}
+                    >
+                      {displayName}
+                    </span>
+                    <span style={{ textAlign: "right", color: "#8b949e" }}>
+                      {user.interactions_30d.toLocaleString()}
+                    </span>
+                    <span
+                      style={{
+                        textAlign: "right",
+                        fontWeight: 700,
+                        color: "#FFC83D",
+                      }}
+                    >
+                      {fmtCost(user.cost_30d_usd)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Mobile card */}
+                <div
+                  className="md:hidden"
+                  style={{
+                    padding: "13px 20px",
+                    borderBottom: "1px solid #30363d",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    fontFamily: "var(--font-jetbrains-mono), monospace",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      minWidth: 0,
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: "#8b949e",
+                        fontWeight: 700,
+                        fontSize: 12,
+                        minWidth: 18,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {idx + 1}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color: "#e6edf3",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {displayName}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span style={{ fontSize: 12, color: "#8b949e" }}>
+                      {user.interactions_30d.toLocaleString()}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "#FFC83D",
+                      }}
+                    >
+                      {fmtCost(user.cost_30d_usd)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </>
       )}
     </div>
   );

@@ -33,6 +33,7 @@ export default async function AccessRequestsPage() {
           $ fithub access --list pending
         </div>
         <h1
+          className="admin-h1"
           style={{
             fontFamily: "var(--font-archivo-black), sans-serif",
             fontSize: 28,

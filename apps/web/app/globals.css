@@ -261,3 +261,22 @@
     .animate-typing-2, .animate-typing-3 { animation: none; }
   }
 }
+
+/* ── Admin portal mobile layout ─────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .admin-main {
+    padding: 16px 18px 88px !important;
+  }
+  .admin-h1 {
+    font-size: 21px !important;
+  }
+  .admin-stat-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .admin-two-col {
+    grid-template-columns: 1fr !important;
+  }
+  .admin-health-stats {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}

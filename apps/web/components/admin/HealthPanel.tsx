@@ -20,8 +20,6 @@ function statusColor(code: number): React.CSSProperties {
   return { color: "#8b949e" };
 }
 
-// ── Error row ─────────────────────────────────────────────────────────────────
-
 const GRID = "150px 1.4fr 60px 130px minmax(0,2fr)";
 
 function ErrorRow({ error }: { error: AdminRecentError }) {
@@ -72,7 +70,71 @@ function ErrorRow({ error }: { error: AdminRecentError }) {
   );
 }
 
-// ── Uptime card ───────────────────────────────────────────────────────────────
+function ErrorCard({ error }: { error: AdminRecentError }) {
+  return (
+    <div
+      style={{
+        padding: "13px 16px",
+        borderBottom: "1px solid #30363d",
+        fontFamily: "var(--font-jetbrains-mono), monospace",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+          marginBottom: 5,
+        }}
+      >
+        <span style={{ fontSize: 11, color: "#8b949e" }}>
+          {formatTimestamp(error.created_at)}
+        </span>
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            ...statusColor(error.status_code),
+          }}
+        >
+          {error.status_code}
+        </span>
+      </div>
+      <div
+        style={{
+          fontSize: 12,
+          color: "#58a6ff",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          marginBottom: 4,
+        }}
+      >
+        {error.path}
+      </div>
+      {error.error_type && (
+        <div style={{ fontSize: 11, color: "#8b949e", marginBottom: 4 }}>
+          {error.error_type}
+        </div>
+      )}
+      {error.error_msg && (
+        <div
+          style={{
+            fontSize: 12,
+            color: "#e6edf3",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical" as const,
+            overflow: "hidden",
+          }}
+        >
+          {error.error_msg}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function UptimeStat({
   label,
@@ -120,14 +182,11 @@ function formatUptime(seconds: number) {
   return `${h}h ${m}m`;
 }
 
-// ── Main panel ────────────────────────────────────────────────────────────────
-
 interface Props {
   health: AdminHealth;
 }
 
 export function HealthPanel({ health }: Props) {
-  // Collect unique paths for the filter dropdown
   const allPaths = Array.from(
     new Set(health.recent_errors.map((e) => e.path)),
   ).sort();
@@ -143,6 +202,7 @@ export function HealthPanel({ health }: Props) {
     <div>
       {/* Summary stats row */}
       <div
+        className="admin-health-stats"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",
@@ -223,28 +283,29 @@ export function HealthPanel({ health }: Props) {
           overflow: "hidden",
         }}
       >
-        {/* Column headers */}
-        <div
-          style={{
-            padding: "12px 20px",
-            borderBottom: "1px solid #30363d",
-            display: "grid",
-            gridTemplateColumns: GRID,
-            gap: 12,
-            fontSize: 10.5,
-            color: "#8b949e",
-            textTransform: "uppercase",
-            letterSpacing: ".5px",
-          }}
-        >
-          <span>Timestamp</span>
-          <span>Endpoint</span>
-          <span>Status</span>
-          <span>Error code</span>
-          <span>Message</span>
+        {/* Desktop column headers */}
+        <div className="hidden md:block">
+          <div
+            style={{
+              padding: "12px 20px",
+              borderBottom: "1px solid #30363d",
+              display: "grid",
+              gridTemplateColumns: GRID,
+              gap: 12,
+              fontSize: 10.5,
+              color: "#8b949e",
+              textTransform: "uppercase",
+              letterSpacing: ".5px",
+            }}
+          >
+            <span>Timestamp</span>
+            <span>Endpoint</span>
+            <span>Status</span>
+            <span>Error code</span>
+            <span>Message</span>
+          </div>
         </div>
 
-        {/* Rows */}
         {filtered.length === 0 ? (
           <div
             style={{
@@ -257,7 +318,18 @@ export function HealthPanel({ health }: Props) {
             No errors recorded.
           </div>
         ) : (
-          filtered.map((error, i) => <ErrorRow key={i} error={error} />)
+          filtered.map((error, i) => (
+            <div key={i}>
+              {/* Desktop row */}
+              <div className="hidden md:block">
+                <ErrorRow error={error} />
+              </div>
+              {/* Mobile card */}
+              <div className="md:hidden">
+                <ErrorCard error={error} />
+              </div>
+            </div>
+          ))
         )}
       </div>
     </div>
