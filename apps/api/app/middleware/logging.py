@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 import uuid
@@ -9,9 +10,35 @@ import uuid
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
+from app.db import pool_connection
+
 log = logging.getLogger("fithub.requests")
 
 _SILENT_PATHS = frozenset({"/health", "/openapi.json", "/docs", "/redoc"})
+
+
+async def _write_error_event(
+    *,
+    user_id: str | None,
+    path: str,
+    method: str,
+    status_code: int,
+    request_id: str,
+    duration_ms: int,
+) -> None:
+    try:
+        async with pool_connection().connection() as db:
+            await db.execute(
+                """
+                INSERT INTO error_events
+                    (user_id, path, method, status_code,
+                     request_id, duration_ms)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                [user_id, path, method, status_code, request_id, duration_ms],
+            )
+    except Exception:
+        log.exception("Failed to write error_event row")
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
@@ -25,8 +52,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         if request.url.path in _SILENT_PATHS:
             return response
 
-        duration_ms = round((time.perf_counter() - start) * 1000, 1)
-        user_id: str = getattr(request.state, "user_id", "anon")
+        duration_ms = round((time.perf_counter() - start) * 1000)
+        user_id_raw: str = getattr(request.state, "user_id", "anon")
+        user_id: str | None = user_id_raw if user_id_raw != "anon" else None
 
         log.info(
             "%s %s %d",
@@ -39,8 +67,21 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 "path": request.url.path,
                 "status_code": response.status_code,
                 "duration_ms": duration_ms,
-                "user_id": user_id,
+                "user_id": user_id_raw,
             },
         )
         response.headers["X-Request-Id"] = request_id
+
+        if response.status_code >= 500:
+            asyncio.create_task(
+                _write_error_event(
+                    user_id=user_id,
+                    path=request.url.path,
+                    method=request.method,
+                    status_code=response.status_code,
+                    request_id=request_id,
+                    duration_ms=duration_ms,
+                )
+            )
+
         return response

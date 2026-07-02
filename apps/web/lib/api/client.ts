@@ -1,4 +1,10 @@
 import type {
+  AdminMetricsSummary,
+  AdminAccessRequest,
+  AdminUser,
+  AdminHealth,
+} from "./index";
+import type {
   Movement,
   Workout,
   WorkoutListResponse,
@@ -314,5 +320,34 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify(body),
       }),
+  },
+  admin: {
+    metrics: (token: string) =>
+      apiFetch<AdminMetricsSummary>("/api/v1/admin/metrics", token),
+    accessRequests: (token: string, status?: string) => {
+      const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+      return apiFetch<AdminAccessRequest[]>(
+        `/api/v1/admin/access-requests${qs}`,
+        token,
+      );
+    },
+    reviewAccessRequest: (
+      token: string,
+      id: string,
+      action: "approved" | "rejected",
+      note?: string,
+    ) =>
+      apiFetch<AdminAccessRequest>(
+        `/api/v1/admin/access-requests/${id}`,
+        token,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ action, note: note ?? null }),
+        },
+      ),
+    users: (token: string) =>
+      apiFetch<AdminUser[]>("/api/v1/admin/users", token),
+    health: (token: string) =>
+      apiFetch<AdminHealth>("/api/v1/admin/health", token),
   },
 };
