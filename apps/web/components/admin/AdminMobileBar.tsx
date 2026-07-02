@@ -23,7 +23,6 @@ function GitBranchIcon() {
 export function AdminMobileBar() {
   return (
     <header
-      className="md:hidden"
       style={{
         height: 46,
         background: "#161b22",

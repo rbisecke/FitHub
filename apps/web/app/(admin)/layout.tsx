@@ -54,7 +54,9 @@ export default async function AdminLayout({
         }}
       >
         {/* Mobile header — shown on mobile, hidden on desktop */}
-        <AdminMobileBar />
+        <div className="md:hidden">
+          <AdminMobileBar />
+        </div>
 
         {/* Desktop header — hidden on mobile */}
         <div className="hidden md:block">
@@ -74,7 +76,9 @@ export default async function AdminLayout({
       </div>
 
       {/* Mobile bottom tab bar — fixed position, hidden on desktop */}
-      <AdminMobileTabBar />
+      <div className="md:hidden">
+        <AdminMobileTabBar />
+      </div>
     </div>
   );
 }
