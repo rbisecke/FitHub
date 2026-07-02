@@ -3,6 +3,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore[import-untyped]
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -13,10 +14,12 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.auth import UserContext, get_current_user
 from app.config import get_settings
 from app.db import close_pool, init_pool
+from app.jobs.budget_check import check_llm_budget, cleanup_old_error_events
 from app.logging_config import configure_logging
 from app.middleware.logging import RequestLoggingMiddleware
 from app.middleware.rate_limit import limiter
 from app.routers.adaptations import router as adaptations_router  # noqa: F401
+from app.routers.admin import router as admin_router
 from app.routers.analytics import router as analytics_router
 from app.routers.coach import router as coach_router
 from app.routers.injuries import router as injuries_router  # noqa: F401
@@ -35,7 +38,12 @@ configure_logging()
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     settings = get_settings()
     await init_pool(settings.postgres_dsn)
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(check_llm_budget, "cron", hour=8)
+    scheduler.add_job(cleanup_old_error_events, "cron", hour=3)
+    scheduler.start()
     yield
+    scheduler.shutdown()
     await close_pool()
 
 
@@ -43,6 +51,7 @@ app = FastAPI(title="FitHub API", version="0.2.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
+app.include_router(admin_router)
 app.include_router(analytics_router)
 app.include_router(coach_router)
 app.include_router(integrations_router)

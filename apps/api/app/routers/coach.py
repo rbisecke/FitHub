@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 import uuid
 from collections.abc import AsyncIterator
 from typing import Annotated, Any
@@ -149,7 +150,7 @@ async def parse_log(
     db: _Db,
     _kill: Annotated[None, Depends(require_llm_enabled)],
 ) -> ParseLogResponse:
-    result = await parse_log_text(body.text)
+    result = await parse_log_text(body.text, user_id=user.user_id, db=db)
 
     await db.execute(
         """
@@ -244,7 +245,7 @@ async def chat(
     from app.ai.rag import hybrid_retrieve
 
     rag_query = rag_query_text(body.question, history)
-    chunks = await hybrid_retrieve(rag_query, db, top_k=5)
+    chunks, _max_rrf_score = await hybrid_retrieve(rag_query, db, top_k=5)
 
     from app.ai.client import get_client
     from app.ai.errors import call_llm
@@ -292,6 +293,8 @@ async def chat(
                 response_model=_ChatAnswer,
             ),
             context="coach_chat",
+            user_id=user.user_id,
+            db=db,
         )
     else:
         chat_result = await call_llm(
@@ -302,6 +305,8 @@ async def chat(
                 response_model=_ChatAnswer,
             ),
             context="coach_chat",
+            user_id=user.user_id,
+            db=db,
         )
 
     answer_text = chat_result.answer
@@ -379,7 +384,7 @@ async def _do_stream(
     db: psycopg.AsyncConnection[object],
 ) -> AsyncIterator[str]:
     import app.repositories.coach as coach_repo
-    from app.ai.streaming import sanitize_answer, sse_event, stream_llm_tokens
+    from app.ai.streaming import _STUB_TOKENS, sanitize_answer, sse_event, stream_llm_tokens
     from app.ai.stub import is_stubbed
     from app.engine.safety import SafetyTier, classify_safety
 
@@ -407,14 +412,17 @@ async def _do_stream(
 
     history = await coach_repo.fetch_session_messages_history(db, session_id)
 
-    if is_stubbed():
+    stub = is_stubbed()
+    max_rrf_score: float = 0.0
+
+    if stub:
         chunks: list[dict[str, object]] = []
     else:
         from app.ai.chat_history import rag_query_text
         from app.ai.rag import hybrid_retrieve
 
         rag_text = rag_query_text(question, history)
-        chunks = await hybrid_retrieve(rag_text, db, top_k=5)
+        chunks, max_rrf_score = await hybrid_retrieve(rag_text, db, top_k=5)
 
     from datetime import date
 
@@ -439,16 +447,83 @@ async def _do_stream(
     messages: list[dict[str, str]] = list(history) + [{"role": "user", "content": user_content}]
 
     full_answer: list[str] = []
-    try:
-        async for token in stream_llm_tokens(messages, system_prompt):
-            full_answer.append(token)
-            yield sse_event({"type": "token", "text": token})
-    except Exception as exc:  # noqa: BLE001
-        log.exception("LLM stream error for user=%s: %s", user_id, exc)
-        yield sse_event(
-            {"type": "error", "message": "Coach is temporarily unavailable. Please try again."}
-        )
-        return
+    t_start = time.perf_counter()
+    ttft_ms: int | None = None
+    # Set to True only when we've captured Anthropic token counts to write.
+    have_usage = False
+    usage_model = ""
+    usage_input = 0
+    usage_output = 0
+    usage_cache_read = 0
+    usage_cache_write = 0
+    usage_duration_ms = 0
+
+    if stub:
+        for word in _STUB_TOKENS:
+            full_answer.append(word + " ")
+            yield sse_event({"type": "token", "text": word + " "})
+    else:
+        from app.ai.client import get_client
+
+        llm = get_client()
+
+        if llm.backend == "anthropic":
+            import anthropic
+
+            raw = llm.raw
+            assert isinstance(raw, anthropic.AsyncAnthropic)
+            try:
+                async with raw.messages.stream(
+                    model=llm.model,
+                    max_tokens=1024,
+                    system=[
+                        {
+                            "type": "text",
+                            "text": system_prompt,
+                            "cache_control": {"type": "ephemeral"},
+                        }
+                    ],
+                    messages=messages,  # type: ignore[arg-type]
+                ) as stream:
+                    async for token in stream.text_stream:
+                        if ttft_ms is None:
+                            ttft_ms = round((time.perf_counter() - t_start) * 1000)
+                        full_answer.append(token)
+                        yield sse_event({"type": "token", "text": token})
+                    final_msg = await stream.get_final_message()
+                u = final_msg.usage
+                have_usage = True
+                usage_model = llm.model
+                usage_input = u.input_tokens
+                usage_output = u.output_tokens
+                usage_cache_read = getattr(u, "cache_read_input_tokens", 0)
+                usage_cache_write = getattr(u, "cache_creation_input_tokens", 0)
+                usage_duration_ms = round((time.perf_counter() - t_start) * 1000)
+            except Exception as exc:  # noqa: BLE001
+                log.exception("LLM stream error for user=%s: %s", user_id, exc)
+                yield sse_event(
+                    {
+                        "type": "error",
+                        "message": "Coach is temporarily unavailable. Please try again.",
+                    }
+                )
+                return
+        else:
+            try:
+                async for token in stream_llm_tokens(messages, system_prompt):
+                    if ttft_ms is None:
+                        ttft_ms = round((time.perf_counter() - t_start) * 1000)
+                    full_answer.append(token)
+                    yield sse_event({"type": "token", "text": token})
+            except Exception as exc:  # noqa: BLE001
+                log.exception("LLM stream error for user=%s: %s", user_id, exc)
+                yield sse_event(
+                    {
+                        "type": "error",
+                        "message": "Coach is temporarily unavailable. Please try again.",
+                    }
+                )
+                return
 
     answer_text = sanitize_answer("".join(full_answer))
 
@@ -461,13 +536,31 @@ async def _do_stream(
         for c in chunks
     ]
 
-    stub = is_stubbed()
     await coach_repo.write_message(
         db, session_id, "user", question, safety_tier=tier.value, stub=stub
     )
     await coach_repo.write_message(
         db, session_id, "assistant", answer_text, citations=citations, stub=stub
     )
+
+    if have_usage:
+        from app.ai.usage import write_llm_usage
+
+        await write_llm_usage(
+            db,
+            user_id=user_id,
+            session_id=session_id,
+            endpoint="chat_stream",
+            model=usage_model,
+            input_tokens=usage_input,
+            output_tokens=usage_output,
+            cache_read_tokens=usage_cache_read,
+            cache_write_tokens=usage_cache_write,
+            rag_chunks_used=len(chunks),
+            max_rrf_score=max_rrf_score,
+            ttft_ms=ttft_ms,
+            duration_ms=usage_duration_ms,
+        )
 
     yield sse_event({"type": "done", "session_id": str(session_id)})
 

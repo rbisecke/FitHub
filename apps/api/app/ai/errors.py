@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import logging
+import time
+import uuid
 from collections.abc import Awaitable
 from typing import TypeVar
 
+import psycopg
 from fastapi import HTTPException
 
 log = logging.getLogger(__name__)
@@ -13,18 +16,53 @@ log = logging.getLogger(__name__)
 T = TypeVar("T")  # noqa: UP046
 
 
-async def call_llm(coro: Awaitable[T], *, context: str) -> T:  # noqa: UP047
+async def call_llm(  # noqa: UP047
+    coro: Awaitable[T],
+    *,
+    context: str,
+    user_id: uuid.UUID | None = None,
+    db: psycopg.AsyncConnection[object] | None = None,
+) -> T:
     """Await an instructor coroutine and map known failure modes to HTTP errors.
+
+    If user_id and db are provided, writes an llm_usage row on success.
 
     Args:
         coro: The instructor .create() coroutine to await.
-        context: Short label used in log messages (e.g. "parse_log", "generate_plan").
+        context: Short label used in log messages and stored as endpoint name.
+        user_id: If provided (with db), usage is recorded to llm_usage.
+        db: Active DB connection for the usage write.
     """
+    t0 = time.perf_counter()
     try:
-        return await coro
+        result = await coro
     except Exception as exc:  # noqa: BLE001
         _handle_llm_error(exc, context)
         raise  # unreachable — _handle_llm_error always raises
+
+    if user_id is not None and db is not None:
+        try:
+            raw = getattr(result, "_raw_response", None)
+            if raw is not None:
+                usage = raw.usage
+                from app.ai.usage import write_llm_usage
+
+                await write_llm_usage(
+                    db,
+                    user_id=user_id,
+                    session_id=None,
+                    endpoint=context,
+                    model=getattr(raw, "model", "unknown"),
+                    input_tokens=usage.input_tokens,
+                    output_tokens=usage.output_tokens,
+                    cache_read_tokens=getattr(usage, "cache_read_input_tokens", 0),
+                    cache_write_tokens=getattr(usage, "cache_creation_input_tokens", 0),
+                    duration_ms=round((time.perf_counter() - t0) * 1000),
+                )
+        except Exception:
+            log.debug("Failed to capture LLM usage for context=%s", context, exc_info=True)
+
+    return result
 
 
 def _handle_llm_error(exc: Exception, context: str) -> None:
