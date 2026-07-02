@@ -5,7 +5,7 @@ interface Props {
 }
 
 function fmtCost(n: number): string {
-  return `$${n.toFixed(4)}`;
+  return `$${n.toFixed(2)}`;
 }
 
 export function TopUsersTable({ users }: Props) {
@@ -136,69 +136,70 @@ export function TopUsersTable({ users }: Props) {
                 </div>
 
                 {/* Mobile card */}
-                <div
-                  className="md:hidden"
-                  style={{
-                    padding: "13px 20px",
-                    borderBottom: "1px solid #30363d",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    fontFamily: "var(--font-jetbrains-mono), monospace",
-                  }}
-                >
+                <div className="md:hidden">
                   <div
                     style={{
+                      padding: "13px 20px",
+                      borderBottom: "1px solid #30363d",
                       display: "flex",
                       alignItems: "center",
-                      gap: 8,
-                      minWidth: 0,
+                      justifyContent: "space-between",
+                      gap: 12,
+                      fontFamily: "var(--font-jetbrains-mono), monospace",
                     }}
                   >
-                    <span
+                    <div
                       style={{
-                        color: "#8b949e",
-                        fontWeight: 700,
-                        fontSize: 12,
-                        minWidth: 18,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        minWidth: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "#8b949e",
+                          fontWeight: 700,
+                          fontSize: 12,
+                          minWidth: 18,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {idx + 1}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 13,
+                          color: "#e6edf3",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {displayName}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
                         flexShrink: 0,
                       }}
                     >
-                      {idx + 1}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 13,
-                        color: "#e6edf3",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {displayName}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span style={{ fontSize: 12, color: "#8b949e" }}>
-                      {user.interactions_30d.toLocaleString()}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: "#FFC83D",
-                      }}
-                    >
-                      {fmtCost(user.cost_30d_usd)}
-                    </span>
+                      <span style={{ fontSize: 12, color: "#8b949e" }}>
+                        {user.interactions_30d.toLocaleString()}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: "#FFC83D",
+                        }}
+                      >
+                        {fmtCost(user.cost_30d_usd)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

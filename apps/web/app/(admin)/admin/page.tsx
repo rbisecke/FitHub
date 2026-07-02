@@ -9,7 +9,6 @@ import { TokenGrid } from "@/components/admin/TokenGrid";
 import { TopUsersTable } from "@/components/admin/TopUsersTable";
 
 function fmtUsd(n: number): string {
-  if (n < 0.01) return `$${n.toFixed(4)}`;
   return `$${n.toFixed(2)}`;
 }
 

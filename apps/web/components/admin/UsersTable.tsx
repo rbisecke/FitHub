@@ -260,58 +260,59 @@ export function UsersTable({ users }: Props) {
               </div>
 
               {/* Mobile card */}
-              <div
-                className="md:hidden"
-                style={{
-                  padding: "14px 20px",
-                  borderBottom: "1px solid #30363d",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                }}
-              >
+              <div className="md:hidden">
                 <div
                   style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: "50%",
-                    background: avatarColor,
+                    padding: "14px 20px",
+                    borderBottom: "1px solid #30363d",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 800,
-                    fontSize: 11,
-                    color: "#0d1117",
-                    flexShrink: 0,
+                    gap: 12,
                   }}
                 >
-                  {initials}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
-                      fontSize: 13,
-                      color: "#e6edf3",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {label}
-                  </div>
-                  <div
-                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: "50%",
+                      background: avatarColor,
                       display: "flex",
-                      gap: 10,
-                      marginTop: 3,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 800,
                       fontSize: 11,
-                      color: "#8b949e",
-                      fontFamily: "var(--font-jetbrains-mono), monospace",
+                      color: "#0d1117",
+                      flexShrink: 0,
                     }}
                   >
-                    <span>Joined {formatDate(user.created_at)}</span>
-                    <span>·</span>
-                    <span>{user.interactions_30d} sessions</span>
+                    {initials}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "#e6edf3",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {label}
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 10,
+                        marginTop: 3,
+                        fontSize: 11,
+                        color: "#8b949e",
+                        fontFamily: "var(--font-jetbrains-mono), monospace",
+                      }}
+                    >
+                      <span>Joined {formatDate(user.created_at)}</span>
+                      <span>·</span>
+                      <span>{user.interactions_30d} sessions</span>
+                    </div>
                   </div>
                 </div>
               </div>
