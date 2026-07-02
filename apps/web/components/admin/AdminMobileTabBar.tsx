@@ -91,7 +91,6 @@ export function AdminMobileTabBar() {
 
   return (
     <nav
-      className="md:hidden"
       style={{
         position: "fixed",
         bottom: 0,
