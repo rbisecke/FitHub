@@ -65,6 +65,19 @@ export function RecordsShell({ prs, trendMap, recentPRIds }: Props) {
       ? CATEGORY_ORDER.filter((c) => categorised[c].length > 0)
       : [activeCategory as PRCategory];
 
+  // Filtered categorised map for timeline — respects the active category pill
+  const timelineCategorised: Record<PRCategory, PersonalRecord[]> =
+    activeCategory === "all"
+      ? categorised
+      : {
+          strength: [],
+          gymnastics: [],
+          metcon: [],
+          endurance: [],
+          [activeCategory as PRCategory]:
+            categorised[activeCategory as PRCategory] ?? [],
+        };
+
   // Mobile: all categories with at least 1 PR
   const mobileCats = CATEGORY_ORDER.filter((c) => categorised[c].length > 0);
 
@@ -160,7 +173,7 @@ export function RecordsShell({ prs, trendMap, recentPRIds }: Props) {
             ))}
           </div>
         ) : (
-          <TimelineView categorised={categorised} trendMap={trendMap} />
+          <TimelineView categorised={timelineCategorised} trendMap={trendMap} />
         )}
       </div>
 
