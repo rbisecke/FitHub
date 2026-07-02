@@ -38,6 +38,10 @@ const resultRowSchema = z.object({
   result_type: z.enum(RESULT_TYPE_VALUES).default("weight"),
   sets: z.array(setEntrySchema).default([]),
   order_index: z.number().default(0),
+  notes: z.string().optional(),
+  implement: z.string().optional(),
+  tempo: z.string().optional(),
+  side: z.string().optional(),
 });
 
 export const logFormSchema = z.object({

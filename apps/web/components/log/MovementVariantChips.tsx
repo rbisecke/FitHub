@@ -6,23 +6,57 @@ interface MovementVariantChipsProps {
   modality: string | undefined;
 }
 
-// Hang/Power/Squat removed: those are now distinct named movements in the catalog.
-// Pause, Block, Tempo, Strict remain as annotation-only variants with no dedicated DB entry.
-const CHIPS = ["Pause", "Block", "Tempo", "Strict"] as const;
+const CHIP_DEFS = [
+  { key: "pause", label: "Pause" },
+  { key: "block", label: "Block" },
+  { key: "tempo", label: "Tempo" },
+  { key: "strict", label: "Strict" },
+  { key: "deficit", label: "Deficit" },
+  { key: "elevated", label: "Elevated" },
+  { key: "banded", label: "Banded" },
+  { key: "chains", label: "Chains" },
+  { key: "pin", label: "Pin" },
+  { key: "deadstop", label: "Dead Stop" },
+  { key: "kipping", label: "Kipping" },
+  { key: "seated", label: "Seated" },
+] as const;
 
-const HIDDEN_MODALITIES = new Set([
-  "mono_structural",
-  "plyometric",
-  "carry",
-  "strongman",
-]);
+type ChipKey = (typeof CHIP_DEFS)[number]["key"];
+
+const MOD_CHIPS: Record<string, ChipKey[]> = {
+  strength: [
+    "pause",
+    "block",
+    "tempo",
+    "strict",
+    "deficit",
+    "elevated",
+    "banded",
+    "chains",
+    "pin",
+    "deadstop",
+  ],
+  weightlifting: [
+    "pause",
+    "block",
+    "tempo",
+    "strict",
+    "deficit",
+    "banded",
+    "chains",
+    "deadstop",
+  ],
+  gymnastics: ["pause", "block", "strict", "deficit", "kipping"],
+  plyometric: ["seated"],
+};
 
 export function MovementVariantChips({
   value,
   onChange,
   modality,
 }: MovementVariantChipsProps) {
-  if (!modality || HIDDEN_MODALITIES.has(modality)) return null;
+  const allowedKeys = modality ? MOD_CHIPS[modality] ?? [] : [];
+  if (allowedKeys.length === 0) return null;
 
   const selected = new Set(
     value
@@ -31,8 +65,7 @@ export function MovementVariantChips({
       .filter(Boolean),
   );
 
-  function toggle(chip: string) {
-    const key = chip.toLowerCase();
+  function toggle(key: ChipKey) {
     const next = new Set(selected);
     if (next.has(key)) {
       next.delete(key);
@@ -42,24 +75,28 @@ export function MovementVariantChips({
     onChange(Array.from(next).join(","));
   }
 
+  const visibleChips = CHIP_DEFS.filter((c) =>
+    (allowedKeys as readonly string[]).includes(c.key),
+  );
+
   return (
     <div className="space-y-1">
-      <p className="text-xs text-[#8b949e]">Annotate variant</p>
+      <p className="text-xs text-[#8b949e]">Modifiers</p>
       <div className="flex flex-wrap gap-1">
-        {CHIPS.map((chip) => {
-          const isSelected = selected.has(chip.toLowerCase());
+        {visibleChips.map((chip) => {
+          const isSelected = selected.has(chip.key);
           return (
             <button
-              key={chip}
+              key={chip.key}
               type="button"
-              onClick={() => toggle(chip)}
+              onClick={() => toggle(chip.key)}
               className={`text-xs px-2 py-0.5 rounded border font-mono cursor-pointer ${
                 isSelected
                   ? "bg-[#58a6ff]/20 border-[#58a6ff] text-[#58a6ff]"
                   : "bg-transparent border-[#30363d] text-[#8b949e]"
               }`}
             >
-              {chip}
+              {chip.label}
             </button>
           );
         })}

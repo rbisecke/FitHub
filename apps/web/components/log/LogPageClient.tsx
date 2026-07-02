@@ -226,6 +226,10 @@ export function LogPageClient({
             ? timeTextToSeconds(set.pace_text) ?? undefined
             : undefined,
           variant_annotation: set.variant_annotation || undefined,
+          notes: entry.notes || undefined,
+          implement: entry.implement || undefined,
+          tempo: entry.tempo || undefined,
+          side: entry.side || undefined,
           order_index: entryIdx * 100 + setIdx,
           is_pr: false,
           pace_distance_m: 500,

@@ -371,17 +371,41 @@ function ExpandedContent({
                         </span>
                       )}
                     </div>
-                    {r.variant_annotation && (
+                    {(r.implement ||
+                      r.tempo ||
+                      r.side ||
+                      r.variant_annotation) && (
                       <div className="flex flex-wrap gap-1 mt-0.5">
-                        {r.variant_annotation.split(",").map((chip) => (
-                          <span
-                            key={chip}
-                            className="font-mono text-[10px] px-1 py-0.5 rounded border border-[#30363d] bg-[#161b22] text-[#8b949e]"
-                          >
-                            {chip}
+                        {r.implement && (
+                          <span className="font-mono text-[10px] px-1 py-0.5 rounded border border-[#30363d] bg-[#161b22] text-[#8b949e]">
+                            {r.implement}
                           </span>
-                        ))}
+                        )}
+                        {r.tempo && (
+                          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-[#58a6ff]/40 bg-[#58a6ff]/10 text-[#58a6ff]">
+                            {r.tempo}
+                          </span>
+                        )}
+                        {r.side && (
+                          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-[rgba(255,200,61,0.4)] bg-[rgba(255,200,61,0.12)] text-[var(--gold)] capitalize">
+                            {r.side}
+                          </span>
+                        )}
+                        {r.variant_annotation &&
+                          r.variant_annotation.split(",").map((chip) => (
+                            <span
+                              key={chip}
+                              className="font-mono text-[10px] px-1 py-0.5 rounded border border-[#30363d] bg-[#161b22] text-[#8b949e]"
+                            >
+                              {chip}
+                            </span>
+                          ))}
                       </div>
+                    )}
+                    {r.notes && (
+                      <p className="text-xs italic text-[#8b949e] mt-0.5">
+                        {r.notes}
+                      </p>
                     )}
                     {r.movement_id && r.movement_name && onMovementFilter && (
                       <button
