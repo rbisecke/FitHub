@@ -383,6 +383,11 @@ function ExpandedContent({
                         ))}
                       </div>
                     )}
+                    {r.notes && (
+                      <p className="text-xs italic text-[#8b949e] mt-0.5">
+                        {r.notes}
+                      </p>
+                    )}
                     {r.movement_id && r.movement_name && onMovementFilter && (
                       <button
                         onClick={() =>

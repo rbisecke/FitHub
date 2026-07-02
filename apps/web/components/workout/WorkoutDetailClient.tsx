@@ -326,6 +326,11 @@ export function WorkoutDetailClient({
                         ))}
                       </div>
                     )}
+                    {r.notes && (
+                      <p className="text-xs italic text-[--muted] mt-0.5">
+                        {r.notes}
+                      </p>
+                    )}
                   </div>
                   {r.movement_id && r.estimated_1rm_kg && (
                     <MovementTrendChart
