@@ -116,6 +116,7 @@ function RequestCard({ request, token, onUpdate }: CardProps) {
       }}
     >
       <div
+        className="ar-card-inner"
         style={{
           display: "flex",
           alignItems: "flex-start",
@@ -164,7 +165,10 @@ function RequestCard({ request, token, onUpdate }: CardProps) {
 
         {/* Right: actions or resolved label */}
         {request.status === "pending" ? (
-          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          <div
+            className="ar-actions"
+            style={{ display: "flex", gap: 8, flexShrink: 0 }}
+          >
             <button
               onClick={() => handleAction("rejected")}
               disabled={pending}
