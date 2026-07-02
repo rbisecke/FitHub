@@ -12,21 +12,22 @@
 
 FitHub is a training tracker built on a git mental model: every workout is a commit with a short hash ID, the history page is `git log --all`, and every page has a `$ git command` subtitle above its Archivo Black heading. Under the surface it applies the sports-science models that most fitness apps skip — sRPE-based load, ACWR, and Hooper readiness — plus a deterministic AI layer that generates plans and coaching prose without ever being the source of safety decisions.
 
-The app is invite-only and in active development. Email [rbisecke@gmail.com](mailto:rbisecke@gmail.com) to request access, or [run it locally](#getting-started).
+The app is invite-only and in active development. Use the "Request access" form on the login page to submit an invite request, or [run it locally](#getting-started).
 
 ---
 
 ## What it does
 
-| Theme                   | Details                                                                                                                                                                   |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Track**               | `git commit -m` — NL input box parses free-text workout descriptions into structured sets; staged-changes panel for review before committing; RPE stepper                 |
-| **Training log**        | `git log --all` — short hash IDs, PR badges, benchmark / partner / AMRAP / EMOM / strength WOD support; tap any commit to expand full detail                              |
-| **Load management**     | sRPE × duration perceived load; ACWR via EWMA; ATL/CTL/TSB; Hooper index check-ins; training balance breakdown by muscle group                                            |
-| **Personal records**    | `git tag --list` — gold hero numbers at 42px, category pills, timeline rail; named-benchmark progress (e.g. Fran 4:47 → 3:48)                                             |
-| **AI coach & planning** | SSE streaming chat with session history; hybrid RAG (BM25 + pgvector RRF fusion); adaptive plan generator with deterministic ACWR/readiness triggers; injury train-around |
-| **Data model depth**    | Poliquin 4-digit tempo notation; Epley e1RM cached at write time; VBT fields; wearable-ready schema; IDOR-safe team session consent model                                 |
-| **Engineering**         | Invite-only multi-user from day one; deterministic safety logic; 690 tests across four suites; openapi-typescript contract check in CI                                    |
+| Theme                     | Details                                                                                                                                                                             |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Track**                 | `git commit -m` — NL input box parses free-text workout descriptions into structured sets; staged-changes panel for review before committing; RPE stepper                           |
+| **Training log**          | `git log --all` — short hash IDs, PR badges, benchmark / partner / AMRAP / EMOM / strength WOD support; tap any commit to expand full detail                                        |
+| **Load management**       | sRPE × duration perceived load; ACWR via EWMA; ATL/CTL/TSB; Hooper index check-ins; training balance breakdown by muscle group                                                      |
+| **Personal records**      | `git tag --list` — gold hero numbers at 42px, category pills, timeline rail; named-benchmark progress (e.g. Fran 4:47 → 3:48)                                                       |
+| **AI coach & planning**   | SSE streaming chat with session history; hybrid RAG (BM25 + pgvector RRF fusion); adaptive plan generator with deterministic ACWR/readiness triggers; injury train-around           |
+| **Admin & observability** | LLM cost dashboard; per-user token and cost breakdown by model/endpoint; error event log; API health metrics; access-request queue with approve/reject workflow from the login page |
+| **Data model depth**      | Poliquin 4-digit tempo notation; Epley e1RM cached at write time; VBT fields; wearable-ready schema; IDOR-safe team session consent model                                           |
+| **Engineering**           | Invite-only multi-user from day one; deterministic safety logic; 764 tests across four suites; openapi-typescript contract check in CI                                              |
 
 ---
 
@@ -101,7 +102,7 @@ The frontend calls FastAPI exclusively. Supabase handles auth (magic-link + Goog
 | Database | Supabase Postgres + pgvector, RLS on every table                                 |
 | Auth     | Supabase magic-link + Google OAuth, ES256 JWT via JWKS                           |
 | AI       | Claude Haiku 4.5 via Instructor, SSE streaming, hybrid RAG (BM25 + pgvector RRF) |
-| Testing  | pytest (252), pgTAP RLS (52), Playwright E2E (65), Vitest unit (190)             |
+| Testing  | pytest (426), pgTAP RLS (52), Playwright E2E (96), Vitest unit (190)             |
 | CI       | GitHub Actions: lint, typecheck, test, contract drift, security audit            |
 | Hosting  | Railway (API) · Vercel (web) · Supabase (DB / auth)                              |
 
@@ -191,19 +192,21 @@ Open [http://localhost:3000](http://localhost:3000). The app is invite-only; add
 
 **`STUB_LLM=true` is mandatory for the test suite** — with it set, all LLM calls return deterministic fixture responses and no API key is required. Without it the AI tests will attempt real API calls and fail or accumulate cost.
 
+**Admin portal requires two env vars** — the `/admin` routes are gated on two independent environment variables: `ADMIN_USER_IDS` (comma-separated UUIDs in `apps/web/.env.local`) controls the Next.js layout gate, and `ADMIN_USER_IDS_CSV` (same format) must be set in the FastAPI process environment. Your Supabase user ID can be found in the local Supabase Studio at `http://localhost:54323` under the Users table.
+
 ---
 
 ## Testing
 
 FitHub has four test suites and passes strict static analysis. pgTAP is worth highlighting — most web applications rely solely on application-layer authorization checks; the 52 pgTAP tests verify that RLS policies prevent cross-user data access at the database layer, independent of the application code.
 
-| Suite              | Tool        | Count | Covers                                                  |
-| ------------------ | ----------- | ----- | ------------------------------------------------------- |
-| Unit + integration | pytest      | 383   | API routes, repositories, AI stubs, rate limiting, auth |
-| DB isolation       | pgTAP       | 52    | RLS policies on every table, cross-user data isolation  |
-| Browser E2E        | Playwright  | 65    | Auth flow, workout CRUD, coach chat, plan generation    |
-| Unit (frontend)    | Vitest      | 190   | Utility functions, hooks, API client, component logic   |
-| Static analysis    | mypy + ruff | —     | Strict mypy, zero `Any` in models, ruff format          |
+| Suite              | Tool        | Count | Covers                                                                     |
+| ------------------ | ----------- | ----- | -------------------------------------------------------------------------- |
+| Unit + integration | pytest      | 426   | API routes, repositories, AI stubs, rate limiting, auth, admin portal      |
+| DB isolation       | pgTAP       | 52    | RLS policies on every table, cross-user data isolation                     |
+| Browser E2E        | Playwright  | 96    | Auth flow, workout CRUD, coach chat, plan generation, login page, admin UI |
+| Unit (frontend)    | Vitest      | 190   | Utility functions, hooks, API client, component logic                      |
+| Static analysis    | mypy + ruff | —     | Strict mypy, zero `Any` in models, ruff format                             |
 
 ```bash
 # Unit + integration
@@ -237,7 +240,7 @@ Dependabot keeps Actions SHAs current monthly and pip/npm dependencies weekly.
 
 ## Status & roadmap
 
-The design system revamp shipped in full — 13 scopes across every page and route, including the new `/track` NL workout entry flow, git-graph brand mark, Archivo Black headings, JetBrains Mono data font, and green accent (`#4ADE80`) throughout. The injury-aware coach feature is in review: 21 body regions, 3-state status lifecycle, prompt context injection, and the deterministic `modify-workout` endpoint. Deployment to Railway + Vercel + Supabase production is the current milestone.
+The design system revamp shipped in full — 13 scopes across every page and route, including the new `/track` NL workout entry flow, git-graph brand mark, Archivo Black headings, JetBrains Mono data font, and green accent (`#4ADE80`) throughout. The injury-aware coach feature shipped: 21 body regions, 3-state status lifecycle, prompt context injection, and the deterministic `modify-workout` endpoint. The admin portal is now live with LLM cost tracking, error event log, and API health dashboard. The login page was redesigned with an in-app "Request access" form; submitted requests flow into the admin access-request queue for approve/reject review. Deployment to Railway + Vercel + Supabase production is the current milestone.
 
 Near-term:
 
@@ -246,7 +249,7 @@ Near-term:
 - **Mobile PWA** — manifest and offline strategy planned; not yet implemented
 - **Training balance** — muscle-group categories on movements; balance widget ready once movements are tagged
 
-**Access:** Email [rbisecke@gmail.com](mailto:rbisecke@gmail.com) to request an invite, or clone and [run locally](#getting-started).
+**Access:** Use the "Request access" form on the login page to submit an invite request, or clone and [run locally](#getting-started).
 
 ---
 
