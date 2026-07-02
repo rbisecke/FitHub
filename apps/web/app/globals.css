@@ -279,4 +279,14 @@
   .admin-health-stats {
     grid-template-columns: 1fr 1fr !important;
   }
+  /* Access requests: stack actions below content on narrow screens */
+  .ar-card-inner {
+    flex-direction: column !important;
+  }
+  .ar-actions {
+    width: 100%;
+  }
+  .ar-actions button {
+    flex: 1;
+  }
 }
