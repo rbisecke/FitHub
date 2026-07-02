@@ -314,11 +314,16 @@ export function WorkoutDetailClient({
                         </span>
                       )}
                     </div>
-                    {(r.implement || r.variant_annotation) && (
+                    {(r.implement || r.tempo || r.variant_annotation) && (
                       <div className="flex flex-wrap gap-1 mt-0.5">
                         {r.implement && (
                           <span className="font-mono text-[10px] px-1 py-0.5 rounded border border-[--border] bg-[--surface] text-[--muted]">
                             {r.implement}
+                          </span>
+                        )}
+                        {r.tempo && (
+                          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-[--accent]/40 bg-[--accent]/10 text-[--accent]">
+                            {r.tempo}
                           </span>
                         )}
                         {r.variant_annotation &&
