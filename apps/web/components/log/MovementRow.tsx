@@ -58,6 +58,7 @@ export function MovementRow({
   const [modality, setModality] = useState<string | undefined>(undefined);
   const [prThreshold, setPrThreshold] = useState<number | null>(null);
   const [variantAnnotation, setVariantAnnotation] = useState<string>("");
+  const [noteOpen, setNoteOpen] = useState(false);
 
   const resultType = useWatch({
     control,
@@ -79,6 +80,8 @@ export function MovementRow({
       setLastResult(undefined); // clear while loading
       setPrThreshold(null);
       setVariantAnnotation("");
+      setNoteOpen(false);
+      setValue(`movement_entries.${index}.notes`, undefined);
 
       // Parallel: fetch lastResult + personalRecord
       try {
@@ -254,6 +257,53 @@ export function MovementRow({
             onFill={handleFill}
             distanceUnit={distanceUnit}
           />
+        </div>
+      )}
+
+      {/* Per-result note */}
+      {selectedName && (
+        <div>
+          {noteOpen ? (
+            <div className="flex items-start gap-2">
+              <textarea
+                {...register(`movement_entries.${index}.notes`)}
+                placeholder="Note for this result — cues, conditions, how it felt…"
+                rows={2}
+                className="flex-1 resize-y rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setNoteOpen(false);
+                  setValue(`movement_entries.${index}.notes`, undefined);
+                }}
+                aria-label="Remove note"
+                className="mt-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setNoteOpen(true)}
+              className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+              </svg>
+              Add note
+            </button>
+          )}
         </div>
       )}
 
