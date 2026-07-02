@@ -229,6 +229,7 @@ export function LogPageClient({
           notes: entry.notes || undefined,
           implement: entry.implement || undefined,
           tempo: entry.tempo || undefined,
+          side: entry.side || undefined,
           order_index: entryIdx * 100 + setIdx,
           is_pr: false,
           pace_distance_m: 500,
