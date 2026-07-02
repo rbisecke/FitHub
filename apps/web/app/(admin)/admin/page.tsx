@@ -58,6 +58,7 @@ export default async function AdminMetricsPage() {
           $ fithub metrics --window 30d
         </div>
         <h1
+          className="admin-h1"
           style={{
             fontFamily: "var(--font-archivo-black), sans-serif",
             fontSize: 28,
@@ -100,6 +101,7 @@ export default async function AdminMetricsPage() {
         <>
           {/* Stat cards — 4-column grid */}
           <div
+            className="admin-stat-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(4,1fr)",
@@ -143,6 +145,7 @@ export default async function AdminMetricsPage() {
 
           {/* Two-column row: cost chart + RAG donut */}
           <div
+            className="admin-two-col"
             style={{
               display: "grid",
               gridTemplateColumns: "minmax(0,1.6fr) minmax(0,1fr)",

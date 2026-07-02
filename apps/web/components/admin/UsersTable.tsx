@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { AdminUser } from "@/lib/api";
 
-// Avatar color cycles by first char code mod 4
 const AVATAR_COLORS = ["#58a6ff", "#4ADE80", "#FFC83D", "#FF7A45"] as const;
 
 function getAvatarColor(email: string | null, displayName: string | null) {
@@ -27,8 +26,6 @@ function formatDate(iso: string | null) {
 
 type SortKey = "created_at" | "interactions_30d";
 type SortDir = "asc" | "desc";
-
-// ── Sort button ───────────────────────────────────────────────────────────────
 
 interface SortButtonProps {
   label: string;
@@ -66,8 +63,6 @@ function SortButton({ label, sortKey, active, dir, onSort }: SortButtonProps) {
     </button>
   );
 }
-
-// ── Main table ────────────────────────────────────────────────────────────────
 
 const GRID = "minmax(0,2fr) 1.1fr 1.3fr 1fr";
 
@@ -110,22 +105,63 @@ export function UsersTable({ users }: Props) {
         overflow: "hidden",
       }}
     >
-      {/* Table header */}
+      {/* Desktop table header */}
+      <div className="hidden md:block">
+        <div
+          style={{
+            padding: "12px 20px",
+            borderBottom: "1px solid #30363d",
+            display: "grid",
+            gridTemplateColumns: GRID,
+            gap: 12,
+            fontSize: 10.5,
+            color: "#8b949e",
+            textTransform: "uppercase",
+            letterSpacing: ".5px",
+            alignItems: "center",
+          }}
+        >
+          <span>Email</span>
+          <SortButton
+            label="Joined"
+            sortKey="created_at"
+            active={sortKey}
+            dir={sortDir}
+            onSort={handleSort}
+          />
+          <span>Last Active</span>
+          <SortButton
+            label="Sessions (30d)"
+            sortKey="interactions_30d"
+            active={sortKey}
+            dir={sortDir}
+            onSort={handleSort}
+          />
+        </div>
+      </div>
+
+      {/* Mobile sort bar */}
       <div
+        className="md:hidden"
         style={{
-          padding: "12px 20px",
+          padding: "10px 20px",
           borderBottom: "1px solid #30363d",
-          display: "grid",
-          gridTemplateColumns: GRID,
-          gap: 12,
-          fontSize: 10.5,
-          color: "#8b949e",
-          textTransform: "uppercase",
-          letterSpacing: ".5px",
+          display: "flex",
           alignItems: "center",
+          gap: 14,
         }}
       >
-        <span>Email</span>
+        <span
+          style={{
+            fontSize: 10.5,
+            color: "#8b949e",
+            textTransform: "uppercase",
+            letterSpacing: ".5px",
+            fontFamily: "var(--font-jetbrains-mono), monospace",
+          }}
+        >
+          Sort:
+        </span>
         <SortButton
           label="Joined"
           sortKey="created_at"
@@ -133,9 +169,8 @@ export function UsersTable({ users }: Props) {
           dir={sortDir}
           onSort={handleSort}
         />
-        <span>Last Active</span>
         <SortButton
-          label="Sessions (30d)"
+          label="Sessions"
           sortKey="interactions_30d"
           active={sortKey}
           dir={sortDir}
@@ -143,7 +178,6 @@ export function UsersTable({ users }: Props) {
         />
       </div>
 
-      {/* Data rows */}
       {sorted.length === 0 ? (
         <div
           style={{
@@ -161,31 +195,85 @@ export function UsersTable({ users }: Props) {
           const initials = getInitials(user.email, user.display_name);
           const label = user.display_name ?? user.email ?? user.user_id;
           return (
-            <div
-              key={user.user_id}
-              style={{
-                padding: "14px 20px",
-                borderBottom: "1px solid #30363d",
-                display: "grid",
-                gridTemplateColumns: GRID,
-                gap: 12,
-                alignItems: "center",
-                fontSize: 13,
-              }}
-            >
-              {/* Email + avatar */}
+            <div key={user.user_id}>
+              {/* Desktop row */}
+              <div className="hidden md:block">
+                <div
+                  style={{
+                    padding: "14px 20px",
+                    borderBottom: "1px solid #30363d",
+                    display: "grid",
+                    gridTemplateColumns: GRID,
+                    gap: 12,
+                    alignItems: "center",
+                    fontSize: 13,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      minWidth: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        background: avatarColor,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: 800,
+                        fontSize: 11,
+                        color: "#0d1117",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {initials}
+                    </div>
+                    <span
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                  <span style={{ color: "#8b949e" }}>
+                    {formatDate(user.created_at)}
+                  </span>
+                  <span style={{ color: "#8b949e" }}>—</span>
+                  <span
+                    style={{
+                      color: "#8b949e",
+                      fontFamily: "var(--font-jetbrains-mono), monospace",
+                    }}
+                  >
+                    {user.interactions_30d.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Mobile card */}
               <div
+                className="md:hidden"
                 style={{
+                  padding: "14px 20px",
+                  borderBottom: "1px solid #30363d",
                   display: "flex",
                   alignItems: "center",
-                  gap: 10,
-                  minWidth: 0,
+                  gap: 12,
                 }}
               >
                 <div
                   style={{
-                    width: 28,
-                    height: 28,
+                    width: 30,
+                    height: 30,
                     borderRadius: "50%",
                     background: avatarColor,
                     display: "flex",
@@ -199,34 +287,34 @@ export function UsersTable({ users }: Props) {
                 >
                   {initials}
                 </div>
-                <span
-                  style={{
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {label}
-                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "#e6edf3",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {label}
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      marginTop: 3,
+                      fontSize: 11,
+                      color: "#8b949e",
+                      fontFamily: "var(--font-jetbrains-mono), monospace",
+                    }}
+                  >
+                    <span>Joined {formatDate(user.created_at)}</span>
+                    <span>·</span>
+                    <span>{user.interactions_30d} sessions</span>
+                  </div>
+                </div>
               </div>
-
-              {/* Joined */}
-              <span style={{ color: "#8b949e" }}>
-                {formatDate(user.created_at)}
-              </span>
-
-              {/* Last active — not returned by API */}
-              <span style={{ color: "#8b949e" }}>—</span>
-
-              {/* Sessions */}
-              <span
-                style={{
-                  color: "#8b949e",
-                  fontFamily: "var(--font-jetbrains-mono), monospace",
-                }}
-              >
-                {user.interactions_30d.toLocaleString()}
-              </span>
             </div>
           );
         })

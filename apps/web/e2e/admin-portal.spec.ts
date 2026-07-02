@@ -129,11 +129,11 @@ async function injectAdminSession(
 
   if (chunks.length === 1) {
     await context.addCookies([
-      { ...cookieBase, name: COOKIE_NAME, value: chunks[0] },
+      { ...cookieBase, name: COOKIE_NAME, value: chunks[0]! },
     ]);
   } else {
     await context.addCookies([
-      { ...cookieBase, name: COOKIE_NAME, value: chunks[0] },
+      { ...cookieBase, name: COOKIE_NAME, value: chunks[0]! },
       ...chunks.slice(1).map((chunk, i) => ({
         ...cookieBase,
         name: `${COOKIE_NAME}.${i + 1}`,
