@@ -272,13 +272,14 @@ jobs:
         with:
           python-version: "3.14"
 
-      # Install only what alembic/env.py needs — avoids pulling torch and
+      # Run alembic via uv with inline deps — avoids pulling torch and
       # sentence-transformers (~2 GB) that the full project sync would require.
-      - name: Install migration dependencies
-        run: uv pip install --system alembic "psycopg[binary]" python-dotenv
-
+      # uv pip install --system fails when Python is managed by uv (no system
+      # Python available on the runner), so use uv run --with instead.
       - name: Apply migrations
-        run: alembic -c apps/api/alembic.ini upgrade head
+        run: |
+          uv run --with alembic --with "psycopg[binary]" --with python-dotenv \
+            alembic -c apps/api/alembic.ini upgrade head
         env:
           DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
 
