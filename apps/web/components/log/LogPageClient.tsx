@@ -1,13 +1,13 @@
 "use client";
 
 // CANARY: THIS IS THE NEW VERSION - feat/dsr-log-result
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api/client";
 import type { WorkoutSummary, SessionType, WorkoutFormat } from "@/lib/api";
 import { toasts } from "@/lib/toast";
@@ -46,9 +46,15 @@ export function LogPageClient({
 }: LogPageClientProps) {
   const router = useRouter();
   const timer = useRestTimer();
+
+  // NL input state
+  const [nlExpanded, setNlExpanded] = useState(false);
   const [nlText, setNlText] = useState("");
   const [nlLoading, setNlLoading] = useState(false);
-  const [nlPreview, setNlPreview] = useState<string | null>(null);
+  const [nlError, setNlError] = useState<string | null>(null);
+  // Set of field indices that were pre-populated from NL parse
+  const [parsedIndices, setParsedIndices] = useState<Set<number>>(new Set());
+
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [mobileSelectedId, setMobileSelectedId] = useState<string | null>(null);
   const [mobileSelectedMovement, setMobileSelectedMovement] =
@@ -56,6 +62,8 @@ export function LogPageClient({
   const [mobileValue, setMobileValue] = useState("");
   const [mobileSubmitting, setMobileSubmitting] = useState(false);
   const [movementSearchOpen, setMovementSearchOpen] = useState(false);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
     register,
@@ -93,7 +101,8 @@ export function LogPageClient({
         }));
         replace(prefillEntries);
         setNlText("");
-        setNlPreview(null);
+        setNlExpanded(false);
+        setParsedIndices(new Set());
       } catch {
         // ignore — template fetch failed, user can continue manually
       }
@@ -102,24 +111,13 @@ export function LogPageClient({
   );
 
   const handleNlParse = useCallback(async () => {
-    if (nlText.trim().length < 10) return;
+    if (nlText.trim().length < 5) return;
     setNlLoading(true);
-    setNlPreview(null);
+    setNlError(null);
     try {
       const result = await api.coach.parseLog(accessToken, nlText);
       const entry = result.parsed;
       if (entry) {
-        const preview = [
-          entry.title && `Title: ${entry.title}`,
-          entry.results.length > 0 &&
-            `Movements: ${entry.results
-              .map((r) => r.movement_name)
-              .join(", ")}`,
-        ]
-          .filter(Boolean)
-          .join(" · ");
-        setNlPreview(preview || "Parsed — review below before committing");
-
         if (entry.title) setValue("performed_at", today);
         const prefill = entry.results.map((r, i) => ({
           movement_id: undefined as string | undefined,
@@ -146,13 +144,28 @@ export function LogPageClient({
           order_index: i,
         }));
         replace(prefill);
+        // Mark all newly added rows as parsed
+        setParsedIndices(new Set(prefill.map((_, i) => i)));
       }
+      // Collapse the NL area after successful parse
+      setNlExpanded(false);
+      setNlText("");
     } catch {
-      setNlPreview("Could not parse — try describing again or log manually");
+      setNlError("Couldn't parse that — check your connection and try again.");
     } finally {
       setNlLoading(false);
     }
   }, [accessToken, nlText, setValue, replace]);
+
+  function handleNlToggle() {
+    setNlExpanded((v) => {
+      if (!v) {
+        // Focus textarea after expand animation
+        setTimeout(() => textareaRef.current?.focus(), 210);
+      }
+      return !v;
+    });
+  }
 
   const handleMobileSubmit = useCallback(async () => {
     if (!mobileSelectedMovement || !mobileValue.trim()) return;
@@ -306,73 +319,121 @@ export function LogPageClient({
       <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,520px)_1fr] md:items-start md:gap-10">
         {/* LEFT: primary form */}
         <div className="space-y-6">
-          {/* NL area — desktop only */}
-          <div className="hidden md:block space-y-2">
-            <label
-              htmlFor="nl-textarea"
-              className="text-xs text-[var(--muted-foreground)]"
-            >
-              Describe your workout (optional)
-            </label>
-            <Textarea
-              id="nl-textarea"
-              placeholder={
-                'Describe your workout…\ne.g. "Fran in 6:45" or "5×5 back squat @ 90 kg"'
-              }
-              value={nlText}
-              onChange={(e) => setNlText(e.target.value)}
-              rows={3}
-              className="resize-none border-[var(--border)] bg-[var(--background)] text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)]"
-            />
-            {nlText.trim().length > 10 && (
+          {/* Movement chip card header — contains toggle + grid */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 space-y-3">
+            {/* Header row: label + NL toggle */}
+            <div className="flex items-center justify-between">
+              <span className="font-data text-[11px] text-[var(--muted-foreground)] uppercase tracking-[0.5px]">
+                Movements
+              </span>
               <button
                 type="button"
-                onClick={handleNlParse}
-                disabled={nlLoading}
-                className="text-xs text-[var(--blue)] transition-colors hover:opacity-80 disabled:opacity-50"
+                onClick={handleNlToggle}
+                aria-expanded={nlExpanded}
+                aria-controls="nl-input-region"
+                className={`font-data text-[11.5px] transition-colors ${
+                  nlExpanded
+                    ? "text-[var(--blue)]"
+                    : "text-[var(--muted-foreground)] hover:text-[var(--blue)]"
+                }`}
               >
-                {nlLoading ? "Parsing…" : "Parse & prefill →"}
+                or describe your workout
               </button>
-            )}
-            {nlPreview && (
-              <p className="rounded border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-xs text-[var(--muted-foreground)]">
-                {nlPreview}
-              </p>
-            )}
-          </div>
+            </div>
 
-          {/* Divider — desktop only */}
-          <div className="hidden md:flex items-center gap-3">
-            <div className="h-px flex-1 bg-[var(--border)]" />
-            <span className="text-xs text-[var(--muted-foreground)]">
-              or add movements
-            </span>
-            <div className="h-px flex-1 bg-[var(--border)]" />
-          </div>
+            {/* NL input area — CSS grid row expand (no magic-number maxHeight) */}
+            <div
+              id="nl-input-region"
+              className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+                nlExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div className="space-y-3 pt-1">
+                  <textarea
+                    ref={textareaRef}
+                    value={nlText}
+                    onChange={(e) => {
+                      setNlText(e.target.value);
+                      if (nlError) setNlError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setNlExpanded(false);
+                    }}
+                    placeholder="3×5 back squat 100kg, 3 rounds Fran, 2k row in 7:42…"
+                    rows={3}
+                    className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-xl px-4 py-[14px] font-data text-[13.5px] text-[var(--foreground)] placeholder:text-[var(--muted)] resize-none focus:outline-none focus:border-[var(--blue)] transition-colors"
+                  />
+                  {nlError && (
+                    <p className="font-data text-[11.5px] text-[var(--red)]">
+                      {nlError}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setNlExpanded(false)}
+                      className="font-data text-[10px] text-[var(--muted-foreground)]/60 hover:text-[var(--muted-foreground)] transition-colors"
+                    >
+                      or browse movements ↓
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleNlParse}
+                      disabled={nlText.trim().length < 5 || nlLoading}
+                      className="flex items-center gap-2 bg-[var(--blue)] text-[var(--bg)] font-bold text-[13px] px-[18px] py-2.5 rounded-[10px] hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      data-testid="parse-with-ai-btn"
+                    >
+                      {nlLoading ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Parsing…
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-3.5 w-3.5" />
+                          Parse with AI
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-          {/* Movement grid */}
-          <MovementGrid
-            accessToken={accessToken}
-            selectedId={mobileSelectedId}
-            onSelect={(m: RecentMovement) => {
-              setMobileSelectedId(m.movement_id);
-              setMobileSelectedMovement(m);
-              setMobileValue("");
-              if (fields.length >= 10) return;
-              append({
-                movement_id: m.movement_id,
-                movement_name: m.movement_name,
-                modality: m.modality,
-                result_type:
-                  m.result_type as LogFormValues["movement_entries"][number]["result_type"],
-                sets: [],
-                order_index: fields.length,
-              });
-            }}
-            onSearchRequest={() => {
-              if (fields.length < 10) setMovementSearchOpen(true);
-            }}
-          />
+            {/* Movement chip grid — dims while NL area is expanded */}
+            <div
+              aria-hidden={nlExpanded ? "true" : undefined}
+              className={`transition-opacity duration-200 ${
+                nlExpanded
+                  ? "opacity-50 pointer-events-none cursor-not-allowed"
+                  : ""
+              }`}
+            >
+              <MovementGrid
+                accessToken={accessToken}
+                selectedId={mobileSelectedId}
+                onSelect={(m: RecentMovement) => {
+                  setMobileSelectedId(m.movement_id);
+                  setMobileSelectedMovement(m);
+                  setMobileValue("");
+                  if (fields.length >= 10) return;
+                  append({
+                    movement_id: m.movement_id,
+                    movement_name: m.movement_name,
+                    modality: m.modality,
+                    result_type:
+                      m.result_type as LogFormValues["movement_entries"][number]["result_type"],
+                    sets: [],
+                    order_index: fields.length,
+                  });
+                }}
+                onSearchRequest={() => {
+                  if (fields.length < 10) setMovementSearchOpen(true);
+                }}
+              />
+            </div>
+          </div>
 
           {/* Mobile: empty state when no movement selected */}
           {!mobileSelectedMovement && (
@@ -459,8 +520,7 @@ export function LogPageClient({
                 type="button"
                 onClick={handleMobileSubmit}
                 disabled={mobileSubmitting || !mobileValue.trim()}
-                className="w-full min-h-[48px] font-heading font-bold text-[14px] py-[13px] rounded-[12px] disabled:opacity-60"
-                style={{ background: "var(--accent)", color: "#0d1117" }}
+                className="w-full min-h-[48px] font-heading font-bold text-[14px] py-[13px] rounded-[12px] disabled:opacity-60 bg-[var(--accent)] text-[var(--bg)]"
               >
                 {mobileSubmitting ? "Committing…" : "Commit result →"}
               </button>
@@ -487,8 +547,20 @@ export function LogPageClient({
                   control={control}
                   register={register}
                   setValue={setValue}
-                  remove={remove}
+                  remove={(i) => {
+                    remove(i);
+                    // Clear parsed flag for removed row; shift indices above it
+                    setParsedIndices((prev) => {
+                      const next = new Set<number>();
+                      prev.forEach((pi) => {
+                        if (pi < i) next.add(pi);
+                        else if (pi > i) next.add(pi - 1);
+                      });
+                      return next;
+                    });
+                  }}
                   onSetConfirmed={timer.enabled ? timer.start : undefined}
+                  isParsed={parsedIndices.has(idx)}
                 />
               ))}
             </div>

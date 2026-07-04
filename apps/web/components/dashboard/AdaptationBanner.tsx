@@ -29,12 +29,17 @@ export function AdaptationBanner({ accessToken, planId }: Props) {
     <Link
       href={`/plans/${planId}/adaptations`}
       data-testid="adaptation-banner"
-      className="flex items-center gap-2 rounded-lg border border-yellow-800 bg-yellow-950/30 px-4 py-2 font-mono text-xs text-yellow-300 hover:border-yellow-700"
+      className="flex items-center gap-2 rounded-lg bg-[rgba(210,153,34,0.15)] border border-[rgba(210,153,34,0.40)] px-4 py-2 hover:brightness-105 transition-[filter]"
     >
-      <span className="rounded bg-yellow-700 px-1.5 py-0.5 text-yellow-100">
+      <span className="font-data text-[11px] text-[var(--muted)]">
+        $ git diff --plan ·
+      </span>
+      <span className="font-data text-[11px] font-bold rounded px-[6px] py-[2px] bg-[var(--amber)] text-[#0d1117]">
         {count}
       </span>
-      review pending changes →
+      <span className="font-data text-[12px] text-[var(--amber)]">
+        adaptations pending review →
+      </span>
     </Link>
   );
 }

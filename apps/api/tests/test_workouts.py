@@ -161,3 +161,62 @@ async def test_patch_workout_recomputes_perceived_load_partial(alice_client: Asy
     assert body["session_rpe"] == "9.0"
     assert body["duration_s"] == 1800
     assert body["perceived_load_au"] == 270
+
+
+@pytest.mark.asyncio
+async def test_list_workouts_filter_session_type(alice_client: AsyncClient) -> None:
+    """session_type query param returns only matching workouts."""
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": "2024-07-01T08:00:00Z", "session_type": "strength"},
+    )
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": "2024-07-02T08:00:00Z", "session_type": "metcon"},
+    )
+
+    r = await alice_client.get("/api/v1/workouts?session_type=strength")
+    assert r.status_code == 200
+    items = r.json()["items"]
+    assert all(w["session_type"] == "strength" for w in items)
+    assert any(w["session_type"] == "strength" for w in items)
+
+
+@pytest.mark.asyncio
+async def test_list_workouts_filter_date_from(alice_client: AsyncClient) -> None:
+    """date_from restricts results to workouts on or after the given date."""
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": "2024-01-15T08:00:00Z", "title": "Old WOD"},
+    )
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": "2024-08-01T08:00:00Z", "title": "New WOD"},
+    )
+
+    r = await alice_client.get("/api/v1/workouts?date_from=2024-06-01")
+    assert r.status_code == 200
+    items = r.json()["items"]
+    for w in items:
+        assert w["performed_at"][:10] >= "2024-06-01", (
+            f"Expected date >= 2024-06-01, got {w['performed_at'][:10]}"
+        )
+
+
+@pytest.mark.asyncio
+async def test_list_workouts_filter_partner_only(alice_client: AsyncClient) -> None:
+    """partner_only=true returns only partner/team workouts."""
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": "2024-09-01T08:00:00Z", "workout_format": "partner"},
+    )
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": "2024-09-02T08:00:00Z", "workout_format": "individual"},
+    )
+
+    r = await alice_client.get("/api/v1/workouts?partner_only=true")
+    assert r.status_code == 200
+    items = r.json()["items"]
+    assert all(w["workout_format"] in ("partner", "team") for w in items)
+    assert any(w["workout_format"] in ("partner", "team") for w in items)

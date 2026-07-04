@@ -21,6 +21,8 @@ import { QuickCommitWidget } from "@/components/dashboard/QuickCommitWidget";
 import { HubGrid } from "@/components/dashboard/HubGrid";
 import { HooperCheckIn } from "@/components/dashboard/HooperCheckIn";
 import { TrainingPartnersSummary } from "@/components/dashboard/TrainingPartnersSummary";
+import { AdaptationBanner } from "@/components/dashboard/AdaptationBanner";
+import type { PlanSummary } from "@/lib/api/plans";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -38,6 +40,7 @@ export default async function DashboardPage() {
     profileRes,
     wellnessRes,
     partnersRes,
+    plansRes,
   ] = await Promise.allSettled([
     api.workouts.list(token, { limit: 365 }),
     api.analytics.personalRecords(token),
@@ -45,6 +48,7 @@ export default async function DashboardPage() {
     api.profile.get(token),
     api.wellness.today(token),
     api.trainingPartners(token),
+    api.plans.list(token),
   ]);
 
   const workouts: WorkoutSummary[] =
@@ -56,6 +60,10 @@ export default async function DashboardPage() {
     wellnessRes.status === "fulfilled" ? wellnessRes.value : null;
   const partners: TrainingPartner[] =
     partnersRes.status === "fulfilled" ? partnersRes.value : [];
+
+  const plans: PlanSummary[] =
+    plansRes.status === "fulfilled" ? plansRes.value : [];
+  const activePlan = plans.find((p) => p.status === "active") ?? null;
 
   const showOnboardingToast =
     profileRes.status === "fulfilled" && !profileRes.value.onboarding_completed;
@@ -240,10 +248,24 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* Mobile: adaptation banner after mini stat cards */}
+      {activePlan && (
+        <div className="md:hidden mb-4">
+          <AdaptationBanner accessToken={token} planId={activePlan.id} />
+        </div>
+      )}
+
       {/* Desktop stat grid (5 cols when strain data is available) */}
       <div className="hidden md:block animate-fadeUp">
         <StatGrid stats={stats} cols={5} />
       </div>
+
+      {/* Adaptation banner — only when an active plan has pending adaptations */}
+      {activePlan && (
+        <div className="hidden md:block mb-[18px] animate-fadeUp">
+          <AdaptationBanner accessToken={token} planId={activePlan.id} />
+        </div>
+      )}
 
       {/* Hooper daily check-in (below stat grid, above main content) */}
       <div className="hidden md:block mb-[18px]">

@@ -12,7 +12,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { ProfileHeroCard } from "./ProfileHeroCard";
 import { PartnerList } from "./PartnerList";
 import { SettingsSection } from "./SettingsSection";
-import { FrequencyStepper } from "./FrequencyStepper";
+import { FrequencyTargetControl } from "./FrequencyTargetControl";
 import { CheckinToggle } from "./CheckinToggle";
 import { GraphColourToggle } from "./GraphColourToggle";
 import { WeightUnitToggle } from "./WeightUnitToggle";
@@ -62,7 +62,7 @@ export function ProfilePage({
         </SettingsSection>
 
         <SettingsSection label="Settings">
-          <FrequencyStepper initial={frequencyTarget} token={token} />
+          <FrequencyTargetControl initial={frequencyTarget} token={token} />
           <CheckinToggle initial={profile.checkin_enabled} token={token} />
         </SettingsSection>
 
