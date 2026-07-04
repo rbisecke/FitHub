@@ -2,6 +2,7 @@
 
 import * as motion from "motion/react-client";
 import { useReducedMotion } from "motion/react";
+import Link from "next/link";
 import type { TrainingPartner } from "@/lib/api";
 import { fadeUpProps } from "@/lib/motion";
 
@@ -23,6 +24,25 @@ export function TrainingPartnersSummary({
 }: TrainingPartnersSummaryProps) {
   const prefersReducedMotion = useReducedMotion();
   const visible = partners.slice(0, 2);
+
+  if (partners.length === 0) {
+    return (
+      <motion.div
+        className="rounded-lg border border-[--border] bg-[--surface] px-4 py-3"
+        {...fadeUpProps(prefersReducedMotion, 0.12)}
+      >
+        <p className="font-mono text-xs text-[--muted] mb-2">
+          training partners
+        </p>
+        <p className="text-xs text-[--muted]">
+          No contributors yet.{" "}
+          <Link href="/profile" className="text-[--blue] hover:underline">
+            Add partners in your profile.
+          </Link>
+        </p>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

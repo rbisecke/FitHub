@@ -1,7 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { api } from "@/lib/api/client";
-import type { PersonalRecord, WorkoutSummary } from "@/lib/api";
+import type {
+  PersonalRecord,
+  WorkoutSummary,
+  TrainingPartner,
+} from "@/lib/api";
 import type { ReadinessResponse } from "@/lib/api";
 
 import { prGoals } from "@/lib/dashboard/prDelta";
@@ -16,6 +20,7 @@ import { CoachPreviewCard } from "@/components/dashboard/CoachPreviewCard";
 import { QuickCommitWidget } from "@/components/dashboard/QuickCommitWidget";
 import { HubGrid } from "@/components/dashboard/HubGrid";
 import { HooperCheckIn } from "@/components/dashboard/HooperCheckIn";
+import { TrainingPartnersSummary } from "@/components/dashboard/TrainingPartnersSummary";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -26,14 +31,21 @@ export default async function DashboardPage() {
 
   const token = session.access_token;
 
-  const [workoutRes, prRes, readinessRes, profileRes, wellnessRes] =
-    await Promise.allSettled([
-      api.workouts.list(token, { limit: 365 }),
-      api.analytics.personalRecords(token),
-      api.analytics.readiness(token),
-      api.profile.get(token),
-      api.wellness.today(token),
-    ]);
+  const [
+    workoutRes,
+    prRes,
+    readinessRes,
+    profileRes,
+    wellnessRes,
+    partnersRes,
+  ] = await Promise.allSettled([
+    api.workouts.list(token, { limit: 365 }),
+    api.analytics.personalRecords(token),
+    api.analytics.readiness(token),
+    api.profile.get(token),
+    api.wellness.today(token),
+    api.trainingPartners(token),
+  ]);
 
   const workouts: WorkoutSummary[] =
     workoutRes.status === "fulfilled" ? workoutRes.value.items : [];
@@ -42,6 +54,8 @@ export default async function DashboardPage() {
     readinessRes.status === "fulfilled" ? readinessRes.value : null;
   const wellness =
     wellnessRes.status === "fulfilled" ? wellnessRes.value : null;
+  const partners: TrainingPartner[] =
+    partnersRes.status === "fulfilled" ? partnersRes.value : [];
 
   const showOnboardingToast =
     profileRes.status === "fulfilled" && !profileRes.value.onboarding_completed;
@@ -252,6 +266,7 @@ export default async function DashboardPage() {
               initialCheckin={wellness?.checkin ?? null}
             />
           </div>
+          <TrainingPartnersSummary partners={partners} />
           <HubGrid />
           <TerminalWidget handle={terminalHandle} commits={terminalCommits} />
           <RecentCommitsFeed commits={feedCommits} weekCount={weekCount} />

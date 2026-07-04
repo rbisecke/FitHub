@@ -6,6 +6,7 @@ import { StrengthProgressSection } from "@/components/analytics/StrengthProgress
 import { VolumeTrendSection } from "@/components/analytics/VolumeTrendSection";
 import { TrainingBalanceSection } from "@/components/analytics/TrainingBalanceSection";
 import { BenchmarkProgressSection } from "@/components/analytics/BenchmarkProgressSection";
+import { TrainingPartnersPanel } from "@/components/analytics/TrainingPartnersPanel";
 import { PRSummaryStrip } from "@/components/analytics/PRSummaryStrip";
 import { MobileStrengthTrendCard } from "@/components/analytics/MobileStrengthTrendCard";
 import { ACWRChart } from "@/components/analytics/ACWRChart";
@@ -20,7 +21,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
-import type { DailyLoadPoint } from "@/lib/api";
+import type { DailyLoadPoint, TrainingPartner } from "@/lib/api";
 
 function getCtlTrend(
   ctlNow: number,
@@ -64,15 +65,23 @@ export default async function AnalyticsPage() {
   } = await supabase.auth.getSession();
   const token = session!.access_token;
 
-  const [load, personalRecords, volume, readiness, balance, benchmarks] =
-    await Promise.all([
-      api.analytics.load(token, 90),
-      api.analytics.personalRecords(token),
-      api.analytics.volumeTrend(token, 8),
-      api.analytics.readiness(token).catch(() => null),
-      api.analytics.trainingBalance(token, 28).catch(() => null),
-      api.analytics.benchmarks(token).catch(() => null),
-    ]);
+  const [
+    load,
+    personalRecords,
+    volume,
+    readiness,
+    balance,
+    benchmarks,
+    partners,
+  ] = await Promise.all([
+    api.analytics.load(token, 90),
+    api.analytics.personalRecords(token),
+    api.analytics.volumeTrend(token, 8),
+    api.analytics.readiness(token).catch(() => null),
+    api.analytics.trainingBalance(token, 28).catch(() => null),
+    api.analytics.benchmarks(token).catch(() => null),
+    api.trainingPartners(token).catch(() => [] as TrainingPartner[]),
+  ]);
 
   const nonZeroDays = load.series.filter((pt) => pt.load_au > 0).length;
 
@@ -222,6 +231,9 @@ export default async function AnalyticsPage() {
 
             {/* Benchmark WODs */}
             <BenchmarkProgressSection data={benchmarks} />
+
+            {/* Training Partners */}
+            <TrainingPartnersPanel partners={partners} />
 
             {/* Load detail (ACWR chart) — collapsed by default */}
             <div className="col-span-1 md:col-span-2 bg-[var(--card)] border border-[var(--border)] rounded-2xl">
