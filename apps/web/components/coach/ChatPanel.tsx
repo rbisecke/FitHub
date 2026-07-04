@@ -9,6 +9,7 @@ import { TypingIndicator } from "./TypingIndicator";
 import { StarterPrompts } from "./StarterPrompts";
 import { SuggestionPills } from "./SuggestionPills";
 import { ChatInput } from "./ChatInput";
+import type { ChatInputHandle } from "./ChatInput";
 import { api } from "@/lib/api/client";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -47,6 +48,7 @@ export function ChatPanel({
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const liveRegionRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<ChatInputHandle>(null);
 
   const announce = useCallback((text: string) => {
     if (liveRegionRef.current) {
@@ -399,10 +401,18 @@ export function ChatPanel({
 
       {/* Suggestion pills — shown in empty state and after each AI response */}
       {(!hasMessages || showSuggestionsAfterResponse) && (
-        <SuggestionPills onSelect={(p) => setInput(p)} />
+        <SuggestionPills
+          onSelect={(p) => {
+            setInput(p);
+            // Focus the textarea so the user can immediately continue typing.
+            // Small delay lets React flush the state update first.
+            requestAnimationFrame(() => chatInputRef.current?.focus());
+          }}
+        />
       )}
 
       <ChatInput
+        ref={chatInputRef}
         value={input}
         onChange={setInput}
         onSubmit={() => void sendMessage(input)}
