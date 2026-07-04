@@ -170,7 +170,6 @@ export default function TeamSessionDetailPage() {
 
   useEffect(() => {
     if (!token) return;
-    setLoading(true);
     api.teamSessions
       .get(token, id)
       .then((ts) => {
