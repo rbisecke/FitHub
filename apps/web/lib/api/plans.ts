@@ -23,3 +23,5 @@ export type ModifyWorkoutResponse =
   components["schemas"]["ModifyWorkoutResponse"];
 export type MovementModification =
   components["schemas"]["MovementModification"];
+export type CheckWodResponse = components["schemas"]["CheckWodResponse"];
+export type WodMovementResult = components["schemas"]["WodMovementResult"];
