@@ -5,6 +5,7 @@ import {
   Tag,
   TrendingUp,
   History,
+  ShieldAlert,
   MessageSquare,
   User,
   type LucideIcon,
@@ -63,6 +64,13 @@ export const NAV_ITEMS: NavItem[] = [
     icon: History,
     gitCommand: "$ git log --all",
     mobileShow: true,
+  },
+  {
+    href: "/injuries",
+    label: "Injuries",
+    mobileLabel: "Injuries",
+    icon: ShieldAlert,
+    gitCommand: "$ git issue --list",
   },
   {
     href: "/coach",
@@ -136,6 +144,11 @@ export const PAGE_META: Record<
     title: "Plans",
     gitCommand: "$ git branch",
     slug: "plans",
+  },
+  "/injuries": {
+    title: "Injuries",
+    gitCommand: "$ git issue --list",
+    slug: "injuries",
   },
   "/coach": {
     title: "Coach",
