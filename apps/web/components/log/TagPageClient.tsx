@@ -24,7 +24,21 @@ import {
 } from "@/lib/tag";
 import { relativeDate } from "@/lib/display";
 
-const today = new Date().toISOString().slice(0, 10);
+function getTodayLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+    2,
+    "0",
+  )}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+const today = getTodayLocal();
+
+function formatDateChip(dateStr: string): string {
+  if (dateStr === today) return "Today";
+  const d = new Date(`${dateStr}T00:00:00`);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 const EMPTY_SET: SetEntryValues = {
   set_index: 0,
@@ -77,6 +91,8 @@ export function TagPageClient({
   const [noteOpen, setNoteOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(today);
 
   const fetchingRef = useRef<string | null>(null);
 
@@ -221,7 +237,7 @@ export function TagPageClient({
       };
 
       const body = {
-        performed_at: toISOLocal(values.performed_at),
+        performed_at: toISOLocal(selectedDate),
         is_tag: true,
         results: [resultRow],
       };
@@ -313,6 +329,37 @@ export function TagPageClient({
         onSubmit={handleSubmit(onSubmit as Parameters<typeof handleSubmit>[0])}
         className="mt-6 space-y-6"
       >
+        {/* Date chip — visually secondary, allows back-dating */}
+        <div className="flex items-center gap-2">
+          {datePickerOpen ? (
+            <input
+              type="date"
+              max={today}
+              value={selectedDate}
+              onChange={(e) => {
+                if (e.target.value) setSelectedDate(e.target.value);
+                setDatePickerOpen(false);
+              }}
+              onBlur={() => setDatePickerOpen(false)}
+              autoFocus
+              className="font-mono text-xs text-[#8b949e] bg-transparent border border-[#30363d] rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#58a6ff]"
+              aria-label="Select date"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setDatePickerOpen(true)}
+              className="inline-flex items-center gap-1.5 font-mono text-xs text-[#8b949e] hover:text-[#e6edf3] transition-colors rounded-md px-2 py-1 border border-transparent hover:border-[#30363d]"
+              aria-label={`Date: ${formatDateChip(
+                selectedDate,
+              )}. Click to change`}
+            >
+              <span aria-hidden="true">📅</span>
+              {formatDateChip(selectedDate)}
+            </button>
+          )}
+        </div>
+
         {/* Movement selection */}
         <div className="space-y-3">
           <MovementChips
