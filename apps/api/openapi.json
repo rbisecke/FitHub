@@ -3681,6 +3681,99 @@
         ]
       }
     },
+    "/api/v1/wellness/checkin": {
+      "post": {
+        "tags": [
+          "wellness"
+        ],
+        "summary": "Submit Checkin",
+        "description": "Submit today's Hooper Index check-in (upserts \u2014 one per calendar day).",
+        "operationId": "submit_checkin_api_v1_wellness_checkin_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckInResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/wellness/checkin/today": {
+      "get": {
+        "tags": [
+          "wellness"
+        ],
+        "summary": "Today Checkin",
+        "description": "Return today's check-in, or submitted=false if not yet logged.",
+        "operationId": "today_checkin_api_v1_wellness_checkin_today_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayCheckInResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/wellness/checkin/reject-if-missing": {
+      "get": {
+        "tags": [
+          "wellness"
+        ],
+        "summary": " Reject Missing",
+        "operationId": "_reject_missing_api_v1_wellness_checkin_reject_if_missing_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -4334,6 +4427,81 @@
           "question"
         ],
         "title": "ChatStreamRequest"
+      },
+      "CheckInRequest": {
+        "properties": {
+          "sleep": {
+            "type": "integer",
+            "maximum": 7.0,
+            "minimum": 1.0,
+            "title": "Sleep"
+          },
+          "stress": {
+            "type": "integer",
+            "maximum": 7.0,
+            "minimum": 1.0,
+            "title": "Stress"
+          },
+          "fatigue": {
+            "type": "integer",
+            "maximum": 7.0,
+            "minimum": 1.0,
+            "title": "Fatigue"
+          },
+          "soreness": {
+            "type": "integer",
+            "maximum": 7.0,
+            "minimum": 1.0,
+            "title": "Soreness"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sleep",
+          "stress",
+          "fatigue",
+          "soreness"
+        ],
+        "title": "CheckInRequest"
+      },
+      "CheckInResponse": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "sleep": {
+            "type": "integer",
+            "title": "Sleep"
+          },
+          "stress": {
+            "type": "integer",
+            "title": "Stress"
+          },
+          "fatigue": {
+            "type": "integer",
+            "title": "Fatigue"
+          },
+          "soreness": {
+            "type": "integer",
+            "title": "Soreness"
+          },
+          "hooper_index": {
+            "type": "integer",
+            "title": "Hooper Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "sleep",
+          "stress",
+          "fatigue",
+          "soreness",
+          "hooper_index"
+        ],
+        "title": "CheckInResponse"
       },
       "CheckWodRequest": {
         "properties": {
@@ -8827,6 +8995,30 @@
           "participant_count"
         ],
         "title": "TeamSessionSummary"
+      },
+      "TodayCheckInResponse": {
+        "properties": {
+          "submitted": {
+            "type": "boolean",
+            "title": "Submitted"
+          },
+          "checkin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckInResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "submitted",
+          "checkin"
+        ],
+        "title": "TodayCheckInResponse"
       },
       "TrainingBalanceCategory": {
         "properties": {

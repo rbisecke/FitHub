@@ -1141,6 +1141,63 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/wellness/checkin": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Submit Checkin
+     * @description Submit today's Hooper Index check-in (upserts — one per calendar day).
+     */
+    post: operations["submit_checkin_api_v1_wellness_checkin_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/wellness/checkin/today": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Today Checkin
+     * @description Return today's check-in, or submitted=false if not yet logged.
+     */
+    get: operations["today_checkin_api_v1_wellness_checkin_today_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/wellness/checkin/reject-if-missing": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Reject Missing */
+    get: operations["_reject_missing_api_v1_wellness_checkin_reject_if_missing_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -1372,6 +1429,35 @@ export interface components {
       question: string;
       /** Session Id */
       session_id?: string | null;
+    };
+    /** CheckInRequest */
+    CheckInRequest: {
+      /** Sleep */
+      sleep: number;
+      /** Stress */
+      stress: number;
+      /** Fatigue */
+      fatigue: number;
+      /** Soreness */
+      soreness: number;
+    };
+    /** CheckInResponse */
+    CheckInResponse: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Sleep */
+      sleep: number;
+      /** Stress */
+      stress: number;
+      /** Fatigue */
+      fatigue: number;
+      /** Soreness */
+      soreness: number;
+      /** Hooper Index */
+      hooper_index: number;
     };
     /** CheckWodRequest */
     CheckWodRequest: {
@@ -2794,6 +2880,12 @@ export interface components {
       performed_at: string;
       /** Participant Count */
       participant_count: number;
+    };
+    /** TodayCheckInResponse */
+    TodayCheckInResponse: {
+      /** Submitted */
+      submitted: boolean;
+      checkin: components["schemas"]["CheckInResponse"] | null;
     };
     /** TrainingBalanceCategory */
     TrainingBalanceCategory: {
@@ -5414,6 +5506,79 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  submit_checkin_api_v1_wellness_checkin_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CheckInRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CheckInResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  today_checkin_api_v1_wellness_checkin_today_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TodayCheckInResponse"];
+        };
+      };
+    };
+  };
+  _reject_missing_api_v1_wellness_checkin_reject_if_missing_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
     };

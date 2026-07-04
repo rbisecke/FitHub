@@ -29,6 +29,7 @@ from app.routers.notifications import router as notifications_router
 from app.routers.plans import router as plans_router  # noqa: F401
 from app.routers.profile import router as profile_router
 from app.routers.team_sessions import router as team_sessions_router
+from app.routers.wellness import router as wellness_router  # noqa: F401
 from app.routers.workouts import router as workouts_router
 
 configure_logging()
@@ -63,6 +64,7 @@ app.include_router(adaptations_router)
 app.include_router(injuries_router)
 app.include_router(team_sessions_router)
 app.include_router(notifications_router)
+app.include_router(wellness_router)
 
 # Middleware registration order: last add_middleware() runs first (outermost).
 # CORS runs outermost; SlowAPI and RequestLogging run inside.

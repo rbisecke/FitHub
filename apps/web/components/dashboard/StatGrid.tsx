@@ -8,11 +8,17 @@ interface Stat {
 
 interface Props {
   stats: Stat[];
+  cols?: 4 | 5;
 }
 
-export function StatGrid({ stats }: Props) {
+export function StatGrid({ stats, cols = 4 }: Props) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
+    <div
+      className={
+        "grid grid-cols-2 gap-3.5 mb-6 " +
+        (cols === 5 ? "md:grid-cols-5" : "md:grid-cols-4")
+      }
+    >
       {stats.map((stat) => (
         <div
           key={stat.label}

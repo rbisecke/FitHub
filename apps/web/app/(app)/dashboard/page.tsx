@@ -15,6 +15,7 @@ import { OpenPRsWidget } from "@/components/dashboard/OpenPRsWidget";
 import { CoachPreviewCard } from "@/components/dashboard/CoachPreviewCard";
 import { QuickCommitWidget } from "@/components/dashboard/QuickCommitWidget";
 import { HubGrid } from "@/components/dashboard/HubGrid";
+import { HooperCheckIn } from "@/components/dashboard/HooperCheckIn";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -25,12 +26,13 @@ export default async function DashboardPage() {
 
   const token = session.access_token;
 
-  const [workoutRes, prRes, readinessRes, profileRes] =
+  const [workoutRes, prRes, readinessRes, profileRes, wellnessRes] =
     await Promise.allSettled([
       api.workouts.list(token, { limit: 365 }),
       api.analytics.personalRecords(token),
       api.analytics.readiness(token),
       api.profile.get(token),
+      api.wellness.today(token),
     ]);
 
   const workouts: WorkoutSummary[] =
@@ -38,6 +40,8 @@ export default async function DashboardPage() {
   const prs: PersonalRecord[] = prRes.status === "fulfilled" ? prRes.value : [];
   const readiness: ReadinessResponse | null =
     readinessRes.status === "fulfilled" ? readinessRes.value : null;
+  const wellness =
+    wellnessRes.status === "fulfilled" ? wellnessRes.value : null;
 
   const showOnboardingToast =
     profileRes.status === "fulfilled" && !profileRes.value.onboarding_completed;
@@ -62,6 +66,10 @@ export default async function DashboardPage() {
   const acwrDisplay =
     readiness?.acwr != null ? Math.round(readiness.acwr * 100) : "—";
 
+  const strainScore = readiness?.strain_score ?? null;
+  const strainDisplay =
+    strainScore !== null ? `${Math.round(strainScore)}%` : "—";
+
   const stats = [
     {
       label: "Status",
@@ -83,6 +91,18 @@ export default async function DashboardPage() {
       value: tsbValue,
       sub: "training stress balance",
       valueColor: (tsbValue < 0 ? "hot" : "accent") as "hot" | "accent",
+    },
+    {
+      label: "Strain",
+      value: strainDisplay,
+      sub: "active energy vs baseline",
+      valueColor: (strainScore === null
+        ? undefined
+        : strainScore < 40
+          ? "accent"
+          : strainScore <= 70
+            ? undefined
+            : "hot") as "hot" | "accent" | undefined,
     },
   ];
 
@@ -206,15 +226,32 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Desktop stat grid */}
+      {/* Desktop stat grid (5 cols when strain data is available) */}
       <div className="hidden md:block animate-fadeUp">
-        <StatGrid stats={stats} />
+        <StatGrid stats={stats} cols={5} />
+      </div>
+
+      {/* Hooper daily check-in (below stat grid, above main content) */}
+      <div className="hidden md:block mb-[18px]">
+        <HooperCheckIn
+          token={token}
+          initialSubmitted={wellness?.submitted ?? false}
+          initialCheckin={wellness?.checkin ?? null}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[1fr_340px] gap-[18px] animate-fadeUp">
         {/* Left column */}
         <div className="space-y-[18px]">
           <ContributionGraphRevamp workouts={workouts} />
+          {/* Mobile: Hooper check-in inline with left column content */}
+          <div className="md:hidden">
+            <HooperCheckIn
+              token={token}
+              initialSubmitted={wellness?.submitted ?? false}
+              initialCheckin={wellness?.checkin ?? null}
+            />
+          </div>
           <HubGrid />
           <TerminalWidget handle={terminalHandle} commits={terminalCommits} />
           <RecentCommitsFeed commits={feedCommits} weekCount={weekCount} />
