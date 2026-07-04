@@ -49,6 +49,8 @@ describe("SuggestionPills", () => {
   it("Convert cardio → pill is the last in the row", () => {
     render(<SuggestionPills onSelect={() => {}} />);
     const buttons = screen.getAllByRole("button");
-    expect(buttons[buttons.length - 1].textContent).toBe("Convert cardio →");
+    const lastButton = buttons[buttons.length - 1];
+    expect(lastButton).toBeDefined();
+    expect(lastButton!.textContent).toBe("Convert cardio →");
   });
 });
