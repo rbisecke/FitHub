@@ -23,6 +23,14 @@ function relativeDate(isoDate: string): string {
   return `${Math.floor(diffDays / 365)}y ago`;
 }
 
+function weeksAgoLabel(isoDate: string): string {
+  const d = new Date(isoDate);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
+  const weeks = Math.floor(diffDays / 7);
+  return `${weeks}w ago`;
+}
+
 function computeSparkline(points: E1RMPoint[], W: number, H: number): string {
   if (points.length < 2) return "";
   const values = points.map((p) => p.estimated_1rm_kg);
@@ -78,80 +86,136 @@ export function PRCard({ pr, points, isRecent, category }: Props) {
   const isToday = dateLabel === "Today";
 
   const tagHref = `/log/tag?movement_id=${pr.movement_id}`;
+  const detailHref = `/records/${pr.movement_id}`;
+
+  // Strength intelligence: new fields from the API
+  const hasStrengthIntel = pr.current_e1rm_kg != null;
+  const hasTrend = pr.next_pr_kg != null && pr.next_pr_weeks != null;
 
   return (
     <>
-      {/* Mobile compact card — full card is tappable */}
-      <Link
-        href={tagHref}
-        aria-label={`Log new attempt for ${pr.movement_name}`}
-        className={`md:hidden relative flex flex-col rounded-[14px] p-[14px] transition-colors active:brightness-90 ${
-          isToday
-            ? "border border-[var(--accent)] bg-[var(--card)]"
-            : "border border-[var(--border)] bg-[var(--card)] active:border-[var(--blue)]"
-        }`}
-      >
-        {isToday && (
-          <span
-            className="absolute top-[10px] right-[10px] font-data"
-            style={{ fontSize: 9, color: "var(--accent)" }}
-          >
-            ● today
-          </span>
-        )}
-        <div
-          className={`font-data text-[11px] text-[var(--muted)] truncate ${
-            isToday ? "pr-10" : ""
+      {/* Mobile compact card — body taps to detail page; corner $ tag goes to log */}
+      <div className="md:hidden relative">
+        <Link
+          href={detailHref}
+          aria-label={`View ${pr.movement_name} detail`}
+          className={`flex flex-col rounded-[14px] p-[14px] transition-colors active:brightness-90 ${
+            isToday
+              ? "border border-[var(--accent)] bg-[var(--card)]"
+              : "border border-[var(--border)] bg-[var(--card)] active:border-[var(--blue)]"
           }`}
         >
-          {pr.movement_name}
-        </div>
-        <div
-          className="font-heading leading-none mt-[3px]"
-          style={{ fontSize: "26px", color: "var(--gold)" }}
-        >
-          {pr.best_1rm_kg.toFixed(1)}
-          <span className="text-[13px] ml-1" style={{ color: "var(--muted)" }}>
-            kg
-          </span>
-        </div>
-        {sparklinePtsMobile && (
-          <svg
-            viewBox="0 0 90 24"
-            width="100%"
-            height="24"
-            className="my-[8px]"
-            aria-hidden="true"
-            preserveAspectRatio="none"
+          {isToday && (
+            <span
+              className="absolute top-[10px] right-[10px] font-data"
+              style={{ fontSize: 9, color: "var(--accent)" }}
+            >
+              ● today
+            </span>
+          )}
+          <div
+            className={`font-data text-[11px] text-[var(--muted)] truncate ${
+              isToday ? "pr-10" : ""
+            }`}
           >
-            <polyline
-              points={sparklinePtsMobile}
-              fill="none"
-              stroke="var(--accent)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
-        <div className="font-data text-[9.5px] text-[var(--muted)]">
-          {dateLabel}
-          {improvement && (
-            <>
-              {" "}
-              <span style={{ color: "var(--blue)" }}>{improvement}</span>
-            </>
+            {pr.movement_name}
+          </div>
+          <div
+            className="font-heading leading-none mt-[3px]"
+            style={{ fontSize: "26px", color: "var(--gold)" }}
+          >
+            {pr.best_1rm_kg.toFixed(1)}
+            <span
+              className="text-[13px] ml-1"
+              style={{ color: "var(--muted)" }}
+            >
+              kg
+            </span>
+          </div>
+          {sparklinePtsMobile && (
+            <svg
+              viewBox="0 0 90 24"
+              width="100%"
+              height="24"
+              className="my-[8px]"
+              aria-hidden="true"
+              preserveAspectRatio="none"
+            >
+              <polyline
+                points={sparklinePtsMobile}
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           )}
-          {isFirstPR && !improvement && (
-            <>
-              {" "}
-              <span style={{ color: "var(--muted)" }}>First PR</span>
-            </>
+          {/* Strength intelligence lines — mobile */}
+          {hasStrengthIntel && (
+            <div className="mt-[4px] space-y-[2px]">
+              <div className="flex items-center gap-1">
+                <span
+                  className="font-mono tabular-nums"
+                  style={{ fontSize: 10, color: "var(--blue)" }}
+                >
+                  est. now — {pr.current_e1rm_kg!.toFixed(1)} kg
+                </span>
+                {pr.is_stale && (
+                  <span
+                    className="font-mono"
+                    style={{ fontSize: 9, color: "var(--muted)" }}
+                  >
+                    · last logged {weeksAgoLabel(pr.achieved_at)}
+                  </span>
+                )}
+              </div>
+              {hasTrend && (
+                <div
+                  className="font-mono italic"
+                  style={{ fontSize: 9, color: "var(--muted)" }}
+                >
+                  on trend → {pr.next_pr_kg!.toFixed(1)} kg in ~
+                  {pr.next_pr_weeks}wk
+                </div>
+              )}
+            </div>
           )}
-        </div>
-      </Link>
+          {!hasStrengthIntel && (
+            <div
+              className="font-mono mt-[4px]"
+              style={{ fontSize: 9, color: "var(--muted)" }}
+            >
+              log 3+ sets to unlock trend
+            </div>
+          )}
+          <div className="font-data text-[9.5px] text-[var(--muted)] mt-[4px]">
+            {dateLabel}
+            {improvement && (
+              <>
+                {" "}
+                <span style={{ color: "var(--blue)" }}>{improvement}</span>
+              </>
+            )}
+            {isFirstPR && !improvement && (
+              <>
+                {" "}
+                <span style={{ color: "var(--muted)" }}>First PR</span>
+              </>
+            )}
+          </div>
+        </Link>
+        {/* $ tag button — absolute in corner, separate from the body link */}
+        <Link
+          href={tagHref}
+          aria-label={`Log new attempt for ${pr.movement_name}`}
+          className="absolute bottom-[10px] right-[10px] font-mono text-[9px] font-semibold px-[6px] py-[3px] rounded border border-[var(--border)] text-[var(--muted)] active:border-[var(--blue)] active:text-[var(--blue)]"
+        >
+          $ tag
+        </Link>
+      </div>
 
-      {/* Desktop card — hover reveals blue border + $ tag button */}
+      {/* Desktop card — body taps to detail page; hover reveals $ tag button */}
       <article
         className="group hidden md:block relative overflow-hidden bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 hover:border-[var(--blue)] transition-colors"
         aria-label={`${
@@ -169,83 +233,120 @@ export function PRCard({ pr, points, isRecent, category }: Props) {
           </div>
         )}
 
-        {/* Category pill */}
-        <div className="flex items-center justify-between mb-3">
-          <span
-            className="inline-flex items-center gap-1.5 text-[11px] font-semibold rounded-full px-2 py-0.5"
-            style={{
-              background: `${catColor}1a`,
-              color: catColor,
-              border: `1px solid ${catColor}40`,
-            }}
-          >
-            {category}
-          </span>
-          {(isRecent || isToday) && (
+        {/* Card body — tappable link to detail page */}
+        <Link
+          href={detailHref}
+          className="block"
+          tabIndex={-1}
+          aria-hidden="true"
+        >
+          {/* Category pill */}
+          <div className="flex items-center justify-between mb-3">
             <span
-              className="text-[10px] font-bold tracking-wide rounded-full px-2 py-0.5 animate-popIn"
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold rounded-full px-2 py-0.5"
               style={{
-                background: "rgba(255,200,61,0.14)",
-                color: "var(--gold)",
-                border: "1px solid rgba(255,200,61,0.3)",
+                background: `${catColor}1a`,
+                color: catColor,
+                border: `1px solid ${catColor}40`,
               }}
             >
-              NEW PR
+              {category}
             </span>
-          )}
-        </div>
+            {(isRecent || isToday) && (
+              <span
+                className="text-[10px] font-bold tracking-wide rounded-full px-2 py-0.5 animate-popIn"
+                style={{
+                  background: "rgba(255,200,61,0.14)",
+                  color: "var(--gold)",
+                  border: "1px solid rgba(255,200,61,0.3)",
+                }}
+              >
+                NEW PR
+              </span>
+            )}
+          </div>
 
-        {/* Movement name */}
-        <p className="text-[14px] font-semibold text-[var(--foreground)] mb-1 truncate">
-          {pr.movement_name}
-        </p>
+          {/* Movement name */}
+          <p className="text-[14px] font-semibold text-[var(--foreground)] mb-1 truncate">
+            {pr.movement_name}
+          </p>
 
-        {/* Hero number */}
-        <p
-          className="font-heading leading-none mb-3"
-          style={{ fontSize: "42px", color: "var(--gold)" }}
-        >
-          {pr.best_1rm_kg.toFixed(1)}
-          <span className="text-[20px] ml-1.5 text-[var(--muted)]">kg</span>
-        </p>
-
-        {/* Improvement + date row */}
-        <div className="flex items-center justify-between mb-3">
-          {improvement ? (
-            <span
-              className="font-mono text-[12px] font-semibold"
-              style={{ color: "var(--blue)" }}
-            >
-              {improvement}
-            </span>
-          ) : isFirstPR ? (
-            <span className="text-[12px] text-[var(--muted)]">First PR</span>
-          ) : (
-            <span className="text-[12px] text-[var(--muted)]" />
-          )}
-          <span className="text-[12px] text-[var(--muted)]">{dateLabel}</span>
-        </div>
-
-        {/* SVG sparkline */}
-        {sparklinePts && (
-          <svg
-            width="100%"
-            height="34"
-            viewBox="0 0 120 34"
-            preserveAspectRatio="none"
-            aria-hidden="true"
-            className="opacity-70"
+          {/* Hero number */}
+          <p
+            className="font-heading leading-none mb-2"
+            style={{ fontSize: "42px", color: "var(--gold)" }}
           >
-            <polyline
-              points={sparklinePts}
-              fill="none"
-              stroke="var(--accent)"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
+            {pr.best_1rm_kg.toFixed(1)}
+            <span className="text-[20px] ml-1.5 text-[var(--muted)]">kg</span>
+          </p>
+
+          {/* Strength intelligence section — secondary to the gold hero */}
+          {hasStrengthIntel ? (
+            <div className="mb-2 space-y-[3px]">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className="font-mono tabular-nums text-[12px]"
+                  style={{ color: "var(--blue)" }}
+                >
+                  est. now — {pr.current_e1rm_kg!.toFixed(1)} kg
+                </span>
+                {pr.is_stale && (
+                  <span className="font-mono text-[10px] text-[var(--muted)]">
+                    last logged {weeksAgoLabel(pr.achieved_at)}
+                  </span>
+                )}
+              </div>
+              {hasTrend && (
+                <p className="font-mono italic text-[11px] text-[var(--muted)]">
+                  on trend → {pr.next_pr_kg!.toFixed(1)} kg in ~
+                  {pr.next_pr_weeks}wk
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="font-mono text-[11px] text-[var(--muted)] mb-2">
+              log 3+ sets to unlock trend
+            </p>
+          )}
+
+          {/* Improvement + date row */}
+          <div className="flex items-center justify-between mb-3">
+            {improvement ? (
+              <span
+                className="font-mono text-[12px] font-semibold"
+                style={{ color: "var(--blue)" }}
+              >
+                {improvement}
+              </span>
+            ) : isFirstPR ? (
+              <span className="text-[12px] text-[var(--muted)]">First PR</span>
+            ) : (
+              <span className="text-[12px] text-[var(--muted)]" />
+            )}
+            <span className="text-[12px] text-[var(--muted)]">{dateLabel}</span>
+          </div>
+
+          {/* SVG sparkline */}
+          {sparklinePts && (
+            <svg
+              width="100%"
+              height="34"
+              viewBox="0 0 120 34"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+              className="opacity-70"
+            >
+              <polyline
+                points={sparklinePts}
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
+        </Link>
 
         {/* $ tag button — appears on hover, bottom-right */}
         <Link
