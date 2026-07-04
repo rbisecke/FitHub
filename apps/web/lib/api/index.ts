@@ -92,6 +92,21 @@ export type PinnedMovement = components["schemas"]["PinnedMovement"];
 export type SetPinnedMovementsRequest =
   components["schemas"]["SetPinnedMovementsRequest"];
 
+// Team session types — from generated OpenAPI schema
+export type TeamSession = components["schemas"]["TeamSession"];
+export type TeamSessionParticipant =
+  components["schemas"]["TeamSessionParticipant"];
+export type TeamSessionSummary = components["schemas"]["TeamSessionSummary"];
+export type ScoringType = components["schemas"]["ScoringType"];
+export type Notification = components["schemas"]["Notification"];
+
+// Profile search result — defined locally (endpoint added in Feature 6)
+export interface UserSearchResult {
+  user_id: string;
+  display_name: string | null;
+  email: string;
+}
+
 // Admin types — not yet in generated schema; defined locally from app/models/admin.py
 export interface AdminUserCostRow {
   user_id: string;

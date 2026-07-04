@@ -259,6 +259,29 @@ async def test_get_workout_team_session(alice_client: AsyncClient) -> None:
     assert r.status_code == 404  # workout.team_session_id not set yet — expected
 
 
+@pytest.mark.asyncio
+async def test_create_with_creator_workout_id_links_workout(alice_client: AsyncClient) -> None:
+    """Creating a team session with workout_id stamps workouts.team_session_id."""
+    workout_r = await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": _PERFORMED_AT, "session_type": "metcon"},
+    )
+    assert workout_r.status_code == 201
+    workout_id = workout_r.json()["id"]
+
+    ts_r = await alice_client.post(
+        "/api/v1/team-sessions",
+        json={**_TS_BASE, "workout_id": workout_id},
+    )
+    assert ts_r.status_code == 201
+    ts_id = ts_r.json()["id"]
+
+    # The workout should now be linked — get_workout_team_session returns the session
+    r = await alice_client.get(f"/api/v1/workouts/{workout_id}/team-session")
+    assert r.status_code == 200
+    assert r.json()["id"] == ts_id
+
+
 # ── Training partners ──────────────────────────────────────────────────────────
 
 

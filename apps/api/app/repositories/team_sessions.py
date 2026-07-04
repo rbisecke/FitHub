@@ -159,12 +159,24 @@ async def create_team_session(
         assert row is not None
         session_id: uuid.UUID = row["id"]
 
-        # Creator is always participant 0
-        await cur.execute(
-            "INSERT INTO public.team_session_participants "
-            "(team_session_id, user_id) VALUES (%s, %s)",
-            [str(session_id), str(user_id)],
-        )
+        # Creator is always participant 0.  If req.workout_id is supplied,
+        # link it to the creator's participant row and stamp workouts.team_session_id.
+        if req.workout_id is not None:
+            await cur.execute(
+                "INSERT INTO public.team_session_participants "
+                "(team_session_id, user_id, workout_id) VALUES (%s, %s, %s)",
+                [str(session_id), str(user_id), str(req.workout_id)],
+            )
+            await cur.execute(
+                "UPDATE public.workouts SET team_session_id = %s WHERE id = %s AND user_id = %s",
+                [str(session_id), str(req.workout_id), str(user_id)],
+            )
+        else:
+            await cur.execute(
+                "INSERT INTO public.team_session_participants "
+                "(team_session_id, user_id) VALUES (%s, %s)",
+                [str(session_id), str(user_id)],
+            )
         for p in req.participants:
             # Skip if the request explicitly lists the creator themselves
             if p.user_id and p.user_id == user_id:

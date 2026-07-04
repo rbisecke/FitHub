@@ -232,6 +232,34 @@ async def find_user_by_email(
     return dict(row) if row else None
 
 
+async def search_users(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    query: str,
+    exclude_user_id: uuid.UUID,
+    limit: int = 10,
+) -> list[dict[str, Any]]:
+    """Search profiles by display_name (prefix) or email substring, excluding the caller."""
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT p.id AS user_id, p.display_name, u.email
+            FROM   auth.users u
+            JOIN   public.profiles p ON p.id = u.id
+            WHERE  u.id != %s
+              AND  (
+                      p.display_name ILIKE %s
+                   OR u.email ILIKE %s
+              )
+            ORDER BY p.display_name
+            LIMIT %s
+            """,
+            (exclude_user_id, f"%{query}%", f"%{query}%", limit),
+        )
+        rows = await cur.fetchall()
+    return [dict(r) for r in rows]
+
+
 async def list_pinned_movements(
     conn: psycopg.AsyncConnection[Any],
     *,
