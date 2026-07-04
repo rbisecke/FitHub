@@ -4530,6 +4530,10 @@ export interface operations {
       query?: {
         before_id?: string | null;
         limit?: number;
+        session_type?: string | null;
+        partner_only?: boolean | null;
+        date_from?: string | null;
+        date_to?: string | null;
       };
       header?: never;
       path?: never;
