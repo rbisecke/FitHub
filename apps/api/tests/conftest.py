@@ -196,6 +196,10 @@ async def _clean_data() -> AsyncGenerator[None]:
             "DELETE FROM public.data_connections WHERE user_id = ANY(%s::uuid[])",
             [[str(ALICE_ID), str(BOB_ID)]],
         )
+        await conn.execute(
+            "DELETE FROM public.daily_checkins WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
 
 
 # ── Authenticated HTTP clients ─────────────────────────────────────────────────

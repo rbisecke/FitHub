@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { ReadinessResponse } from "@/lib/api";
 
 interface Props {
@@ -7,31 +8,43 @@ interface Props {
   acwr?: number | null;
 }
 
-const LABEL_CONFIG: Record<string, { text: string; className: string }> = {
-  optimal: { text: "Optimal", className: "text-emerald-400" },
-  fresh: { text: "Fresh", className: "text-cyan-400" },
-  high_load: { text: "High Load", className: "text-orange-400" },
-  fatigued: { text: "Fatigued", className: "text-red-400" },
-  insufficient_data: { text: "Insufficient Data", className: "text-zinc-500" },
+const LABEL_CONFIG: Record<string, { text: string; color: string }> = {
+  optimal: { text: "Optimal", color: "var(--accent)" },
+  fresh: { text: "Fresh", color: "var(--accent)" },
+  high_load: { text: "High Load", color: "var(--amber)" },
+  fatigued: { text: "Fatigued", color: "var(--red)" },
+  insufficient_data: { text: "Insufficient Data", color: "var(--muted)" },
 };
 
 const TIER_CONFIG: Record<
   string,
-  { label: string; className: string; title: string }
+  {
+    label: string;
+    bg: string;
+    color: string;
+    borderColor: string;
+    title: string;
+  }
 > = {
   standard: {
     label: "28d baseline",
-    className: "bg-emerald-900/40 text-emerald-400 border-emerald-800",
+    bg: "rgba(63,185,80,0.12)",
+    color: "var(--green)",
+    borderColor: "rgba(63,185,80,0.3)",
     title: "28+ days of HRV data — full confidence",
   },
   low_14_28: {
     label: "14–28d baseline",
-    className: "bg-yellow-900/40 text-yellow-400 border-yellow-800",
+    bg: "rgba(210,153,34,0.12)",
+    color: "var(--amber)",
+    borderColor: "rgba(210,153,34,0.3)",
     title: "14–28 days of HRV data — building confidence",
   },
   calibrating_14d: {
     label: "Calibrating",
-    className: "bg-zinc-800 text-zinc-400 border-zinc-700",
+    bg: "rgba(139,148,158,0.12)",
+    color: "var(--muted)",
+    borderColor: "var(--border)",
     title: "Less than 14 days of HRV data — still calibrating",
   },
 };
@@ -41,7 +54,12 @@ function ConfidenceTierBadge({ tier }: { tier: string }) {
   return (
     <span
       title={cfg.title}
-      className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${cfg.className}`}
+      className="rounded border px-1.5 py-0.5 font-mono text-[10px]"
+      style={{
+        background: cfg.bg,
+        color: cfg.color,
+        borderColor: cfg.borderColor,
+      }}
     >
       {cfg.label}
     </span>
@@ -52,21 +70,53 @@ function CoverageBar({ coverage }: { coverage: number }) {
   const pct = Math.round(coverage * 100);
   return (
     <div className="mt-2">
-      <div className="mb-0.5 flex justify-between font-mono text-[10px] text-zinc-600">
+      <div
+        className="mb-0.5 flex justify-between font-mono text-[10px]"
+        style={{ color: "var(--muted)" }}
+      >
         <span>Signal coverage</span>
         <span>{pct}%</span>
       </div>
-      <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-800">
+      <div
+        className="h-1 w-full overflow-hidden rounded-full"
+        style={{ background: "var(--border)" }}
+      >
         <div
-          className="h-full bg-cyan-700 transition-all"
-          style={{ width: `${pct}%` }}
+          className="h-full transition-all"
+          style={{ width: `${pct}%`, background: "var(--blue)" }}
         />
       </div>
     </div>
   );
 }
 
+function strainColor(score: number): string {
+  if (score < 40) return "var(--accent)";
+  if (score <= 70) return "var(--amber)";
+  return "var(--red)";
+}
+
+function StrainPips({ score }: { score: number }) {
+  // 5 segments: each represents a 20% tier
+  const filled = Math.min(5, Math.ceil(score / 20));
+  const color = strainColor(score);
+  return (
+    <div className="flex gap-[3px]">
+      {Array.from({ length: 5 }, (_, i) => (
+        <div
+          key={i}
+          className="h-[6px] w-[10px] rounded-[2px]"
+          style={{
+            background: i < filled ? color : "var(--border)",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function ReadinessCard({ data, acwr }: Props) {
+  const strainScore = data.strain_score ?? null;
   const cfg = LABEL_CONFIG[data.label] ?? LABEL_CONFIG["insufficient_data"]!;
   const pct = Math.round(data.score * 100);
 
@@ -85,26 +135,54 @@ export function ReadinessCard({ data, acwr }: Props) {
   return (
     <div
       data-testid="readiness-card"
-      className="rounded-lg border border-zinc-800 bg-zinc-900 p-4"
+      className="w-full rounded-2xl border p-5"
+      style={{
+        background: "var(--card)",
+        borderColor: "var(--border)",
+      }}
     >
+      {/* Header */}
       <div className="mb-3 flex items-baseline justify-between">
-        <p className="text-sm font-medium text-zinc-300">Readiness</p>
-        <span className={`text-sm font-medium ${cfg.className}`}>
+        <p
+          className="font-mono text-[11px] uppercase tracking-[0.5px]"
+          style={{ color: "var(--muted)" }}
+        >
+          Readiness
+        </p>
+        <span
+          className="font-mono text-[12px] font-semibold"
+          style={{ color: cfg.color }}
+        >
           {cfg.text}
         </span>
       </div>
-      <div className="flex items-center gap-4">
-        <p className="text-3xl font-bold text-zinc-100">{pct}%</p>
+
+      {/* Score bar */}
+      <div className="flex items-center gap-4 mb-2">
+        <p
+          className="font-heading text-[32px] leading-none"
+          style={{ color: "var(--text)" }}
+        >
+          {pct}%
+        </p>
         <div className="flex-1">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-800">
+          <div
+            className="h-2 w-full overflow-hidden rounded-full"
+            style={{ background: "var(--border)" }}
+          >
             <div
-              className="h-full bg-cyan-500 transition-all"
-              style={{ width: `${pct}%` }}
+              className="h-full rounded-full transition-all"
+              style={{
+                width: `${pct}%`,
+                background: cfg.color,
+              }}
             />
           </div>
         </div>
       </div>
-      <p className="mt-2 font-mono text-xs text-zinc-600">
+
+      {/* Footnote */}
+      <p className="font-mono text-[10px]" style={{ color: "var(--muted)" }}>
         {acwr != null
           ? `Driven by ACWR ${acwr.toFixed(2)} and recent load`
           : "Based on recent training load"}
@@ -113,14 +191,35 @@ export function ReadinessCard({ data, acwr }: Props) {
           : ""}
       </p>
 
+      {/* No-wearable link */}
+      {!hasWearable && (
+        <Link
+          href="/integrations"
+          className="mt-2 flex items-center gap-1 font-mono text-[10px] transition-opacity hover:opacity-70"
+          style={{ color: "var(--blue)" }}
+        >
+          Connect Apple Health to improve accuracy →
+        </Link>
+      )}
+
+      {/* Wearable section */}
       {hasWearable && (
-        <div className="mt-3 border-t border-zinc-800 pt-3">
+        <div
+          className="mt-3 border-t pt-3"
+          style={{ borderColor: "var(--border)" }}
+        >
           <div className="mb-1.5 flex items-center justify-between">
-            <span className="font-mono text-xs text-zinc-500">
+            <span
+              className="font-mono text-[11px]"
+              style={{ color: "var(--muted)" }}
+            >
               {hrvLabel} recovery
             </span>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-zinc-200">
+              <span
+                className="font-mono text-[13px]"
+                style={{ color: "var(--text)" }}
+              >
                 {Math.round((data.recovery_score ?? 0) * 100)}%
               </span>
               <ConfidenceTierBadge tier={data.confidence_tier!} />
@@ -129,6 +228,48 @@ export function ReadinessCard({ data, acwr }: Props) {
           <CoverageBar coverage={data.coverage ?? 0} />
         </div>
       )}
+
+      {/* Strain row */}
+      <div
+        className="mt-3 border-t pt-3"
+        style={{ borderColor: "var(--border)" }}
+      >
+        {strainScore != null ? (
+          <div className="flex items-center justify-between">
+            <span
+              className="font-mono text-[10px] uppercase tracking-[0.4px]"
+              style={{ color: "var(--muted)" }}
+            >
+              Yesterday&apos;s strain
+            </span>
+            <div className="flex items-center gap-2">
+              <StrainPips score={strainScore} />
+              <span
+                className="font-mono text-[13px] font-semibold"
+                style={{ color: strainColor(strainScore) }}
+              >
+                {Math.round(strainScore)}%
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <span
+              className="font-mono text-[10px] uppercase tracking-[0.4px]"
+              style={{ color: "var(--muted)" }}
+            >
+              Yesterday&apos;s strain
+            </span>
+            <Link
+              href="/integrations"
+              className="font-mono text-[10px] transition-opacity hover:opacity-70"
+              style={{ color: "var(--muted)" }}
+            >
+              no wearable data →
+            </Link>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

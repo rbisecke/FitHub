@@ -100,6 +100,8 @@ class ReadinessResponse(BaseModel):
     coverage: float | None = None
     confidence_tier: str | None = None
     hrv_type: str | None = None
+    # Strain score: normalized daily active energy vs 28-day baseline (0–100)
+    strain_score: float | None = None
 
 
 class MovementHistoryEntry(BaseModel):

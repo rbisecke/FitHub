@@ -42,6 +42,23 @@ def norm(z: float, clamp: float = 3.0) -> float:
     return (clamped + clamp) / (2 * clamp)
 
 
+def compute_strain_score(
+    active_today: float | None,
+    active_28d_avg: float | None,
+    n_days: int,
+) -> float | None:
+    """Normalize today's active energy against the 28-day baseline.
+
+    Returns a value clamped to [0, 100], or None when:
+    - fewer than 7 days of baseline data (insufficient baseline), or
+    - today's active energy is missing (no wearable data).
+    """
+    if n_days < 7 or active_today is None or not active_28d_avg:
+        return None
+    raw = (active_today / active_28d_avg) * 100.0
+    return max(0.0, min(100.0, raw))
+
+
 def compute_recovery(sig: SignalInput, baseline_days: int) -> DerivedMetrics:
     scores: list[float] = []
     present = 0
