@@ -6,6 +6,7 @@ import { MessageSquare } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getPageMeta } from "./nav-config";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 function initials(name: string): string {
   return name.charAt(0).toUpperCase();
@@ -50,6 +51,8 @@ export function MobileHeader({ user, streak = 0 }: Props) {
             🔥 {streak}
           </span>
         )}
+
+        <NotificationBell mode="mobile" />
 
         <Link
           href="/coach"

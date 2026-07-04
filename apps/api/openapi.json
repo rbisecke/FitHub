@@ -1851,6 +1851,60 @@
         }
       }
     },
+    "/api/v1/profile/search": {
+      "get": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Search Users",
+        "description": "Search FitHub users by display name or email (excludes the caller).",
+        "operationId": "search_users_api_v1_profile_search_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100,
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserSearchResult"
+                  },
+                  "title": "Response Search Users Api V1 Profile Search Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/profile": {
       "get": {
         "tags": [
@@ -5292,6 +5346,18 @@
               }
             ],
             "title": "Notes"
+          },
+          "workout_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workout Id"
           },
           "participants": {
             "items": {
@@ -8875,6 +8941,17 @@
             "type": "string",
             "format": "date-time",
             "title": "Joined At"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
           }
         },
         "type": "object",
@@ -9334,6 +9411,37 @@
           "onboarding_completed"
         ],
         "title": "UserProfile"
+      },
+      "UserSearchResult": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "display_name",
+          "email"
+        ],
+        "title": "UserSearchResult"
       },
       "ValidationError": {
         "properties": {
@@ -9932,6 +10040,18 @@
             "type": "boolean",
             "title": "Has Pr",
             "default": false
+          },
+          "team_session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Session Id"
           }
         },
         "type": "object",

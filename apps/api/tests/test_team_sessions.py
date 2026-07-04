@@ -259,6 +259,78 @@ async def test_get_workout_team_session(alice_client: AsyncClient) -> None:
     assert r.status_code == 404  # workout.team_session_id not set yet — expected
 
 
+@pytest.mark.asyncio
+async def test_create_with_creator_workout_id_links_workout(alice_client: AsyncClient) -> None:
+    """Creating a team session with workout_id stamps workouts.team_session_id."""
+    workout_r = await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": _PERFORMED_AT, "session_type": "metcon"},
+    )
+    assert workout_r.status_code == 201
+    workout_id = workout_r.json()["id"]
+
+    ts_r = await alice_client.post(
+        "/api/v1/team-sessions",
+        json={**_TS_BASE, "workout_id": workout_id},
+    )
+    assert ts_r.status_code == 201
+    ts_id = ts_r.json()["id"]
+
+    # The workout should now be linked — get_workout_team_session returns the session
+    r = await alice_client.get(f"/api/v1/workouts/{workout_id}/team-session")
+    assert r.status_code == 200
+    assert r.json()["id"] == ts_id
+
+
+@pytest.mark.asyncio
+async def test_participants_include_display_name(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """TeamSessionParticipant objects now include display_name from profiles."""
+    payload = {**_TS_BASE, "participants": [{"user_id": str(BOB_ID)}, {"guest_name": "Charlie"}]}
+    r = await alice_client.post("/api/v1/team-sessions", json=payload)
+    assert r.status_code == 201
+    ts_id = r.json()["id"]
+
+    r2 = await alice_client.get(f"/api/v1/team-sessions/{ts_id}")
+    assert r2.status_code == 200
+    participants = r2.json()["participants"]
+    # Every participant should have display_name set
+    for p in participants:
+        assert "display_name" in p
+    # Guest participant's display_name matches guest_name
+    guest = next(p for p in participants if p["guest_name"] is not None)
+    assert guest["display_name"] == "charlie"  # normalised
+
+
+@pytest.mark.asyncio
+async def test_workout_summary_includes_team_session_id(alice_client: AsyncClient) -> None:
+    """WorkoutSummary now exposes team_session_id so the history card can show the team icon."""
+    workout_r = await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": _PERFORMED_AT, "session_type": "metcon"},
+    )
+    workout_id = workout_r.json()["id"]
+
+    # Before linking: team_session_id is null in the list
+    list_r = await alice_client.get("/api/v1/workouts")
+    assert list_r.status_code == 200
+    summary = next(w for w in list_r.json()["items"] if w["id"] == workout_id)
+    assert summary["team_session_id"] is None
+
+    # Create team session and link creator's workout
+    ts_r = await alice_client.post(
+        "/api/v1/team-sessions",
+        json={**_TS_BASE, "workout_id": workout_id},
+    )
+    ts_id = ts_r.json()["id"]
+
+    # After linking: team_session_id is set in the list
+    list_r2 = await alice_client.get("/api/v1/workouts")
+    summary2 = next(w for w in list_r2.json()["items"] if w["id"] == workout_id)
+    assert summary2["team_session_id"] == ts_id
+
+
 # ── Training partners ──────────────────────────────────────────────────────────
 
 

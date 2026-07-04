@@ -4,13 +4,19 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { WorkoutSummary, Workout } from "@/lib/api";
+import type {
+  WorkoutSummary,
+  Workout,
+  TeamSession,
+  TeamSessionParticipant,
+} from "@/lib/api";
 import { sessionLabel, formatLabel, loadDisplay } from "@/lib/display";
 import { api } from "@/lib/api/client";
 import { isBenchmark } from "@/lib/workout/benchmarks";
 import { relativeDate } from "@/lib/display";
 import { fmtDistance, type DistanceUnit } from "@/lib/distance";
 import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
+import { TeamSessionSheet } from "@/components/team-sessions/TeamSessionSheet";
 
 // Session-type badge colours mapped to brand tokens (token tints for border/bg),
 // matching WorkoutDetailClient so the list + detail read identically.
@@ -24,10 +30,40 @@ const SESSION_COLOURS: Record<string, string> = {
   active_recovery: "text-[--green] border-[--green]/40 bg-[--green]/10",
 };
 
+const ROLE_COLORS: Record<string, string> = {
+  rx: "#4ADE80",
+  scaled: "#FFC83D",
+  coach: "#8b5cf6",
+  athlete: "#58a6ff",
+};
+
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `${s}s`;
+}
+
+export function formatTeamScore(ts: TeamSession): string {
+  if (ts.team_score_s != null) {
+    const m = Math.floor(ts.team_score_s / 60);
+    const s = ts.team_score_s % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  }
+  if (ts.team_score_reps != null) return `${ts.team_score_reps} reps`;
+  if (ts.team_score) return ts.team_score;
+  return "";
+}
+
+export function teamScoreLabel(scoringType: string | null | undefined): string {
+  const map: Record<string, string> = {
+    for_time: "team time",
+    relay: "relay time",
+    slowest_finisher: "slowest",
+    max_load: "max load",
+    total_reps: "total reps",
+    amrap: "score",
+  };
+  return scoringType ? map[scoringType] ?? "team score" : "team score";
 }
 
 export interface WorkoutCardProps {
@@ -56,6 +92,12 @@ export function WorkoutCard({
   const fetchedRef = useRef(false);
   const prefersReduced = useReducedMotion();
 
+  // Team session: null = not checked, false = no session, TeamSession = linked
+  const [teamSession, setTeamSession] = useState<TeamSession | null | false>(
+    null,
+  );
+  const teamSessionChecked = useRef(false);
+
   const isTag = isTagEntry(workout);
   const isPartner =
     workout.workout_format === "partner" || workout.workout_format === "team";
@@ -78,6 +120,17 @@ export function WorkoutCard({
         .then((w) => setDetail(w))
         .catch(() => {})
         .finally(() => setDetailLoading(false));
+    }
+  }, [isExpanded, accessToken, workout.id]);
+
+  // Lazy fetch team session when card is first expanded
+  useEffect(() => {
+    if (isExpanded && !teamSessionChecked.current) {
+      teamSessionChecked.current = true;
+      api.teamSessions
+        .getWorkoutTeamSession(accessToken, workout.id)
+        .then((ts) => setTeamSession(ts))
+        .catch(() => setTeamSession(false));
     }
   }, [isExpanded, accessToken, workout.id]);
 
@@ -192,9 +245,29 @@ export function WorkoutCard({
                 </span>
               )}
               {isPartner && (
-                <span className="text-xs font-mono border border-[--purple]/40 bg-[--purple]/10 text-[--purple] px-1.5 py-0.5 rounded">
-                  Co-authored-by
-                </span>
+                <svg
+                  width="14"
+                  height="10"
+                  viewBox="0 0 14 10"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="4.5"
+                    cy="5"
+                    r="3.5"
+                    stroke="#8b949e"
+                    strokeWidth="1.3"
+                    fill="none"
+                  />
+                  <circle
+                    cx="9.5"
+                    cy="5"
+                    r="3.5"
+                    stroke="#8b949e"
+                    strokeWidth="1.3"
+                    fill="none"
+                  />
+                </svg>
               )}
               {workout.session_type && (
                 <span
@@ -270,7 +343,10 @@ export function WorkoutCard({
                   <ExpandedContent
                     workout={detail}
                     summary={workout}
+                    accessToken={accessToken}
                     onMovementFilter={onMovementFilter}
+                    teamSession={teamSession}
+                    setTeamSession={setTeamSession}
                   />
                 ) : null}
               </div>
@@ -299,11 +375,17 @@ function ExpandedSkeleton() {
 function ExpandedContent({
   workout,
   summary,
+  accessToken,
   onMovementFilter,
+  teamSession,
+  setTeamSession,
 }: {
   workout: Workout;
   summary: WorkoutSummary;
+  accessToken: string;
   onMovementFilter?: (m: { id: string; name: string }) => void;
+  teamSession: TeamSession | null | false;
+  setTeamSession: (ts: TeamSession | null | false) => void;
 }) {
   const { distanceUnit } = useUserPrefs();
   const dateStr = summary.performed_at.slice(0, 10);
@@ -319,6 +401,8 @@ function ExpandedContent({
   const loadAu = loadDisplay(workout.perceived_load_au);
   const isPartner =
     workout.workout_format === "partner" || workout.workout_format === "team";
+
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -494,12 +578,95 @@ function ExpandedContent({
         </p>
       )}
 
+      {/* Co-authored-by section — shows when a team session is linked */}
+      {teamSession && (
+        <div>
+          <p className="text-xs font-mono text-[--muted] mb-2">
+            co-authored-by
+          </p>
+          <div className="flex flex-wrap gap-3 mb-2">
+            {(teamSession.participants?.slice(0, 3) ?? []).map(
+              (p: TeamSessionParticipant, i: number) => {
+                const roleColor = ROLE_COLORS[p.role ?? "athlete"] ?? "#58a6ff";
+                const name = p.display_name ?? p.guest_name ?? "?";
+                const initial = name.charAt(0).toUpperCase();
+                return (
+                  <div key={p.id ?? i} className="flex items-center gap-1.5">
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold flex-shrink-0"
+                      style={{
+                        background: roleColor + "26",
+                        color: roleColor,
+                      }}
+                    >
+                      {initial}
+                    </div>
+                    <span className="text-xs text-[--text]">{name}</span>
+                    {p.role && (
+                      <span
+                        style={{
+                          borderLeft: `2px solid ${roleColor}`,
+                          background: roleColor + "26",
+                          color: roleColor,
+                          padding: "1px 6px",
+                          borderRadius: 99,
+                          fontSize: 10,
+                          fontFamily: "monospace",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {p.role}
+                      </span>
+                    )}
+                  </div>
+                );
+              },
+            )}
+            {(teamSession.participants?.length ?? 0) > 3 && (
+              <span className="text-xs text-[--muted] font-mono self-center">
+                +{(teamSession.participants?.length ?? 0) - 3} more
+              </span>
+            )}
+          </div>
+          {(() => {
+            const score = formatTeamScore(teamSession);
+            if (!score) return null;
+            const label = teamScoreLabel(
+              (teamSession.scoring_type as string | null | undefined) ?? null,
+            );
+            return (
+              <p className="text-xs font-mono mb-1">
+                <span className="text-[--muted]">{label}: </span>
+                <span className="text-[--blue]">{score}</span>
+              </p>
+            );
+          })()}
+          <Link
+            href={`/team-sessions/${teamSession.id}`}
+            className="text-xs font-mono text-[--blue] hover:underline"
+          >
+            view team session →
+          </Link>
+        </div>
+      )}
+
       {/* Footer: git show + action buttons */}
       <div className="flex items-center justify-between pt-2 border-t border-[#30363d]">
         <span className="font-data text-xs text-[var(--muted-foreground)]">
           git show {summary.short_hash}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {/* Team session create button — only when definitively no session */}
+          {teamSession === false && (
+            <button
+              type="button"
+              onClick={() => setSheetOpen(true)}
+              className="flex items-center gap-1 text-[11px] font-mono border border-[#30363d] text-[#8b949e] hover:border-[rgba(88,166,255,0.4)] hover:text-[#58a6ff] px-[10px] py-1.5 rounded-[7px] transition-colors"
+              data-testid="mark-team-session-btn"
+            >
+              ⊕ team session
+            </button>
+          )}
           <Link
             href={`/history/${summary.id}`}
             className="flex items-center gap-1 text-[12px] font-semibold bg-[var(--surface-2)] border border-[var(--border)] text-[var(--foreground)] px-[13px] py-2 rounded-[9px] hover:border-[var(--muted-foreground)] transition-colors"
@@ -514,6 +681,16 @@ function ExpandedContent({
           </Link>
         </div>
       </div>
+
+      {/* Team session creation sheet */}
+      <TeamSessionSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        workoutId={summary.id}
+        performedAt={summary.performed_at}
+        accessToken={accessToken}
+        onCreated={(session) => setTeamSession(session)}
+      />
     </div>
   );
 }

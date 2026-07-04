@@ -664,6 +664,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/profile/search": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Search Users
+     * @description Search FitHub users by display name or email (excludes the caller).
+     */
+    get: operations["search_users_api_v1_profile_search_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/profile": {
     parameters: {
       query?: never;
@@ -1664,6 +1684,8 @@ export interface components {
       team_score_reps?: number | null;
       /** Notes */
       notes?: string | null;
+      /** Workout Id */
+      workout_id?: string | null;
       /** Participants */
       participants?: components["schemas"]["CreateParticipantRequest"][];
     };
@@ -2843,6 +2865,8 @@ export interface components {
        * Format: date-time
        */
       joined_at: string;
+      /** Display Name */
+      display_name?: string | null;
     };
     /**
      * TeamSessionStatus
@@ -2976,6 +3000,18 @@ export interface components {
       training_level?: string | null;
       /** Training Since */
       training_since?: string | null;
+    };
+    /** UserSearchResult */
+    UserSearchResult: {
+      /**
+       * User Id
+       * Format: uuid
+       */
+      user_id: string;
+      /** Display Name */
+      display_name: string | null;
+      /** Email */
+      email: string;
     };
     /** ValidationError */
     ValidationError: {
@@ -3176,6 +3212,8 @@ export interface components {
        * @default false
        */
       has_pr: boolean;
+      /** Team Session Id */
+      team_session_id?: string | null;
     };
   };
   responses: never;
@@ -4317,6 +4355,37 @@ export interface operations {
           "application/json":
             | components["schemas"]["PersonalRecordResult"]
             | null;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  search_users_api_v1_profile_search_get: {
+    parameters: {
+      query: {
+        q: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UserSearchResult"][];
         };
       };
       /** @description Validation Error */

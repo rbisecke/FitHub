@@ -35,6 +35,7 @@ class TeamSessionParticipant(BaseModel):
     guest_name: str | None
     role: str | None
     joined_at: datetime
+    display_name: str | None = None
 
 
 class CreateParticipantRequest(BaseModel):
@@ -99,6 +100,10 @@ class CreateTeamSessionRequest(BaseModel):
     team_score_s: int | None = Field(default=None, gt=0)
     team_score_reps: int | None = Field(default=None, gt=0)
     notes: str | None = None
+    # workout_id links the creator's own workout to this session.
+    # When provided, workouts.team_session_id is set and the creator's
+    # participant row is updated with the workout reference.
+    workout_id: uuid.UUID | None = None
     participants: list[CreateParticipantRequest] = Field(default_factory=list)
 
     @model_validator(mode="after")

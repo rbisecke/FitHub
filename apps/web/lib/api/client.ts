@@ -29,6 +29,9 @@ import type {
   UserProfile,
   ProfileStats,
   PinnedMovement,
+  TeamSession,
+  Notification,
+  UserSearchResult,
 } from "./index";
 import type {
   PlanDetail,
@@ -204,6 +207,109 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ email }),
     }),
+  teamSessions: {
+    create: (
+      token: string,
+      body: {
+        performed_at: string;
+        name?: string | null;
+        team_size?: number;
+        scoring_type?: string | null;
+        team_score?: string | null;
+        team_score_s?: number | null;
+        team_score_reps?: number | null;
+        notes?: string | null;
+        workout_id?: string | null;
+        participants?: Array<{
+          user_id?: string | null;
+          workout_id?: string | null;
+          guest_name?: string | null;
+          role?: string | null;
+        }>;
+      },
+    ) =>
+      apiFetch<TeamSession>("/api/v1/team-sessions", token, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    get: (token: string, id: string) =>
+      apiFetch<TeamSession>(`/api/v1/team-sessions/${id}`, token),
+    patch: (
+      token: string,
+      id: string,
+      body: {
+        name?: string | null;
+        scoring_type?: string | null;
+        team_score?: string | null;
+        team_score_s?: number | null;
+        team_score_reps?: number | null;
+        notes?: string | null;
+        status?: string | null;
+      },
+    ) =>
+      apiFetch<TeamSession>(`/api/v1/team-sessions/${id}`, token, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    delete: (token: string, id: string) =>
+      apiFetch<void>(`/api/v1/team-sessions/${id}`, token, {
+        method: "DELETE",
+      }),
+    addParticipant: (
+      token: string,
+      id: string,
+      body: {
+        user_id?: string | null;
+        workout_id?: string | null;
+        guest_name?: string | null;
+        role?: string | null;
+      },
+    ) =>
+      apiFetch<TeamSession>(`/api/v1/team-sessions/${id}/participants`, token, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    patchParticipant: (
+      token: string,
+      id: string,
+      participantUserId: string,
+      body: { workout_id?: string | null; role?: string | null },
+    ) =>
+      apiFetch<TeamSession>(
+        `/api/v1/team-sessions/${id}/participants/${participantUserId}`,
+        token,
+        { method: "PATCH", body: JSON.stringify(body) },
+      ),
+    removeParticipant: (token: string, id: string, participantUserId: string) =>
+      apiFetch<void>(
+        `/api/v1/team-sessions/${id}/participants/${participantUserId}`,
+        token,
+        { method: "DELETE" },
+      ),
+    getWorkoutTeamSession: (token: string, workoutId: string) =>
+      apiFetch<TeamSession>(
+        `/api/v1/workouts/${workoutId}/team-session`,
+        token,
+      ),
+  },
+  notifications: {
+    list: (token: string, includeRead = false) =>
+      apiFetch<Notification[]>(
+        `/api/v1/notifications?include_read=${includeRead}`,
+        token,
+      ),
+    markRead: (token: string, id: string) =>
+      apiFetch<Notification>(`/api/v1/notifications/${id}/read`, token, {
+        method: "POST",
+      }),
+  },
+  profiles: {
+    search: (token: string, q: string) =>
+      apiFetch<UserSearchResult[]>(
+        `/api/v1/profile/search?q=${encodeURIComponent(q)}`,
+        token,
+      ),
+  },
   profile: {
     get: (token: string) => apiFetch<UserProfile>("/api/v1/profile", token),
     stats: (token: string) =>

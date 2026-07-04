@@ -35,6 +35,7 @@ def _row_to_participant(p: dict[str, Any]) -> TeamSessionParticipant:
         guest_name=p.get("guest_name"),
         role=p.get("role"),
         joined_at=p["joined_at"],
+        display_name=p.get("display_name"),
     )
 
 
@@ -50,23 +51,28 @@ async def _fetch_team_session(
     creator or a participant (mirrors the ts_select RLS policy at app layer).
     """
     async with conn.cursor(row_factory=dict_row) as cur:
+        _participant_obj = """
+            json_build_object(
+                'id', tsp.id,
+                'team_session_id', tsp.team_session_id,
+                'user_id', tsp.user_id,
+                'workout_id', tsp.workout_id,
+                'guest_name', tsp.guest_name,
+                'role', tsp.role,
+                'joined_at', tsp.joined_at,
+                'display_name', COALESCE(p.display_name, tsp.guest_name)
+            )
+        """
         if user_id is not None:
             await cur.execute(
-                """
+                f"""
                 SELECT ts.*,
                        json_agg(
-                           json_build_object(
-                               'id', tsp.id,
-                               'team_session_id', tsp.team_session_id,
-                               'user_id', tsp.user_id,
-                               'workout_id', tsp.workout_id,
-                               'guest_name', tsp.guest_name,
-                               'role', tsp.role,
-                               'joined_at', tsp.joined_at
-                           ) ORDER BY tsp.joined_at
+                           {_participant_obj} ORDER BY tsp.joined_at
                        ) FILTER (WHERE tsp.id IS NOT NULL) AS participants_json
                 FROM   public.team_sessions ts
                 LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
+                LEFT JOIN public.profiles p ON p.id = tsp.user_id
                 WHERE  ts.id = %s
                   AND (
                       ts.created_by = %s
@@ -81,21 +87,14 @@ async def _fetch_team_session(
             )
         else:
             await cur.execute(
-                """
+                f"""
                 SELECT ts.*,
                        json_agg(
-                           json_build_object(
-                               'id', tsp.id,
-                               'team_session_id', tsp.team_session_id,
-                               'user_id', tsp.user_id,
-                               'workout_id', tsp.workout_id,
-                               'guest_name', tsp.guest_name,
-                               'role', tsp.role,
-                               'joined_at', tsp.joined_at
-                           ) ORDER BY tsp.joined_at
+                           {_participant_obj} ORDER BY tsp.joined_at
                        ) FILTER (WHERE tsp.id IS NOT NULL) AS participants_json
                 FROM   public.team_sessions ts
                 LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
+                LEFT JOIN public.profiles p ON p.id = tsp.user_id
                 WHERE  ts.id = %s
                 GROUP  BY ts.id
                 """,
@@ -159,12 +158,24 @@ async def create_team_session(
         assert row is not None
         session_id: uuid.UUID = row["id"]
 
-        # Creator is always participant 0
-        await cur.execute(
-            "INSERT INTO public.team_session_participants "
-            "(team_session_id, user_id) VALUES (%s, %s)",
-            [str(session_id), str(user_id)],
-        )
+        # Creator is always participant 0.  If req.workout_id is supplied,
+        # link it to the creator's participant row and stamp workouts.team_session_id.
+        if req.workout_id is not None:
+            await cur.execute(
+                "INSERT INTO public.team_session_participants "
+                "(team_session_id, user_id, workout_id) VALUES (%s, %s, %s)",
+                [str(session_id), str(user_id), str(req.workout_id)],
+            )
+            await cur.execute(
+                "UPDATE public.workouts SET team_session_id = %s WHERE id = %s AND user_id = %s",
+                [str(session_id), str(req.workout_id), str(user_id)],
+            )
+        else:
+            await cur.execute(
+                "INSERT INTO public.team_session_participants "
+                "(team_session_id, user_id) VALUES (%s, %s)",
+                [str(session_id), str(user_id)],
+            )
         for p in req.participants:
             # Skip if the request explicitly lists the creator themselves
             if p.user_id and p.user_id == user_id:
