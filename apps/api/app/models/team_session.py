@@ -35,6 +35,7 @@ class TeamSessionParticipant(BaseModel):
     guest_name: str | None
     role: str | None
     joined_at: datetime
+    display_name: str | None = None
 
 
 class CreateParticipantRequest(BaseModel):

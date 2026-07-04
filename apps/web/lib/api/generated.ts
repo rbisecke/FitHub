@@ -2865,6 +2865,8 @@ export interface components {
        * Format: date-time
        */
       joined_at: string;
+      /** Display Name */
+      display_name?: string | null;
     };
     /**
      * TeamSessionStatus
@@ -3210,6 +3212,8 @@ export interface components {
        * @default false
        */
       has_pr: boolean;
+      /** Team Session Id */
+      team_session_id?: string | null;
     };
   };
   responses: never;
