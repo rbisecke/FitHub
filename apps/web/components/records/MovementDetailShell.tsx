@@ -20,6 +20,7 @@ import type { PRCategory } from "@/lib/records/categorise";
 import { CATEGORY_LABEL } from "@/lib/records/categorise";
 import { PeriodSelector } from "@/components/analytics/PeriodSelector";
 import { tooltipContentStyle } from "@/lib/chart-utils";
+import { LoadCalculator } from "@/components/shared/LoadCalculator";
 
 const PERIOD_OPTIONS = [
   { label: "3M", value: "3M" },
@@ -133,6 +134,7 @@ interface Props {
   category: PRCategory;
   trendPoints: E1RMPoint[];
   history: MovementHistoryEntry[];
+  weightUnit: string;
 }
 
 export function MovementDetailShell({
@@ -140,6 +142,7 @@ export function MovementDetailShell({
   category,
   trendPoints,
   history,
+  weightUnit,
 }: Props) {
   const [period, setPeriod] = useState("3M");
   const prefersReducedMotion = useReducedMotion();
@@ -532,6 +535,15 @@ export function MovementDetailShell({
       {/* Mobile: single column */}
       <div className="md:hidden">
         {headerBlock}
+        <div className="mb-[20px]">
+          <LoadCalculator
+            mode="inline"
+            bestKg={pr.best_1rm_kg}
+            currentKg={pr.current_e1rm_kg}
+            isStale={pr.is_stale}
+            weightUnit={weightUnit}
+          />
+        </div>
         {chartBlock}
         {tableBlock}
       </div>
@@ -541,27 +553,16 @@ export function MovementDetailShell({
         className="hidden md:grid md:gap-[40px]"
         style={{ gridTemplateColumns: "40% 1fr" }}
       >
-        {/* Left: header + calculator placeholder (replaced in Step 4) */}
+        {/* Left: header + load calculator */}
         <div>
           {headerBlock}
-          <div
-            className="rounded-[12px] p-[16px] font-data"
-            style={{
-              background: "var(--surface)",
-              border: "1px dashed var(--border)",
-              color: "var(--muted)",
-              fontSize: 11,
-            }}
-            data-testid="calculator-placeholder"
-          >
-            $ load calculator
-            <span
-              className="block mt-[4px]"
-              style={{ fontSize: 10, color: "var(--muted)" }}
-            >
-              (Step 4)
-            </span>
-          </div>
+          <LoadCalculator
+            mode="inline"
+            bestKg={pr.best_1rm_kg}
+            currentKg={pr.current_e1rm_kg}
+            isStale={pr.is_stale}
+            weightUnit={weightUnit}
+          />
         </div>
 
         {/* Right: chart + table */}

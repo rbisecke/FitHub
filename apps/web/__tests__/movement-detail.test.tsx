@@ -46,6 +46,7 @@ describe("MovementDetailShell", () => {
       <MovementDetailShell
         pr={BASE_PR}
         category="strength"
+        weightUnit="kg"
         trendPoints={[]}
         history={[]}
       />,
@@ -58,6 +59,7 @@ describe("MovementDetailShell", () => {
       <MovementDetailShell
         pr={BASE_PR}
         category="strength"
+        weightUnit="kg"
         trendPoints={[]}
         history={[]}
       />,
@@ -71,6 +73,7 @@ describe("MovementDetailShell", () => {
       <MovementDetailShell
         pr={BASE_PR}
         category="strength"
+        weightUnit="kg"
         trendPoints={[]}
         history={[]}
       />,
@@ -83,6 +86,7 @@ describe("MovementDetailShell", () => {
       <MovementDetailShell
         pr={BASE_PR}
         category="strength"
+        weightUnit="kg"
         trendPoints={[]}
         history={[]}
       />,
@@ -95,6 +99,7 @@ describe("MovementDetailShell", () => {
       <MovementDetailShell
         pr={BASE_PR}
         category="strength"
+        weightUnit="kg"
         trendPoints={[]}
         history={[]}
       />,
@@ -107,6 +112,7 @@ describe("MovementDetailShell", () => {
       <MovementDetailShell
         pr={BASE_PR}
         category="strength"
+        weightUnit="kg"
         trendPoints={[TREND_POINT]}
         history={[HISTORY_ROW]}
       />,
@@ -121,6 +127,7 @@ describe("MovementDetailShell", () => {
       <MovementDetailShell
         pr={BASE_PR}
         category="strength"
+        weightUnit="kg"
         trendPoints={[TREND_POINT]}
         history={[HISTORY_ROW]}
       />,
@@ -140,6 +147,7 @@ describe("MovementDetailShell", () => {
       <MovementDetailShell
         pr={pr}
         category="strength"
+        weightUnit="kg"
         trendPoints={[]}
         history={[]}
       />,
@@ -161,6 +169,7 @@ describe("MovementDetailShell", () => {
       <MovementDetailShell
         pr={pr}
         category="strength"
+        weightUnit="kg"
         trendPoints={[]}
         history={[]}
       />,
@@ -173,6 +182,7 @@ describe("MovementDetailShell", () => {
       <MovementDetailShell
         pr={BASE_PR}
         category="strength"
+        weightUnit="kg"
         trendPoints={[]}
         history={[]}
       />,
