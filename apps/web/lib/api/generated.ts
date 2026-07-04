@@ -301,7 +301,13 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Movement History */
+    /**
+     * Movement History
+     * @description Full logged-set history for one movement, newest-first.
+     *
+     *     Used by the /records/[movementId] detail page to populate the set log
+     *     table. Returns an empty list (not 404) when no sets have been logged.
+     */
     get: operations["movement_history_api_v1_analytics_movement_history__movement_id__get"];
     put?: never;
     post?: never;
@@ -1621,26 +1627,6 @@ export interface components {
       /** Workout Id */
       workout_id: string;
     };
-    /** MovementHistoryEntry */
-    MovementHistoryEntry: {
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Load Kg */
-      load_kg: number | null;
-      /** Reps */
-      reps: number | null;
-      /** Estimated 1Rm Kg */
-      estimated_1rm_kg: number;
-      /** Notes */
-      notes: string | null;
-      /** Workout Id */
-      workout_id: string;
-      /** Is Pr */
-      is_pr: boolean;
-    };
     /**
      * ExecutionStyle
      * @enum {string}
@@ -1934,6 +1920,29 @@ export interface components {
        * Format: date-time
        */
       updated_at: string;
+    };
+    /**
+     * MovementHistoryEntry
+     * @description One logged set for a movement, used by the movement detail page.
+     */
+    MovementHistoryEntry: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Load Kg */
+      load_kg: number | null;
+      /** Reps */
+      reps: number | null;
+      /** Estimated 1Rm Kg */
+      estimated_1rm_kg: number;
+      /** Notes */
+      notes: string | null;
+      /** Workout Id */
+      workout_id: string;
+      /** Is Pr */
+      is_pr: boolean;
     };
     /** MovementModification */
     MovementModification: {
