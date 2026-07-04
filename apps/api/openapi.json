@@ -8824,7 +8824,8 @@
             "type": "string",
             "enum": [
               "cleared_with_restrictions",
-              "resolved"
+              "resolved",
+              "permanent"
             ],
             "title": "Status"
           },

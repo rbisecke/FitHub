@@ -255,3 +255,52 @@ async def test_update_injury_status_invalid_transition(alice_client: AsyncClient
         json={"status": "active"},  # "active" is not an allowed value
     )
     assert r.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Permanent status tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_update_injury_status_permanent(alice_client: AsyncClient) -> None:
+    injury_id = await _create_injury(alice_client, body_region="achilles")
+    r = await alice_client.patch(
+        f"/api/v1/injuries/{injury_id}/status",
+        json={"status": "permanent", "restriction_notes": "No running ever"},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["status"] == "permanent"
+    # permanent injuries must stay active so the engine keeps filtering workouts
+    assert data["active"] is True
+    assert data["restriction_notes"] == "No running ever"
+
+
+@pytest.mark.asyncio
+async def test_permanent_injury_appears_in_list(alice_client: AsyncClient) -> None:
+    injury_id = await _create_injury(alice_client, body_region="rotator_cuff")
+    await alice_client.patch(
+        f"/api/v1/injuries/{injury_id}/status",
+        json={"status": "permanent"},
+    )
+    r = await alice_client.get("/api/v1/injuries")
+    assert r.status_code == 200
+    ids = [i["id"] for i in r.json()]
+    assert injury_id in ids
+
+
+@pytest.mark.asyncio
+async def test_permanent_injury_can_be_resolved(alice_client: AsyncClient) -> None:
+    injury_id = await _create_injury(alice_client, body_region="shin")
+    await alice_client.patch(
+        f"/api/v1/injuries/{injury_id}/status",
+        json={"status": "permanent"},
+    )
+    r = await alice_client.patch(
+        f"/api/v1/injuries/{injury_id}/status",
+        json={"status": "resolved"},
+    )
+    assert r.status_code == 200
+    assert r.json()["status"] == "resolved"
+    assert r.json()["active"] is False

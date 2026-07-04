@@ -54,7 +54,7 @@ class ReportInjuryRequest(BaseModel):
 
 
 class UpdateInjuryStatusRequest(BaseModel):
-    status: Literal["cleared_with_restrictions", "resolved"]
+    status: Literal["cleared_with_restrictions", "resolved", "permanent"]
     restriction_notes: str | None = Field(None, max_length=1000)
 
 
