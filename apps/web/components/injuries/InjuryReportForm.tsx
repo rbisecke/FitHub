@@ -17,6 +17,7 @@ const BODY_REGION_GROUPS = [
       "elbow",
       "ankle",
       "neck",
+      "si_joint",
       "other",
     ],
   },
@@ -25,6 +26,7 @@ const BODY_REGION_GROUPS = [
     regions: [
       "hamstring",
       "quad",
+      "groin",
       "calf",
       "glute",
       "upper_back",
@@ -36,7 +38,19 @@ const BODY_REGION_GROUPS = [
   },
   {
     label: "soft tissue",
-    regions: ["hip_flexor", "it_band", "forearm"],
+    regions: [
+      "rotator_cuff",
+      "patellar_tendon",
+      "lateral_elbow",
+      "medial_elbow",
+      "hip_flexor",
+      "it_band",
+      "forearm",
+    ],
+  },
+  {
+    label: "foot / plantar",
+    regions: ["arch", "achilles", "shin"],
   },
 ] as const;
 
