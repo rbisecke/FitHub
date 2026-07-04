@@ -12,6 +12,7 @@ import { ACWRChart } from "@/components/analytics/ACWRChart";
 import { EmptyAnalyticsState } from "@/components/analytics/EmptyAnalyticsState";
 import { PerformanceCards } from "@/components/analytics/PerformanceCards";
 import { ZoneBanner } from "@/components/analytics/ZoneBanner";
+import { ReadinessCard } from "@/components/analytics/ReadinessCard";
 import { PageHeader } from "@/components/ui/page-header";
 import {
   Collapsible,
@@ -63,12 +64,12 @@ export default async function AnalyticsPage() {
   } = await supabase.auth.getSession();
   const token = session!.access_token;
 
-  const [load, personalRecords, volume, , balance, benchmarks] =
+  const [load, personalRecords, volume, readiness, balance, benchmarks] =
     await Promise.all([
       api.analytics.load(token, 90),
       api.analytics.personalRecords(token),
       api.analytics.volumeTrend(token, 8),
-      api.analytics.readiness(token),
+      api.analytics.readiness(token).catch(() => null),
       api.analytics.trainingBalance(token, 28).catch(() => null),
       api.analytics.benchmarks(token).catch(() => null),
     ]);
@@ -198,6 +199,13 @@ export default async function AnalyticsPage() {
           {/* Zone banner */}
           <ZoneBanner zone={load.acwr_zone} acwr={load.acwr_now} />
 
+          {/* Readiness card — desktop only, full width, above the 2-col grid */}
+          {readiness && (
+            <div className="hidden md:block mt-6">
+              <ReadinessCard data={readiness} acwr={load.acwr_now} />
+            </div>
+          )}
+
           {/* Desktop 2-col grid (hidden on mobile) */}
           <div className="hidden md:grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Strength Progress */}
@@ -286,6 +294,9 @@ export default async function AnalyticsPage() {
 
           {/* Mobile sections */}
           <div className="md:hidden space-y-[14px]">
+            {readiness && (
+              <ReadinessCard data={readiness} acwr={load.acwr_now} />
+            )}
             <MobileStrengthTrendCard
               personalRecords={personalRecords}
               token={token}
