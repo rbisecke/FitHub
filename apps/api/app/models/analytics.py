@@ -100,6 +100,7 @@ class ReadinessResponse(BaseModel):
     coverage: float | None = None
     confidence_tier: str | None = None
     hrv_type: str | None = None
+    strain_score: float | None = None
 
 
 class MovementHistoryEntry(BaseModel):

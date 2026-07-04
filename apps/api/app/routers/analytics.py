@@ -132,6 +132,9 @@ async def readiness(
 ) -> ReadinessResponse:
     from datetime import date
 
+    from app.engine.metrics import compute_strain_score
+
+    today = date.today()
     data = await get_readiness(conn, user.user_id)
 
     # Merge today's wearable-derived metrics if available
@@ -143,7 +146,7 @@ async def readiness(
             FROM derived_metrics
             WHERE user_id = %s AND date = %s
             """,
-            [user.user_id, date.today()],
+            [user.user_id, today],
         )
         dm = await cur.fetchone()
 
@@ -157,7 +160,7 @@ async def readiness(
                   AND started_at::date = %s
                 ORDER BY source_priority ASC LIMIT 1
                 """,
-                [user.user_id, date.today()],
+                [user.user_id, today],
             )
             hrv_row = await cur.fetchone()
 
@@ -165,6 +168,43 @@ async def readiness(
         data["coverage"] = dm["coverage"]
         data["confidence_tier"] = dm["confidence_tier"]
         data["hrv_type"] = hrv_row["type"] if hrv_row else None
+
+    # Compute strain score from active energy vs 28-day baseline
+    async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT value::float AS today_kcal
+            FROM metric_samples
+            WHERE user_id = %s AND type = 'active_energy_kcal'
+              AND started_at::date = %s
+            ORDER BY source_priority ASC, started_at DESC LIMIT 1
+            """,
+            [user.user_id, today],
+        )
+        energy_today_row = await cur.fetchone()
+
+    active_today = energy_today_row["today_kcal"] if energy_today_row else None
+
+    async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT
+                AVG(value)::float                         AS avg_kcal,
+                COUNT(DISTINCT started_at::date)::int     AS n_days
+            FROM metric_samples
+            WHERE user_id = %s
+              AND type = 'active_energy_kcal'
+              AND started_at::date >= (CURRENT_DATE - INTERVAL '28 days')
+              AND started_at::date < CURRENT_DATE
+            """,
+            [user.user_id],
+        )
+        baseline_row = await cur.fetchone()
+
+    avg_kcal = baseline_row["avg_kcal"] if baseline_row else None
+    n_days = baseline_row["n_days"] if baseline_row else 0
+
+    data["strain_score"] = compute_strain_score(active_today, avg_kcal, n_days)
 
     return ReadinessResponse(**data)
 

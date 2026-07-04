@@ -7805,6 +7805,17 @@
               }
             ],
             "title": "Hrv Type"
+          },
+          "strain_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strain Score"
           }
         },
         "type": "object",
