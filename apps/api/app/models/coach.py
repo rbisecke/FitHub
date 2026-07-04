@@ -139,3 +139,26 @@ class ModifyWorkoutResponse(BaseModel):
     safe_movements: list[str]
     any_referral_required: bool
     referral_regions: list[str]
+
+
+# ---------------------------------------------------------------------------
+# check-wod endpoint models
+# ---------------------------------------------------------------------------
+
+
+class CheckWodRequest(BaseModel):
+    wod_text: str = Field(..., min_length=1, max_length=2000)
+
+
+class WodMovementResult(BaseModel):
+    movement: str
+    safe: bool
+    driven_by: list[str]
+    substitutions: list[str]
+
+
+class CheckWodResponse(BaseModel):
+    movements_found: list[str]
+    results: list[WodMovementResult]
+    any_referral_required: bool
+    referral_regions: list[str]
