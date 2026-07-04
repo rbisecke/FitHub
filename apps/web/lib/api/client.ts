@@ -355,6 +355,26 @@ export const api = {
         body: JSON.stringify(body),
       }),
   },
+  integrations: {
+    list: (token: string) =>
+      apiFetch<
+        {
+          provider: string;
+          sync_status: string;
+          last_synced_at: string | null;
+        }[]
+      >("/api/v1/integrations", token),
+    connectAppleHealth: (token: string) =>
+      apiFetch<{ token: string; token_prefix: string; ingest_url: string }>(
+        "/api/v1/integrations/apple-health/connect",
+        token,
+        { method: "POST" },
+      ),
+    revokeAppleHealth: (token: string) =>
+      apiFetch<void>("/api/v1/integrations/apple-health/token", token, {
+        method: "DELETE",
+      }),
+  },
   admin: {
     metrics: (token: string) =>
       apiFetch<AdminMetricsSummary>("/api/v1/admin/metrics", token),
