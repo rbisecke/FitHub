@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
@@ -18,31 +18,16 @@ import {
 import { api } from "@/lib/api/client";
 import type { WorkoutSummary } from "@/lib/api";
 
+// Apply client-side-only filters (tagsFilter) to an already server-filtered list.
+// Movement filter display is handled by FilterBar pills; WorkoutSummary doesn't include
+// movement names so item-level movement filtering is not applied here.
 function applyClientFilters(
   items: WorkoutSummary[],
-  filters: HistoryFilters,
-  _movementFilter: string | null,
+  tagsFilter: HistoryFilters["tagsFilter"],
 ): WorkoutSummary[] {
   return items.filter((item) => {
-    if (filters.sessionType && item.session_type !== filters.sessionType)
-      return false;
-    if (
-      filters.partnerFilter === "partner" &&
-      item.workout_format !== "partner" &&
-      item.workout_format !== "team"
-    )
-      return false;
-    if (
-      filters.partnerFilter === "solo" &&
-      (item.workout_format === "partner" || item.workout_format === "team")
-    )
-      return false;
-    if (filters.dateFrom && item.performed_at.slice(0, 10) < filters.dateFrom)
-      return false;
-    if (filters.dateTo && item.performed_at.slice(0, 10) > filters.dateTo)
-      return false;
-    if (filters.tagsFilter === "tags-only" && !item.is_tag) return false;
-    if (filters.tagsFilter === "no-tags" && item.is_tag) return false;
+    if (tagsFilter === "tags-only" && !item.is_tag) return false;
+    if (tagsFilter === "no-tags" && item.is_tag) return false;
     return true;
   });
 }
@@ -61,6 +46,37 @@ function groupByDate(
     }
   }
   return groups;
+}
+
+/** Returns server-side filter params from the current HistoryFilters state */
+function toServerParams(filters: HistoryFilters): {
+  sessionType?: string;
+  partnerOnly?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
+} {
+  const params: {
+    sessionType?: string;
+    partnerOnly?: boolean;
+    dateFrom?: string;
+    dateTo?: string;
+  } = {};
+  if (filters.sessionType) params.sessionType = filters.sessionType;
+  if (filters.partnerFilter === "partner") params.partnerOnly = true;
+  if (filters.partnerFilter === "solo") params.partnerOnly = false;
+  if (filters.dateFrom) params.dateFrom = filters.dateFrom;
+  if (filters.dateTo) params.dateTo = filters.dateTo;
+  return params;
+}
+
+/** Returns true when any server-side filter dimension is active */
+function isServerFilterActive(filters: HistoryFilters): boolean {
+  return (
+    filters.sessionType !== null ||
+    filters.partnerFilter !== "all" ||
+    filters.dateFrom !== null ||
+    filters.dateTo !== null
+  );
 }
 
 interface HistoryPageProps {
@@ -83,24 +99,68 @@ export function HistoryPage({
   const [filters, setFilters] = useState<HistoryFilters>(DEFAULT_FILTERS);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [movementFilter, setMovementFilter] = useState<string | null>(null);
+  const [refetching, setRefetching] = useState(false);
 
   const prefersReduced = useReducedMotion();
+  const serverFilterActive = isServerFilterActive(filters);
   const filtersActive = isFilterActive(filters) || !!movementFilter;
 
+  // Ref to cancel stale re-fetch requests when filters change rapidly
+  const fetchVersionRef = useRef(0);
+
+  // When server-side filters change: reset to page 1 and re-fetch
+  const prevFiltersRef = useRef<HistoryFilters>(DEFAULT_FILTERS);
+  useEffect(() => {
+    const prev = prevFiltersRef.current;
+    prevFiltersRef.current = filters;
+
+    const serverChanged =
+      prev.sessionType !== filters.sessionType ||
+      prev.partnerFilter !== filters.partnerFilter ||
+      prev.dateFrom !== filters.dateFrom ||
+      prev.dateTo !== filters.dateTo;
+
+    if (!serverChanged) return;
+
+    const version = ++fetchVersionRef.current;
+    setRefetching(true);
+    setNextCursor(null);
+    setAllLoaded(false);
+
+    const params = toServerParams(filters);
+    api.workouts
+      .list(accessToken, { limit: 20, ...params })
+      .then(({ items: newItems, next_cursor }) => {
+        if (fetchVersionRef.current !== version) return;
+        setItems(newItems);
+        setNextCursor(next_cursor);
+        setAllLoaded(!next_cursor);
+      })
+      .catch(() => {
+        if (fetchVersionRef.current !== version) return;
+        toast.error("Failed to reload filtered workouts");
+      })
+      .finally(() => {
+        if (fetchVersionRef.current !== version) return;
+        setRefetching(false);
+      });
+  }, [filters, accessToken]);
+
   const displayedItems = useMemo(
-    () => applyClientFilters(items, filters, movementFilter),
-    [items, filters, movementFilter],
+    () => applyClientFilters(items, filters.tagsFilter),
+    [items, filters.tagsFilter],
   );
 
   const groups = useMemo(() => groupByDate(displayedItems), [displayedItems]);
 
-  async function loadMore() {
+  const loadMore = useCallback(async () => {
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
     try {
+      const serverParams = toServerParams(filters);
       const { items: newItems, next_cursor } = await api.workouts.list(
         accessToken,
-        { beforeId: nextCursor, limit: 20 },
+        { beforeId: nextCursor, limit: 20, ...serverParams },
       );
       setItems((prev) => [...prev, ...newItems]);
       setNextCursor(next_cursor);
@@ -110,7 +170,7 @@ export function HistoryPage({
     } finally {
       setLoadingMore(false);
     }
-  }
+  }, [nextCursor, loadingMore, accessToken, filters]);
 
   function handleToggle(id: string) {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -122,9 +182,20 @@ export function HistoryPage({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function handleClearFilters() {
+    setFilters(DEFAULT_FILTERS);
+  }
+
   const isEmpty = displayedItems.length === 0;
-  const isEmptyCleanSlate = isEmpty && !filtersActive && !loadingMore;
-  const isEmptyDueToFilter = isEmpty && filtersActive;
+  const isEmptyCleanSlate =
+    isEmpty && !filtersActive && !loadingMore && !refetching;
+  const isEmptyDueToFilter = isEmpty && filtersActive && !refetching;
+  // Show "keep scrolling" hint when empty due to date filter but there are more server pages
+  const hasMoreServerPages = !allLoaded && !!nextCursor;
+  const showKeepScrollingHint =
+    isEmptyDueToFilter &&
+    (filters.dateFrom || filters.dateTo) &&
+    hasMoreServerPages;
 
   return (
     <div className="px-[18px] pt-[14px] pb-2 md:px-6 md:py-6 max-w-[920px] mx-auto pb-nav-safe">
@@ -135,14 +206,23 @@ export function HistoryPage({
         sub="Every session you've ever committed — newest first. Tap a commit to expand it."
       />
 
-      {/* Filter bar — pills + advanced panel */}
+      {/* Filter bar — pills + advanced panel + mobile sheet */}
       <FilterBar
         filters={filters}
         onFiltersChange={setFilters}
-        onClear={() => setFilters(DEFAULT_FILTERS)}
+        onClear={handleClearFilters}
         movementFilter={movementFilter}
         onClearMovementFilter={() => setMovementFilter(null)}
       />
+
+      {/* Loading state during filter re-fetch */}
+      {refetching && (
+        <div className="mt-2">
+          {Array.from({ length: 3 }, (_, i) => (
+            <WorkoutCardSkeleton key={i} />
+          ))}
+        </div>
+      )}
 
       {/* Empty: clean slate */}
       {isEmptyCleanSlate && (
@@ -164,18 +244,24 @@ export function HistoryPage({
       )}
 
       {/* Empty: filter has no results */}
-      {isEmptyDueToFilter && (
+      {isEmptyDueToFilter && !refetching && (
         <div className="bg-[var(--card)] border border-dashed border-[var(--border)] rounded-2xl p-[42px] text-center animate-fadeUp">
           <div className="text-[30px] opacity-40 mb-3 select-none">∅</div>
           <p className="font-bold text-[14px] text-[var(--foreground)] mb-2">
             No commits match these filters
           </p>
-          <p className="text-sm text-[var(--muted-foreground)] mb-6">
+          <p className="text-sm text-[var(--muted-foreground)] mb-4">
             Try widening the date range or clearing a filter.
           </p>
+          {showKeepScrollingHint && (
+            <p className="text-xs font-data text-[var(--muted-foreground)] mb-4 border border-[var(--border)] rounded-lg px-3 py-2 bg-[var(--surface-2)]">
+              There may be older commits matching these filters — keep scrolling
+              to load them
+            </p>
+          )}
           <button
             onClick={() => {
-              setFilters(DEFAULT_FILTERS);
+              handleClearFilters();
               setMovementFilter(null);
             }}
             className="inline-flex items-center gap-2 bg-[rgba(74,222,128,0.15)] border border-[rgba(74,222,128,0.4)] text-[var(--accent)] font-semibold text-sm px-4 py-2.5 rounded-lg hover:bg-[rgba(74,222,128,0.25)] transition-colors"
@@ -186,7 +272,7 @@ export function HistoryPage({
       )}
 
       {/* Feed */}
-      {!isEmpty && (
+      {!isEmpty && !refetching && (
         <div>
           {(() => {
             let cardIndex = 0;
@@ -242,7 +328,9 @@ export function HistoryPage({
                 className="flex items-center gap-2 text-xs font-data text-[var(--muted-foreground)] border border-[var(--border)] rounded-lg px-4 py-2 hover:border-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
               >
                 <Loader2 className="h-3 w-3" />
-                Load more commits ↓
+                {serverFilterActive
+                  ? "Load more filtered commits ↓"
+                  : "Load more commits ↓"}
               </button>
             </div>
           )}
