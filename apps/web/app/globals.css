@@ -162,7 +162,7 @@
   --green: #3fb950;
   --amber: #d29922;
   --red: #ff7b72;
-  --purple: #58a6ff;   /* aliased to blue — anti-slop: no lavender */
+  --purple: #8b5cf6;   /* violet — permanent injury, coach role, modification labels */
   --cyan: #39d353;
   --blue: #58a6ff;     /* info, links, coach UI — was --accent */
   --hot:  #FF7A45;     /* streak fire, fatigue, overtraining warnings */
