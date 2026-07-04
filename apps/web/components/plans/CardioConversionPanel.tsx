@@ -94,19 +94,15 @@ function CardioConversionPanel({
   return (
     <div
       data-testid="cardio-conversion-panel"
-      className="mt-2 rounded-xl border p-4"
-      style={{
-        background: "var(--surface)",
-        borderColor: "var(--border)",
-      }}
+      className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          {/* Swap icon */}
+          {/* Swap icon — 16px for perceptual readability */}
           <svg
-            width="13"
-            height="13"
+            width="16"
+            height="16"
             viewBox="0 0 16 16"
             fill="none"
             aria-hidden="true"
@@ -119,49 +115,45 @@ function CardioConversionPanel({
               strokeLinejoin="round"
             />
           </svg>
-          <span
-            className="font-sans text-[12px]"
-            style={{ color: "var(--muted)" }}
-          >
+          <span className="font-sans text-[12px] text-[var(--muted)]">
             Substituting:{" "}
-            <span style={{ color: "var(--text)" }}>{movementName}</span>
+            <span className="text-[var(--text)]">{movementName}</span>
           </span>
         </div>
 
-        {/* Close button */}
+        {/* Close button — 32×32px touch target */}
         <button
           onClick={onClose}
           aria-label="Close conversion panel"
-          className="font-data text-[16px] leading-none transition-colors hover:opacity-70"
-          style={{ color: "var(--muted)" }}
+          className="flex h-8 w-8 items-center justify-center rounded font-mono text-[16px] text-[var(--muted)] transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue)]"
         >
           ×
         </button>
       </div>
 
-      {/* Tab pills */}
-      <div className="flex gap-1.5 mb-3">
+      {/* Tab pills — tablist pattern for correct a11y semantics */}
+      <div
+        role="tablist"
+        aria-label="Conversion type"
+        className="mb-3 flex gap-1.5"
+      >
         {(["distance", "calories"] as Tab[]).map((tab) => {
           const isActive = activeTab === tab;
           return (
             <button
               key={tab}
+              role="tab"
+              aria-selected={isActive}
               onClick={() => setActiveTab(tab)}
-              aria-pressed={isActive}
-              className="rounded-full px-3 py-1 font-sans text-[11px] font-medium capitalize transition-colors"
-              style={
+              className={[
+                "rounded-full px-3 py-1 font-sans text-[11px] font-medium capitalize border",
+                "transition-colors duration-150",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue)]",
                 isActive
-                  ? {
-                      background: "var(--blue)",
-                      color: "#fff",
-                      transition: "background 150ms ease, color 150ms ease",
-                    }
-                  : {
-                      background: "transparent",
-                      color: "var(--muted)",
-                      transition: "background 150ms ease, color 150ms ease",
-                    }
-              }
+                  ? // Dark text on --blue passes WCAG AA contrast (#0d1117 on #58a6ff ≈ 7:1)
+                    "border-[var(--blue)] bg-[var(--blue)] text-[var(--bg)]"
+                  : "border-[var(--border)] bg-transparent text-[var(--muted)] hover:text-[var(--text)]",
+              ].join(" ")}
             >
               {tab === "distance" ? "Distance" : "Calories"}
             </button>
@@ -170,10 +162,7 @@ function CardioConversionPanel({
       </div>
 
       {/* Table */}
-      <div
-        className="rounded-lg overflow-hidden"
-        style={{ border: "1px solid var(--border)" }}
-      >
+      <div className="overflow-hidden rounded-lg border border-[var(--border)]">
         {rows.map((row, i) => {
           const isLast = i === rows.length - 1;
           const isAssault = row.distance === null;
@@ -182,42 +171,32 @@ function CardioConversionPanel({
           return (
             <div
               key={row.name}
-              className="flex items-center justify-between px-3 py-2.5"
-              style={
-                !isLast
-                  ? { borderBottom: "1px solid var(--border)" }
-                  : undefined
-              }
+              className={[
+                "flex items-center justify-between px-3 py-2.5",
+                !isLast ? "border-b border-[var(--border)]" : "",
+              ].join(" ")}
             >
               {/* Machine name */}
-              <span
-                className="font-sans text-[12px]"
-                style={{ color: "var(--muted)" }}
-              >
+              <span className="font-sans text-[12px] text-[var(--muted)]">
                 {row.name}
               </span>
 
               {/* Value */}
               {activeTab === "distance" && isAssault ? (
                 <div className="flex items-center gap-1.5">
-                  <span
-                    className="font-mono text-[12px] font-semibold"
-                    style={{ color: "var(--muted)" }}
-                  >
+                  <span className="font-mono text-[12px] font-semibold text-[var(--muted)]">
                     —
                   </span>
-                  <span
-                    className="font-sans text-[10px]"
-                    style={{ color: "var(--muted)" }}
+                  {/* Interactive: click to switch to Calories tab */}
+                  <button
+                    onClick={() => setActiveTab("calories")}
+                    className="font-sans text-[11px] text-[var(--blue)] hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--blue)]"
                   >
                     → use Calories tab
-                  </span>
+                  </button>
                 </div>
               ) : (
-                <span
-                  className="font-mono text-[12px] font-semibold tabular-nums"
-                  style={{ color: "var(--text)" }}
-                >
+                <span className="font-mono text-[12px] font-semibold tabular-nums text-[var(--text)]">
                   {value}
                 </span>
               )}
@@ -227,10 +206,7 @@ function CardioConversionPanel({
       </div>
 
       {/* Footnote */}
-      <p
-        className="mt-2 font-sans text-[10px] leading-relaxed"
-        style={{ color: "var(--muted)" }}
-      >
+      <p className="mt-2 font-sans text-xs leading-relaxed text-[var(--muted)]">
         Calorie output scales with athlete size and effort.
       </p>
     </div>
@@ -252,14 +228,13 @@ export function CardioConversionChip({
 
   return (
     <>
-      {/* Chip */}
+      {/* Chip — pill shape with border for clear affordance */}
       <button
         onClick={() => setOpen((v) => !v)}
         data-testid="cardio-sub-chip"
         aria-expanded={open}
         aria-label={`Substitute ${label} — show cardio conversion`}
-        className="font-sans text-[11px] font-medium transition-opacity hover:opacity-80"
-        style={{ color: "var(--blue)" }}
+        className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] px-2 py-0.5 font-sans text-[11px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--blue)] hover:text-[var(--blue)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue)]"
       >
         Sub cardio ↗
       </button>
