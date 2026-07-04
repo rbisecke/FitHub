@@ -25,6 +25,8 @@ interface MovementRowProps {
   setValue: UseFormSetValue<LogFormValues>;
   remove: (index: number) => void;
   onSetConfirmed?: () => void;
+  /** When true, shows a small 'parsed' badge indicating this row was pre-populated from NL input */
+  isParsed?: boolean;
 }
 
 /** Result types that are mono-structural / cardio — use single ResultFields, no SetTable. */
@@ -70,6 +72,7 @@ export function MovementRow({
   setValue,
   remove,
   onSetConfirmed,
+  isParsed = false,
 }: MovementRowProps) {
   const { weightUnit, distanceUnit } = useUserPrefs();
   const [lastResult, setLastResult] = useState<LastResult | null | undefined>(
@@ -309,6 +312,11 @@ export function MovementRow({
         <span className="font-data text-xs text-[var(--muted-foreground)]">
           #{index + 1}
         </span>
+        {isParsed && (
+          <span className="font-data text-[10px] font-semibold px-[7px] py-[2px] rounded-full bg-[rgba(63,185,80,0.14)] border border-[rgba(63,185,80,0.35)] text-[var(--green)]">
+            parsed
+          </span>
+        )}
         <div className="flex-1">
           <MovementSearch
             accessToken={accessToken}
