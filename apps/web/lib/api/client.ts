@@ -14,6 +14,7 @@ import type {
   PersonalRecord,
   PersonalRecordResult,
   E1RMPoint,
+  MovementHistoryEntry,
   VolumeTrendResponse,
   ReadinessResponse,
   TrainingPartner,
@@ -173,6 +174,11 @@ export const api = {
     movementTrend: (token: string, movementId: string) =>
       apiFetch<E1RMPoint[]>(
         `/api/v1/analytics/movement-trend/${movementId}`,
+        token,
+      ),
+    movementHistory: (token: string, movementId: string) =>
+      apiFetch<MovementHistoryEntry[]>(
+        `/api/v1/analytics/movement-history/${movementId}`,
         token,
       ),
     volumeTrend: (token: string, weeks = 12) =>

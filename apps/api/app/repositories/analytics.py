@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import uuid
+from collections import defaultdict
 from datetime import date, timedelta
 from typing import Any
 
 import psycopg
 from psycopg.rows import dict_row
+
+from app.engine.strength import project_e1rm
 
 
 async def get_load_series(
@@ -62,6 +65,13 @@ async def get_personal_records(
     conn: psycopg.AsyncConnection[Any],
     user_id: uuid.UUID,
 ) -> list[dict[str, Any]]:
+    """Fetch all-time best e1RM per movement plus strength intelligence fields.
+
+    The strength intelligence fields (current_e1rm_kg, next_pr_kg,
+    next_pr_weeks, is_stale) are computed via OLS regression over the full
+    e1RM history for each movement. They require at least 3 data points;
+    fewer returns nulls for those fields.
+    """
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
@@ -96,9 +106,46 @@ async def get_personal_records(
         )
         rows = await cur.fetchall()
 
+    if not rows:
+        return []
+
     for row in rows:
         prev = row.get("prev_best_1rm_kg")
         row["delta_kg"] = (row["best_1rm_kg"] - prev) if prev is not None else None
+
+    # Batch-fetch all e1RM trend points for all movements in a single query
+    movement_ids = [uuid.UUID(r["movement_id"]) for r in rows]
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT
+                r.movement_id::text,
+                w.performed_at::date      AS day,
+                r.estimated_1rm_kg::float AS estimated_1rm_kg
+            FROM results r
+            JOIN workouts w ON r.workout_id = w.id
+            WHERE w.user_id = %s
+              AND r.movement_id = ANY(%s)
+              AND r.estimated_1rm_kg IS NOT NULL
+            ORDER BY r.movement_id, w.performed_at ASC
+            """,
+            (user_id, movement_ids),
+        )
+        trend_rows = await cur.fetchall()
+
+    # Group trend points by movement_id
+    trends: dict[str, list[tuple[date, float]]] = defaultdict(list)
+    for tr in trend_rows:
+        trends[tr["movement_id"]].append((tr["day"], tr["estimated_1rm_kg"]))
+
+    today = date.today()
+    for row in rows:
+        points = trends.get(row["movement_id"], [])
+        proj = project_e1rm(points, today)
+        row["current_e1rm_kg"] = proj.current_e1rm_kg
+        row["next_pr_kg"] = proj.next_pr_kg
+        row["next_pr_weeks"] = proj.next_pr_weeks
+        row["is_stale"] = proj.is_stale
 
     return rows
 
@@ -125,6 +172,47 @@ async def get_movement_trend(
             (user_id, movement_id),
         )
         return await cur.fetchall()
+
+
+async def get_movement_history(
+    conn: psycopg.AsyncConnection[Any],
+    user_id: uuid.UUID,
+    movement_id: uuid.UUID,
+) -> list[dict[str, Any]]:
+    """Return full logged-set history for one movement, newest first.
+
+    Used by the movement detail page to populate the set log table. Marks
+    each row as is_pr=True when its e1RM equals the user's all-time best.
+    """
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT
+                w.performed_at::date         AS date,
+                r.load_kg::float             AS load_kg,
+                r.reps,
+                r.estimated_1rm_kg::float    AS estimated_1rm_kg,
+                r.notes,
+                w.id::text                   AS workout_id
+            FROM results r
+            JOIN workouts w ON r.workout_id = w.id
+            WHERE w.user_id         = %s
+              AND r.movement_id     = %s
+              AND r.estimated_1rm_kg IS NOT NULL
+            ORDER BY w.performed_at DESC
+            """,
+            (user_id, movement_id),
+        )
+        rows = await cur.fetchall()
+
+    if not rows:
+        return []
+
+    best_e1rm = max(r["estimated_1rm_kg"] for r in rows)
+    for row in rows:
+        row["is_pr"] = abs(row["estimated_1rm_kg"] - best_e1rm) < 0.01
+
+    return rows
 
 
 async def get_volume_trend(
@@ -194,7 +282,7 @@ async def get_readiness(
     has_training_data = any(r["load_au"] > 0 for r in series)
 
     # Compute composite score: average available normalized factors
-    # ACWR sweet spot (0.8–1.3) maps to good score
+    # ACWR sweet spot (0.8-1.3) maps to good score
     acwr_score: float | None = None
     if acwr is not None and has_training_data:
         if 0.8 <= acwr <= 1.3:

@@ -34,6 +34,11 @@ class PersonalRecord(BaseModel):
     time_s: int | None = None
     prev_best_1rm_kg: float | None = None
     delta_kg: float | None = None
+    # Strength intelligence fields (null when fewer than 3 data points)
+    current_e1rm_kg: float | None = None
+    next_pr_kg: float | None = None
+    next_pr_weeks: int | None = None
+    is_stale: bool = False
 
 
 class E1RMPoint(BaseModel):
@@ -95,3 +100,15 @@ class ReadinessResponse(BaseModel):
     coverage: float | None = None
     confidence_tier: str | None = None
     hrv_type: str | None = None
+
+
+class MovementHistoryEntry(BaseModel):
+    """One logged set for a movement, used by the movement detail page."""
+
+    date: date
+    load_kg: float | None
+    reps: int | None
+    estimated_1rm_kg: float
+    notes: str | None
+    workout_id: str
+    is_pr: bool  # True when this set's e1RM equals the all-time best

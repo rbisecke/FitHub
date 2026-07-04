@@ -70,7 +70,7 @@ async def test_prs_returns_highest_e1rm(alice_client: AsyncClient) -> None:
     assert r.status_code == 200
     prs = r.json()
     assert len(prs) == 1
-    # Epley for 120kg × 5 reps = 120 × (1 + 5/30) = 140
+    # Epley for 120kg x 5 reps = 120 * (1 + 5/30) = 140
     assert prs[0]["best_1rm_kg"] == pytest.approx(140.0, rel=0.01)
 
 
@@ -120,3 +120,96 @@ async def test_movement_trend_ordered_asc(alice_client: AsyncClient) -> None:
 async def test_prs_requires_auth(anon_client: AsyncClient) -> None:
     r = await anon_client.get("/api/v1/analytics/personal-records")
     assert r.status_code == 401
+
+
+# --- Strength intelligence fields ---
+
+
+@pytest.mark.asyncio
+async def test_prs_strength_intel_null_when_fewer_than_3_points(
+    alice_client: AsyncClient,
+) -> None:
+    """With fewer than 3 data points, current_e1rm_kg and projection are null."""
+    movement_id = await _create_movement(alice_client, "OHS Strength Intel Test")
+    result = {**_SQUAT_RESULT, "movement_id": movement_id, "load_kg": 60.0, "reps": 5}
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": "2024-03-01T12:00:00Z", "results": [result]},
+    )
+
+    r = await alice_client.get("/api/v1/analytics/personal-records")
+    assert r.status_code == 200
+    prs = r.json()
+    pr = next(p for p in prs if p["movement_name"] == "OHS Strength Intel Test")
+    assert pr["current_e1rm_kg"] is None
+    assert pr["next_pr_kg"] is None
+    assert pr["next_pr_weeks"] is None
+
+
+@pytest.mark.asyncio
+async def test_prs_strength_intel_populated_with_3_points(
+    alice_client: AsyncClient,
+) -> None:
+    """With 3+ data points on an upward trend, current_e1rm_kg is returned."""
+    movement_id = await _create_movement(alice_client, "Clean Strength Intel Test")
+    loads = [80.0, 90.0, 100.0]
+    dates = ["2024-01-01T12:00:00Z", "2024-02-01T12:00:00Z", "2024-03-01T12:00:00Z"]
+    for load, dt in zip(loads, dates, strict=False):
+        result = {**_SQUAT_RESULT, "movement_id": movement_id, "load_kg": load, "reps": 5}
+        await alice_client.post(
+            "/api/v1/workouts",
+            json={"performed_at": dt, "results": [result]},
+        )
+
+    r = await alice_client.get("/api/v1/analytics/personal-records")
+    assert r.status_code == 200
+    prs = r.json()
+    pr = next(p for p in prs if p["movement_name"] == "Clean Strength Intel Test")
+    # Upward trend with 3 points: current_e1rm_kg must be populated
+    assert pr["current_e1rm_kg"] is not None
+    assert pr["current_e1rm_kg"] > 0
+    # is_stale must reflect that the last session was in March 2024 (long ago)
+    assert pr["is_stale"] is True
+
+
+@pytest.mark.asyncio
+async def test_movement_history_requires_auth(anon_client: AsyncClient) -> None:
+    import uuid
+
+    r = await anon_client.get(f"/api/v1/analytics/movement-history/{uuid.uuid4()}")
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_movement_history_empty_when_no_results(alice_client: AsyncClient) -> None:
+    """Returns an empty list, not 404, when no sets have been logged."""
+    import uuid
+
+    r = await alice_client.get(f"/api/v1/analytics/movement-history/{uuid.uuid4()}")
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+@pytest.mark.asyncio
+async def test_movement_history_returns_sets_newest_first(alice_client: AsyncClient) -> None:
+    movement_id = await _create_movement(alice_client, "Snatch History Test")
+    loads_and_dates = [
+        (80.0, "2024-01-10T12:00:00Z"),
+        (90.0, "2024-02-10T12:00:00Z"),
+        (100.0, "2024-03-10T12:00:00Z"),
+    ]
+    for load, dt in loads_and_dates:
+        result = {**_SQUAT_RESULT, "movement_id": movement_id, "load_kg": load, "reps": 3}
+        await alice_client.post("/api/v1/workouts", json={"performed_at": dt, "results": [result]})
+
+    r = await alice_client.get(f"/api/v1/analytics/movement-history/{movement_id}")
+    assert r.status_code == 200
+    entries = r.json()
+    assert len(entries) == 3
+    # newest-first ordering
+    dates = [e["date"] for e in entries]
+    assert dates == sorted(dates, reverse=True)
+    # PR row is the highest e1RM set
+    pr_rows = [e for e in entries if e["is_pr"]]
+    assert len(pr_rows) == 1
+    assert pr_rows[0]["load_kg"] == pytest.approx(100.0)
