@@ -758,6 +758,59 @@
         }
       }
     },
+    "/api/v1/analytics/movement-history/{movement_id}": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Movement History",
+        "description": "Full logged-set history for one movement, newest-first.\n\nUsed by the /records/[movementId] detail page to populate the set log\ntable. Returns an empty list (not 404) when no sets have been logged.",
+        "operationId": "movement_history_api_v1_analytics_movement_history__movement_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "movement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Movement Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MovementHistoryEntry"
+                  },
+                  "title": "Response Movement History Api V1 Analytics Movement History  Movement Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/analytics/volume-trend": {
       "get": {
         "tags": [
@@ -6132,6 +6185,72 @@
         ],
         "title": "Movement"
       },
+      "MovementHistoryEntry": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "load_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Kg"
+          },
+          "reps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reps"
+          },
+          "estimated_1rm_kg": {
+            "type": "number",
+            "title": "Estimated 1Rm Kg"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "workout_id": {
+            "type": "string",
+            "title": "Workout Id"
+          },
+          "is_pr": {
+            "type": "boolean",
+            "title": "Is Pr"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "load_kg",
+          "reps",
+          "estimated_1rm_kg",
+          "notes",
+          "workout_id",
+          "is_pr"
+        ],
+        "title": "MovementHistoryEntry",
+        "description": "One logged set for a movement, used by the movement detail page."
+      },
       "MovementModification": {
         "properties": {
           "original_movement": {
@@ -6947,6 +7066,44 @@
               }
             ],
             "title": "Delta Kg"
+          },
+          "current_e1rm_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current E1Rm Kg"
+          },
+          "next_pr_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Pr Kg"
+          },
+          "next_pr_weeks": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Pr Weeks"
+          },
+          "is_stale": {
+            "type": "boolean",
+            "title": "Is Stale",
+            "default": false
           }
         },
         "type": "object",

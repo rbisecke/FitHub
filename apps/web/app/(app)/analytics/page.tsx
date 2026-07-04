@@ -7,6 +7,7 @@ import { VolumeTrendSection } from "@/components/analytics/VolumeTrendSection";
 import { TrainingBalanceSection } from "@/components/analytics/TrainingBalanceSection";
 import { BenchmarkProgressSection } from "@/components/analytics/BenchmarkProgressSection";
 import { PRSummaryStrip } from "@/components/analytics/PRSummaryStrip";
+import { MobileStrengthTrendCard } from "@/components/analytics/MobileStrengthTrendCard";
 import { ACWRChart } from "@/components/analytics/ACWRChart";
 import { EmptyAnalyticsState } from "@/components/analytics/EmptyAnalyticsState";
 import { PerformanceCards } from "@/components/analytics/PerformanceCards";
@@ -285,6 +286,10 @@ export default async function AnalyticsPage() {
 
           {/* Mobile sections */}
           <div className="md:hidden space-y-[14px]">
+            <MobileStrengthTrendCard
+              personalRecords={personalRecords}
+              token={token}
+            />
             <VolumeTrendSection initialWeeks={volume.weeks} token={token} />
             <TrainingBalanceSection data={balance} />
             <PRSummaryStrip records={personalRecords} />

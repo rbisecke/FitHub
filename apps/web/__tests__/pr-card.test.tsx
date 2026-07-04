@@ -14,10 +14,18 @@ const BASE_PR: PersonalRecord = {
   time_s: null,
   prev_best_1rm_kg: null,
   delta_kg: null,
+  is_stale: false,
 };
 
 describe("PRCard", () => {
-  it("links to /log/tag?movement_id=[id] on mobile and desktop", () => {
+  it("card body navigates to /records/[movementId]", () => {
+    const html = renderToStaticMarkup(
+      <PRCard pr={BASE_PR} points={[]} isRecent={false} category="strength" />,
+    );
+    expect(html).toContain('href="/records/move-123"');
+  });
+
+  it("$ tag button still links to /log/tag", () => {
     const html = renderToStaticMarkup(
       <PRCard pr={BASE_PR} points={[]} isRecent={false} category="strength" />,
     );
@@ -45,5 +53,54 @@ describe("PRCard", () => {
       <PRCard pr={BASE_PR} points={[]} isRecent={false} category="strength" />,
     );
     expect(html).toContain("$ tag");
+  });
+
+  // Strength intelligence section
+  it("shows 'log 3+ sets' prompt when current_e1rm_kg is null", () => {
+    const pr: PersonalRecord = { ...BASE_PR, current_e1rm_kg: null };
+    const html = renderToStaticMarkup(
+      <PRCard pr={pr} points={[]} isRecent={false} category="strength" />,
+    );
+    expect(html).toContain("log 3+ sets to unlock trend");
+  });
+
+  it("renders current e1RM when available", () => {
+    const pr: PersonalRecord = {
+      ...BASE_PR,
+      current_e1rm_kg: 115.5,
+      next_pr_kg: null,
+      next_pr_weeks: null,
+    };
+    const html = renderToStaticMarkup(
+      <PRCard pr={pr} points={[]} isRecent={false} category="strength" />,
+    );
+    expect(html).toContain("est. now — 115.5 kg");
+  });
+
+  it("renders on-trend projection when available", () => {
+    const pr: PersonalRecord = {
+      ...BASE_PR,
+      current_e1rm_kg: 115.5,
+      next_pr_kg: 117.5,
+      next_pr_weeks: 3,
+    };
+    const html = renderToStaticMarkup(
+      <PRCard pr={pr} points={[]} isRecent={false} category="strength" />,
+    );
+    expect(html).toContain("on trend");
+    expect(html).toContain("117.5 kg");
+    expect(html).toContain("3wk");
+  });
+
+  it("shows stale caveat when is_stale is true", () => {
+    const pr: PersonalRecord = {
+      ...BASE_PR,
+      current_e1rm_kg: 115.0,
+      is_stale: true,
+    };
+    const html = renderToStaticMarkup(
+      <PRCard pr={pr} points={[]} isRecent={false} category="strength" />,
+    );
+    expect(html).toContain("last logged");
   });
 });

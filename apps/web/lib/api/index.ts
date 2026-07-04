@@ -16,6 +16,8 @@ export type LoadModelResponse = components["schemas"]["LoadModelResponse"];
 export type DailyLoadPoint = components["schemas"]["DailyLoadPoint"];
 export type PersonalRecord = components["schemas"]["PersonalRecord"];
 export type E1RMPoint = components["schemas"]["E1RMPoint"];
+export type MovementHistoryEntry =
+  components["schemas"]["MovementHistoryEntry"];
 export type VolumeTrendResponse = components["schemas"]["VolumeTrendResponse"];
 export type WeeklyVolume = components["schemas"]["WeeklyVolume"];
 export type ReadinessResponse = components["schemas"]["ReadinessResponse"];

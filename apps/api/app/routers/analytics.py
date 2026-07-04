@@ -16,6 +16,7 @@ from app.models.analytics import (
     DailyLoadPoint,
     E1RMPoint,
     LoadModelResponse,
+    MovementHistoryEntry,
     PersonalRecord,
     ReadinessResponse,
     TrainingBalanceCategory,
@@ -26,6 +27,7 @@ from app.models.analytics import (
 from app.repositories.analytics import (
     get_benchmark_attempts,
     get_load_series,
+    get_movement_history,
     get_movement_trend,
     get_personal_records,
     get_readiness,
@@ -96,6 +98,21 @@ async def movement_trend(
 ) -> list[E1RMPoint]:
     rows = await get_movement_trend(conn, user.user_id, movement_id)
     return [E1RMPoint(**r) for r in rows]
+
+
+@router.get("/movement-history/{movement_id}", response_model=list[MovementHistoryEntry])
+async def movement_history(
+    movement_id: uuid.UUID,
+    user: UserContext = Depends(get_current_user),
+    conn: psycopg.AsyncConnection[Any] = Depends(get_db),
+) -> list[MovementHistoryEntry]:
+    """Full logged-set history for one movement, newest-first.
+
+    Used by the /records/[movementId] detail page to populate the set log
+    table. Returns an empty list (not 404) when no sets have been logged.
+    """
+    rows = await get_movement_history(conn, user.user_id, movement_id)
+    return [MovementHistoryEntry(**r) for r in rows]
 
 
 @router.get("/volume-trend", response_model=VolumeTrendResponse)

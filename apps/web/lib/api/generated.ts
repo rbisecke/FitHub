@@ -294,6 +294,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/analytics/movement-history/{movement_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Movement History
+     * @description Full logged-set history for one movement, newest-first.
+     *
+     *     Used by the /records/[movementId] detail page to populate the set log
+     *     table. Returns an empty list (not 404) when no sets have been logged.
+     */
+    get: operations["movement_history_api_v1_analytics_movement_history__movement_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/analytics/volume-trend": {
     parameters: {
       query?: never;
@@ -1898,6 +1921,29 @@ export interface components {
        */
       updated_at: string;
     };
+    /**
+     * MovementHistoryEntry
+     * @description One logged set for a movement, used by the movement detail page.
+     */
+    MovementHistoryEntry: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Load Kg */
+      load_kg: number | null;
+      /** Reps */
+      reps: number | null;
+      /** Estimated 1Rm Kg */
+      estimated_1rm_kg: number;
+      /** Notes */
+      notes: string | null;
+      /** Workout Id */
+      workout_id: string;
+      /** Is Pr */
+      is_pr: boolean;
+    };
     /** MovementModification */
     MovementModification: {
       /** Original Movement */
@@ -2163,6 +2209,17 @@ export interface components {
       prev_best_1rm_kg?: number | null;
       /** Delta Kg */
       delta_kg?: number | null;
+      /** Current E1Rm Kg */
+      current_e1rm_kg?: number | null;
+      /** Next Pr Kg */
+      next_pr_kg?: number | null;
+      /** Next Pr Weeks */
+      next_pr_weeks?: number | null;
+      /**
+       * Is Stale
+       * @default false
+       */
+      is_stale: boolean;
     };
     /** PersonalRecordResult */
     PersonalRecordResult: {
@@ -3471,6 +3528,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["E1RMPoint"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  movement_history_api_v1_analytics_movement_history__movement_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        movement_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MovementHistoryEntry"][];
         };
       };
       /** @description Validation Error */
