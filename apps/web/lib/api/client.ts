@@ -355,6 +355,40 @@ export const api = {
         body: JSON.stringify(body),
       }),
   },
+  wellness: {
+    checkin: (
+      token: string,
+      body: {
+        sleep: number;
+        stress: number;
+        fatigue: number;
+        soreness: number;
+      },
+    ) =>
+      apiFetch<{
+        date: string;
+        sleep: number;
+        stress: number;
+        fatigue: number;
+        soreness: number;
+        hooper_index: number;
+      }>("/api/v1/wellness/checkin", token, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    today: (token: string) =>
+      apiFetch<{
+        submitted: boolean;
+        checkin: {
+          date: string;
+          sleep: number;
+          stress: number;
+          fatigue: number;
+          soreness: number;
+          hooper_index: number;
+        } | null;
+      }>("/api/v1/wellness/checkin/today", token),
+  },
   integrations: {
     list: (token: string) =>
       apiFetch<
