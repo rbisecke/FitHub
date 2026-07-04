@@ -42,6 +42,7 @@ import type {
   AdjustAdaptationRequest,
   UpdateInjuryStatusRequest,
   ModifyWorkoutResponse,
+  CheckWodResponse,
 } from "./plans";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -274,6 +275,11 @@ export const api = {
       apiFetch<ModifyWorkoutResponse>("/api/v1/coach/modify-workout", token, {
         method: "POST",
         body: JSON.stringify({ session_id: sessionId }),
+      }),
+    checkWod: (token: string, wodText: string) =>
+      apiFetch<CheckWodResponse>("/api/v1/coach/check-wod", token, {
+        method: "POST",
+        body: JSON.stringify({ wod_text: wodText }),
       }),
   },
   plans: {

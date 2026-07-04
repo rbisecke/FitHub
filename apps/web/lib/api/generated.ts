@@ -504,6 +504,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/coach/check-wod": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Check Wod */
+    post: operations["check_wod_api_v1_coach_check_wod_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/integrations/apple-health/connect": {
     parameters: {
       query?: never;
@@ -1355,6 +1372,22 @@ export interface components {
       question: string;
       /** Session Id */
       session_id?: string | null;
+    };
+    /** CheckWodRequest */
+    CheckWodRequest: {
+      /** Wod Text */
+      wod_text: string;
+    };
+    /** CheckWodResponse */
+    CheckWodResponse: {
+      /** Movements Found */
+      movements_found: string[];
+      /** Results */
+      results: components["schemas"]["WodMovementResult"][];
+      /** Any Referral Required */
+      any_referral_required: boolean;
+      /** Referral Regions */
+      referral_regions: string[];
     };
     /** Citation */
     Citation: {
@@ -2483,6 +2516,15 @@ export interface components {
         | "hip_flexor"
         | "it_band"
         | "forearm"
+        | "rotator_cuff"
+        | "patellar_tendon"
+        | "lateral_elbow"
+        | "medial_elbow"
+        | "arch"
+        | "achilles"
+        | "shin"
+        | "groin"
+        | "si_joint"
         | "other";
       /** Pain Level */
       pain_level: number;
@@ -2786,7 +2828,7 @@ export interface components {
        * Status
        * @enum {string}
        */
-      status: "cleared_with_restrictions" | "resolved";
+      status: "cleared_with_restrictions" | "resolved" | "permanent";
       /** Restriction Notes */
       restriction_notes?: string | null;
     };
@@ -2872,6 +2914,17 @@ export interface components {
       total_load: number;
       /** Workout Count */
       workout_count: number;
+    };
+    /** WodMovementResult */
+    WodMovementResult: {
+      /** Movement */
+      movement: string;
+      /** Safe */
+      safe: boolean;
+      /** Driven By */
+      driven_by: string[];
+      /** Substitutions */
+      substitutions: string[];
     };
     /** Workout */
     Workout: {
@@ -3890,6 +3943,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ModifyWorkoutResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  check_wod_api_v1_coach_check_wod_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CheckWodRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CheckWodResponse"];
         };
       };
       /** @description Validation Error */

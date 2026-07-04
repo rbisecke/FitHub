@@ -9,6 +9,7 @@ import { SessionList } from "./SessionList";
 import { SessionDrawer } from "./SessionDrawer";
 import { ChatPanel } from "./ChatPanel";
 import { CoachHeader } from "./CoachHeader";
+import { WodCheckPanel } from "./WodCheckPanel";
 
 interface CoachShellProps {
   token: string;
@@ -102,6 +103,8 @@ export function CoachShell({
             new session
           </button>
         </div>
+
+        <WodCheckPanel accessToken={token} />
 
         <div className="flex-1 min-h-0 overflow-hidden">
           <ChatPanel

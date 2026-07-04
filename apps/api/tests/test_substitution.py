@@ -155,8 +155,89 @@ class TestNewRegions:
     def test_tricep_has_dip_contraindicated(self) -> None:
         assert "dip" in get_contraindicated_movements("tricep")
 
-    def test_glute_has_hip_thrust_contraindicated(self) -> None:
-        assert "hip_thrust" in get_contraindicated_movements("glute")
+    def test_glute_has_back_squat_contraindicated(self) -> None:
+        assert "back_squat" in get_contraindicated_movements("glute")
 
     def test_upper_back_has_deadlift_contraindicated(self) -> None:
         assert "deadlift" in get_contraindicated_movements("upper_back")
+
+
+class TestEngineDataGapFixes:
+    def test_shoulder_overhead_squat_has_sub(self) -> None:
+        subs = resolve_substitution("shoulder", "overhead_squat")
+        assert len(subs) > 0
+
+    def test_shoulder_snatch_has_sub(self) -> None:
+        assert len(resolve_substitution("shoulder", "snatch")) > 0
+
+    def test_shoulder_push_press_contraindicated(self) -> None:
+        assert "push_press" in get_contraindicated_movements("shoulder")
+
+    def test_knee_running_contraindicated(self) -> None:
+        assert "running" in get_contraindicated_movements("knee")
+
+    def test_knee_running_has_sub(self) -> None:
+        assert len(resolve_substitution("knee", "running")) > 0
+
+    def test_lower_back_rowing_contraindicated(self) -> None:
+        assert "rowing" in get_contraindicated_movements("lower_back")
+
+    def test_lower_back_ghd_situp_has_sub(self) -> None:
+        assert len(resolve_substitution("lower_back", "ghd_situp")) > 0
+
+    def test_hip_deadlift_contraindicated(self) -> None:
+        assert "deadlift" in get_contraindicated_movements("hip")
+
+    def test_hip_deadlift_has_sub(self) -> None:
+        assert len(resolve_substitution("hip", "deadlift")) > 0
+
+    def test_elbow_pull_up_contraindicated(self) -> None:
+        assert "pull_up" in get_contraindicated_movements("elbow")
+
+    def test_ankle_double_under_has_sub(self) -> None:
+        assert len(resolve_substitution("ankle", "double_under")) > 0
+
+    def test_glute_hip_thrust_not_contraindicated(self) -> None:
+        assert "hip_thrust" not in get_contraindicated_movements("glute")
+
+    def test_glute_back_squat_contraindicated(self) -> None:
+        assert "back_squat" in get_contraindicated_movements("glute")
+
+
+class TestNewBodyRegions:
+    def test_arch_has_box_jump_contraindicated(self) -> None:
+        assert "box_jump" in get_contraindicated_movements("arch")
+
+    def test_arch_double_under_has_sub(self) -> None:
+        assert len(resolve_substitution("arch", "double_under")) > 0
+
+    def test_achilles_running_contraindicated(self) -> None:
+        assert "running" in get_contraindicated_movements("achilles")
+
+    def test_achilles_box_jump_has_sub(self) -> None:
+        assert len(resolve_substitution("achilles", "box_jump")) > 0
+
+    def test_shin_running_contraindicated(self) -> None:
+        assert "running" in get_contraindicated_movements("shin")
+
+    def test_patellar_tendon_chronic(self) -> None:
+        from app.engine.injury import CHRONIC_REGIONS
+
+        assert "patellar_tendon" in CHRONIC_REGIONS
+
+    def test_rotator_cuff_has_overhead_contraindicated(self) -> None:
+        assert "overhead_squat" in get_contraindicated_movements("rotator_cuff")
+
+    def test_rotator_cuff_snatch_has_sub(self) -> None:
+        assert len(resolve_substitution("rotator_cuff", "snatch")) > 0
+
+    def test_lateral_elbow_chronic(self) -> None:
+        from app.engine.injury import CHRONIC_REGIONS
+
+        assert "lateral_elbow" in CHRONIC_REGIONS
+
+    def test_groin_back_squat_contraindicated(self) -> None:
+        assert "back_squat" in get_contraindicated_movements("groin")
+
+    def test_si_joint_running_has_sub(self) -> None:
+        assert len(resolve_substitution("si_joint", "running")) > 0

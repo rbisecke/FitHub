@@ -153,6 +153,7 @@ async def update_injury_status(
     elif req.status == "resolved":
         set_clauses.append("resolved_at = now()")
         set_clauses.append("active = false")
+    # permanent: stays active=true so the injury engine keeps filtering workouts
 
     params.append(injury_id)
 

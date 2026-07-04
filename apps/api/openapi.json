@@ -1339,6 +1339,52 @@
         ]
       }
     },
+    "/api/v1/coach/check-wod": {
+      "post": {
+        "tags": [
+          "coach"
+        ],
+        "summary": "Check Wod",
+        "operationId": "check_wod_api_v1_coach_check_wod_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckWodRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckWodResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/integrations/apple-health/connect": {
       "post": {
         "tags": [
@@ -4288,6 +4334,58 @@
           "question"
         ],
         "title": "ChatStreamRequest"
+      },
+      "CheckWodRequest": {
+        "properties": {
+          "wod_text": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Wod Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "wod_text"
+        ],
+        "title": "CheckWodRequest"
+      },
+      "CheckWodResponse": {
+        "properties": {
+          "movements_found": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Movements Found"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/WodMovementResult"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "any_referral_required": {
+            "type": "boolean",
+            "title": "Any Referral Required"
+          },
+          "referral_regions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Referral Regions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "movements_found",
+          "results",
+          "any_referral_required",
+          "referral_regions"
+        ],
+        "title": "CheckWodResponse"
       },
       "Citation": {
         "properties": {
@@ -7853,6 +7951,15 @@
               "hip_flexor",
               "it_band",
               "forearm",
+              "rotator_cuff",
+              "patellar_tendon",
+              "lateral_elbow",
+              "medial_elbow",
+              "arch",
+              "achilles",
+              "shin",
+              "groin",
+              "si_joint",
               "other"
             ],
             "title": "Body Region"
@@ -8815,7 +8922,8 @@
             "type": "string",
             "enum": [
               "cleared_with_restrictions",
-              "resolved"
+              "resolved",
+              "permanent"
             ],
             "title": "Status"
           },
@@ -9115,6 +9223,40 @@
           "workout_count"
         ],
         "title": "WeeklyVolume"
+      },
+      "WodMovementResult": {
+        "properties": {
+          "movement": {
+            "type": "string",
+            "title": "Movement"
+          },
+          "safe": {
+            "type": "boolean",
+            "title": "Safe"
+          },
+          "driven_by": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Driven By"
+          },
+          "substitutions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Substitutions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "movement",
+          "safe",
+          "driven_by",
+          "substitutions"
+        ],
+        "title": "WodMovementResult"
       },
       "Workout": {
         "properties": {

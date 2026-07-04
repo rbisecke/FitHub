@@ -33,6 +33,18 @@ class ReportInjuryRequest(BaseModel):
         "hip_flexor",
         "it_band",
         "forearm",
+        # tendon / soft tissue additions
+        "rotator_cuff",
+        "patellar_tendon",
+        "lateral_elbow",
+        "medial_elbow",
+        # foot / plantar
+        "arch",
+        "achilles",
+        "shin",
+        # joint additions
+        "groin",
+        "si_joint",
         # fallback
         "other",
     ]
@@ -42,7 +54,7 @@ class ReportInjuryRequest(BaseModel):
 
 
 class UpdateInjuryStatusRequest(BaseModel):
-    status: Literal["cleared_with_restrictions", "resolved"]
+    status: Literal["cleared_with_restrictions", "resolved", "permanent"]
     restriction_notes: str | None = Field(None, max_length=1000)
 
 

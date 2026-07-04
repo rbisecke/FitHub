@@ -13,6 +13,7 @@ interface Props {
   accessToken: string;
   planId: string;
   weightUnit?: string;
+  hasActiveInjuries?: boolean;
 }
 
 type SheetTarget = {
@@ -31,6 +32,7 @@ export function TodayPrescription({
   accessToken,
   planId,
   weightUnit = "kg",
+  hasActiveInjuries = true,
 }: Props) {
   const [session, setSession] = useState<PlannedSessionOut | null | undefined>(
     undefined,
@@ -217,13 +219,14 @@ export function TodayPrescription({
           >
             view plan →
           </Link>
-          {session.items.length > 0 && (
+          {session.items.length > 0 && hasActiveInjuries && (
             <button
               data-testid="modify-workout-btn"
               disabled={modLoading}
               onClick={async () => {
                 setModLoading(true);
                 try {
+                  await new Promise((r) => setTimeout(r, 1500));
                   const result = await api.coach.modifyWorkout(
                     accessToken,
                     session.id,

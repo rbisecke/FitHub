@@ -6,6 +6,7 @@ import { PlanBranchView } from "@/components/plans/PlanBranchView";
 import { MesocycleDotGrid } from "@/components/plans/MesocycleDotGrid";
 import { CurrentWeekView } from "@/components/plans/CurrentWeekView";
 import { AIAdaptationsPanel } from "@/components/plans/AIAdaptationsPanel";
+import { TodayPrescription } from "@/components/plans/TodayPrescription";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -31,6 +32,16 @@ export default async function PlanDetailPage({ params }: Props) {
     notFound();
   }
   if (!plan) notFound();
+
+  let hasActiveInjuries = false;
+  try {
+    const injuries = await api.injuries.list(token);
+    hasActiveInjuries = injuries.some(
+      (i) => i.status === "active" || i.status === "permanent",
+    );
+  } catch {
+    // non-fatal — don't break the plan page if injuries fetch fails
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 flex flex-col gap-6">
@@ -63,6 +74,13 @@ export default async function PlanDetailPage({ params }: Props) {
           {plan.start_date}
         </p>
       </div>
+
+      {/* Today's prescription */}
+      <TodayPrescription
+        accessToken={token}
+        planId={plan.id}
+        hasActiveInjuries={hasActiveInjuries}
+      />
 
       {/* Mesocycle dot grid */}
       {plan.sessions.length > 0 ? (

@@ -27,6 +27,8 @@ from app.models.coach import (
     ChatRequest,
     ChatResponse,
     ChatStreamRequest,
+    CheckWodRequest,
+    CheckWodResponse,
     CoachSession,
     HistoryMessage,
     ModifyWorkoutRequest,
@@ -36,6 +38,7 @@ from app.models.coach import (
     ParseLogResponse,
     SessionMessagesResponse,
     TodaySessionContext,
+    WodMovementResult,
 )
 from app.models.profile import UserProfile
 
@@ -661,6 +664,115 @@ async def modify_workout(
         session_id=str(body.session_id),
         modifications=modifications,
         safe_movements=safe_movements,
+        any_referral_required=bool(referral_regions),
+        referral_regions=referral_regions,
+    )
+
+
+# ── Check-WOD endpoint ────────────────────────────────────────────────────────
+
+
+# Known movement names in the engine — normalised to snake_case.
+# We build this set lazily from CONTRAINDICATIONS keys.
+def _parse_movements_from_text(wod_text: str, known_movements: set[str]) -> list[str]:
+    """Return the snake_case movement names found in wod_text.
+
+    Normalises the input: lowercase, collapse whitespace, replace spaces with
+    underscores, then check against the known-movements set.  Also tries
+    un-pluralised forms (strip trailing 's') for common WOD shorthand like
+    'burpees', 'thrusters', 'pull-ups' → 'pull_up'.
+    """
+    # Normalise punctuation — hyphens and forward-slashes are word separators
+    normalised = re.sub(r"[-/]", " ", wod_text.lower())
+    # Tokenise on anything that is not a word char or space
+    words = re.sub(r"[^\w\s]", " ", normalised).split()
+
+    found: list[str] = []
+    seen: set[str] = set()
+
+    # Sliding window: try 1-, 2-, and 3-word phrases as snake_case keys
+    for window in (3, 2, 1):
+        for i in range(len(words) - window + 1):
+            candidate = "_".join(words[i : i + window])
+            if candidate in known_movements and candidate not in seen:
+                found.append(candidate)
+                seen.add(candidate)
+                continue
+            # Try stripping a trailing 's' (plural)
+            stripped = candidate.rstrip("s")
+            if stripped != candidate and stripped in known_movements and stripped not in seen:
+                found.append(stripped)
+                seen.add(stripped)
+
+    return found
+
+
+@router.post("/check-wod", response_model=CheckWodResponse)
+async def check_wod(
+    body: CheckWodRequest,
+    user: Annotated[UserContext, Depends(get_current_user)],
+    db: _Db,
+) -> CheckWodResponse:
+    from app.engine.injury import CONTRAINDICATIONS
+
+    known_movements: set[str] = set()
+    for region_movements in CONTRAINDICATIONS.values():
+        known_movements.update(region_movements)
+
+    movements_found = _parse_movements_from_text(body.wod_text, known_movements)
+
+    # Fetch user's active injuries
+    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT body_region, requires_referral
+            FROM injuries
+            WHERE user_id = %s AND active = true
+            ORDER BY reported_at DESC
+            """,
+            [str(user.user_id)],
+        )
+        injury_rows = await cur.fetchall()
+
+    if not injury_rows:
+        return CheckWodResponse(
+            movements_found=movements_found,
+            results=[
+                WodMovementResult(movement=m, safe=True, driven_by=[], substitutions=[])
+                for m in movements_found
+            ],
+            any_referral_required=False,
+            referral_regions=[],
+        )
+
+    injury_tuples = [(str(r["body_region"]), bool(r["requires_referral"])) for r in injury_rows]
+    referral_regions = [region for region, ref in injury_tuples if ref]
+    blocked_map = union_contraindications(injury_tuples)
+
+    results: list[WodMovementResult] = []
+    for movement in movements_found:
+        driven_by = blocked_map.get(movement, [])
+        if not driven_by:
+            results.append(
+                WodMovementResult(movement=movement, safe=True, driven_by=[], substitutions=[])
+            )
+            continue
+        subs: list[str] = []
+        seen_subs: set[str] = set()
+        for region in driven_by:
+            for s in resolve_substitution(region, movement):
+                if s not in seen_subs:
+                    seen_subs.add(s)
+                    subs.append(s)
+        results.append(
+            WodMovementResult(
+                movement=movement, safe=False, driven_by=driven_by, substitutions=subs
+            )
+        )
+
+    return CheckWodResponse(
+        movements_found=movements_found,
+        results=results,
         any_referral_required=bool(referral_regions),
         referral_regions=referral_regions,
     )

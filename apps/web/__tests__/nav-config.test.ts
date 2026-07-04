@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { isNavItemActive, getPageMeta } from "@/components/layout/nav-config";
+import {
+  isNavItemActive,
+  getPageMeta,
+  NAV_ITEMS,
+} from "@/components/layout/nav-config";
 
 describe("isNavItemActive", () => {
   it("matches /dashboard exactly", () => {
@@ -32,6 +36,24 @@ describe("isNavItemActive", () => {
 
   it("returns false for a completely different route", () => {
     expect(isNavItemActive("/coach", "/dashboard")).toBe(false);
+  });
+});
+
+describe("NAV_ITEMS", () => {
+  it("includes /injuries in NAV_ITEMS", () => {
+    const item = NAV_ITEMS.find((i) => i.href === "/injuries");
+    expect(item).toBeDefined();
+    expect(item?.label).toBe("Injuries");
+    expect(item?.gitCommand).toBe("$ git issue --list");
+  });
+
+  it("/injuries is positioned between /history and /coach", () => {
+    const hrefs = NAV_ITEMS.map((i) => i.href);
+    const historyIdx = hrefs.indexOf("/history");
+    const injuriesIdx = hrefs.indexOf("/injuries");
+    const coachIdx = hrefs.indexOf("/coach");
+    expect(injuriesIdx).toBeGreaterThan(historyIdx);
+    expect(injuriesIdx).toBeLessThan(coachIdx);
   });
 });
 
