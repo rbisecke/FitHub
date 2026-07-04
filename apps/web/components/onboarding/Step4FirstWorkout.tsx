@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
-import { api } from "@/lib/api/client";
+import Link from "next/link";
 
 interface Props {
   token: string;
@@ -11,94 +9,91 @@ interface Props {
   onBack: () => void;
 }
 
-export function Step4FirstWorkout({ token, onNext, onSkip, onBack }: Props) {
-  const [text, setText] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleLog() {
-    if (!text.trim()) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const parsed = await api.workouts.parseNl(token, text.trim());
-      await api.workouts.create(token, {
-        title: parsed.title,
-        notes: parsed.notes || null,
-        performed_at: new Date().toISOString(),
-        is_tag: false,
-      });
-      onNext();
-    } catch {
-      setError(
-        "Couldn't save the result. You can log it later from the dashboard.",
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const hasText = text.trim().length > 0;
-
+export function Step4FirstWorkout({ onSkip }: Props) {
   return (
     <div className="animate-fadeUp flex flex-col">
       <p
-        className="font-data mb-2 text-[13px]"
-        style={{ color: "var(--accent)" }}
+        className="font-mono mb-2 text-[13px]"
+        style={{ color: "var(--muted)" }}
       >
-        $ git commit -m &quot;first result&quot;
+        $ fithub start
       </p>
       <h2 className="font-heading mb-2 text-[28px] text-[var(--foreground)]">
-        Log your first result?
+        How do you want to start?
       </h2>
-      <p className="mb-6 text-[14px] text-[var(--muted)]">
-        Drop in one lift to seed your graph — totally optional.
+      <p className="mb-8 text-[14px] text-[var(--muted)]">
+        Pick the flow that fits right now. You can use both any time.
       </p>
 
-      <Textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder={`"21-15-9 thrusters and pull-ups, Fran, ~8 min"`}
-        aria-label="Describe your workout"
-        rows={4}
-        className="font-data mb-1 resize-none border-[var(--border)] bg-[var(--card)] text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus-visible:ring-[var(--accent)]"
-      />
-      {error && (
-        <p className="mb-3 text-xs" style={{ color: "var(--destructive)" }}>
-          {error}
-        </p>
-      )}
-
-      <div className="mt-6 flex flex-col gap-3">
-        {hasText ? (
-          <button
-            onClick={handleLog}
-            disabled={saving}
-            className="w-full rounded-[13px] py-[15px] text-[15px] font-extrabold transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
-            style={{ background: "var(--accent)", color: "#0A0D12" }}
+      {/* Two equal-weight option cards */}
+      <div className="flex flex-col gap-4 sm:flex-row">
+        {/* Option A: git commit */}
+        <Link
+          href="/log/new"
+          className="flex flex-1 flex-col items-start rounded-[16px] border border-[var(--border)] bg-[var(--card)] p-5 text-left transition-colors hover:border-[var(--accent)] active:scale-[0.98]"
+          aria-label="Log a full workout session"
+        >
+          <p
+            className="font-mono mb-3 text-[15px] font-bold"
+            style={{ color: "var(--accent)" }}
           >
-            {saving ? "Saving…" : "Commit result"}
-          </button>
-        ) : (
-          <button
-            onClick={onSkip}
-            className="w-full rounded-[13px] py-[15px] text-[15px] font-semibold text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
+            $ git commit
+          </p>
+          <p className="font-heading mb-1 text-[17px] text-[var(--foreground)]">
+            Log a workout
+          </p>
+          <p className="mb-5 text-[13px] text-[var(--muted)]">
+            Multiple movements, sets, and reps. Full session logging.
+          </p>
+          <span
+            className="mt-auto inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-[13px] font-semibold"
             style={{
-              background: "transparent",
-              border: "1px solid var(--border)",
+              background: "var(--accent)",
+              color: "#0A0D12",
             }}
           >
-            Skip →
-          </button>
-        )}
-        <div className="flex justify-center">
-          <button
-            onClick={onBack}
-            className="inline-flex min-h-[44px] items-center px-4 text-[13px] text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
+            Log workout &rarr;
+          </span>
+        </Link>
+
+        {/* Option B: git tag */}
+        <Link
+          href="/log/tag"
+          className="flex flex-1 flex-col items-start rounded-[16px] border border-[var(--border)] bg-[var(--card)] p-5 text-left transition-colors hover:border-[var(--gold)] active:scale-[0.98]"
+          aria-label="Tag a personal record or milestone"
+        >
+          <p
+            className="font-mono mb-3 text-[15px] font-bold"
+            style={{ color: "var(--gold)" }}
           >
-            Back
-          </button>
-        </div>
+            $ git tag
+          </p>
+          <p className="font-heading mb-1 text-[17px] text-[var(--foreground)]">
+            Tag a PR
+          </p>
+          <p className="mb-5 text-[13px] text-[var(--muted)]">
+            One movement, your best result. Perfect for milestones.
+          </p>
+          <span
+            className="mt-auto inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-[13px] font-semibold"
+            style={{
+              borderColor: "var(--gold)",
+              color: "var(--gold)",
+            }}
+          >
+            Tag a PR &rarr;
+          </span>
+        </Link>
+      </div>
+
+      {/* Skip link */}
+      <div className="mt-6 flex justify-center">
+        <button
+          onClick={onSkip}
+          className="inline-flex min-h-[44px] items-center px-4 text-[13px] text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
+        >
+          Skip for now
+        </button>
       </div>
     </div>
   );
