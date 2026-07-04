@@ -8,6 +8,11 @@ import type { PlannedSessionOut, ModifyWorkoutResponse } from "@/lib/api/plans";
 import type { PersonalRecord } from "@/lib/api";
 import { WorkoutModifications } from "@/components/injuries/WorkoutModifications";
 import { LoadCalculator } from "@/components/shared/LoadCalculator";
+import {
+  CardioConversionChip,
+  isCardioMovement,
+  extractRunDistance,
+} from "@/components/plans/CardioConversionPanel";
 
 interface Props {
   accessToken: string;
@@ -136,72 +141,79 @@ export function TodayPrescription({
                   ? roundToNearest2p5((pct / 100) * pr.best_1rm_kg)
                   : null;
 
+              const cardio = isCardioMovement(item.movement_name);
+              const distKey = cardio
+                ? extractRunDistance(item.movement_name)
+                : null;
+
               return (
-                <li
-                  key={item.id}
-                  className="flex flex-wrap items-baseline gap-x-[6px] gap-y-[2px]"
-                >
-                  {/* Movement name */}
-                  <span
-                    className="font-sans text-[13px]"
-                    style={{ color: "var(--text)" }}
-                  >
-                    {item.movement_name}
-                  </span>
-
-                  {/* Sets × reps */}
-                  {item.sets && item.reps && (
+                <li key={item.id} className="flex flex-col gap-y-[2px]">
+                  <div className="flex flex-wrap items-baseline gap-x-[6px] gap-y-[2px]">
+                    {/* Movement name */}
                     <span
-                      className="font-mono text-[11px]"
-                      style={{ color: "var(--muted)" }}
+                      className="font-sans text-[13px]"
+                      style={{ color: "var(--text)" }}
                     >
-                      {item.sets}×{item.reps}
+                      {item.movement_name}
                     </span>
-                  )}
 
-                  {/* Percentage + computed weight */}
-                  {hasPct && (
-                    <>
-                      <span
-                        className="font-mono text-[11px]"
-                        style={{ color: "var(--amber)" }}
-                      >
-                        @ {pct}%
-                      </span>
+                    {/* Sets × reps */}
+                    {item.sets && item.reps && (
                       <span
                         className="font-mono text-[11px]"
                         style={{ color: "var(--muted)" }}
                       >
-                        →
+                        {item.sets}×{item.reps}
                       </span>
-                      {computedKg != null ? (
-                        <button
-                          onClick={() =>
-                            openSheet({
-                              movementName: item.movement_name,
-                              bestKg: pr!.best_1rm_kg,
-                              currentKg: pr!.current_e1rm_kg,
-                              isStale: pr!.is_stale,
-                              pct,
-                            })
-                          }
-                          className="font-mono font-semibold text-[11px] underline-offset-2 hover:underline"
-                          style={{ color: "var(--blue)" }}
-                          aria-label={`Open load calculator for ${item.movement_name} at ${pct}%`}
-                          data-testid={`weight-btn-${item.id}`}
+                    )}
+
+                    {/* Percentage + computed weight */}
+                    {hasPct && (
+                      <>
+                        <span
+                          className="font-mono text-[11px]"
+                          style={{ color: "var(--amber)" }}
                         >
-                          {computedKg.toFixed(1)} kg
-                        </button>
-                      ) : (
+                          @ {pct}%
+                        </span>
                         <span
                           className="font-mono text-[11px]"
                           style={{ color: "var(--muted)" }}
                         >
-                          ?
+                          →
                         </span>
-                      )}
-                    </>
-                  )}
+                        {computedKg != null ? (
+                          <button
+                            onClick={() =>
+                              openSheet({
+                                movementName: item.movement_name,
+                                bestKg: pr!.best_1rm_kg,
+                                currentKg: pr!.current_e1rm_kg,
+                                isStale: pr!.is_stale,
+                                pct,
+                              })
+                            }
+                            className="font-mono font-semibold text-[11px] underline-offset-2 hover:underline"
+                            style={{ color: "var(--blue)" }}
+                            aria-label={`Open load calculator for ${item.movement_name} at ${pct}%`}
+                            data-testid={`weight-btn-${item.id}`}
+                          >
+                            {computedKg.toFixed(1)} kg
+                          </button>
+                        ) : (
+                          <span
+                            className="font-mono text-[11px]"
+                            style={{ color: "var(--muted)" }}
+                          >
+                            ?
+                          </span>
+                        )}
+                      </>
+                    )}
+
+                    {/* Sub cardio chip — inline next to other metadata */}
+                    {distKey && <CardioConversionChip distanceKey={distKey} />}
+                  </div>
                 </li>
               );
             })}
