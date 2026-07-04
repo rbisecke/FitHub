@@ -5,6 +5,7 @@ import type {
   PersonalRecord,
   E1RMPoint,
   MovementHistoryEntry,
+  UserProfile,
 } from "@/lib/api";
 import { categorise } from "@/lib/records/categorise";
 import { MovementDetailShell } from "@/components/records/MovementDetailShell";
@@ -25,12 +26,13 @@ export default async function MovementDetailPage({
   const { movementId } = await params;
   const token = session.access_token;
 
-  const [prs, trendPoints, history] = await Promise.all([
+  const [prs, trendPoints, history, profile] = await Promise.all([
     api.analytics.personalRecords(token).catch((): PersonalRecord[] => []),
     api.analytics.movementTrend(token, movementId).catch((): E1RMPoint[] => []),
     api.analytics
       .movementHistory(token, movementId)
       .catch((): MovementHistoryEntry[] => []),
+    api.profile.get(token).catch((): UserProfile | null => null),
   ]);
 
   const pr = prs.find((p) => p.movement_id === movementId);
@@ -44,6 +46,7 @@ export default async function MovementDetailPage({
       category={category}
       trendPoints={trendPoints}
       history={history}
+      weightUnit={profile?.weight_unit ?? "kg"}
     />
   );
 }
