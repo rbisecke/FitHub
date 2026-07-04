@@ -6,7 +6,11 @@ import { RecordsShell } from "@/components/records/RecordsShell";
 
 export const metadata = { title: "Records · FitHub" };
 
-export default async function RecordsPage() {
+export default async function RecordsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ highlighted?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { session },
@@ -14,6 +18,7 @@ export default async function RecordsPage() {
   if (!session) redirect("/login");
 
   const token = session.access_token;
+  const { highlighted } = await searchParams;
 
   const prs = await api.analytics
     .personalRecords(token)
@@ -40,6 +45,11 @@ export default async function RecordsPage() {
     .map((pr) => pr.movement_id);
 
   return (
-    <RecordsShell prs={prs} trendMap={trendMap} recentPRIds={recentPRIds} />
+    <RecordsShell
+      prs={prs}
+      trendMap={trendMap}
+      recentPRIds={recentPRIds}
+      highlighted={highlighted}
+    />
   );
 }
