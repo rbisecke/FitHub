@@ -60,15 +60,9 @@ describe("TeamSessionSheet", () => {
         accessToken="tok"
       />,
     );
-    // Submit button text
-    const submitBtn = screen.getByTestId
-      ? null
-      : screen
-          .getAllByText("$ git merge")
-          .find((el) => el.tagName === "BUTTON");
-    // At least one "$ git merge" appears in the UI
-    expect(screen.getAllByText("$ git merge").length).toBeGreaterThanOrEqual(1);
-    void submitBtn;
+    // "$ git merge" appears in both the header (SheetTitle) and the submit button
+    const gitMergeEls = screen.getAllByText("$ git merge");
+    expect(gitMergeEls.length).toBeGreaterThanOrEqual(1);
   });
 
   it("does not render content when closed", () => {
