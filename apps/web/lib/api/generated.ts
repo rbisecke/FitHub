@@ -2795,7 +2795,7 @@ export interface components {
        * Status
        * @enum {string}
        */
-      status: "cleared_with_restrictions" | "resolved";
+      status: "cleared_with_restrictions" | "resolved" | "permanent";
       /** Restriction Notes */
       restriction_notes?: string | null;
     };
