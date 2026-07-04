@@ -88,7 +88,6 @@ export const api = {
       const qs = new URLSearchParams();
       if (params?.beforeId) qs.set("before_id", params.beforeId);
       if (params?.limit) qs.set("limit", String(params.limit));
-      // Filter params — ignored by API until backend adds support (B-series PRs)
       if (params?.sessionType) qs.set("session_type", params.sessionType);
       if (params?.partnerOnly !== undefined)
         qs.set("partner_only", String(params.partnerOnly));

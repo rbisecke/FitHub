@@ -205,6 +205,10 @@ async def list_workouts(
     user_id: uuid.UUID,
     before_id: uuid.UUID | None = None,
     limit: int = 20,
+    session_type: str | None = None,
+    partner_only: bool | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
 ) -> list[WorkoutSummary]:
     async with conn.cursor(row_factory=dict_row) as cur:
         _has_pr_subquery = """
@@ -222,6 +226,27 @@ async def list_workouts(
                 )
             ) AS has_pr
         """
+
+        # Build dynamic filter clauses
+        filter_clauses: list[str] = ["w.user_id = %s"]
+        params: list[object] = [user_id]
+
+        if session_type is not None:
+            filter_clauses.append("w.session_type = %s")
+            params.append(session_type)
+        if partner_only is True:
+            filter_clauses.append("w.workout_format IN ('partner', 'team')")
+        elif partner_only is False:
+            filter_clauses.append("w.workout_format NOT IN ('partner', 'team')")
+        if date_from is not None:
+            filter_clauses.append("w.performed_at::date >= %s::date")
+            params.append(date_from)
+        if date_to is not None:
+            filter_clauses.append("w.performed_at::date <= %s::date")
+            params.append(date_to)
+
+        base_where = " AND ".join(filter_clauses)
+
         if before_id is None:
             await cur.execute(
                 f"""
@@ -230,12 +255,12 @@ async def list_workouts(
                 FROM   public.workouts w
                 LEFT JOIN public.results r
                        ON r.workout_id = w.id AND r.user_id = w.user_id
-                WHERE  w.user_id = %s
+                WHERE  {base_where}
                 GROUP  BY w.id
                 ORDER  BY w.performed_at DESC, w.id DESC
                 LIMIT  %s
                 """,
-                [user_id, limit],
+                [*params, limit],
             )
         else:
             await cur.execute(
@@ -245,7 +270,7 @@ async def list_workouts(
                 FROM   public.workouts w
                 LEFT JOIN public.results r
                        ON r.workout_id = w.id AND r.user_id = w.user_id
-                WHERE  w.user_id = %s
+                WHERE  {base_where}
                   AND  (w.performed_at, w.id) < (
                            SELECT performed_at, id
                            FROM   public.workouts
@@ -255,7 +280,7 @@ async def list_workouts(
                 ORDER  BY w.performed_at DESC, w.id DESC
                 LIMIT  %s
                 """,
-                [user_id, before_id, user_id, limit],
+                [*params, before_id, user_id, limit],
             )
         rows = await cur.fetchall()
     return [WorkoutSummary(**r) for r in rows]

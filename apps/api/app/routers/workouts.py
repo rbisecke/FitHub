@@ -47,8 +47,21 @@ async def list_workouts_route(
     conn: DBConn,
     before_id: uuid.UUID | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=365),
+    session_type: str | None = Query(default=None),
+    partner_only: bool | None = Query(default=None),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
 ) -> WorkoutListResponse:
-    items = await list_workouts(conn, user_id=user.user_id, before_id=before_id, limit=limit)
+    items = await list_workouts(
+        conn,
+        user_id=user.user_id,
+        before_id=before_id,
+        limit=limit,
+        session_type=session_type,
+        partner_only=partner_only,
+        date_from=date_from,
+        date_to=date_to,
+    )
     next_cursor = str(items[-1].id) if len(items) == limit else None
     return WorkoutListResponse(items=items, next_cursor=next_cursor)
 
