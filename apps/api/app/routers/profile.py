@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import uuid
 from typing import Annotated, Any
 
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 from app.auth import UserContext, get_current_user
 from app.db import get_db
@@ -20,6 +22,23 @@ router = APIRouter(prefix="/api/v1/profile", tags=["profile"])
 
 Auth = Annotated[UserContext, Depends(get_current_user)]
 DB = Annotated[psycopg.AsyncConnection[Any], Depends(get_db)]
+
+
+class UserSearchResult(BaseModel):
+    user_id: uuid.UUID
+    display_name: str | None
+    email: str
+
+
+@router.get("/search", response_model=list[UserSearchResult])
+async def search_users(
+    user: Auth,
+    conn: DB,
+    q: str = Query(min_length=2, max_length=100),
+) -> list[UserSearchResult]:
+    """Search FitHub users by display name or email (excludes the caller)."""
+    rows = await repo.search_users(conn, query=q, exclude_user_id=user.user_id)
+    return [UserSearchResult(**r) for r in rows]
 
 
 @router.get("", response_model=UserProfile)

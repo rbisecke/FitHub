@@ -4,13 +4,14 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { WorkoutSummary, Workout } from "@/lib/api";
+import type { WorkoutSummary, Workout, TeamSession } from "@/lib/api";
 import { sessionLabel, formatLabel, loadDisplay } from "@/lib/display";
 import { api } from "@/lib/api/client";
 import { isBenchmark } from "@/lib/workout/benchmarks";
 import { relativeDate } from "@/lib/display";
 import { fmtDistance, type DistanceUnit } from "@/lib/distance";
 import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
+import { TeamSessionSheet } from "@/components/team-sessions/TeamSessionSheet";
 
 // Session-type badge colours mapped to brand tokens (token tints for border/bg),
 // matching WorkoutDetailClient so the list + detail read identically.
@@ -270,6 +271,7 @@ export function WorkoutCard({
                   <ExpandedContent
                     workout={detail}
                     summary={workout}
+                    accessToken={accessToken}
                     onMovementFilter={onMovementFilter}
                   />
                 ) : null}
@@ -299,10 +301,12 @@ function ExpandedSkeleton() {
 function ExpandedContent({
   workout,
   summary,
+  accessToken,
   onMovementFilter,
 }: {
   workout: Workout;
   summary: WorkoutSummary;
+  accessToken: string;
   onMovementFilter?: (m: { id: string; name: string }) => void;
 }) {
   const { distanceUnit } = useUserPrefs();
@@ -319,6 +323,22 @@ function ExpandedContent({
   const loadAu = loadDisplay(workout.perceived_load_au);
   const isPartner =
     workout.workout_format === "partner" || workout.workout_format === "team";
+
+  // Team session state: null = not checked, false = no session, TeamSession = linked
+  const [teamSession, setTeamSession] = useState<TeamSession | null | false>(
+    null,
+  );
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const checkedRef = useRef(false);
+
+  useEffect(() => {
+    if (checkedRef.current) return;
+    checkedRef.current = true;
+    api.teamSessions
+      .getWorkoutTeamSession(accessToken, summary.id)
+      .then((ts) => setTeamSession(ts))
+      .catch(() => setTeamSession(false));
+  }, [accessToken, summary.id]);
 
   return (
     <div className="space-y-4">
@@ -499,7 +519,26 @@ function ExpandedContent({
         <span className="font-data text-xs text-[var(--muted-foreground)]">
           git show {summary.short_hash}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {/* Team session indicator / action */}
+          {teamSession === false && (
+            <button
+              type="button"
+              onClick={() => setSheetOpen(true)}
+              className="flex items-center gap-1 text-[11px] font-mono border border-[#30363d] text-[#8b949e] hover:border-[rgba(88,166,255,0.4)] hover:text-[#58a6ff] px-[10px] py-1.5 rounded-[7px] transition-colors"
+              data-testid="mark-team-session-btn"
+            >
+              ⊕ team session
+            </button>
+          )}
+          {teamSession && (
+            <Link
+              href={`/team-sessions/${teamSession.id}`}
+              className="flex items-center gap-1 text-[11px] font-mono border border-[rgba(88,166,255,0.3)] bg-[rgba(88,166,255,0.08)] text-[#58a6ff] px-[10px] py-1.5 rounded-[7px] transition-colors hover:bg-[rgba(88,166,255,0.15)]"
+            >
+              ⊕ view team session →
+            </Link>
+          )}
           <Link
             href={`/history/${summary.id}`}
             className="flex items-center gap-1 text-[12px] font-semibold bg-[var(--surface-2)] border border-[var(--border)] text-[var(--foreground)] px-[13px] py-2 rounded-[9px] hover:border-[var(--muted-foreground)] transition-colors"
@@ -514,6 +553,16 @@ function ExpandedContent({
           </Link>
         </div>
       </div>
+
+      {/* Team session creation sheet */}
+      <TeamSessionSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        workoutId={summary.id}
+        performedAt={summary.performed_at}
+        accessToken={accessToken}
+        onCreated={(session) => setTeamSession(session)}
+      />
     </div>
   );
 }

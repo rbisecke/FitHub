@@ -97,3 +97,29 @@ async def test_add_training_partner_not_found(alice_client: AsyncClient) -> None
         "/api/v1/training-partners", json={"email": "nobody@nowhere.invalid"}
     )
     assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_search_users_requires_auth(anon_client: AsyncClient) -> None:
+    r = await anon_client.get("/api/v1/profile/search?q=alice")
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_search_users_returns_list(alice_client: AsyncClient) -> None:
+    r = await alice_client.get("/api/v1/profile/search?q=bob")
+    assert r.status_code == 200
+    body = r.json()
+    assert isinstance(body, list)
+    # Each result has the expected fields
+    for item in body:
+        assert "user_id" in item
+        assert "display_name" in item
+        assert "email" in item
+
+
+@pytest.mark.asyncio
+async def test_search_users_min_length(alice_client: AsyncClient) -> None:
+    """Query shorter than 2 chars should be rejected with 422."""
+    r = await alice_client.get("/api/v1/profile/search?q=a")
+    assert r.status_code == 422
