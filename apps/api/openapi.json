@@ -8941,6 +8941,17 @@
             "type": "string",
             "format": "date-time",
             "title": "Joined At"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
           }
         },
         "type": "object",
@@ -10029,6 +10040,18 @@
             "type": "boolean",
             "title": "Has Pr",
             "default": false
+          },
+          "team_session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Session Id"
           }
         },
         "type": "object",

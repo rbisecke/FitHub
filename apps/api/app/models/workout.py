@@ -83,6 +83,7 @@ class WorkoutSummary(BaseModel):
     updated_at: datetime
     result_count: int = 0
     has_pr: bool = False
+    team_session_id: uuid.UUID | None = None
 
 
 class CreateWorkoutRequest(BaseModel):
