@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from app.engine.metrics import SignalInput, compute_recovery, norm, z_score
+from app.engine.metrics import (
+    SignalInput,
+    compute_recovery,
+    compute_strain_score,
+    norm,
+    z_score,
+)
 
 
 def make_sig(**kwargs: object) -> SignalInput:
@@ -106,3 +112,39 @@ class TestComputeRecovery:
         dm_l = compute_recovery(low, baseline_days=30)
         dm_h = compute_recovery(high, baseline_days=30)
         assert dm_h.recovery_score < dm_l.recovery_score  # type: ignore[operator]
+
+
+class TestComputeStrainScore:
+    def test_returns_none_when_no_active_energy_today(self) -> None:
+        assert compute_strain_score(None, 500.0, 14) is None
+
+    def test_returns_none_when_fewer_than_7_days_baseline(self) -> None:
+        assert compute_strain_score(600.0, 500.0, 6) is None
+
+    def test_returns_none_when_no_baseline_avg(self) -> None:
+        assert compute_strain_score(600.0, None, 14) is None
+
+    def test_returns_none_when_baseline_avg_is_zero(self) -> None:
+        assert compute_strain_score(600.0, 0.0, 14) is None
+
+    def test_normalization_at_baseline(self) -> None:
+        # At exactly the baseline, strain should be 100%
+        result = compute_strain_score(500.0, 500.0, 14)
+        assert result == pytest.approx(100.0)
+
+    def test_below_baseline_returns_below_100(self) -> None:
+        result = compute_strain_score(250.0, 500.0, 14)
+        assert result == pytest.approx(50.0)
+
+    def test_above_baseline_clamped_to_100(self) -> None:
+        # 2x the baseline would be 200%, clamped to 100
+        result = compute_strain_score(1000.0, 500.0, 14)
+        assert result == pytest.approx(100.0)
+
+    def test_zero_active_energy_returns_zero(self) -> None:
+        result = compute_strain_score(0.0, 500.0, 14)
+        assert result == pytest.approx(0.0)
+
+    def test_exactly_7_days_is_sufficient(self) -> None:
+        result = compute_strain_score(400.0, 500.0, 7)
+        assert result == pytest.approx(80.0)

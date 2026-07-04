@@ -2453,6 +2453,8 @@ export interface components {
       confidence_tier?: string | null;
       /** Hrv Type */
       hrv_type?: string | null;
+      /** Strain Score */
+      strain_score?: number | null;
     };
     /** RecentError */
     RecentError: {
