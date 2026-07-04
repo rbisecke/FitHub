@@ -118,33 +118,44 @@ class TestComputeStrainScore:
     def test_returns_none_when_no_active_energy_today(self) -> None:
         assert compute_strain_score(None, 500.0, 14) is None
 
-    def test_returns_none_when_fewer_than_7_days_baseline(self) -> None:
-        assert compute_strain_score(600.0, 500.0, 6) is None
-
-    def test_returns_none_when_no_baseline_avg(self) -> None:
-        assert compute_strain_score(600.0, None, 14) is None
+    def test_returns_none_when_no_baseline_average(self) -> None:
+        assert compute_strain_score(400.0, None, 14) is None
 
     def test_returns_none_when_baseline_avg_is_zero(self) -> None:
         assert compute_strain_score(600.0, 0.0, 14) is None
 
+    def test_returns_none_when_fewer_than_7_days(self) -> None:
+        assert compute_strain_score(400.0, 500.0, 6) is None
+
     def test_normalization_at_baseline(self) -> None:
-        # At exactly the baseline, strain should be 100%
+        # 500 today / 500 avg = 100% raw, clamped to 100
         result = compute_strain_score(500.0, 500.0, 14)
         assert result == pytest.approx(100.0)
 
-    def test_below_baseline_returns_below_100(self) -> None:
-        result = compute_strain_score(250.0, 500.0, 14)
-        assert result == pytest.approx(50.0)
+    def test_below_baseline_gives_low_strain(self) -> None:
+        # 200 / 500 = 40%
+        result = compute_strain_score(200.0, 500.0, 14)
+        assert result == pytest.approx(40.0)
 
-    def test_above_baseline_clamped_to_100(self) -> None:
-        # 2x the baseline would be 200%, clamped to 100
-        result = compute_strain_score(1000.0, 500.0, 14)
+    def test_above_baseline_clamped_at_100(self) -> None:
+        # 1200 / 500 = 240% — clamped to 100
+        result = compute_strain_score(1200.0, 500.0, 14)
         assert result == pytest.approx(100.0)
 
     def test_zero_active_energy_returns_zero(self) -> None:
         result = compute_strain_score(0.0, 500.0, 14)
         assert result == pytest.approx(0.0)
 
-    def test_exactly_7_days_is_sufficient(self) -> None:
-        result = compute_strain_score(400.0, 500.0, 7)
-        assert result == pytest.approx(80.0)
+    def test_exactly_7_days_is_accepted(self) -> None:
+        result = compute_strain_score(350.0, 500.0, 7)
+        assert result is not None
+        assert result == pytest.approx(70.0)
+
+    def test_color_thresholds_align_with_spec(self) -> None:
+        # Green: < 40, amber: 40-70, red: > 70
+        low = compute_strain_score(150.0, 500.0, 14)  # 30%
+        mid = compute_strain_score(275.0, 500.0, 14)  # 55%
+        high = compute_strain_score(400.0, 500.0, 14)  # 80%
+        assert low is not None and low < 40
+        assert mid is not None and 40 <= mid <= 70
+        assert high is not None and high > 70
