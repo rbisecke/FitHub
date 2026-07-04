@@ -36,7 +36,8 @@ vi.mock("next/link", () => ({
 import { AdaptationBanner } from "@/components/dashboard/AdaptationBanner";
 import { api } from "@/lib/api/client";
 
-const mockedApi = api as {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockedApi = api as unknown as {
   adaptations: { list: ReturnType<typeof vi.fn> };
 };
 
