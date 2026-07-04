@@ -121,6 +121,9 @@ class TestComputeStrainScore:
     def test_returns_none_when_no_baseline_average(self) -> None:
         assert compute_strain_score(400.0, None, 14) is None
 
+    def test_returns_none_when_baseline_avg_is_zero(self) -> None:
+        assert compute_strain_score(600.0, 0.0, 14) is None
+
     def test_returns_none_when_fewer_than_7_days(self) -> None:
         assert compute_strain_score(400.0, 500.0, 6) is None
 
