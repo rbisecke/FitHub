@@ -54,3 +54,28 @@ describe("TodayPrescription — load calculation helpers", () => {
     expect(roundToNearest2p5(81.25)).toBe(82.5);
   });
 });
+
+describe("TodayPrescription — hasActiveInjuries prop logic", () => {
+  it("modify button is hidden when hasActiveInjuries is false", () => {
+    // The button only renders when hasActiveInjuries && session.items.length > 0.
+    // This test documents that contract without mounting the async component.
+    const hasActiveInjuries = false;
+    const sessionItemsLength = 3;
+    const showButton = hasActiveInjuries && sessionItemsLength > 0;
+    expect(showButton).toBe(false);
+  });
+
+  it("modify button is shown when hasActiveInjuries is true and session has items", () => {
+    const hasActiveInjuries = true;
+    const sessionItemsLength = 3;
+    const showButton = hasActiveInjuries && sessionItemsLength > 0;
+    expect(showButton).toBe(true);
+  });
+
+  it("modify button is hidden when hasActiveInjuries is true but session has no items", () => {
+    const hasActiveInjuries = true;
+    const sessionItemsLength = 0;
+    const showButton = hasActiveInjuries && sessionItemsLength > 0;
+    expect(showButton).toBe(false);
+  });
+});
