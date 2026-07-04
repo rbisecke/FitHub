@@ -2483,6 +2483,15 @@ export interface components {
         | "hip_flexor"
         | "it_band"
         | "forearm"
+        | "rotator_cuff"
+        | "patellar_tendon"
+        | "lateral_elbow"
+        | "medial_elbow"
+        | "arch"
+        | "achilles"
+        | "shin"
+        | "groin"
+        | "si_joint"
         | "other";
       /** Pain Level */
       pain_level: number;
