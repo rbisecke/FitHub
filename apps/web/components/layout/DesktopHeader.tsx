@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getPageMeta } from "./nav-config";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface Props {
   handle: string;
@@ -29,13 +30,15 @@ export function DesktopHeader({ handle, streak = 0, branch = "main" }: Props) {
         </span>
       </div>
 
-      {/* Right: streak + CTA + avatar */}
+      {/* Right: streak + bell + CTA + avatar */}
       <div className="flex items-center gap-3">
         {streak > 0 && (
           <span className="font-data text-[12px] font-bold text-[var(--hot)] bg-[rgba(255,122,69,0.12)] border border-[rgba(255,122,69,0.3)] px-[11px] py-1 rounded-full whitespace-nowrap">
             🔥 {streak} day streak
           </span>
         )}
+
+        <NotificationBell mode="desktop" />
 
         <Link
           href="/log/new"

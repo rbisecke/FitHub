@@ -245,6 +245,11 @@
   30%           { transform: translateY(-4px); opacity: 1; }
 }
 
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
 @layer utilities {
   .animate-blink    { animation: blink 1s step-end infinite; }
   .animate-fall     { animation: fall 3s linear forwards; }
