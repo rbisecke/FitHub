@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { PersonalRecord, E1RMPoint } from "@/lib/api";
 import type { PRCategory } from "@/lib/records/categorise";
 import {
@@ -23,11 +23,34 @@ interface Props {
   prs: PersonalRecord[];
   trendMap: Record<string, E1RMPoint[]>;
   recentPRIds: string[];
+  highlighted?: string;
 }
 
-export function RecordsShell({ prs, trendMap, recentPRIds }: Props) {
+export function RecordsShell({
+  prs,
+  trendMap,
+  recentPRIds,
+  highlighted,
+}: Props) {
   const [viewMode, setViewMode] = useState<"current" | "timeline">("current");
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
+  // Highlight ring: fades from full opacity to 0 over 2s after a 70ms delay
+  const [highlightOpacity, setHighlightOpacity] = useState(highlighted ? 1 : 0);
+  const highlightRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!highlighted || !highlightRef.current) return;
+    // Scroll the highlighted card into view
+    highlightRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    // After 70ms delay, begin the 2s fade-out
+    const delayId = setTimeout(() => {
+      setHighlightOpacity(0);
+    }, 70);
+    return () => clearTimeout(delayId);
+  }, [highlighted]);
 
   // Empty state
   if (prs.length === 0) {
@@ -169,6 +192,11 @@ export function RecordsShell({ prs, trendMap, recentPRIds }: Props) {
                 prs={categorised[cat]}
                 trendMap={trendMap}
                 recentPRIds={recentPRIds}
+                highlighted={highlighted}
+                highlightOpacity={highlightOpacity}
+                onHighlightRef={(el) => {
+                  highlightRef.current = el;
+                }}
               />
             ))}
           </div>
@@ -188,15 +216,39 @@ export function RecordsShell({ prs, trendMap, recentPRIds }: Props) {
               <span className="h-px flex-1 bg-[var(--border)]" />
             </div>
             <div className="grid grid-cols-2 gap-[9px]">
-              {categorised[cat].map((pr) => (
-                <PRCard
-                  key={pr.movement_id}
-                  pr={pr}
-                  points={trendMap[pr.movement_id] ?? []}
-                  isRecent={recentPRIds.includes(pr.movement_id)}
-                  category={cat}
-                />
-              ))}
+              {categorised[cat].map((pr) => {
+                const isHighlighted = highlighted === pr.movement_id;
+                return (
+                  <div
+                    key={pr.movement_id}
+                    ref={
+                      isHighlighted
+                        ? (el) => {
+                            highlightRef.current = el;
+                          }
+                        : undefined
+                    }
+                    className="relative"
+                  >
+                    <PRCard
+                      pr={pr}
+                      points={trendMap[pr.movement_id] ?? []}
+                      isRecent={recentPRIds.includes(pr.movement_id)}
+                      category={cat}
+                    />
+                    {isHighlighted && (
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 rounded-[14px] ring-2 ring-[var(--blue)] motion-reduce:transition-none"
+                        style={{
+                          opacity: highlightOpacity,
+                          transition: "opacity 2s ease-out",
+                        }}
+                      />
+                    )}
+                  </div>
+                );
+              })}
               {categorised[cat].length % 2 !== 0 && <EmptyRecordSlot />}
             </div>
           </div>

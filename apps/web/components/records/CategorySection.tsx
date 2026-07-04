@@ -9,6 +9,9 @@ interface Props {
   prs: PersonalRecord[];
   trendMap: Record<string, E1RMPoint[]>;
   recentPRIds: string[];
+  highlighted?: string;
+  highlightOpacity?: number;
+  onHighlightRef?: (el: HTMLDivElement | null) => void;
 }
 
 const DOT_COLOR: Record<PRCategory, string> = {
@@ -23,6 +26,9 @@ export function CategorySection({
   prs,
   trendMap,
   recentPRIds,
+  highlighted,
+  highlightOpacity = 0,
+  onHighlightRef,
 }: Props) {
   return (
     <section aria-label={`${CATEGORY_LABEL[category]} records`}>
@@ -55,15 +61,33 @@ export function CategorySection({
         <EmptyCategoryState category={CATEGORY_LABEL[category]} />
       ) : (
         <div className="grid grid-cols-1 gap-[13px] sm:grid-cols-2 lg:grid-cols-3">
-          {prs.map((pr) => (
-            <PRCard
-              key={pr.movement_id}
-              pr={pr}
-              points={trendMap[pr.movement_id] ?? []}
-              isRecent={recentPRIds.includes(pr.movement_id)}
-              category={category}
-            />
-          ))}
+          {prs.map((pr) => {
+            const isHighlighted = highlighted === pr.movement_id;
+            return (
+              <div
+                key={pr.movement_id}
+                ref={isHighlighted ? onHighlightRef : undefined}
+                className="relative"
+              >
+                <PRCard
+                  pr={pr}
+                  points={trendMap[pr.movement_id] ?? []}
+                  isRecent={recentPRIds.includes(pr.movement_id)}
+                  category={category}
+                />
+                {isHighlighted && (
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-[var(--blue)] motion-reduce:transition-none"
+                    style={{
+                      opacity: highlightOpacity,
+                      transition: "opacity 2s ease-out",
+                    }}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </section>

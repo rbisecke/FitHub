@@ -234,7 +234,7 @@ export function TagPageClient({
         resultType,
         selectedMovement.modality,
       );
-      router.push("/history");
+      router.push(`/records?highlighted=${selectedMovement.id}`);
     } catch {
       setSubmitError("Failed to save milestone. Please try again.");
     }
