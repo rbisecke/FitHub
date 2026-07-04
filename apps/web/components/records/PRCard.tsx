@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { PersonalRecord, E1RMPoint } from "@/lib/api";
 import type { PRCategory } from "@/lib/records/categorise";
 
@@ -50,28 +51,44 @@ export function PRCard({ pr, points, isRecent, category }: Props) {
   const sparklinePts = computeSparkline(sortedPoints, 120, 34);
   const sparklinePtsMobile = computeSparkline(sortedPoints, 90, 24);
 
-  // Improvement badge: delta from penultimate to latest point
+  // Improvement badge: use server-computed delta_kg when available; fall back to sparkline approximation.
+  // Design decision: delta_kg is null for first PRs (no prior best), so we show "First PR" in that case.
   let improvement: string | null = null;
-  if (sortedPoints.length >= 2) {
+  let isFirstPR = false;
+  if (pr.delta_kg != null) {
+    if (pr.delta_kg > 0.01) {
+      improvement = `↑ ${pr.delta_kg.toFixed(1)} kg vs prev PR`;
+    } else if (pr.prev_best_1rm_kg == null) {
+      isFirstPR = true;
+    }
+  } else if (pr.prev_best_1rm_kg == null) {
+    // No previous best — genuinely the first PR for this movement
+    isFirstPR = true;
+  } else if (sortedPoints.length >= 2) {
+    // Fallback: approximate from sparkline when server didn't return delta_kg
     const prev = sortedPoints[sortedPoints.length - 2]!.estimated_1rm_kg;
     const curr = sortedPoints[sortedPoints.length - 1]!.estimated_1rm_kg;
     const delta = curr - prev;
     if (delta > 0.01) {
-      improvement = `+${delta.toFixed(1)} kg`;
+      improvement = `↑ ${delta.toFixed(1)} kg vs prev PR`;
     }
   }
 
   const dateLabel = relativeDate(pr.achieved_at);
   const isToday = dateLabel === "Today";
 
+  const tagHref = `/log/tag?movement_id=${pr.movement_id}`;
+
   return (
     <>
-      {/* Mobile compact card */}
-      <div
-        className={`md:hidden relative flex flex-col rounded-[14px] p-[14px] ${
+      {/* Mobile compact card — full card is tappable */}
+      <Link
+        href={tagHref}
+        aria-label={`Log new attempt for ${pr.movement_name}`}
+        className={`md:hidden relative flex flex-col rounded-[14px] p-[14px] transition-colors active:brightness-90 ${
           isToday
             ? "border border-[var(--accent)] bg-[var(--card)]"
-            : "border border-[var(--border)] bg-[var(--card)]"
+            : "border border-[var(--border)] bg-[var(--card)] active:border-[var(--blue)]"
         }`}
       >
         {isToday && (
@@ -122,15 +139,21 @@ export function PRCard({ pr, points, isRecent, category }: Props) {
           {improvement && (
             <>
               {" "}
-              <span style={{ color: "var(--accent)" }}>{improvement}</span>
+              <span style={{ color: "var(--blue)" }}>{improvement}</span>
+            </>
+          )}
+          {isFirstPR && !improvement && (
+            <>
+              {" "}
+              <span style={{ color: "var(--muted)" }}>First PR</span>
             </>
           )}
         </div>
-      </div>
+      </Link>
 
-      {/* Desktop card */}
+      {/* Desktop card — hover reveals blue border + $ tag button */}
       <article
-        className="hidden md:block relative overflow-hidden bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 hover:border-[var(--accent)] transition-colors"
+        className="group hidden md:block relative overflow-hidden bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 hover:border-[var(--blue)] transition-colors"
         aria-label={`${
           pr.movement_name
         } personal record: ${pr.best_1rm_kg.toFixed(1)} kg`}
@@ -158,19 +181,7 @@ export function PRCard({ pr, points, isRecent, category }: Props) {
           >
             {category}
           </span>
-          {isRecent && !isToday && (
-            <span
-              className="text-[10px] font-bold tracking-wide rounded-full px-2 py-0.5 animate-popIn"
-              style={{
-                background: "rgba(255,200,61,0.14)",
-                color: "var(--gold)",
-                border: "1px solid rgba(255,200,61,0.3)",
-              }}
-            >
-              NEW PR
-            </span>
-          )}
-          {isToday && (
+          {(isRecent || isToday) && (
             <span
               className="text-[10px] font-bold tracking-wide rounded-full px-2 py-0.5 animate-popIn"
               style={{
@@ -201,11 +212,16 @@ export function PRCard({ pr, points, isRecent, category }: Props) {
         {/* Improvement + date row */}
         <div className="flex items-center justify-between mb-3">
           {improvement ? (
-            <span className="text-[12px] font-semibold text-[var(--accent)]">
+            <span
+              className="font-mono text-[12px] font-semibold"
+              style={{ color: "var(--blue)" }}
+            >
               {improvement}
             </span>
-          ) : (
+          ) : isFirstPR ? (
             <span className="text-[12px] text-[var(--muted)]">First PR</span>
+          ) : (
+            <span className="text-[12px] text-[var(--muted)]" />
           )}
           <span className="text-[12px] text-[var(--muted)]">{dateLabel}</span>
         </div>
@@ -230,6 +246,26 @@ export function PRCard({ pr, points, isRecent, category }: Props) {
             />
           </svg>
         )}
+
+        {/* $ tag button — appears on hover, bottom-right */}
+        <Link
+          href={tagHref}
+          aria-label={`Log new attempt for ${pr.movement_name}`}
+          onClick={(e) => e.stopPropagation()}
+          className={[
+            "absolute bottom-4 right-4",
+            "opacity-0 group-hover:opacity-100",
+            "flex items-center gap-1 px-2.5 py-1",
+            "font-mono text-[11px] font-semibold",
+            "rounded-md border border-[var(--blue)] text-[var(--blue)]",
+            "hover:bg-[var(--blue)] hover:text-[var(--bg)]",
+            "transition-all duration-150",
+            // Respect prefers-reduced-motion
+            "motion-reduce:transition-none",
+          ].join(" ")}
+        >
+          $ tag
+        </Link>
       </article>
     </>
   );
