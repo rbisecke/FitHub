@@ -14,6 +14,7 @@ const BASE_PR: PersonalRecord = {
   time_s: null,
   prev_best_1rm_kg: null,
   delta_kg: null,
+  is_stale: false,
 };
 
 describe("PRCard", () => {
