@@ -1,5 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { requireAuth } from "@/lib/supabase/requireAuth";
 import { api } from "@/lib/api/client";
 import { toHandle } from "@/lib/display";
 import type {
@@ -26,13 +25,7 @@ import { AdaptationBanner } from "@/components/dashboard/AdaptationBanner";
 import type { PlanSummary } from "@/lib/api/plans";
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
-
-  const token = session.access_token;
+  const { token, user } = await requireAuth();
 
   const [
     workoutRes,
@@ -71,7 +64,7 @@ export default async function DashboardPage() {
 
   const profile = profileRes.status === "fulfilled" ? profileRes.value : null;
   const firstName = profile?.display_name?.split(" ")[0] ?? "there";
-  const terminalHandle = toHandle(profile?.display_name, session.user.email);
+  const terminalHandle = toHandle(profile?.display_name, user.email);
 
   // ── Stat grid data ────────────────────────────────────────────────────────
   const today = new Date().toLocaleDateString("en-CA");
