@@ -54,7 +54,7 @@ export function InjuryList({ initialInjuries, accessToken }: Props) {
     return (
       <p
         data-testid="injury-list-empty"
-        className="font-mono text-sm text-zinc-500"
+        className="font-mono text-sm text-[var(--muted)]"
       >
         # no active injuries
       </p>
@@ -67,21 +67,21 @@ export function InjuryList({ initialInjuries, accessToken }: Props) {
         <li
           key={injury.id}
           data-testid="injury-list-item"
-          className="rounded-lg border border-zinc-800 bg-zinc-900 p-4"
+          className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex flex-col gap-1">
-              <span className="font-mono text-sm font-semibold text-zinc-100">
+              <span className="font-mono text-sm font-semibold text-[var(--text)]">
                 {injury.body_region.replace(/_/g, " ")}
               </span>
-              <span className="font-mono text-xs text-zinc-500">
+              <span className="font-mono text-xs text-[var(--muted)]">
                 pain {injury.pain_level}/10 ·{" "}
                 {injury.staleness_days === 0
                   ? "today"
                   : `${injury.staleness_days}d ago`}
               </span>
               {injury.notes && (
-                <span className="font-mono text-xs text-zinc-600">
+                <span className="font-mono text-xs text-[var(--muted)]">
                   {injury.notes}
                 </span>
               )}
@@ -115,7 +115,7 @@ export function InjuryList({ initialInjuries, accessToken }: Props) {
                     }
                     placeholder="restriction notes (optional)"
                     rows={2}
-                    className="w-full rounded border border-zinc-700 bg-zinc-950 px-2 py-1.5 font-mono text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 font-mono text-xs text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                   />
                   <div className="flex flex-wrap gap-2">
                     {injury.status === "active" && (
@@ -156,7 +156,7 @@ export function InjuryList({ initialInjuries, accessToken }: Props) {
                     </button>
                     <button
                       onClick={() => setExpandedId(null)}
-                      className="font-mono text-xs text-zinc-600 hover:text-zinc-400"
+                      className="font-mono text-xs text-[var(--muted)] hover:text-[var(--text)]"
                     >
                       cancel
                     </button>
@@ -166,7 +166,7 @@ export function InjuryList({ initialInjuries, accessToken }: Props) {
                 <button
                   data-testid="update-status-btn"
                   onClick={() => setExpandedId(injury.id)}
-                  className="font-mono text-xs text-zinc-500 hover:text-zinc-300"
+                  className="font-mono text-xs text-[var(--muted)] hover:text-[var(--text)]"
                 >
                   {injury.status === "permanent"
                     ? "edit notes →"

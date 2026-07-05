@@ -43,7 +43,7 @@ export function NLLogInput({ accessToken }: NLLogInputProps) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <label
-          className="font-mono text-xs text-zinc-400"
+          className="font-mono text-xs text-[var(--muted)]"
           htmlFor="nl-log-input"
         >
           Describe your workout in plain text
@@ -55,14 +55,14 @@ export function NLLogInput({ accessToken }: NLLogInputProps) {
           onChange={(e) => setText(e.target.value)}
           placeholder='e.g. "Fran 4:32, banded pull-ups" or "back squat 5x5 @ 100kg, felt strong"'
           rows={4}
-          className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono text-sm text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
         />
       </div>
 
       <button
         onClick={handleParsing}
         disabled={loading || !text.trim()}
-        className="self-start rounded bg-indigo-700 px-4 py-2 font-mono text-sm text-white hover:bg-indigo-600 disabled:opacity-40"
+        className="self-start rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[#0d1117] hover:brightness-110 disabled:opacity-40"
       >
         {loading ? "parsing..." : "pre-fill from text"}
       </button>
@@ -70,10 +70,10 @@ export function NLLogInput({ accessToken }: NLLogInputProps) {
       {error && <p className="font-mono text-xs text-red-400">{error}</p>}
 
       {result && (
-        <div className="rounded border border-zinc-700 bg-zinc-900 p-4 text-sm">
+        <div className="rounded border border-[var(--border)] bg-[var(--surface)] p-4 text-sm">
           <div className="flex items-center justify-between">
-            <p className="font-mono text-zinc-100">
-              <span className="text-zinc-400">title:</span>{" "}
+            <p className="font-mono text-[var(--text)]">
+              <span className="text-[var(--muted)]">title:</span>{" "}
               {result.parsed.title ?? "(untitled)"}
             </p>
             <div className="flex items-center gap-2">
@@ -85,13 +85,13 @@ export function NLLogInput({ accessToken }: NLLogInputProps) {
                   STUB
                 </span>
               )}
-              <span className="font-mono text-xs text-zinc-500">
+              <span className="font-mono text-xs text-[var(--muted)]">
                 {Math.round(result.confidence * 100)}% confidence
               </span>
             </div>
           </div>
 
-          <p className="mt-1 font-mono text-xs text-zinc-400">
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
             {result.parsed.session_type}
             {result.parsed.workout_format
               ? ` · ${result.parsed.workout_format}`
@@ -106,7 +106,7 @@ export function NLLogInput({ accessToken }: NLLogInputProps) {
           {result.parsed.results.length > 0 && (
             <ul className="mt-3 space-y-1">
               {result.parsed.results.map((r, i) => (
-                <li key={i} className="font-mono text-xs text-zinc-300">
+                <li key={i} className="font-mono text-xs text-[var(--text)]">
                   {r.movement_name}
                   {r.reps != null ? ` · ${r.reps} reps` : ""}
                   {r.load_kg != null ? ` @ ${r.load_kg}kg` : ""}
@@ -119,7 +119,7 @@ export function NLLogInput({ accessToken }: NLLogInputProps) {
 
           <button
             onClick={handlePrefill}
-            className="mt-3 rounded bg-zinc-700 px-3 py-1.5 font-mono text-xs text-zinc-100 hover:bg-zinc-600"
+            className="mt-3 rounded bg-[var(--surface)] px-3 py-1.5 font-mono text-xs text-[var(--text)] hover:opacity-80"
           >
             use this pre-fill →
           </button>

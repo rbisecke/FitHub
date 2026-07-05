@@ -105,7 +105,7 @@ export function InjuryReportForm({ accessToken }: Props) {
   if (result) {
     return (
       <div className="flex flex-col gap-4">
-        <p className="font-mono text-sm text-zinc-400">
+        <p className="font-mono text-sm text-[var(--muted)]">
           # injury logged — {result.body_region}
         </p>
         {result.requires_referral && <ReferralCard />}
@@ -114,7 +114,7 @@ export function InjuryReportForm({ accessToken }: Props) {
           bodyRegion={result.body_region}
         />
         {result.substitutions.length === 0 && !result.requires_referral && (
-          <p className="font-mono text-xs text-zinc-500">
+          <p className="font-mono text-xs text-[var(--muted)]">
             # consult with a coach for specific movement substitutions
           </p>
         )}
@@ -126,7 +126,7 @@ export function InjuryReportForm({ accessToken }: Props) {
             setMechanism("");
             setNotes("");
           }}
-          className="self-start rounded border border-zinc-700 px-3 py-1.5 font-mono text-xs text-zinc-400 hover:text-zinc-200"
+          className="self-start rounded border border-[var(--border)] px-3 py-1.5 font-mono text-xs text-[var(--muted)] hover:text-[var(--text)]"
         >
           report another
         </button>
@@ -137,13 +137,13 @@ export function InjuryReportForm({ accessToken }: Props) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <div>
-        <label className="mb-3 block font-mono text-sm text-zinc-400">
+        <label className="mb-3 block font-mono text-sm text-[var(--muted)]">
           body region
         </label>
         <div className="flex flex-col gap-3">
           {BODY_REGION_GROUPS.map((group) => (
             <div key={group.label}>
-              <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-zinc-600">
+              <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">
                 {group.label}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -155,8 +155,8 @@ export function InjuryReportForm({ accessToken }: Props) {
                     onClick={() => setBodyRegion(region as BodyRegion)}
                     className={`rounded px-3 py-1.5 font-mono text-xs transition-colors ${
                       bodyRegion === region
-                        ? "bg-indigo-700 text-white"
-                        : "border border-zinc-700 text-zinc-400 hover:border-zinc-500"
+                        ? "bg-[var(--accent)] text-[#0d1117]"
+                        : "border border-[var(--border)] text-[var(--muted)] hover:border-[var(--muted)]"
                     }`}
                   >
                     {region.replace(/_/g, " ")}
@@ -169,7 +169,7 @@ export function InjuryReportForm({ accessToken }: Props) {
       </div>
 
       <div>
-        <label className="mb-2 block font-mono text-sm text-zinc-400">
+        <label className="mb-2 block font-mono text-sm text-[var(--muted)]">
           pain level: {painLevel}/10
         </label>
         <input
@@ -179,16 +179,16 @@ export function InjuryReportForm({ accessToken }: Props) {
           value={painLevel}
           onChange={(e) => setPainLevel(Number(e.target.value))}
           data-testid="pain-slider"
-          className="w-full accent-indigo-500"
+          className="w-full accent-[var(--accent)]"
         />
-        <div className="mt-1 flex justify-between font-mono text-xs text-zinc-600">
+        <div className="mt-1 flex justify-between font-mono text-xs text-[var(--muted)]">
           <span>0 no pain</span>
           <span>10 severe</span>
         </div>
       </div>
 
       <div>
-        <label className="mb-2 block font-mono text-sm text-zinc-400">
+        <label className="mb-2 block font-mono text-sm text-[var(--muted)]">
           mechanism (optional)
         </label>
         <div className="flex gap-2">
@@ -199,8 +199,8 @@ export function InjuryReportForm({ accessToken }: Props) {
               onClick={() => setMechanism(m.value)}
               className={`rounded px-3 py-1.5 font-mono text-xs transition-colors ${
                 mechanism === m.value
-                  ? "bg-zinc-700 text-zinc-100"
-                  : "border border-zinc-700 text-zinc-500 hover:border-zinc-500"
+                  ? "bg-[var(--surface)] text-[var(--text)]"
+                  : "border border-[var(--border)] text-[var(--muted)] hover:border-[var(--muted)]"
               }`}
             >
               {m.label}
@@ -210,7 +210,7 @@ export function InjuryReportForm({ accessToken }: Props) {
       </div>
 
       <div>
-        <label className="mb-2 block font-mono text-sm text-zinc-400">
+        <label className="mb-2 block font-mono text-sm text-[var(--muted)]">
           notes (optional)
         </label>
         <textarea
@@ -219,7 +219,7 @@ export function InjuryReportForm({ accessToken }: Props) {
           data-testid="injury-notes"
           placeholder="describe what happened, when it hurts, etc."
           rows={3}
-          className="w-full rounded border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="w-full rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono text-sm text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
         />
       </div>
 
@@ -228,7 +228,7 @@ export function InjuryReportForm({ accessToken }: Props) {
       <button
         type="submit"
         disabled={!bodyRegion || loading}
-        className="rounded bg-indigo-700 px-4 py-2 font-mono text-sm text-white hover:bg-indigo-600 disabled:opacity-40"
+        className="rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[#0d1117] hover:brightness-110 disabled:opacity-40"
       >
         {loading ? "submitting…" : "submit report"}
       </button>

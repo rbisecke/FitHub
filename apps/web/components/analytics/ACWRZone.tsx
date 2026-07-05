@@ -24,7 +24,8 @@ const ZONE_CONFIG: Record<string, { label: string; className: string }> = {
   },
   insufficient_data: {
     label: "Not enough data yet",
-    className: "bg-zinc-800 text-zinc-400 border border-zinc-700",
+    className:
+      "bg-[var(--surface)] text-[var(--muted)] border border-[var(--border)]",
   },
 };
 
@@ -39,7 +40,7 @@ export function ACWRZone({ zone, acwr }: Props) {
         {config.label}
       </span>
       {acwr !== null && (
-        <span className="font-mono text-xs text-zinc-500">
+        <span className="font-mono text-xs text-[var(--muted)]">
           ACWR {acwr.toFixed(2)}
         </span>
       )}

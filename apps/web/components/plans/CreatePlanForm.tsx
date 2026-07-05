@@ -81,7 +81,7 @@ export function CreatePlanForm({ accessToken }: Props) {
     <div className="flex flex-col gap-6">
       {step === 1 && (
         <div>
-          <h2 className="mb-4 font-mono text-sm font-semibold text-zinc-300">
+          <h2 className="mb-4 font-mono text-sm font-semibold text-[var(--text)]">
             step 1 — choose goal
           </h2>
           <div className="grid grid-cols-2 gap-3">
@@ -95,8 +95,8 @@ export function CreatePlanForm({ accessToken }: Props) {
                 }}
                 className={`rounded-lg border p-4 text-left transition-colors ${
                   goal === g.value
-                    ? "border-indigo-500 bg-indigo-900/30 text-zinc-100"
-                    : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-600"
+                    ? "border-[var(--accent)] bg-[rgba(88,166,255,0.12)] text-[var(--text)]"
+                    : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--muted)]"
                 }`}
               >
                 <p className="font-mono text-sm font-semibold">{g.label}</p>
@@ -108,11 +108,11 @@ export function CreatePlanForm({ accessToken }: Props) {
 
       {step === 2 && (
         <div>
-          <h2 className="mb-4 font-mono text-sm font-semibold text-zinc-300">
+          <h2 className="mb-4 font-mono text-sm font-semibold text-[var(--text)]">
             step 2 — duration
           </h2>
           <div className="mb-4">
-            <label className="mb-2 block font-mono text-xs text-zinc-400">
+            <label className="mb-2 block font-mono text-xs text-[var(--muted)]">
               title (optional)
             </label>
             <input
@@ -120,10 +120,10 @@ export function CreatePlanForm({ accessToken }: Props) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={`${goal.replace("_", " ")} plan`}
-              className="w-full rounded border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono text-sm text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
             />
           </div>
-          <label className="mb-2 block font-mono text-xs text-zinc-400">
+          <label className="mb-2 block font-mono text-xs text-[var(--muted)]">
             weeks: {weeks}
           </label>
           <input
@@ -133,22 +133,22 @@ export function CreatePlanForm({ accessToken }: Props) {
             step={2}
             value={weeks}
             onChange={(e) => setWeeks(Number(e.target.value))}
-            className="w-full accent-indigo-500"
+            className="w-full accent-[var(--accent)]"
           />
-          <div className="mt-1 flex justify-between font-mono text-xs text-zinc-600">
+          <div className="mt-1 flex justify-between font-mono text-xs text-[var(--muted)]">
             <span>4w</span>
             <span>24w</span>
           </div>
           <div className="mt-6 flex gap-3">
             <button
               onClick={() => setStep(1)}
-              className="rounded border border-zinc-700 px-4 py-2 font-mono text-sm text-zinc-400 hover:text-zinc-200"
+              className="rounded border border-[var(--border)] px-4 py-2 font-mono text-sm text-[var(--muted)] hover:text-[var(--text)]"
             >
               back
             </button>
             <button
               onClick={() => setStep(3)}
-              className="rounded bg-indigo-700 px-4 py-2 font-mono text-sm text-white hover:bg-indigo-600"
+              className="rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[#0d1117] hover:brightness-110"
             >
               next
             </button>
@@ -158,7 +158,7 @@ export function CreatePlanForm({ accessToken }: Props) {
 
       {step === 3 && (
         <div>
-          <h2 className="mb-4 font-mono text-sm font-semibold text-zinc-300">
+          <h2 className="mb-4 font-mono text-sm font-semibold text-[var(--text)]">
             step 3 — training age
           </h2>
           <div className="flex flex-col gap-3">
@@ -169,14 +169,16 @@ export function CreatePlanForm({ accessToken }: Props) {
                 onClick={() => setTrainingAge(t.value)}
                 className={`rounded-lg border p-4 text-left transition-colors ${
                   trainingAge === t.value
-                    ? "border-indigo-500 bg-indigo-900/30"
-                    : "border-zinc-700 bg-zinc-900 hover:border-zinc-600"
+                    ? "border-[var(--accent)] bg-[rgba(88,166,255,0.12)]"
+                    : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--muted)]"
                 }`}
               >
-                <p className="font-mono text-sm font-semibold text-zinc-100">
+                <p className="font-mono text-sm font-semibold text-[var(--text)]">
                   {t.label}
                 </p>
-                <p className="font-mono text-xs text-zinc-500">{t.desc}</p>
+                <p className="font-mono text-xs text-[var(--muted)]">
+                  {t.desc}
+                </p>
               </button>
             ))}
           </div>
@@ -188,14 +190,14 @@ export function CreatePlanForm({ accessToken }: Props) {
           <div className="mt-6 flex gap-3">
             <button
               onClick={() => setStep(2)}
-              className="rounded border border-zinc-700 px-4 py-2 font-mono text-sm text-zinc-400 hover:text-zinc-200"
+              className="rounded border border-[var(--border)] px-4 py-2 font-mono text-sm text-[var(--muted)] hover:text-[var(--text)]"
             >
               back
             </button>
             <button
               onClick={handleSubmit}
               disabled={!trainingAge || loading}
-              className="rounded bg-indigo-700 px-4 py-2 font-mono text-sm text-white hover:bg-indigo-600 disabled:opacity-40"
+              className="rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[#0d1117] hover:brightness-110 disabled:opacity-40"
             >
               {loading ? "generating…" : "generate plan"}
             </button>
