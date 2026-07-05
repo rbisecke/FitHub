@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useReducedMotion } from "motion/react";
-import { api } from "@/lib/api/client";
+import { createApiClient } from "@/lib/api/client";
 import type { PlannedSessionOut, ModifyWorkoutResponse } from "@/lib/api/plans";
 import type { PersonalRecord } from "@/lib/api";
 import { WorkoutModifications } from "@/components/injuries/WorkoutModifications";
@@ -39,6 +39,7 @@ export function TodayPrescription({
   weightUnit = "kg",
   hasActiveInjuries = true,
 }: Props) {
+  const client = useMemo(() => createApiClient(accessToken), [accessToken]);
   const [session, setSession] = useState<PlannedSessionOut | null | undefined>(
     undefined,
   );
@@ -51,8 +52,8 @@ export function TodayPrescription({
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
-    api.plans
-      .today(accessToken, planId)
+    client.plans
+      .today(planId)
       .then((data) => {
         if (data && typeof data === "object" && "id" in data) {
           setSession(data as PlannedSessionOut);
@@ -61,14 +62,14 @@ export function TodayPrescription({
         }
       })
       .catch(() => setSession(null));
-  }, [accessToken, planId]);
+  }, [client, planId]);
 
   useEffect(() => {
-    api.analytics
-      .personalRecords(accessToken)
+    client.analytics
+      .personalRecords()
       .then(setPrs)
       .catch(() => setPrs([]));
-  }, [accessToken]);
+  }, [client]);
 
   // Name-indexed PR map (case-insensitive match)
   const prsByName = useMemo(() => {
@@ -239,10 +240,7 @@ export function TodayPrescription({
                 setModLoading(true);
                 try {
                   await new Promise((r) => setTimeout(r, 1500));
-                  const result = await api.coach.modifyWorkout(
-                    accessToken,
-                    session.id,
-                  );
+                  const result = await client.coach.modifyWorkout(session.id);
                   setModifications(result);
                 } finally {
                   setModLoading(false);

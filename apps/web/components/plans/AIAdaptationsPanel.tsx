@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { api } from "@/lib/api/client";
+import { createApiClient } from "@/lib/api/client";
 import type { AdaptationOut } from "@/lib/api/plans";
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
 }
 
 export function AIAdaptationsPanel({ planId, accessToken }: Props) {
+  const client = useMemo(() => createApiClient(accessToken), [accessToken]);
   const [adaptations, setAdaptations] = useState<AdaptationOut[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState<string | null>(null);
@@ -18,8 +19,8 @@ export function AIAdaptationsPanel({ planId, accessToken }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    api.adaptations
-      .list(accessToken, planId)
+    client.adaptations
+      .list(planId)
       .then((data) => {
         if (!cancelled)
           setAdaptations(data.filter((a) => a.status === "proposed"));
@@ -33,13 +34,13 @@ export function AIAdaptationsPanel({ planId, accessToken }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, planId]);
+  }, [client, planId]);
 
   const handleApply = useCallback(
     async (id: string) => {
       setApplying(id);
       try {
-        await api.adaptations.merge(accessToken, id);
+        await client.adaptations.merge(id);
         setAdaptations((prev) => prev?.filter((a) => a.id !== id) ?? null);
       } catch {
         toast.error("Failed to apply adaptation — please try again.");
@@ -47,14 +48,14 @@ export function AIAdaptationsPanel({ planId, accessToken }: Props) {
         setApplying(null);
       }
     },
-    [accessToken],
+    [client],
   );
 
   const handleDismiss = useCallback(
     async (id: string) => {
       setDismissing(id);
       try {
-        await api.adaptations.reject(accessToken, id);
+        await client.adaptations.reject(id);
         setAdaptations((prev) => prev?.filter((a) => a.id !== id) ?? null);
       } catch {
         toast.error("Failed to dismiss adaptation — please try again.");
@@ -62,7 +63,7 @@ export function AIAdaptationsPanel({ planId, accessToken }: Props) {
         setDismissing(null);
       }
     },
-    [accessToken],
+    [client],
   );
 
   return (

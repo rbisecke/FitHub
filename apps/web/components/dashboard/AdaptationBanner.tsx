@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api/client";
+import { createApiClient } from "@/lib/api/client";
 import type { AdaptationOut } from "@/lib/api/plans";
 
 interface Props {
@@ -11,17 +11,18 @@ interface Props {
 }
 
 export function AdaptationBanner({ accessToken, planId }: Props) {
+  const client = useMemo(() => createApiClient(accessToken), [accessToken]);
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
-    api.adaptations
-      .list(accessToken, planId)
+    client.adaptations
+      .list(planId)
       .then((adaptations: AdaptationOut[]) => {
         const proposed = adaptations.filter((a) => a.status === "proposed");
         setCount(proposed.length);
       })
       .catch(() => setCount(0));
-  }, [accessToken, planId]);
+  }, [client, planId]);
 
   if (count === null || count === 0) return null;
 
