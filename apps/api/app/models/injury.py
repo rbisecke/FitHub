@@ -3,51 +3,54 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, Field, computed_field
 
 
+class BodyRegion(StrEnum):
+    # joint regions
+    SHOULDER = "shoulder"
+    KNEE = "knee"
+    HIP = "hip"
+    LOWER_BACK = "lower_back"
+    WRIST = "wrist"
+    ELBOW = "elbow"
+    ANKLE = "ankle"
+    NECK = "neck"
+    # muscle belly regions
+    HAMSTRING = "hamstring"
+    QUAD = "quad"
+    CALF = "calf"
+    GLUTE = "glute"
+    UPPER_BACK = "upper_back"
+    CHEST = "chest"
+    BICEP = "bicep"
+    TRICEP = "tricep"
+    LAT = "lat"
+    # soft-tissue / connective structures
+    HIP_FLEXOR = "hip_flexor"
+    IT_BAND = "it_band"
+    FOREARM = "forearm"
+    # tendon / soft tissue additions
+    ROTATOR_CUFF = "rotator_cuff"
+    PATELLAR_TENDON = "patellar_tendon"
+    LATERAL_ELBOW = "lateral_elbow"
+    MEDIAL_ELBOW = "medial_elbow"
+    # foot / plantar
+    ARCH = "arch"
+    ACHILLES = "achilles"
+    SHIN = "shin"
+    # joint additions
+    GROIN = "groin"
+    SI_JOINT = "si_joint"
+    # fallback
+    OTHER = "other"
+
+
 class ReportInjuryRequest(BaseModel):
-    body_region: Literal[
-        # joint regions
-        "shoulder",
-        "knee",
-        "hip",
-        "lower_back",
-        "wrist",
-        "elbow",
-        "ankle",
-        "neck",
-        # muscle belly regions
-        "hamstring",
-        "quad",
-        "calf",
-        "glute",
-        "upper_back",
-        "chest",
-        "bicep",
-        "tricep",
-        "lat",
-        # soft-tissue / connective structures
-        "hip_flexor",
-        "it_band",
-        "forearm",
-        # tendon / soft tissue additions
-        "rotator_cuff",
-        "patellar_tendon",
-        "lateral_elbow",
-        "medial_elbow",
-        # foot / plantar
-        "arch",
-        "achilles",
-        "shin",
-        # joint additions
-        "groin",
-        "si_joint",
-        # fallback
-        "other",
-    ]
+    body_region: BodyRegion
     pain_level: int = Field(..., ge=0, le=10)
     mechanism: Literal["overuse", "acute", "unknown"] | None = None
     notes: str | None = Field(None, max_length=2000)
@@ -61,7 +64,7 @@ class UpdateInjuryStatusRequest(BaseModel):
 class InjuryOut(BaseModel):
     id: str
     user_id: str
-    body_region: str
+    body_region: BodyRegion
     pain_level: int
     mechanism: str | None = None
     notes: str | None = None

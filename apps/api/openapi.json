@@ -4505,6 +4505,42 @@
         ],
         "title": "BenchmarkResponse"
       },
+      "BodyRegion": {
+        "type": "string",
+        "enum": [
+          "shoulder",
+          "knee",
+          "hip",
+          "lower_back",
+          "wrist",
+          "elbow",
+          "ankle",
+          "neck",
+          "hamstring",
+          "quad",
+          "calf",
+          "glute",
+          "upper_back",
+          "chest",
+          "bicep",
+          "tricep",
+          "lat",
+          "hip_flexor",
+          "it_band",
+          "forearm",
+          "rotator_cuff",
+          "patellar_tendon",
+          "lateral_elbow",
+          "medial_elbow",
+          "arch",
+          "achilles",
+          "shin",
+          "groin",
+          "si_joint",
+          "other"
+        ],
+        "title": "BodyRegion"
+      },
       "ChatRequest": {
         "properties": {
           "question": {
@@ -5860,8 +5896,7 @@
             "title": "User Id"
           },
           "body_region": {
-            "type": "string",
-            "title": "Body Region"
+            "$ref": "#/components/schemas/BodyRegion"
           },
           "pain_level": {
             "type": "integer",
@@ -8321,40 +8356,7 @@
       "ReportInjuryRequest": {
         "properties": {
           "body_region": {
-            "type": "string",
-            "enum": [
-              "shoulder",
-              "knee",
-              "hip",
-              "lower_back",
-              "wrist",
-              "elbow",
-              "ankle",
-              "neck",
-              "hamstring",
-              "quad",
-              "calf",
-              "glute",
-              "upper_back",
-              "chest",
-              "bicep",
-              "tricep",
-              "lat",
-              "hip_flexor",
-              "it_band",
-              "forearm",
-              "rotator_cuff",
-              "patellar_tendon",
-              "lateral_elbow",
-              "medial_elbow",
-              "arch",
-              "achilles",
-              "shin",
-              "groin",
-              "si_joint",
-              "other"
-            ],
-            "title": "Body Region"
+            "$ref": "#/components/schemas/BodyRegion"
           },
           "pain_level": {
             "type": "integer",

@@ -16,7 +16,7 @@ from app.engine.injury import (
     has_red_flags,
     resolve_substitution,
 )
-from app.models.injury import InjuryOut, ReportInjuryRequest, UpdateInjuryStatusRequest
+from app.models.injury import BodyRegion, InjuryOut, ReportInjuryRequest, UpdateInjuryStatusRequest
 
 router = APIRouter(prefix="/api/v1/injuries", tags=["injuries"])
 
@@ -33,7 +33,7 @@ _SELECT_COLS = """
 def _row_to_injury_out(
     r: dict[str, object], *, substitutions: list[str] | None = None
 ) -> InjuryOut:
-    body_region = str(r["body_region"])
+    body_region = BodyRegion(str(r["body_region"]))
     return InjuryOut(
         id=str(r["id"]),
         user_id=str(r["user_id"]),
