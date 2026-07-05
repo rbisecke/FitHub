@@ -11,15 +11,20 @@ export function SubstitutionList({ substitutions, bodyRegion }: Props) {
   return (
     <div
       data-testid="substitution-list"
-      className="rounded-lg border border-zinc-800 bg-zinc-900 p-4"
+      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
     >
-      <p className="mb-3 font-mono text-xs font-semibold text-zinc-400">
+      <p className="mb-3 font-mono text-xs font-semibold text-[var(--muted)]">
         # safe alternatives for {bodyRegion} injury
       </p>
       <ul className="space-y-1">
         {substitutions.map((sub, i) => (
-          <li key={i} className="flex items-start gap-2 text-sm text-zinc-300">
-            <span className="mt-0.5 font-mono text-xs text-green-500">+</span>
+          <li
+            key={i}
+            className="flex items-start gap-2 text-sm text-[var(--text)]"
+          >
+            <span className="mt-0.5 font-mono text-xs text-[var(--green)]">
+              +
+            </span>
             {sub}
           </li>
         ))}

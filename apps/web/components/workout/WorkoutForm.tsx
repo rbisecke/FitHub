@@ -59,7 +59,7 @@ const WORKOUT_FORMATS: WorkoutFormat[] = [
   "team",
 ];
 
-// URL-encoded SVG chevron for custom select arrow (zinc-500 colour)
+// URL-encoded SVG chevron for custom select arrow (#8b949e = --muted)
 const CHEVRON_STYLE: React.CSSProperties = {
   backgroundImage:
     "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%238b949e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
@@ -69,10 +69,10 @@ const CHEVRON_STYLE: React.CSSProperties = {
 };
 
 const SELECT_BASE =
-  "w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 pr-8 text-sm text-zinc-200 focus:border-zinc-500 focus:outline-none appearance-none";
+  "w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 pr-8 text-sm text-[var(--text)] focus:border-[var(--muted)] focus:outline-none appearance-none";
 
 const SELECT_SM =
-  "rounded border border-zinc-700 bg-zinc-900 px-2 py-1 pr-6 text-xs text-zinc-200 focus:outline-none appearance-none";
+  "rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1 pr-6 text-xs text-[var(--text)] focus:outline-none appearance-none";
 
 const resultSchema = z.object({
   movement_id: z.string().uuid().optional(),
@@ -201,21 +201,21 @@ export function WorkoutForm({
       onSubmit={handleSubmit(onSubmit as Parameters<typeof handleSubmit>[0])}
       className="p-6 max-w-xl mx-auto space-y-5"
     >
-      <h1 className="text-lg font-semibold text-zinc-100">
-        <span className="font-mono text-zinc-500 text-sm mr-2">$</span>
+      <h1 className="text-lg font-semibold text-[var(--text)]">
+        <span className="font-mono text-[var(--muted)] text-sm mr-2">$</span>
         {workoutId ? "git commit --amend" : "git commit --fit"}
       </h1>
 
       {/* Date */}
       <div className="space-y-1">
-        <Label htmlFor="performed_at" className="text-zinc-300 text-xs">
+        <Label htmlFor="performed_at" className="text-[var(--text)] text-xs">
           Date
         </Label>
         <Input
           id="performed_at"
           type="date"
           {...register("performed_at")}
-          className="bg-zinc-900 border-zinc-700 text-zinc-100"
+          className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)]"
         />
         {errors.performed_at && (
           <p className="text-xs text-red-400">{errors.performed_at.message}</p>
@@ -224,21 +224,21 @@ export function WorkoutForm({
 
       {/* Title */}
       <div className="space-y-1">
-        <Label htmlFor="title" className="text-zinc-300 text-xs">
+        <Label htmlFor="title" className="text-[var(--text)] text-xs">
           Title
         </Label>
         <Input
           id="title"
           placeholder="e.g. Fran, 21-15-9"
           {...register("title")}
-          className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+          className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)]"
         />
       </div>
 
       {/* Session type + Format (two-column) */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label htmlFor="session_type" className="text-zinc-300 text-xs">
+          <Label htmlFor="session_type" className="text-[var(--text)] text-xs">
             Session type
           </Label>
           <select
@@ -257,7 +257,10 @@ export function WorkoutForm({
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor="workout_format" className="text-zinc-300 text-xs">
+          <Label
+            htmlFor="workout_format"
+            className="text-[var(--text)] text-xs"
+          >
             Format
           </Label>
           <select
@@ -279,7 +282,7 @@ export function WorkoutForm({
       {/* Effort + Duration — primary fields (drive the contribution graph load color) */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label htmlFor="session_rpe" className="text-zinc-300 text-xs">
+          <Label htmlFor="session_rpe" className="text-[var(--text)] text-xs">
             Effort (0–10)
           </Label>
           <Input
@@ -290,7 +293,7 @@ export function WorkoutForm({
             step={0.5}
             placeholder="7"
             {...register("session_rpe")}
-            className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+            className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)]"
           />
           {errors.session_rpe && (
             <p className="text-xs text-red-400">{errors.session_rpe.message}</p>
@@ -298,7 +301,7 @@ export function WorkoutForm({
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor="duration_min" className="text-zinc-300 text-xs">
+          <Label htmlFor="duration_min" className="text-[var(--text)] text-xs">
             Duration (min)
           </Label>
           <Input
@@ -307,7 +310,7 @@ export function WorkoutForm({
             min={1}
             placeholder="20"
             {...register("duration_min")}
-            className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+            className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)]"
           />
         </div>
       </div>
@@ -317,7 +320,7 @@ export function WorkoutForm({
         <button
           type="button"
           onClick={() => setShowDetails((v) => !v)}
-          className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-1"
+          className="text-xs text-[var(--muted)] hover:text-[var(--text)] transition-colors flex items-center gap-1"
         >
           <span>{showDetails ? "▾" : "▸"}</span>
           <span>
@@ -332,20 +335,23 @@ export function WorkoutForm({
             {/* Location + Bodyweight */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="location" className="text-zinc-300 text-xs">
+                <Label
+                  htmlFor="location"
+                  className="text-[var(--text)] text-xs"
+                >
                   Location
                 </Label>
                 <Input
                   id="location"
                   placeholder="Box, Home gym…"
                   {...register("location")}
-                  className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+                  className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)]"
                 />
               </div>
               <div className="space-y-1">
                 <Label
                   htmlFor="bodyweight_kg"
-                  className="text-zinc-300 text-xs"
+                  className="text-[var(--text)] text-xs"
                 >
                   Bodyweight (kg)
                 </Label>
@@ -357,14 +363,14 @@ export function WorkoutForm({
                   step={0.1}
                   placeholder="80"
                   {...register("bodyweight_kg")}
-                  className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+                  className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)]"
                 />
               </div>
             </div>
 
             {/* Notes */}
             <div className="space-y-1">
-              <Label htmlFor="notes" className="text-zinc-300 text-xs">
+              <Label htmlFor="notes" className="text-[var(--text)] text-xs">
                 Notes
               </Label>
               <Textarea
@@ -372,7 +378,7 @@ export function WorkoutForm({
                 rows={2}
                 placeholder="How did it feel?"
                 {...register("notes")}
-                className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600"
+                className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)]"
               />
             </div>
           </div>
@@ -381,14 +387,14 @@ export function WorkoutForm({
 
       {/* Results */}
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-zinc-300">Results</h3>
+        <h3 className="text-sm font-medium text-[var(--text)]">Results</h3>
         {fields.map((field, idx) => (
           <div
             key={field.id}
-            className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 space-y-2"
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 space-y-2"
           >
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs text-zinc-500">
+              <span className="font-mono text-xs text-[var(--muted)]">
                 #{idx + 1}
               </span>
               <Controller
@@ -410,7 +416,7 @@ export function WorkoutForm({
               <button
                 type="button"
                 onClick={() => remove(idx)}
-                className="ml-auto text-zinc-500 hover:text-zinc-300 text-lg leading-none"
+                className="ml-auto text-[var(--muted)] hover:text-[var(--text)] text-lg leading-none"
                 aria-label="Remove set"
               >
                 ×
@@ -437,7 +443,7 @@ export function WorkoutForm({
                 step={0.5}
                 placeholder="kg"
                 {...register(`results.${idx}.load_kg`)}
-                className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 h-8 placeholder:text-zinc-600"
+                className="bg-[var(--surface)] border-[var(--border)] text-xs text-[var(--text)] h-8 placeholder:text-[var(--muted)]"
                 name={`results.${idx}.load_kg`}
               />
 
@@ -446,7 +452,7 @@ export function WorkoutForm({
                 type="number"
                 placeholder="reps"
                 {...register(`results.${idx}.reps`)}
-                className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 h-8 placeholder:text-zinc-600"
+                className="bg-[var(--surface)] border-[var(--border)] text-xs text-[var(--text)] h-8 placeholder:text-[var(--muted)]"
                 name={`results.${idx}.reps`}
               />
             </div>
@@ -455,7 +461,7 @@ export function WorkoutForm({
             <Input
               placeholder="Set notes"
               {...register(`results.${idx}.notes`)}
-              className="bg-zinc-900 border-zinc-700 text-xs text-zinc-200 h-7 placeholder:text-zinc-600"
+              className="bg-[var(--surface)] border-[var(--border)] text-xs text-[var(--text)] h-7 placeholder:text-[var(--muted)]"
             />
           </div>
         ))}
@@ -474,7 +480,7 @@ export function WorkoutForm({
               notes: undefined,
             })
           }
-          className="border-zinc-700 text-zinc-400 hover:text-zinc-200"
+          className="border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)]"
         >
           + Add set
         </Button>
@@ -483,7 +489,7 @@ export function WorkoutForm({
       <Button
         type="submit"
         disabled={isSubmitting}
-        className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
+        className="w-full bg-[var(--accent)] text-[#0d1117] hover:brightness-110"
       >
         {isSubmitting ? "Logging…" : "Commit workout"}
       </Button>

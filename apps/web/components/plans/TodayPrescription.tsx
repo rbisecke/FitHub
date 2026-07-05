@@ -100,9 +100,9 @@ export function TodayPrescription({
     return (
       <div
         data-testid="today-prescription"
-        className="rounded-lg border border-zinc-800 bg-zinc-900 p-4"
+        className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
       >
-        <p className="font-mono text-xs text-zinc-600">loading today…</p>
+        <p className="font-mono text-xs text-[var(--muted)]">loading today…</p>
       </div>
     );
   }
@@ -111,9 +111,9 @@ export function TodayPrescription({
     return (
       <div
         data-testid="today-prescription"
-        className="rounded-lg border border-zinc-800 bg-zinc-900 p-4"
+        className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
       >
-        <p className="font-mono text-xs text-zinc-500"># rest day</p>
+        <p className="font-mono text-xs text-[var(--muted)]"># rest day</p>
       </div>
     );
   }
@@ -122,11 +122,11 @@ export function TodayPrescription({
     <>
       <div
         data-testid="today-prescription"
-        className="rounded-lg border border-zinc-800 bg-zinc-900 p-4"
+        className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
       >
-        <p className="mb-1 font-mono text-xs text-zinc-500">$ today</p>
-        <p className="font-semibold text-zinc-100">{session.title}</p>
-        <p className="mt-0.5 text-xs text-zinc-500">
+        <p className="mb-1 font-mono text-xs text-[var(--muted)]">$ today</p>
+        <p className="font-semibold text-[var(--text)]">{session.title}</p>
+        <p className="mt-0.5 text-xs text-[var(--muted)]">
           {session.session_type} · {session.items.length} movements
         </p>
         {session.items.length > 0 && (
@@ -219,7 +219,7 @@ export function TodayPrescription({
               );
             })}
             {session.items.length > 3 && (
-              <li className="font-mono text-xs text-zinc-600">
+              <li className="font-mono text-xs text-[var(--muted)]">
                 +{session.items.length - 3} more
               </li>
             )}
@@ -228,7 +228,7 @@ export function TodayPrescription({
         <div className="mt-3 flex items-center gap-3">
           <Link
             href={`/plans/${planId}`}
-            className="font-mono text-xs text-indigo-400 hover:text-indigo-300"
+            className="font-mono text-xs text-[var(--accent)] hover:brightness-110"
           >
             view plan →
           </Link>
@@ -246,7 +246,7 @@ export function TodayPrescription({
                   setModLoading(false);
                 }
               }}
-              className="font-mono text-xs text-amber-500 hover:text-amber-400 disabled:opacity-40"
+              className="font-mono text-xs text-[var(--amber)] hover:brightness-110 disabled:opacity-40"
             >
               {modLoading ? "checking…" : "$ modify --injuries"}
             </button>

@@ -15,7 +15,7 @@ const ZONE_LABEL: Record<string, { text: string; color: string }> = {
   undertraining: { text: "Room to increase", color: "text-amber-400" },
   caution: { text: "High load", color: "text-orange-400" },
   overreaching: { text: "Reduce intensity", color: "text-red-400" },
-  insufficient_data: { text: "Not enough data", color: "text-zinc-500" },
+  insufficient_data: { text: "Not enough data", color: "text-[var(--muted)]" },
 };
 
 export function ACWRWidget({ series, acwrNow, acwrZone }: Props) {
@@ -29,12 +29,12 @@ export function ACWRWidget({ series, acwrNow, acwrZone }: Props) {
     <Link
       href="/analytics"
       data-testid="dashboard-acwr-widget"
-      className="group block rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3 hover:border-zinc-700 transition-colors"
+      className="group block rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3 hover:border-[var(--muted)] transition-colors"
     >
-      <p className="font-mono text-xs text-zinc-500 mb-2">ACWR</p>
+      <p className="font-mono text-xs text-[var(--muted)] mb-2">ACWR</p>
       <div className="flex items-end gap-3">
         <div>
-          <p className="text-2xl font-semibold text-zinc-100 leading-none">
+          <p className="text-2xl font-semibold text-[var(--text)] leading-none">
             {acwrNow !== null ? acwrNow.toFixed(2) : "—"}
           </p>
           <span className={`text-xs font-medium mt-1 block ${cfg.color}`}>
@@ -71,7 +71,7 @@ export function ACWRWidget({ series, acwrNow, acwrZone }: Props) {
           )}
         </div>
       </div>
-      <p className="font-mono text-xs text-zinc-600 mt-2 group-hover:text-zinc-500">
+      <p className="font-mono text-xs text-[var(--muted)] mt-2">
         → git diff --stat
       </p>
     </Link>

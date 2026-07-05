@@ -10,16 +10,16 @@ import type {
 import { api } from "@/lib/api/client";
 
 const SESSION_COLORS: Record<string, string> = {
-  strength: "bg-indigo-500",
+  strength: "bg-[var(--accent)]",
   metcon: "bg-orange-500",
   skill: "bg-yellow-500",
-  mixed: "bg-purple-500",
-  rest: "bg-zinc-700",
-  active_recovery: "bg-green-700",
+  mixed: "bg-[var(--purple)]",
+  rest: "bg-[var(--surface)]",
+  active_recovery: "bg-[var(--green)]",
 };
 
 function SessionDot({ session }: { session: PlannedSessionOut }) {
-  const color = SESSION_COLORS[session.session_type] ?? "bg-zinc-600";
+  const color = SESSION_COLORS[session.session_type] ?? "bg-[var(--border)]";
   return (
     <div
       data-testid="session-dot"
@@ -43,19 +43,21 @@ function MesocycleSection({
         data-testid="mesocycle-header"
         className="mb-2 flex items-center gap-2"
       >
-        <span className="font-mono text-xs font-semibold text-zinc-300">
+        <span className="font-mono text-xs font-semibold text-[var(--text)]">
           {meso.name}
         </span>
-        <span className="font-mono text-xs text-zinc-500">
+        <span className="font-mono text-xs text-[var(--muted)]">
           · wk {meso.week_start}–{meso.week_end}
         </span>
       </div>
       {meso.focus && (
-        <p className="mb-2 font-mono text-xs text-zinc-600"># {meso.focus}</p>
+        <p className="mb-2 font-mono text-xs text-[var(--muted)]">
+          # {meso.focus}
+        </p>
       )}
       <div className="flex min-h-4 flex-wrap gap-1.5">
         {mesoSessions.length === 0 ? (
-          <p className="font-mono text-xs text-zinc-700">
+          <p className="font-mono text-xs text-[var(--muted)]">
             # no sessions scheduled
           </p>
         ) : (
@@ -121,10 +123,10 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
   return (
     <div
       data-testid="plan-branch-view"
-      className="rounded-lg border border-zinc-800 bg-zinc-900 p-6"
+      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6"
     >
       <div className="mb-6">
-        <div className="mb-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-zinc-500">
+        <div className="mb-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-[var(--muted)]">
           {Object.entries(SESSION_COLORS).map(([type, color]) => (
             <span key={type} className="flex items-center gap-1.5">
               <span
@@ -141,18 +143,18 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
       ))}
 
       {plan.mesocycles.length === 0 && (
-        <p className="font-mono text-sm text-zinc-600">
+        <p className="font-mono text-sm text-[var(--muted)]">
           # plan is still being generated…
         </p>
       )}
 
-      <div className="mt-6 rounded-md border border-zinc-800 bg-zinc-800/30 px-5 py-4">
+      <div className="mt-6 rounded-md border border-[var(--border)] bg-[var(--surface)] px-5 py-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="font-mono text-xs text-zinc-400">
+            <p className="font-mono text-xs text-[var(--muted)]">
               $ git detect --adaptations
             </p>
-            <p className="mt-0.5 font-mono text-xs text-zinc-600">
+            <p className="mt-0.5 font-mono text-xs text-[var(--muted)]">
               # check if training load or trends warrant a plan update
             </p>
           </div>
@@ -160,7 +162,7 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
             data-testid="detect-adaptations-btn"
             onClick={handleDetect}
             disabled={detecting}
-            className="shrink-0 rounded border border-zinc-600 bg-zinc-700 px-3 py-1.5 font-mono text-xs text-zinc-200 transition-colors hover:bg-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="shrink-0 rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 font-mono text-xs text-[var(--text)] transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {detecting ? "detecting…" : "detect"}
           </button>
@@ -169,7 +171,7 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
           <p className="mt-2 font-mono text-xs text-red-400">{detectError}</p>
         )}
         {detectResult !== null && (
-          <p className="mt-2 font-mono text-xs text-zinc-400">
+          <p className="mt-2 font-mono text-xs text-[var(--muted)]">
             {detectResult.count === 0 ? (
               "# no adaptations triggered — plan looks good"
             ) : (
@@ -178,7 +180,7 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
                 {detectResult.count !== 1 ? "s" : ""} proposed —{" "}
                 <Link
                   href={`/plans/${plan.id}/adaptations`}
-                  className="text-indigo-400 hover:text-indigo-300 underline"
+                  className="text-[var(--accent)] underline hover:brightness-110"
                 >
                   review now
                 </Link>
@@ -188,8 +190,8 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
         )}
       </div>
 
-      <div className="mt-6 rounded-md border-t border-zinc-600 bg-zinc-800/40 px-5 pb-5 pt-5">
-        <h2 className="mb-3 font-mono text-xs text-zinc-400">
+      <div className="mt-6 rounded-md border-t border-[var(--border)] bg-[var(--surface)] px-5 pb-5 pt-5">
+        <h2 className="mb-3 font-mono text-xs text-[var(--muted)]">
           $ git request-changes
         </h2>
         <textarea
@@ -200,12 +202,14 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
           maxLength={500}
           placeholder="Describe what you'd like changed (e.g. reduce squat volume, I have a knee issue)…"
           rows={5}
-          className="w-full min-h-[120px] resize-y rounded border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-200 placeholder-zinc-600 focus:border-zinc-500 focus:outline-none disabled:opacity-50"
+          className="w-full min-h-[120px] resize-y rounded border border-[var(--border)] bg-[var(--bg)] px-3 py-2 font-mono text-sm text-[var(--text)] placeholder-[var(--muted)] focus:border-[var(--muted)] focus:outline-none disabled:opacity-50"
         />
         <div className="mt-1 flex justify-end">
           <span
             className={`font-mono text-xs ${
-              feedback.length > 400 ? "text-amber-400" : "text-zinc-600"
+              feedback.length > 400
+                ? "text-[var(--amber)]"
+                : "text-[var(--muted)]"
             }`}
           >
             {feedback.length} / 500
@@ -215,7 +219,7 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
           <p className="mt-2 font-mono text-xs text-red-400">{error}</p>
         )}
         {success && (
-          <p className="mt-2 font-mono text-xs text-green-400">
+          <p className="mt-2 font-mono text-xs text-[var(--green)]">
             ✓ plan revised
           </p>
         )}
@@ -226,8 +230,8 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
             disabled={revising || feedback.trim().length < 5}
             className={`rounded px-4 py-2 font-mono text-sm transition-colors disabled:cursor-not-allowed ${
               revising || feedback.trim().length < 5
-                ? "bg-zinc-800 text-zinc-600"
-                : "border border-zinc-500 bg-zinc-700 text-zinc-200 hover:bg-zinc-600"
+                ? "bg-[var(--surface)] text-[var(--muted)]"
+                : "border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:brightness-110"
             }`}
           >
             {revising ? "revising…" : "$ commit revision"}
