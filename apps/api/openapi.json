@@ -8034,17 +8034,6 @@
             ],
             "title": "Mood Avg"
           },
-          "energy_avg": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Energy Avg"
-          },
           "sleep_avg": {
             "anyOf": [
               {
@@ -8123,7 +8112,6 @@
           "acwr",
           "tsb",
           "mood_avg",
-          "energy_avg",
           "sleep_avg",
           "factors_available"
         ],
