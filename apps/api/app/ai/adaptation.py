@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.ai.prompts import ADAPTATION_SYSTEM
 from app.ai.stub import stubbed
 
 # ── Stub fixture ──────────────────────────────────────────────────────────────
@@ -72,14 +73,7 @@ async def generate_adaptation(
     messages: list[dict[str, str]] = [
         {
             "role": "system",
-            "content": (
-                "You are a CrossFit coach adapting a training plan. "
-                "Be conservative: prefer reducing intensity over skipping sessions. "
-                "Rationale must be under 500 characters and athlete-friendly. "
-                "Diff entries must reference actual session titles from the input. "
-                "Valid change values: reduce_intensity, reduce_volume, "
-                "swap_session, add_rest, skip."
-            ),
+            "content": ADAPTATION_SYSTEM,
         },
         {
             "role": "user",
