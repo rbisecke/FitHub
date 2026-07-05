@@ -398,14 +398,16 @@ async def generate_plan(
 
     result = draft.model_dump()
     # Validate against sports-science KB after generation (not inside retry loop)
-    validate_plan(result, str(training_age))
+    violations = validate_plan(result, str(training_age))
+    if violations:
+        log.warning("Plan validation violations: %s", violations)
     return result
 
 
 # ── DB helpers ────────────────────────────────────────────────────────────────
 
 
-async def _insert_mesocycles(
+async def _create_mesocycles(
     plan_id: str,
     user_id: str,
     mesocycles_raw: list[object],
@@ -442,7 +444,7 @@ async def _insert_mesocycles(
         return {(r["week_start"], r["week_end"]): r["id"] for r in await cur.fetchall()}
 
 
-async def _insert_sessions(
+async def _create_sessions(
     plan_id: str,
     user_id: str,
     start_date: date,
@@ -496,7 +498,7 @@ async def _insert_sessions(
     return result
 
 
-async def _insert_items(
+async def _create_items(
     session_items: list[tuple[str, list[object]]],
     user_id: str,
     db: psycopg.AsyncConnection[object],
@@ -592,11 +594,11 @@ async def _create_plan_records(
             plan_row = await cur.fetchone()
         plan_id: str = plan_row["id"]  # type: ignore[index]
 
-        meso_id_map = await _insert_mesocycles(plan_id, user_id, mesocycles_raw, db)
-        session_items = await _insert_sessions(
+        meso_id_map = await _create_mesocycles(plan_id, user_id, mesocycles_raw, db)
+        session_items = await _create_sessions(
             plan_id, user_id, start_date, meso_id_map, weeks_raw, db
         )
-        await _insert_items(session_items, user_id, db)
+        await _create_items(session_items, user_id, db)
 
     return plan_id
 
@@ -627,7 +629,9 @@ async def run_plan_generation(
 
         # Validate deterministically (errors are non-blocking for stub; LLM path retries internally)
         training_age = str(req_data.get("training_age", "intermediate"))
-        validate_plan(draft, training_age)
+        violations = validate_plan(draft, training_age)
+        if violations:
+            log.warning("Plan validation violations: %s", violations)
 
         async with pool.connection() as db:
             plan_id = await _create_plan_records(user_id, req_data, draft, db)
