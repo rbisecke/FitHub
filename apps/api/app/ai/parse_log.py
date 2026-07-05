@@ -6,6 +6,7 @@ import uuid
 
 import psycopg
 
+from app.ai.prompts import PARSE_LOG_SYSTEM
 from app.ai.stub import stubbed
 from app.models.coach import ParsedLogEntry, ParseLogResponse
 
@@ -63,25 +64,7 @@ async def parse_log_text(
             messages=[
                 {
                     "role": "system",
-                    "content": (
-                        "You are a CrossFit workout log parser. "
-                        "Return actual workout DATA extracted from the text — "
-                        "NOT a JSON schema definition. "
-                        "Never use '$defs', 'const', 'properties', 'required', or 'enum' keys. "
-                        "Return real field values.\n\n"
-                        "result_type must be exactly one of: "
-                        "reps, time_s, distance_m, weight_kg, rounds, calories. "
-                        "Use 'reps' for rep-based exercises (default when uncertain). "
-                        "Use 'weight_kg' for max-effort single lifts with no rep count. "
-                        "Use 'time_s' when a completion time is recorded. "
-                        "Use 'distance_m' for running/rowing/cycling by distance. "
-                        "Use 'rounds' for AMRAP results. "
-                        "Use 'calories' for calorie-based efforts.\n\n"
-                        "session_type must be exactly one of: "
-                        "metcon, strength, skill, cardio, mixed, rest, unknown.\n\n"
-                        "results may be an empty list [] if no specific exercise data is present. "
-                        "Leave optional numeric fields null rather than guessing."
-                    ),
+                    "content": PARSE_LOG_SYSTEM,
                 },
                 {
                     "role": "user",
