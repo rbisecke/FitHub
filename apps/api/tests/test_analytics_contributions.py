@@ -19,8 +19,8 @@ def _workout(days_ago: int) -> dict:
 
 
 @pytest.mark.asyncio
-async def test_contributions_unauthenticated(client: AsyncClient) -> None:
-    r = await client.get("/api/v1/analytics/contributions")
+async def test_contributions_unauthenticated(anon_client: AsyncClient) -> None:
+    r = await anon_client.get("/api/v1/analytics/contributions")
     assert r.status_code == 401
 
 
