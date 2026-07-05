@@ -3,19 +3,14 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
-from typing import Annotated
 
-import psycopg
 import psycopg.rows
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.auth import UserContext, get_current_user
-from app.db import get_db
+from app.dependencies.common import Auth, DBConn
 
 router = APIRouter(prefix="/api/v1/wellness", tags=["wellness"])
-
-_Db = Annotated[psycopg.AsyncConnection[object], Depends(get_db)]
 
 
 # ── Request / response models ─────────────────────────────────────────────────
@@ -56,8 +51,8 @@ def _hooper_index(sleep: int, stress: int, fatigue: int, soreness: int) -> int:
 @router.post("/checkin", response_model=CheckInResponse, status_code=200)
 async def submit_checkin(
     body: CheckInRequest,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> CheckInResponse:
     """Submit today's Hooper Index check-in (upserts — one per calendar day)."""
     today = date.today()
@@ -124,8 +119,8 @@ async def submit_checkin(
 
 @router.get("/checkin/today", response_model=TodayCheckInResponse)
 async def today_checkin(
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> TodayCheckInResponse:
     """Return today's check-in, or submitted=false if not yet logged."""
     today = date.today()
