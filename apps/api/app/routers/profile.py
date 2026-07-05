@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated, Any
 
-import psycopg
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from app.auth import UserContext, get_current_user
-from app.db import get_db
+from app.dependencies.common import Auth, DBConn
 from app.models.profile import (
     PatchProfileRequest,
     PinnedMovement,
@@ -20,9 +17,6 @@ from app.repositories import profile as repo
 
 router = APIRouter(prefix="/api/v1/profile", tags=["profile"])
 
-Auth = Annotated[UserContext, Depends(get_current_user)]
-DB = Annotated[psycopg.AsyncConnection[Any], Depends(get_db)]
-
 
 class UserSearchResult(BaseModel):
     user_id: uuid.UUID
@@ -33,7 +27,7 @@ class UserSearchResult(BaseModel):
 @router.get("/search", response_model=list[UserSearchResult])
 async def search_users(
     user: Auth,
-    conn: DB,
+    conn: DBConn,
     q: str = Query(min_length=2, max_length=100),
 ) -> list[UserSearchResult]:
     """Search FitHub users by display name or email (excludes the caller)."""
@@ -42,7 +36,7 @@ async def search_users(
 
 
 @router.get("", response_model=UserProfile)
-async def get_profile(user: Auth, conn: DB) -> UserProfile:
+async def get_profile(user: Auth, conn: DBConn) -> UserProfile:
     profile = await repo.get_profile(
         conn,
         user_id=user.user_id,
@@ -55,12 +49,12 @@ async def get_profile(user: Auth, conn: DB) -> UserProfile:
 
 
 @router.get("/stats", response_model=ProfileStats)
-async def get_profile_stats(user: Auth, conn: DB) -> ProfileStats:
+async def get_profile_stats(user: Auth, conn: DBConn) -> ProfileStats:
     return await repo.get_profile_stats(conn, user_id=user.user_id)
 
 
 @router.patch("", response_model=UserProfile)
-async def patch_profile(user: Auth, conn: DB, body: PatchProfileRequest) -> UserProfile:
+async def patch_profile(user: Auth, conn: DBConn, body: PatchProfileRequest) -> UserProfile:
     profile = await repo.patch_profile(
         conn,
         user_id=user.user_id,
@@ -74,12 +68,12 @@ async def patch_profile(user: Auth, conn: DB, body: PatchProfileRequest) -> User
 
 
 @router.get("/pinned-movements", response_model=list[PinnedMovement])
-async def get_pinned_movements(user: Auth, conn: DB) -> list[PinnedMovement]:
+async def get_pinned_movements(user: Auth, conn: DBConn) -> list[PinnedMovement]:
     return await repo.list_pinned_movements(conn, user_id=user.user_id)
 
 
 @router.put("/pinned-movements", response_model=list[PinnedMovement])
 async def put_pinned_movements(
-    user: Auth, conn: DB, body: SetPinnedMovementsRequest
+    user: Auth, conn: DBConn, body: SetPinnedMovementsRequest
 ) -> list[PinnedMovement]:
     return await repo.set_pinned_movements(conn, user_id=user.user_id, body=body)
