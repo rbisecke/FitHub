@@ -660,11 +660,17 @@ def union_contraindications(
     """Return {movement: [body_regions_that_block_it]} for a set of active injuries.
 
     Each element of injuries is (body_region, requires_referral).
-    Referral-flagged injuries block ALL movements for their region — the athlete
-    should not train that area at all until cleared by a physio.
+    Referral-flagged injuries block ALL movements (physician clearance required
+    before any training). Non-referral injuries block only movements for their
+    specific region per CONTRAINDICATIONS.
     """
     blocked: dict[str, list[str]] = {}
-    for body_region, _ in injuries:
-        for movement in CONTRAINDICATIONS.get(body_region, []):
+    for body_region, requires_referral in injuries:
+        movements = (
+            list(CONTRAINDICATIONS.keys())
+            if requires_referral
+            else CONTRAINDICATIONS.get(body_region, [])
+        )
+        for movement in movements:
             blocked.setdefault(movement, []).append(body_region)
     return blocked
