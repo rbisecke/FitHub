@@ -5,8 +5,10 @@ import Markdown from "react-markdown";
 import type { Components } from "react-markdown";
 import { api } from "@/lib/api/client";
 import type { Citation } from "@/lib/api";
+import { STARTER_PROMPTS } from "@/lib/coach/starterPrompts";
 
 interface Message {
+  id: string;
   role: "user" | "assistant";
   content: string;
   citations?: Citation[];
@@ -19,13 +21,6 @@ interface CoachChatProps {
   accessToken: string;
 }
 
-const STARTER_PROMPTS = [
-  "Why did my ACWR spike this week?",
-  "How do I scale Fran if my kipping needs work?",
-  "What does RPE 8 feel like vs RPE 9?",
-  "Is my current program building strength or endurance?",
-];
-
 const markdownComponents: Components = {
   p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
   ul: ({ children }) => (
@@ -34,12 +29,14 @@ const markdownComponents: Components = {
   ol: ({ children }) => (
     <ol className="mb-2 ml-4 list-decimal space-y-1">{children}</ol>
   ),
-  li: ({ children }) => <li className="text-sm text-zinc-200">{children}</li>,
+  li: ({ children }) => (
+    <li className="text-sm text-[var(--text)]">{children}</li>
+  ),
   strong: ({ children }) => (
-    <strong className="font-semibold text-zinc-100">{children}</strong>
+    <strong className="font-semibold text-[var(--text)]">{children}</strong>
   ),
   code: ({ children }) => (
-    <code className="rounded bg-zinc-700 px-1 py-0.5 font-mono text-xs text-indigo-300">
+    <code className="rounded bg-[var(--surface)] px-1 py-0.5 font-mono text-xs text-[var(--accent)]">
       {children}
     </code>
   ),
@@ -47,12 +44,12 @@ const markdownComponents: Components = {
 
 function CoachTypingIndicator() {
   return (
-    <div className="self-start rounded-lg bg-zinc-800 px-4 py-3">
+    <div className="self-start rounded-lg bg-[var(--surface)] px-4 py-3">
       <span className="flex items-center gap-1">
         {[0, 150, 300].map((delay) => (
           <span
             key={delay}
-            className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-500"
+            className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--muted)]"
             style={{ animationDelay: `${delay}ms` }}
           />
         ))}
@@ -64,15 +61,9 @@ function CoachTypingIndicator() {
 export function CoachChat({ accessToken }: CoachChatProps) {
   const showStubBadge = process.env.NEXT_PUBLIC_SHOW_STUB_BADGE !== "false";
 
-  // Session persistence across page reloads
-  const sessionId = useRef<string>(
-    typeof window !== "undefined"
-      ? localStorage.getItem("coach_session_id") ?? crypto.randomUUID()
-      : crypto.randomUUID(),
-  );
-  useEffect(() => {
-    localStorage.setItem("coach_session_id", sessionId.current);
-  }, []);
+  // Initialize with a stable UUID for SSR. The stored session ID is read in
+  // useEffect (client-only) to avoid an SSR/client hydration mismatch.
+  const sessionId = useRef<string>(crypto.randomUUID());
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -84,21 +75,34 @@ export function CoachChat({ accessToken }: CoachChatProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Rehydrate history on mount — input disabled until resolved
-  useEffect(() => {
+  function loadHistory(sid: string) {
     api.coach
-      .history(accessToken, sessionId.current)
+      .history(accessToken, sid)
       .then((turns) =>
         setMessages(
           turns.map((t) => ({
+            id: crypto.randomUUID(),
             role: t.role as "user" | "assistant",
             content: t.content,
           })),
         ),
       )
-      .catch(() => {}) // silent — user starts fresh if history fetch fails
+      .catch(() => {})
       .finally(() => setHistoryLoading(false));
-  }, [accessToken]);
+  }
+
+  // Read the stored session ID on mount; upgrade to persisted session if found.
+  useEffect(() => {
+    const stored = localStorage.getItem("coach_session_id");
+    if (stored) {
+      sessionId.current = stored;
+      loadHistory(stored);
+    } else {
+      localStorage.setItem("coach_session_id", sessionId.current);
+      setHistoryLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Scroll management: auto-scroll when near bottom, show pill when away
   useEffect(() => {
@@ -140,7 +144,10 @@ export function CoachChat({ accessToken }: CoachChatProps) {
     const question = input.trim();
     if (!question) return;
 
-    setMessages((prev) => [...prev, { role: "user", content: question }]);
+    setMessages((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), role: "user", content: question },
+    ]);
     setInput("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -156,6 +163,7 @@ export function CoachChat({ accessToken }: CoachChatProps) {
       setMessages((prev) => [
         ...prev,
         {
+          id: crypto.randomUUID(),
           role: "assistant",
           content: res.answer,
           citations: res.citations,
@@ -167,6 +175,7 @@ export function CoachChat({ accessToken }: CoachChatProps) {
       setMessages((prev) => [
         ...prev,
         {
+          id: crypto.randomUUID(),
           role: "assistant",
           content: "✗ network error — try again",
           error: true,
@@ -190,10 +199,10 @@ export function CoachChat({ accessToken }: CoachChatProps) {
         {/* Empty state with starter prompts */}
         {messages.length === 0 && !historyLoading && (
           <div className="flex flex-col gap-3">
-            <p className="font-mono text-xs text-zinc-500">
+            <p className="font-mono text-xs text-[var(--muted)]">
               $ git coach --help
             </p>
-            <p className="font-mono text-xs text-zinc-600">
+            <p className="font-mono text-xs" style={{ color: "var(--border)" }}>
               # click a prompt or ask anything
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -204,9 +213,9 @@ export function CoachChat({ accessToken }: CoachChatProps) {
                     setInput(prompt);
                     textareaRef.current?.focus();
                   }}
-                  className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2.5
-                             text-left font-mono text-xs text-zinc-400 transition-colors
-                             hover:border-indigo-700 hover:text-zinc-200"
+                  className="rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5
+                             text-left font-mono text-xs text-[var(--muted)] transition-colors
+                             hover:border-[var(--accent)] hover:text-[var(--text)]"
                 >
                   &ldquo;{prompt}&rdquo;
                 </button>
@@ -218,24 +227,24 @@ export function CoachChat({ accessToken }: CoachChatProps) {
         {/* History loading skeleton */}
         {historyLoading && (
           <div className="flex flex-col gap-2">
-            <div className="h-10 animate-pulse rounded-lg bg-zinc-800/50" />
-            <div className="h-10 animate-pulse rounded-lg bg-zinc-800/50" />
+            <div className="h-10 animate-pulse rounded-lg bg-[var(--surface)]" />
+            <div className="h-10 animate-pulse rounded-lg bg-[var(--surface)]" />
           </div>
         )}
 
         {/* Messages */}
         <div className="flex flex-col gap-3">
-          {messages.map((msg, i) => (
+          {messages.map((msg) => (
             <div
-              key={i}
+              key={msg.id}
               className={
                 msg.role === "user"
-                  ? "self-end max-w-prose rounded-lg bg-indigo-900/60 px-3 py-2 text-sm text-zinc-100"
+                  ? "self-end max-w-prose rounded-lg bg-[rgba(88,166,255,0.12)] px-3 py-2 text-sm text-[var(--text)]"
                   : msg.error
-                    ? "self-start max-w-prose rounded-lg border border-red-800 bg-zinc-800 px-3 py-2 text-sm text-red-400"
+                    ? "self-start max-w-prose rounded-lg border border-[var(--red)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--red)]"
                     : msg.safetyTier === "stop"
-                      ? "self-start max-w-prose rounded-lg border-l-4 border-amber-600 bg-zinc-800 px-3 py-2 text-sm text-zinc-100"
-                      : "self-start max-w-prose rounded-lg bg-zinc-800 px-3 py-2 text-sm text-zinc-100"
+                      ? "self-start max-w-prose rounded-lg border-l-4 border-[var(--amber)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]"
+                      : "self-start max-w-prose rounded-lg bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]"
               }
               data-testid={
                 msg.role === "assistant" ? "chat-response" : undefined
@@ -267,7 +276,10 @@ export function CoachChat({ accessToken }: CoachChatProps) {
               {msg.citations && msg.citations.length > 0 && (
                 <ul className="mt-2 space-y-0.5">
                   {msg.citations.map((c, j) => (
-                    <li key={j} className="font-mono text-xs text-zinc-400">
+                    <li
+                      key={j}
+                      className="font-mono text-xs text-[var(--muted)]"
+                    >
                       [{c.source_type}] {c.title}
                     </li>
                   ))}
@@ -285,7 +297,7 @@ export function CoachChat({ accessToken }: CoachChatProps) {
                       setMessages((prev) => prev.slice(0, -1));
                     }
                   }}
-                  className="mt-1 font-mono text-xs text-zinc-500 underline hover:text-zinc-300"
+                  className="mt-1 font-mono text-xs text-[var(--muted)] underline hover:text-[var(--text)]"
                 >
                   retry
                 </button>
@@ -305,7 +317,7 @@ export function CoachChat({ accessToken }: CoachChatProps) {
               setShowPill(false);
             }}
             className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full
-                       bg-indigo-700 px-3 py-1 font-mono text-xs text-white shadow-lg"
+                       bg-[var(--accent)] px-3 py-1 font-mono text-xs text-[#0d1117] shadow-lg"
           >
             ↓ new message
           </button>
@@ -318,10 +330,10 @@ export function CoachChat({ accessToken }: CoachChatProps) {
           <textarea
             ref={textareaRef}
             rows={1}
-            className="w-full resize-none overflow-y-auto rounded border border-zinc-700
-                       bg-zinc-900 px-3 py-2 font-mono text-sm text-zinc-100
-                       placeholder-zinc-600 focus:outline-none focus:ring-1
-                       focus:ring-indigo-500 disabled:opacity-50 max-h-36"
+            className="w-full resize-none overflow-y-auto rounded border border-[var(--border)]
+                       bg-[var(--surface)] px-3 py-2 font-mono text-sm text-[var(--text)]
+                       placeholder-[var(--muted)] focus:outline-none focus:ring-1
+                       focus:ring-[var(--accent)] disabled:opacity-50 max-h-36"
             data-testid="coach-chat-input"
             placeholder="Ask your coach… (⌘↵ to send)"
             value={input}
@@ -331,7 +343,7 @@ export function CoachChat({ accessToken }: CoachChatProps) {
             maxLength={1000}
           />
           {input.length > 800 && (
-            <span className="absolute bottom-2 right-2 font-mono text-xs text-zinc-500">
+            <span className="absolute bottom-2 right-2 font-mono text-xs text-[var(--muted)]">
               {input.length}/1000
             </span>
           )}
@@ -339,7 +351,7 @@ export function CoachChat({ accessToken }: CoachChatProps) {
         <button
           type="submit"
           disabled={isDisabled || !input.trim()}
-          className="rounded bg-indigo-700 px-4 py-2 font-mono text-sm text-white hover:bg-indigo-600 disabled:opacity-40"
+          className="rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[#0d1117] hover:opacity-90 disabled:opacity-40"
         >
           send
         </button>
@@ -348,12 +360,12 @@ export function CoachChat({ accessToken }: CoachChatProps) {
       {/* Session context indicator */}
       {userTurns >= 2 && (
         <div className="flex shrink-0 items-center justify-between">
-          <p className="font-mono text-xs text-zinc-500">
+          <p className="font-mono text-xs text-[var(--muted)]">
             session active · {userTurns} turns
           </p>
           <button
             onClick={startNewChat}
-            className="font-mono text-xs text-zinc-400 hover:text-zinc-200"
+            className="font-mono text-xs text-[var(--muted)] hover:text-[var(--text)]"
           >
             + new chat
           </button>
