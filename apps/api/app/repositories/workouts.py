@@ -211,23 +211,21 @@ async def list_workouts(
     date_to: str | None = None,
 ) -> list[WorkoutSummary]:
     async with conn.cursor(row_factory=dict_row) as cur:
-        _has_pr_subquery = """
-            EXISTS (
-              SELECT 1 FROM public.results r2
-              WHERE r2.workout_id = w.id
-                AND r2.estimated_1rm_kg IS NOT NULL
-                AND r2.movement_id IS NOT NULL
-                AND r2.estimated_1rm_kg = (
-                  SELECT MAX(r3.estimated_1rm_kg)
-                  FROM public.results r3
-                  JOIN public.workouts w3 ON r3.workout_id = w3.id
-                  WHERE w3.user_id = w.user_id
-                    AND r3.movement_id = r2.movement_id
-                )
-            ) AS has_pr
+        # CTE pre-computes the best 1RM per movement for this user, allowing
+        # the outer query to detect PRs with a single index scan instead of a
+        # correlated subquery per row.
+        pr_cte = """
+            WITH pr_by_movement AS (
+              SELECT r.movement_id, MAX(r.estimated_1rm_kg) AS best_1rm
+              FROM   public.results r
+              JOIN   public.workouts w2 ON r.workout_id = w2.id
+              WHERE  w2.user_id = %s
+                AND  r.estimated_1rm_kg IS NOT NULL
+                AND  r.movement_id IS NOT NULL
+              GROUP  BY r.movement_id
+            )
         """
 
-        # Build dynamic filter clauses
         filter_clauses: list[str] = ["w.user_id = %s"]
         params: list[object] = [user_id]
 
@@ -247,29 +245,43 @@ async def list_workouts(
 
         base_where = " AND ".join(filter_clauses)
 
+        has_pr_join = """
+            LEFT JOIN public.results pr_r
+                   ON pr_r.workout_id = w.id
+                  AND pr_r.estimated_1rm_kg IS NOT NULL
+                  AND pr_r.movement_id IS NOT NULL
+            LEFT JOIN pr_by_movement pbm
+                   ON pbm.movement_id = pr_r.movement_id
+                  AND pr_r.estimated_1rm_kg = pbm.best_1rm
+        """
+
         if before_id is None:
             await cur.execute(
-                f"""
-                SELECT w.*, COALESCE(COUNT(r.id), 0) AS result_count,
-                       {_has_pr_subquery}
+                pr_cte
+                + f"""
+                SELECT w.*, COALESCE(COUNT(DISTINCT r.id), 0) AS result_count,
+                       (MAX(pbm.best_1rm) IS NOT NULL) AS has_pr
                 FROM   public.workouts w
                 LEFT JOIN public.results r
                        ON r.workout_id = w.id AND r.user_id = w.user_id
+                {has_pr_join}
                 WHERE  {base_where}
                 GROUP  BY w.id
                 ORDER  BY w.performed_at DESC, w.id DESC
                 LIMIT  %s
                 """,
-                [*params, limit],
+                [user_id, *params, limit],
             )
         else:
             await cur.execute(
-                f"""
-                SELECT w.*, COALESCE(COUNT(r.id), 0) AS result_count,
-                       {_has_pr_subquery}
+                pr_cte
+                + f"""
+                SELECT w.*, COALESCE(COUNT(DISTINCT r.id), 0) AS result_count,
+                       (MAX(pbm.best_1rm) IS NOT NULL) AS has_pr
                 FROM   public.workouts w
                 LEFT JOIN public.results r
                        ON r.workout_id = w.id AND r.user_id = w.user_id
+                {has_pr_join}
                 WHERE  {base_where}
                   AND  (w.performed_at, w.id) < (
                            SELECT performed_at, id
@@ -280,7 +292,7 @@ async def list_workouts(
                 ORDER  BY w.performed_at DESC, w.id DESC
                 LIMIT  %s
                 """,
-                [*params, before_id, user_id, limit],
+                [user_id, *params, before_id, user_id, limit],
             )
         rows = await cur.fetchall()
     return [WorkoutSummary(**r) for r in rows]
