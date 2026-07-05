@@ -51,12 +51,17 @@ export function useRestTimer(): RestTimerApi {
   const [active, setActive] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Countdown interval
+  // Countdown interval — clear immediately when the timer expires rather than
+  // waiting for the reactive cleanup cycle.
   useEffect(() => {
     if (!active) return;
     intervalRef.current = setInterval(() => {
       setRemaining((prev) => {
         if (prev <= 1) {
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
           setActive(false);
           return 0;
         }
@@ -64,7 +69,10 @@ export function useRestTimer(): RestTimerApi {
       });
     }, 1000);
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
   }, [active]);
 

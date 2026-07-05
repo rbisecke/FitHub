@@ -22,29 +22,15 @@ import {
 import { ChevronRight } from "lucide-react";
 import type { DailyLoadPoint, TrainingPartner } from "@/lib/api";
 
-function getCtlTrend(
-  ctlNow: number,
+function getLoadTrend(
+  now: number,
   series: DailyLoadPoint[],
+  key: "ctl" | "atl",
 ): { direction: "up" | "down" | "flat"; label: string } {
   if (series.length < 7)
     return { direction: "flat", label: "Stable vs last week" };
   const weekAgo = series[Math.max(0, series.length - 7)];
-  const diff = ctlNow - (weekAgo?.ctl ?? ctlNow);
-  if (diff > 1)
-    return { direction: "up", label: `+${diff.toFixed(1)} vs last week` };
-  if (diff < -1)
-    return { direction: "down", label: `${diff.toFixed(1)} vs last week` };
-  return { direction: "flat", label: "Stable vs last week" };
-}
-
-function getAtlTrend(
-  atlNow: number,
-  series: DailyLoadPoint[],
-): { direction: "up" | "down" | "flat"; label: string } {
-  if (series.length < 7)
-    return { direction: "flat", label: "Stable vs last week" };
-  const weekAgo = series[Math.max(0, series.length - 7)];
-  const diff = atlNow - (weekAgo?.atl ?? atlNow);
+  const diff = now - (weekAgo?.[key] ?? now);
   if (diff > 1)
     return { direction: "up", label: `+${diff.toFixed(1)} vs last week` };
   if (diff < -1)
@@ -56,27 +42,50 @@ export default async function AnalyticsPage() {
   const { token } = await requireAuth();
 
   const [
-    load,
-    personalRecords,
-    volume,
-    readiness,
-    balance,
-    benchmarks,
-    partners,
-  ] = await Promise.all([
+    loadRes,
+    personalRecordsRes,
+    volumeRes,
+    readinessRes,
+    balanceRes,
+    benchmarksRes,
+    partnersRes,
+  ] = await Promise.allSettled([
     api.analytics.load(token, 90),
     api.analytics.personalRecords(token),
     api.analytics.volumeTrend(token, 8),
-    api.analytics.readiness(token).catch(() => null),
-    api.analytics.trainingBalance(token, 28).catch(() => null),
-    api.analytics.benchmarks(token).catch(() => null),
-    api.trainingPartners(token).catch(() => [] as TrainingPartner[]),
+    api.analytics.readiness(token),
+    api.analytics.trainingBalance(token, 28),
+    api.analytics.benchmarks(token),
+    api.trainingPartners(token),
   ]);
+
+  const load =
+    loadRes.status === "fulfilled"
+      ? loadRes.value
+      : {
+          series: [],
+          ctl_now: 0,
+          atl_now: 0,
+          tsb_now: 0,
+          acwr_now: null,
+          acwr_zone: "calibrating" as const,
+        };
+  const personalRecords =
+    personalRecordsRes.status === "fulfilled" ? personalRecordsRes.value : [];
+  const volume =
+    volumeRes.status === "fulfilled" ? volumeRes.value : { weeks: [] };
+  const readiness =
+    readinessRes.status === "fulfilled" ? readinessRes.value : null;
+  const balance = balanceRes.status === "fulfilled" ? balanceRes.value : null;
+  const benchmarks =
+    benchmarksRes.status === "fulfilled" ? benchmarksRes.value : null;
+  const partners: TrainingPartner[] =
+    partnersRes.status === "fulfilled" ? partnersRes.value : [];
 
   const nonZeroDays = load.series.filter((pt) => pt.load_au > 0).length;
 
-  const ctlTrend = getCtlTrend(load.ctl_now, load.series);
-  const atlTrend = getAtlTrend(load.atl_now, load.series);
+  const ctlTrend = getLoadTrend(load.ctl_now, load.series, "ctl");
+  const atlTrend = getLoadTrend(load.atl_now, load.series, "atl");
   const tsbIsNeg = load.tsb_now < 0;
 
   return (
