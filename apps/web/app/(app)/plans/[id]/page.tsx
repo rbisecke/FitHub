@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/supabase/requireAuth";
 import { api } from "@/lib/api/client";
 import Link from "next/link";
+import { formatGoal } from "@/lib/display";
 import { PlanBranchView } from "@/components/plans/PlanBranchView";
 import { MesocycleDotGrid } from "@/components/plans/MesocycleDotGrid";
 import { CurrentWeekView } from "@/components/plans/CurrentWeekView";
@@ -61,7 +62,7 @@ export default async function PlanDetailPage({ params }: Props) {
           )}
         </div>
         <p className="font-data text-[12px] text-[var(--muted)] mt-1 tabular-nums">
-          {plan.goal.replace(/_/g, " ")} · {plan.weeks} weeks · starts{" "}
+          {formatGoal(plan.goal)} · {plan.weeks} weeks · starts{" "}
           {plan.start_date}
         </p>
       </div>

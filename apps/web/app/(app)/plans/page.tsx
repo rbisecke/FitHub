@@ -4,6 +4,7 @@ import { api } from "@/lib/api/client";
 import type { PlanSummary } from "@/lib/api/plans";
 import { PageHeader } from "@/components/ui/page-header";
 import { PlanCard } from "@/components/plans/PlanCard";
+import { BackButton } from "@/components/ui/BackButton";
 
 export default async function PlansPage() {
   const { token } = await requireAuth();
@@ -38,29 +39,11 @@ export default async function PlansPage() {
 
   return (
     <div className="mx-auto max-w-[1100px] px-[18px] pt-[14px] pb-2 md:px-4 md:py-8">
-      <div className="md:hidden flex items-center gap-[9px] mb-[14px]">
-        <Link
-          href="/dashboard"
-          className="flex text-[var(--muted)]"
-          aria-label="Back to home"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M15 6l-6 6 6 6" />
-          </svg>
-        </Link>
-        <span className="font-data text-[11.5px] text-[var(--muted)]">
-          Home
-        </span>
-      </div>
+      <BackButton
+        href="/dashboard"
+        label="Home"
+        className="md:hidden mb-[14px]"
+      />
       <PageHeader
         gitCommand="$ git branch --list"
         title="Plans"

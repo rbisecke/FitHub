@@ -1,9 +1,8 @@
 "use client";
 
-// CANARY: THIS IS THE NEW VERSION - feat/dsr-log-result
-import { useState, useCallback, useRef } from "react";
-import Link from "next/link";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { BackButton } from "@/components/ui/BackButton";
 import { useForm, useFieldArray, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Sparkles, Loader2 } from "lucide-react";
@@ -29,8 +28,6 @@ function toISOLocal(dateStr: string): string {
   return `${dateStr}T00:00:00Z`;
 }
 
-const today = new Date().toISOString().slice(0, 10);
-
 interface LogPageClientProps {
   accessToken: string;
   recentWorkouts: WorkoutSummary[];
@@ -46,6 +43,7 @@ export function LogPageClient({
 }: LogPageClientProps) {
   const router = useRouter();
   const timer = useRestTimer();
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   // NL input state
   const [nlExpanded, setNlExpanded] = useState(false);
@@ -286,30 +284,11 @@ export function LogPageClient({
 
   return (
     <div className="mx-auto max-w-lg pb-nav-safe md:max-w-5xl px-[18px] pt-[14px] pb-2 md:px-8 md:py-6">
-      {/* Mobile back button */}
-      <div className="md:hidden flex items-center gap-[9px] mb-[14px]">
-        <Link
-          href="/dashboard"
-          className="flex text-[var(--muted-foreground)]"
-          aria-label="Back to home"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M15 6l-6 6 6 6" />
-          </svg>
-        </Link>
-        <span className="font-data text-[11.5px] text-[var(--muted-foreground)]">
-          Home
-        </span>
-      </div>
+      <BackButton
+        href="/dashboard"
+        label="Home"
+        className="md:hidden mb-[14px]"
+      />
       <PageHeader
         gitCommand='$ git commit -m "<result>"'
         title="Log a result"

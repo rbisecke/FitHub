@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { api } from "@/lib/api/client";
+import { toHandle } from "@/lib/display";
 import type {
   PersonalRecord,
   WorkoutSummary,
@@ -70,12 +71,7 @@ export default async function DashboardPage() {
 
   const profile = profileRes.status === "fulfilled" ? profileRes.value : null;
   const firstName = profile?.display_name?.split(" ")[0] ?? "there";
-  const terminalHandle = profile?.display_name
-    ? profile.display_name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "")
-    : (session.user.email ?? "user").split("@")[0] ?? "user";
+  const terminalHandle = toHandle(profile?.display_name, session.user.email);
 
   // ── Stat grid data ────────────────────────────────────────────────────────
   const today = new Date().toLocaleDateString("en-CA");

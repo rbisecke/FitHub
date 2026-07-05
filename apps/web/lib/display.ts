@@ -87,3 +87,55 @@ export function formatWeight(kg: number, unit: "kg" | "lb"): string {
   const val = convertWeight(kg, unit);
   return `${val} ${unit}`;
 }
+
+type AcwrZone =
+  | "sweet_spot"
+  | "undertraining"
+  | "caution"
+  | "overreaching"
+  | "calibrating";
+
+export function formatAcwrZone(zone: AcwrZone | string): string {
+  switch (zone) {
+    case "sweet_spot":
+      return "optimal";
+    case "undertraining":
+      return "low";
+    case "caution":
+      return "caution";
+    case "overreaching":
+      return "high risk";
+    default:
+      return "calibrating";
+  }
+}
+
+export function getAcwrZoneColor(zone: AcwrZone | string): string {
+  switch (zone) {
+    case "overreaching":
+      return "var(--red)";
+    case "caution":
+      return "var(--amber)";
+    case "sweet_spot":
+      return "var(--accent)";
+    default:
+      return "var(--muted)";
+  }
+}
+
+export function formatGoal(goal: string): string {
+  return goal.replace(/_/g, " ");
+}
+
+export function toHandle(
+  displayName: string | null | undefined,
+  email?: string,
+): string {
+  if (displayName) {
+    return displayName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+  }
+  return (email ?? "user").split("@")[0] ?? "user";
+}

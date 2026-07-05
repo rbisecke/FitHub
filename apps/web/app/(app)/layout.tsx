@@ -6,6 +6,7 @@ import { AppInit } from "@/components/layout/AppInit";
 import { UserPrefsProvider } from "@/lib/contexts/UserPrefsContext";
 import { api } from "@/lib/api/client";
 import type { WeightUnit, DistanceUnit, GraphColourMode } from "@/lib/api";
+import { toHandle } from "@/lib/display";
 
 export default async function AppLayout({
   children,
@@ -42,15 +43,7 @@ export default async function AppLayout({
       if (!profile.onboarding_completed) {
         shouldRedirectToOnboarding = true;
       }
-      // Derive a handle: display_name → lowercase-hyphenated, or email prefix
-      if (profile.display_name) {
-        handle = profile.display_name
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)/g, "");
-      } else {
-        handle = (user.email ?? "user").split("@")[0] ?? "user";
-      }
+      handle = toHandle(profile.display_name, user.email);
     }
   } catch {
     // Non-fatal: page still renders with safe defaults
