@@ -1,5 +1,5 @@
-import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { notFound } from "next/navigation";
+import { requireAuth } from "@/lib/supabase/requireAuth";
 import { api } from "@/lib/api/client";
 import type {
   PersonalRecord,
@@ -17,14 +17,8 @@ export default async function MovementDetailPage({
 }: {
   params: Promise<{ movementId: string }>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
-
+  const { token } = await requireAuth();
   const { movementId } = await params;
-  const token = session.access_token;
 
   const [prs, trendPoints, history, profile] = await Promise.all([
     api.analytics.personalRecords(token).catch((): PersonalRecord[] => []),

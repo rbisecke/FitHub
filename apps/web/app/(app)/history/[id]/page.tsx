@@ -1,5 +1,5 @@
-import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { notFound } from "next/navigation";
+import { requireAuth } from "@/lib/supabase/requireAuth";
 import { api } from "@/lib/api/client";
 import { WorkoutDetailClient } from "@/components/workout/WorkoutDetailClient";
 
@@ -9,27 +9,14 @@ export default async function WorkoutDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const { token } = await requireAuth();
 
   let workout;
   try {
-    workout = await api.workouts.get(session!.access_token, id);
+    workout = await api.workouts.get(token, id);
   } catch {
     notFound();
   }
 
-  return (
-    <WorkoutDetailClient
-      workout={workout}
-      accessToken={session!.access_token}
-    />
-  );
+  return <WorkoutDetailClient workout={workout} accessToken={token} />;
 }

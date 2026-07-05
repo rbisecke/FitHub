@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/requireAuth";
 import { LogPageClient } from "@/components/log/LogPageClient";
 import { api } from "@/lib/api/client";
 import type { WorkoutSummary } from "@/lib/api";
@@ -9,17 +8,7 @@ export default async function NewWorkoutPage({
 }: {
   searchParams: Promise<{ prefill?: string }>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  const token = session!.access_token;
+  const { token } = await requireAuth();
   const { prefill } = await searchParams;
 
   // Fetch recent workouts for the template picker

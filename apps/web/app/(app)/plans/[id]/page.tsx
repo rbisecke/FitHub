@@ -1,5 +1,5 @@
-import { redirect, notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { notFound } from "next/navigation";
+import { requireAuth } from "@/lib/supabase/requireAuth";
 import { api } from "@/lib/api/client";
 import Link from "next/link";
 import { PlanBranchView } from "@/components/plans/PlanBranchView";
@@ -14,16 +14,7 @@ interface Props {
 
 export default async function PlanDetailPage({ params }: Props) {
   const { id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const token = session!.access_token;
+  const { token } = await requireAuth();
 
   let plan: Awaited<ReturnType<typeof api.plans.get>> | null = null;
   try {

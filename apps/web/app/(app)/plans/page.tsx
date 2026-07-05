@@ -1,25 +1,16 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/requireAuth";
 import { api } from "@/lib/api/client";
 import type { PlanSummary } from "@/lib/api/plans";
 import { PageHeader } from "@/components/ui/page-header";
 import { PlanCard } from "@/components/plans/PlanCard";
 
 export default async function PlansPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const { token } = await requireAuth();
 
   let plans: PlanSummary[] = [];
   try {
-    plans = await api.plans.list(session!.access_token);
+    plans = await api.plans.list(token);
   } catch {
     // degrade gracefully
   }
