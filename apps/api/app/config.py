@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     # Comma-separated admin UUIDs. Stored as str so pydantic-settings doesn't
     # try to JSON-decode the value; parse with admin_user_ids property.
     admin_user_ids_csv: str = ""
+    # Comma-separated allowed CORS origins. Production: set to the public frontend URL.
+    cors_origin: str = "http://localhost:3000"
 
     model_config = SettingsConfigDict(env_file=(_ENV_FILE, ".env"), extra="ignore")
 
