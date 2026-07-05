@@ -68,9 +68,10 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/injuries",
     label: "Injuries",
-    mobileLabel: "Injuries",
+    mobileLabel: "Issues",
     icon: ShieldAlert,
     gitCommand: "$ git issue --list",
+    mobileShow: true,
   },
   {
     href: "/coach",
