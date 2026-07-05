@@ -77,7 +77,7 @@ async def submit_checkin(
             soreness      = EXCLUDED.soreness
         """,
         [
-            str(user.user_id),
+            user.user_id,
             today,
             body.sleep,
             body.stress,
@@ -100,7 +100,7 @@ async def submit_checkin(
             ON CONFLICT (user_id, type, started_at, source)
             DO UPDATE SET value = EXCLUDED.value
             """,
-            [str(user.user_id), mtype, value, now_ts],
+            [user.user_id, mtype, value, now_ts],
         )
 
     # subjective_wellness (0–10): invert fatigue + stress (lower is better)
@@ -136,7 +136,7 @@ async def today_checkin(
             FROM daily_checkins
             WHERE user_id = %s AND date = %s
             """,
-            [str(user.user_id), today],
+            [user.user_id, today],
         )
         row = await cur.fetchone()
 

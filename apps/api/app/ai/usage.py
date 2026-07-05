@@ -47,7 +47,7 @@ async def write_llm_usage(
             )
             """,
             [
-                str(user_id),
+                user_id,
                 str(session_id) if session_id is not None else None,
                 endpoint,
                 model,

@@ -25,7 +25,7 @@ async def fetch_active_injuries(
             WHERE user_id = %s AND active = true
             ORDER BY reported_at DESC
             """,
-            [str(user_id)],
+            [user_id],
         )
         rows = await cur.fetchall()
 

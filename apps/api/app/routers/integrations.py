@@ -60,7 +60,7 @@ async def connect_apple_health(
                           'ingest_token_prefix', %s::text
                       )
         """,
-        [str(user.user_id), token_hash, prefix, token_hash, prefix],
+        [user.user_id, token_hash, prefix, token_hash, prefix],
     )
 
     base_url = str(request.base_url).rstrip("/")
@@ -84,7 +84,7 @@ async def revoke_apple_health_token(
         DELETE FROM data_connections
         WHERE user_id = %s AND provider = 'apple_health'
         """,
-        [str(user.user_id)],
+        [user.user_id],
     )
 
 
@@ -106,7 +106,7 @@ async def list_integrations(
             WHERE user_id = %s
             ORDER BY provider
             """,
-            [str(user.user_id)],
+            [user.user_id],
         )
         rows = await cur.fetchall()
 

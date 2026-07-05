@@ -227,7 +227,7 @@ async def fetch_today_session(
             GROUP BY ps.id, ps.session_type, ps.title
             LIMIT 1
             """,
-            [str(user_id), today],
+            [user_id, today],
         )
         row = await cur.fetchone()
 
