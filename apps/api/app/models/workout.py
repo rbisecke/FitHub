@@ -34,7 +34,9 @@ class WorkoutFormat(StrEnum):
     team = "team"
 
 
-class Workout(BaseModel):
+class WorkoutBase(BaseModel):
+    """Shared fields between Workout and WorkoutSummary."""
+
     id: uuid.UUID
     user_id: uuid.UUID
     performed_at: datetime
@@ -56,31 +58,13 @@ class Workout(BaseModel):
     is_tag: bool = False
     created_at: datetime
     updated_at: datetime
+
+
+class Workout(WorkoutBase):
     results: list[Result] = Field(default_factory=list)
 
 
-class WorkoutSummary(BaseModel):
-    id: uuid.UUID
-    user_id: uuid.UUID
-    performed_at: datetime
-    title: str | None
-    short_hash: str
-    notes: str | None
-    bodyweight_kg: Decimal | None
-    session_type: SessionType | None
-    workout_format: WorkoutFormat | None
-    time_cap_s: int | None
-    location: str | None
-    session_rpe: Decimal | None
-    duration_s: int | None
-    perceived_load_au: int | None
-    volume_load_kg: Decimal | None
-    avg_hr: int | None
-    max_hr: int | None
-    trimp_au: Decimal | None
-    is_tag: bool = False
-    created_at: datetime
-    updated_at: datetime
+class WorkoutSummary(WorkoutBase):
     result_count: int = 0
     has_pr: bool = False
     team_session_id: uuid.UUID | None = None
