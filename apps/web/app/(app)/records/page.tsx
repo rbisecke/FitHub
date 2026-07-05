@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/requireAuth";
 import { api } from "@/lib/api/client";
 import type { PersonalRecord, E1RMPoint } from "@/lib/api";
 import { RecordsShell } from "@/components/records/RecordsShell";
@@ -11,13 +10,7 @@ export default async function RecordsPage({
 }: {
   searchParams: Promise<{ highlighted?: string }>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
-
-  const token = session.access_token;
+  const { token } = await requireAuth();
   const { highlighted } = await searchParams;
 
   const prs = await api.analytics

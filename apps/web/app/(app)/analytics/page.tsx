@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/requireAuth";
 import { api } from "@/lib/api/client";
 import { StrengthProgressSection } from "@/components/analytics/StrengthProgressSection";
 import { VolumeTrendSection } from "@/components/analytics/VolumeTrendSection";
@@ -54,16 +53,7 @@ function getAtlTrend(
 }
 
 export default async function AnalyticsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const token = session!.access_token;
+  const { token } = await requireAuth();
 
   const [
     load,

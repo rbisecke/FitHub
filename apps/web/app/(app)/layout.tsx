@@ -14,9 +14,12 @@ export default async function AppLayout({
 }) {
   const supabase = await createClient();
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) redirect("/login");
+
+  const user = session.user;
+  const token = session.access_token;
 
   // Read sidebar cookie server-side to avoid flash on first paint
   const cookieStore = await cookies();
@@ -31,10 +34,6 @@ export default async function AppLayout({
   let shouldRedirectToOnboarding = false;
   let handle = "user";
   try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const token = session?.access_token ?? "";
     if (token) {
       const profile = await api.profile.get(token);
       weightUnit = profile.weight_unit;
