@@ -28,8 +28,7 @@ from app.ai.rag import hybrid_retrieve
 from app.ai.streaming import _STUB_TOKENS, sanitize_answer, sse_event, stream_llm_tokens
 from app.ai.stub import is_stubbed
 from app.ai.usage import write_llm_usage
-from app.auth import UserContext, get_current_user
-from app.db import get_db
+from app.dependencies.common import Auth, DBConn
 from app.engine.injury import CONTRAINDICATIONS, resolve_substitution, union_contraindications
 from app.engine.safety import SafetyTier, classify_safety
 from app.middleware.rate_limit import limiter
@@ -60,8 +59,6 @@ from app.repositories.injuries import fetch_active_injuries
 log = logging.getLogger("fithub.coach")
 
 router = APIRouter(prefix="/api/v1/coach", tags=["coach"])
-
-_Db = Annotated[psycopg.AsyncConnection[object], Depends(get_db)]
 
 _COACH_SYSTEM_PROMPT_BASE = (
     "You are a knowledgeable CrossFit and functional fitness coach. "
@@ -164,8 +161,8 @@ _SUSPICIOUS_OUTPUT = re.compile(
 async def parse_log(
     request: Request,
     body: ParseLogRequest,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
     _kill: Annotated[None, Depends(require_llm_enabled)],
 ) -> ParseLogResponse:
     result = await parse_log_text(body.text, user_id=user.user_id, db=db)
@@ -191,8 +188,8 @@ async def parse_log(
 @router.get("/history", response_model=list[HistoryMessage])
 async def get_history(
     session_id: str,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
     limit: int = Query(default=20, ge=1, le=100),
 ) -> list[HistoryMessage]:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
@@ -212,8 +209,8 @@ async def get_history(
 async def chat(
     request: Request,
     body: ChatRequest,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
     _kill: Annotated[None, Depends(require_llm_enabled)],
 ) -> ChatResponse:
     tier, _ = classify_safety(body.question)
@@ -342,8 +339,8 @@ async def chat(
 
 @router.get("/sessions", response_model=list[CoachSession])
 async def list_sessions(
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
     limit: int = Query(default=20, ge=1, le=100),
     before_id: uuid.UUID | None = Query(default=None),
 ) -> list[CoachSession]:
@@ -353,8 +350,8 @@ async def list_sessions(
 @router.get("/sessions/{session_id}/messages", response_model=SessionMessagesResponse)
 async def get_session_messages(
     session_id: uuid.UUID,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
     limit: int = Query(default=50, ge=1, le=200),
 ) -> SessionMessagesResponse:
     return await coach_repo.list_messages(db, session_id, user.user_id, limit=limit)
@@ -365,8 +362,8 @@ async def get_session_messages(
 async def chat_stream(
     request: Request,
     body: ChatStreamRequest,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
     _kill: Annotated[None, Depends(require_llm_enabled)],
 ) -> StreamingResponse:
     return StreamingResponse(
@@ -589,8 +586,8 @@ def _build_modifications(
 @router.post("/modify-workout", response_model=ModifyWorkoutResponse)
 async def modify_workout(
     body: ModifyWorkoutRequest,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> ModifyWorkoutResponse:
     result = await coach_repo.get_workout_with_items(body.session_id, user.user_id, db)
     if result is None:
@@ -661,8 +658,8 @@ def _parse_movements_from_text(wod_text: str, known_movements: set[str]) -> list
 @router.post("/check-wod", response_model=CheckWodResponse)
 async def check_wod(
     body: CheckWodRequest,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> CheckWodResponse:
     known_movements = {m for ms in CONTRAINDICATIONS.values() for m in ms}
     movements_found = _parse_movements_from_text(body.wod_text, known_movements)

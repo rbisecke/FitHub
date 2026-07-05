@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
 
-import psycopg
 import psycopg.rows
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 
-from app.auth import UserContext, get_current_user
-from app.db import get_db
+from app.dependencies.common import Auth, DBConn
 from app.engine.injury import (
     get_contraindicated_movements,
     has_red_flags,
@@ -20,10 +17,8 @@ from app.models.injury import BodyRegion, InjuryOut, ReportInjuryRequest, Update
 
 router = APIRouter(prefix="/api/v1/injuries", tags=["injuries"])
 
-_Db = Annotated[psycopg.AsyncConnection[object], Depends(get_db)]
-
 _SELECT_COLS = """
-    id::text, user_id::text, body_region, pain_level,
+    id::text, user_id, body_region, pain_level,
     mechanism, notes, active, requires_referral,
     status, cleared_at, restriction_notes,
     reported_at, resolved_at
@@ -56,8 +51,8 @@ def _row_to_injury_out(
 @router.post("", response_model=InjuryOut)
 async def report_injury(
     req: ReportInjuryRequest,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> InjuryOut:
     referral = has_red_flags(req.notes, req.pain_level, req.body_region)
     substitutions: list[str] = []
@@ -96,8 +91,8 @@ async def report_injury(
 
 @router.get("", response_model=list[InjuryOut])
 async def list_injuries(
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> list[InjuryOut]:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
@@ -118,8 +113,8 @@ async def list_injuries(
 async def update_injury_status(
     injury_id: str,
     req: UpdateInjuryStatusRequest,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> InjuryOut:
     # Validate UUID format
     try:
@@ -135,7 +130,7 @@ async def update_injury_status(
         )
         existing = await cur.fetchone()
 
-    if existing is None or str(existing["user_id"]) != str(user.user_id):
+    if existing is None or existing["user_id"] != user.user_id:
         raise HTTPException(status_code=404, detail="Injury not found")
 
     current_status = str(existing.get("status") or "active")

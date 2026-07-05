@@ -2,19 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
 import psycopg
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.auth import UserContext, get_current_user
-from app.db import get_db
+from app.dependencies.common import Auth, DBConn
 from app.integrations.ingest_tokens import generate_ingest_token, verify_ingest_token
 
 router = APIRouter(prefix="/api/v1/integrations", tags=["integrations"])
-
-_Db = Annotated[psycopg.AsyncConnection[object], Depends(get_db)]
 
 
 # ── Response models ────────────────────────────────────────────────────────────
@@ -43,8 +38,8 @@ class SyncResponse(BaseModel):
 @router.post("/apple-health/connect", response_model=ConnectResponse)
 async def connect_apple_health(
     request: Request,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> ConnectResponse:
     """Generate a bearer token for HAE (dev-only endpoint). Returns plaintext once."""
     plaintext, token_hash, prefix = generate_ingest_token()
@@ -76,8 +71,8 @@ async def connect_apple_health(
 
 @router.delete("/apple-health/token", status_code=204)
 async def revoke_apple_health_token(
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> None:
     await db.execute(
         """
@@ -93,8 +88,8 @@ async def revoke_apple_health_token(
 
 @router.get("", response_model=list[ConnectionStatus])
 async def list_integrations(
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> list[ConnectionStatus]:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
@@ -126,7 +121,7 @@ async def list_integrations(
 @router.post("/apple-health/sync", response_model=SyncResponse)
 async def apple_health_sync(
     request: Request,
-    db: _Db,
+    db: DBConn,
 ) -> SyncResponse:
     """Accept an HAE payload authenticated by a dev ingest bearer token."""
     auth = request.headers.get("Authorization", "")

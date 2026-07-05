@@ -14,8 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.ai.kill_switch import require_llm_enabled
 from app.ai.stub import is_stubbed
-from app.auth import UserContext, get_current_user
-from app.db import get_db
+from app.dependencies.common import Auth, DBConn
 from app.middleware.rate_limit import limiter
 from app.models.plan import (
     CreatePlanRequest,
@@ -30,8 +29,6 @@ from app.models.plan import (
 )
 
 router = APIRouter(prefix="/api/v1/plans", tags=["plans"])
-
-_Db = Annotated[psycopg.AsyncConnection[object], Depends(get_db)]
 
 
 async def _get_plan_detail(
@@ -229,8 +226,8 @@ async def _apply_session_patch(
 async def create_plan(
     request: Request,
     req: CreatePlanRequest,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
     _kill: Annotated[None, Depends(require_llm_enabled)],
 ) -> PlanTaskResponse:
     task_id = str(uuid.uuid4())
@@ -256,8 +253,8 @@ async def create_plan(
 @router.get("/tasks/{task_id}", response_model=PlanTaskResponse)
 async def get_task(
     task_id: str,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> PlanTaskResponse:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
@@ -280,8 +277,8 @@ async def get_task(
 
 @router.get("", response_model=list[PlanSummary])
 async def list_plans(
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> list[PlanSummary]:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
@@ -315,8 +312,8 @@ async def list_plans(
 @router.get("/{plan_id}", response_model=PlanDetail)
 async def get_plan(
     plan_id: str,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> PlanDetail:
     return await _get_plan_detail(plan_id, str(user.user_id), db)
 
@@ -324,8 +321,8 @@ async def get_plan(
 @router.get("/{plan_id}/today", response_model=PlannedSessionOut | None)
 async def today_session(
     plan_id: str,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> PlannedSessionOut | None:
     today = date.today()
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
@@ -354,8 +351,8 @@ async def today_session(
 async def revise_plan(
     plan_id: str,
     req: PlanRevisionRequest,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
     _kill: Annotated[None, Depends(require_llm_enabled)],
 ) -> PlanDetail:
     # 1. Verify plan ownership

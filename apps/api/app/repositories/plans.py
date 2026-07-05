@@ -63,8 +63,7 @@ async def get_plan_task(
     """Fetch a plan generation task scoped to the owning user."""
     async with db.cursor(row_factory=dict_row) as cur:
         await cur.execute(
-            "SELECT id::text, status, plan_id::text, error"
-            " FROM plan_tasks WHERE id = %s AND user_id = %s",
+            "SELECT id, status, plan_id, error FROM plan_tasks WHERE id = %s AND user_id = %s",
             [task_id, user_id],
         )
         row = await cur.fetchone()
@@ -140,7 +139,7 @@ async def get_plan_detail(
                    COALESCE(
                        json_agg(
                            json_build_object(
-                               'id', pi.id::text,
+                               'id', pi.id,
                                'movement_name', pi.movement_name,
                                'sets', pi.sets,
                                'reps', pi.reps,
@@ -223,7 +222,7 @@ async def get_session_id_for_date(
     async with db.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT ps.id::text FROM planned_sessions ps
+            SELECT ps.id FROM planned_sessions ps
             JOIN plans p ON p.id = ps.plan_id
             WHERE ps.plan_id = %s AND p.user_id = %s AND ps.scheduled_date = %s
             LIMIT 1
@@ -243,12 +242,12 @@ async def load_prescribed_sessions(
     async with db.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT ps.id::text, ps.scheduled_date::text, ps.session_type,
+            SELECT ps.id, ps.scheduled_date::text, ps.session_type,
                    ps.title, ps.notes, ps.status,
                    COALESCE(
                        json_agg(
                            json_build_object(
-                               'id', pi.id::text,
+                               'id', pi.id,
                                'movement_name', pi.movement_name,
                                'sets', pi.sets,
                                'reps', pi.reps,
