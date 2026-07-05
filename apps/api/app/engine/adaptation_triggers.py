@@ -2,8 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import psycopg
 import psycopg.rows
+
+ACWR_HIGH_THRESHOLD = 1.5
+ACWR_LOW_THRESHOLD = 0.8
+RPE_CREEP_THRESHOLD = 8.5
+LOW_READINESS_STREAK_DAYS = 3
+MISSED_SESSION_THRESHOLD = 2
 
 
 async def detect_triggers(
@@ -11,22 +19,25 @@ async def detect_triggers(
     plan_id: str,
     db: psycopg.AsyncConnection[object],
 ) -> list[dict[str, object]]:
+    acwr, low_days, missed, avg_rpe = await asyncio.gather(
+        _compute_acwr(user_id, db),
+        _count_low_readiness_streak(user_id, db),
+        _count_missed_sessions(user_id, plan_id, db),
+        _compute_avg_rpe(user_id, db),
+    )
+
     triggers: list[dict[str, object]] = []
 
-    acwr = await _compute_acwr(user_id, db)
-    if acwr is not None and acwr > 1.5:
+    if acwr is not None and acwr > ACWR_HIGH_THRESHOLD:
         triggers.append({"type": "high_acwr", "data": {"acwr": round(acwr, 2)}})
 
-    low_days = await _count_low_readiness_streak(user_id, db)
-    if low_days >= 3:
+    if low_days >= LOW_READINESS_STREAK_DAYS:
         triggers.append({"type": "low_readiness", "data": {"streak_days": low_days}})
 
-    missed = await _count_missed_sessions(user_id, plan_id, db)
-    if missed >= 2:
+    if missed >= MISSED_SESSION_THRESHOLD:
         triggers.append({"type": "missed_session", "data": {"count": missed, "window_days": 7}})
 
-    avg_rpe = await _compute_avg_rpe(user_id, db)
-    if avg_rpe is not None and avg_rpe > 8.5:
+    if avg_rpe is not None and avg_rpe > RPE_CREEP_THRESHOLD:
         triggers.append({"type": "rpe_creep", "data": {"avg_rpe": round(avg_rpe, 2)}})
 
     return triggers
