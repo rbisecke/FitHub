@@ -56,10 +56,12 @@ async def add_training_partner(user: Auth, conn: DB, body: AddPartnerRequest) ->
     )
     if partner is None:
         raise HTTPException(status_code=404, detail="No account found for that email.")
-    return TrainingPartner(
-        user_id=partner["user_id"],
-        guest_name=None,
-        display_name=partner["display_name"] or partner["email"].split("@")[0],
-        session_count=0,
-        most_common_format=None,
+
+    result = await repo.add_training_partner(
+        conn,
+        user_id=user.user_id,
+        partner_id=partner["user_id"],
     )
+    if result is None:
+        raise HTTPException(status_code=409, detail="Already a training partner.")
+    return result

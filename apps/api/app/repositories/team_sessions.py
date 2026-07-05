@@ -510,3 +510,46 @@ async def mark_notification_read(
     if row is None:
         return None
     return Notification(**row)
+
+
+async def add_training_partner(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    user_id: uuid.UUID,
+    partner_id: uuid.UUID,
+) -> TrainingPartner | None:
+    """Insert a training_partners row. Returns None if the relationship already exists."""
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            INSERT INTO public.training_partners (user_id, partner_id)
+            VALUES (%s, %s)
+            ON CONFLICT (user_id, partner_id) DO NOTHING
+            RETURNING partner_id
+            """,
+            (user_id, partner_id),
+        )
+        inserted = await cur.fetchone()
+        if not inserted:
+            return None  # relationship already exists
+
+        await cur.execute(
+            """
+            SELECT id AS user_id, display_name
+            FROM public.profiles
+            WHERE id = %s
+            """,
+            (partner_id,),
+        )
+        profile = await cur.fetchone()
+        if not profile:
+            return None
+
+        display = profile["display_name"] or str(partner_id)
+        return TrainingPartner(
+            user_id=profile["user_id"],
+            guest_name=None,
+            display_name=display,
+            session_count=0,
+            most_common_format=None,
+        )
