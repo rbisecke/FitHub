@@ -267,27 +267,16 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Hooper daily check-in (below stat grid, above main content) */}
-      <div className="hidden md:block mb-[18px]">
-        <HooperCheckIn
-          token={token}
-          initialSubmitted={wellness?.submitted ?? false}
-          initialCheckin={wellness?.checkin ?? null}
-        />
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-[1fr_340px] gap-[18px] animate-fadeUp">
         {/* Left column */}
         <div className="space-y-[18px]">
           <ContributionGraphRevamp workouts={workouts} />
-          {/* Mobile: Hooper check-in inline with left column content */}
-          <div className="md:hidden">
-            <HooperCheckIn
-              token={token}
-              initialSubmitted={wellness?.submitted ?? false}
-              initialCheckin={wellness?.checkin ?? null}
-            />
-          </div>
+          {/* Hooper daily check-in — after contribution graph on all breakpoints */}
+          <HooperCheckIn
+            token={token}
+            initialSubmitted={wellness?.submitted ?? false}
+            initialCheckin={wellness?.checkin ?? null}
+          />
           <TrainingPartnersSummary partners={partners} />
           <HubGrid />
           <TerminalWidget handle={terminalHandle} commits={terminalCommits} />
