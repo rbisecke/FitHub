@@ -229,12 +229,12 @@ async def chat(
             await db.execute(
                 "INSERT INTO coach_interactions (user_id, role, content, stub, session_id)"
                 " VALUES (%s, 'user', %s, true, %s)",
-                [str(user.user_id), body.question, session_id_str],
+                [user.user_id, body.question, session_id_str],
             )
             await db.execute(
                 "INSERT INTO coach_interactions (user_id, role, content, stub, session_id)"
                 " VALUES (%s, 'assistant', %s, true, %s)",
-                [str(user.user_id), _STUB_ANSWER, session_id_str],
+                [user.user_id, _STUB_ANSWER, session_id_str],
             )
         return ChatResponse(
             answer=_STUB_ANSWER,
@@ -322,12 +322,12 @@ async def chat(
     await db.execute(
         "INSERT INTO coach_interactions (user_id, role, content, stub, session_id)"
         " VALUES (%s, 'user', %s, false, %s)",
-        [str(user.user_id), body.question, session_id_str],
+        [user.user_id, body.question, session_id_str],
     )
     await db.execute(
         "INSERT INTO coach_interactions (user_id, role, content, stub, session_id)"
         " VALUES (%s, 'assistant', %s, false, %s)",
-        [str(user.user_id), answer_text, session_id_str],
+        [user.user_id, answer_text, session_id_str],
     )
 
     citations = [

@@ -83,7 +83,7 @@ async def _fetch_team_session(
                   )
                 GROUP  BY ts.id
                 """,
-                [str(team_session_id), str(user_id), str(user_id)],
+                [str(team_session_id), user_id, user_id],
             )
         else:
             await cur.execute(
@@ -123,7 +123,7 @@ async def _create_notification(
 ) -> None:
     await cur.execute(
         "INSERT INTO public.notifications (user_id, type, payload) VALUES (%s, %s, %s)",
-        [str(user_id), notif_type, json.dumps(payload)],
+        [user_id, notif_type, json.dumps(payload)],
     )
 
 
@@ -143,7 +143,7 @@ async def create_team_session(
                 RETURNING id
                 """,
             [
-                str(user_id),
+                user_id,
                 req.name,
                 req.team_size,
                 req.scoring_type,
@@ -164,17 +164,17 @@ async def create_team_session(
             await cur.execute(
                 "INSERT INTO public.team_session_participants "
                 "(team_session_id, user_id, workout_id) VALUES (%s, %s, %s)",
-                [str(session_id), str(user_id), str(req.workout_id)],
+                [str(session_id), user_id, str(req.workout_id)],
             )
             await cur.execute(
                 "UPDATE public.workouts SET team_session_id = %s WHERE id = %s AND user_id = %s",
-                [str(session_id), str(req.workout_id), str(user_id)],
+                [str(session_id), str(req.workout_id), user_id],
             )
         else:
             await cur.execute(
                 "INSERT INTO public.team_session_participants "
                 "(team_session_id, user_id) VALUES (%s, %s)",
-                [str(session_id), str(user_id)],
+                [str(session_id), user_id],
             )
         for p in req.participants:
             # Skip if the request explicitly lists the creator themselves
@@ -249,7 +249,7 @@ async def list_team_sessions(
                 ORDER  BY ts.performed_at DESC, ts.id DESC
                 LIMIT  %s
                 """,
-                [str(user_id), str(user_id), str(before_id), limit],
+                [user_id, user_id, str(before_id), limit],
             )
         else:
             await cur.execute(
@@ -268,7 +268,7 @@ async def list_team_sessions(
                 ORDER  BY ts.performed_at DESC, ts.id DESC
                 LIMIT  %s
                 """,
-                [str(user_id), str(user_id), limit],
+                [user_id, user_id, limit],
             )
         rows = await cur.fetchall()
         return [TeamSessionSummary(**r) for r in rows]
@@ -286,7 +286,7 @@ async def patch_team_session(
         return await get_team_session(conn, user_id=user_id, team_session_id=team_session_id)
 
     set_clause = ", ".join(f"{k} = %s" for k in fields)
-    values = list(fields.values()) + [str(team_session_id), str(user_id)]
+    values = list(fields.values()) + [str(team_session_id), user_id]
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             f"UPDATE public.team_sessions SET {set_clause} "
@@ -308,7 +308,7 @@ async def delete_team_session(
     async with conn.cursor() as cur:
         await cur.execute(
             "DELETE FROM public.team_sessions WHERE id = %s AND created_by = %s",
-            [str(team_session_id), str(user_id)],
+            [str(team_session_id), user_id],
         )
         return cur.rowcount > 0
 
@@ -324,7 +324,7 @@ async def add_participant(
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             "SELECT id FROM public.team_sessions WHERE id = %s AND created_by = %s",
-            [str(team_session_id), str(user_id)],
+            [str(team_session_id), user_id],
         )
         if await cur.fetchone() is None:
             return None
@@ -409,7 +409,7 @@ async def get_workout_team_session(
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             "SELECT team_session_id FROM public.workouts WHERE id = %s AND user_id = %s",
-            [str(workout_id), str(user_id)],
+            [str(workout_id), user_id],
         )
         row = await cur.fetchone()
     if row is None or row["team_session_id"] is None:
@@ -442,7 +442,7 @@ async def list_training_partners(
             GROUP BY tsp.user_id, tsp.guest_name, p.display_name
             ORDER BY session_count DESC, display_name
             """,
-            [str(user_id), str(user_id)],
+            [user_id, user_id],
         )
         rows = await cur.fetchall()
         return [TrainingPartner(**r) for r in rows]
@@ -465,7 +465,7 @@ async def get_role_suggestions(
             ORDER BY cnt DESC
             LIMIT 10
             """,
-            [str(user_id)],
+            [user_id],
         )
         rows = await cur.fetchall()
         return [r[0] for r in rows]
@@ -482,13 +482,13 @@ async def list_notifications(
             await cur.execute(
                 "SELECT * FROM public.notifications WHERE user_id = %s "
                 "ORDER BY created_at DESC LIMIT 50",
-                [str(user_id)],
+                [user_id],
             )
         else:
             await cur.execute(
                 "SELECT * FROM public.notifications WHERE user_id = %s AND read_at IS NULL "
                 "ORDER BY created_at DESC LIMIT 50",
-                [str(user_id)],
+                [user_id],
             )
         rows = await cur.fetchall()
         return [Notification(**r) for r in rows]
@@ -504,7 +504,7 @@ async def mark_notification_read(
         await cur.execute(
             "UPDATE public.notifications SET read_at = now() "
             "WHERE id = %s AND user_id = %s RETURNING *",
-            [str(notification_id), str(user_id)],
+            [str(notification_id), user_id],
         )
         row = await cur.fetchone()
     if row is None:

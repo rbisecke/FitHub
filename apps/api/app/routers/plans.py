@@ -236,7 +236,7 @@ async def create_plan(
     task_id = str(uuid.uuid4())
     await db.execute(
         "INSERT INTO plan_tasks (id, user_id, status) VALUES (%s::uuid, %s, 'pending')",
-        [task_id, str(user.user_id)],
+        [task_id, user.user_id],
     )
 
     from app.ai.plan_generator import run_plan_generation  # noqa: PLC0415
@@ -263,7 +263,7 @@ async def get_task(
         await cur.execute(
             "SELECT id::text, status, plan_id::text, error"
             " FROM plan_tasks WHERE id = %s AND user_id = %s",
-            [task_id, str(user.user_id)],
+            [task_id, user.user_id],
         )
         row = await cur.fetchone()
 
@@ -292,7 +292,7 @@ async def list_plans(
                            'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
             FROM plans WHERE user_id = %s ORDER BY created_at DESC
             """,
-            [str(user.user_id)],
+            [user.user_id],
         )
         rows = await cur.fetchall()
 
@@ -336,7 +336,7 @@ async def today_session(
             WHERE ps.plan_id = %s AND p.user_id = %s AND ps.scheduled_date = %s
             LIMIT 1
             """,
-            [plan_id, str(user.user_id), today],
+            [plan_id, user.user_id, today],
         )
         row = await cur.fetchone()
 
@@ -362,7 +362,7 @@ async def revise_plan(
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             "SELECT id FROM plans WHERE id = %s::uuid AND user_id = %s",
-            [plan_id, str(user.user_id)],
+            [plan_id, user.user_id],
         )
         if await cur.fetchone() is None:
             raise HTTPException(status_code=404, detail="Plan not found")
@@ -401,7 +401,7 @@ async def revise_plan(
             """,
             [
                 plan_id,
-                str(user.user_id),
+                user.user_id,
                 json.dumps({"feedback": req.feedback}),
                 diff.rationale,
                 is_stubbed(),

@@ -78,7 +78,7 @@ async def report_injury(
             RETURNING {_SELECT_COLS}
             """,
             [
-                str(user.user_id),
+                user.user_id,
                 req.body_region,
                 req.pain_level,
                 req.mechanism,
@@ -107,7 +107,7 @@ async def list_injuries(
             WHERE user_id = %s AND status != 'resolved'
             ORDER BY reported_at DESC
             """,
-            [str(user.user_id)],
+            [user.user_id],
         )
         rows = await cur.fetchall()
 
