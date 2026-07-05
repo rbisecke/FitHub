@@ -6338,6 +6338,7 @@
         "properties": {
           "id": {
             "type": "string",
+            "format": "uuid",
             "title": "Id"
           },
           "name": {
@@ -7769,6 +7770,7 @@
         "properties": {
           "id": {
             "type": "string",
+            "format": "uuid",
             "title": "Id"
           },
           "goal": {
@@ -7867,6 +7869,7 @@
         "properties": {
           "id": {
             "type": "string",
+            "format": "uuid",
             "title": "Id"
           },
           "goal": {
@@ -7931,7 +7934,8 @@
           "plan_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -7962,6 +7966,7 @@
         "properties": {
           "id": {
             "type": "string",
+            "format": "uuid",
             "title": "Id"
           },
           "movement_name": {
@@ -8045,10 +8050,12 @@
         "properties": {
           "id": {
             "type": "string",
+            "format": "uuid",
             "title": "Id"
           },
           "mesocycle_id": {
             "type": "string",
+            "format": "uuid",
             "title": "Mesocycle Id"
           },
           "scheduled_date": {
