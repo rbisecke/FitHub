@@ -7766,6 +7766,10 @@
             "format": "date",
             "title": "End Date"
           },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
           "training_age": {
             "anyOf": [
               {
@@ -7776,10 +7780,6 @@
               }
             ],
             "title": "Training Age"
-          },
-          "created_at": {
-            "type": "string",
-            "title": "Created At"
           },
           "mesocycles": {
             "items": {
@@ -7806,8 +7806,8 @@
           "status",
           "start_date",
           "end_date",
-          "training_age",
           "created_at",
+          "training_age",
           "mesocycles",
           "sessions"
         ],

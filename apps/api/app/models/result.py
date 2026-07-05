@@ -20,6 +20,14 @@ class ResultType(StrEnum):
     pace = "pace"
 
 
+# ResultBase was not extracted: Result (response) and CreateResultRequest (request) share
+# field names but differ in defaults and validators — e.g. pace_distance_m is a bare int
+# in Result but Field(default=500, gt=0) in CreateResultRequest, and rpe/rir/rest_s carry
+# ge/le constraints only in the request model. A shared base would either drop those
+# validators or apply them to the response model (incorrect). Extraction would require
+# redeclaring most fields in both subclasses, producing no net reduction in duplication.
+
+
 class Result(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID

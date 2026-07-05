@@ -2464,10 +2464,10 @@ export interface components {
        * Format: date
        */
       end_date: string;
-      /** Training Age */
-      training_age: string | null;
       /** Created At */
       created_at: string;
+      /** Training Age */
+      training_age: string | null;
       /** Mesocycles */
       mesocycles: components["schemas"]["MesocycleOut"][];
       /** Sessions */

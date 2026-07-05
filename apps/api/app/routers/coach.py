@@ -8,19 +8,30 @@ import re
 import time
 import uuid
 from collections.abc import AsyncIterator
+from datetime import date
 from typing import Annotated, Any
 
+import anthropic
+import openai
 import psycopg
 import psycopg.rows
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
+import app.repositories.coach as coach_repo
 from app.ai.chat_history import fetch_session_history, rag_query_text
+from app.ai.client import get_client
+from app.ai.errors import call_llm
 from app.ai.kill_switch import require_llm_enabled
 from app.ai.parse_log import parse_log_text
+from app.ai.rag import hybrid_retrieve
+from app.ai.streaming import _STUB_TOKENS, sanitize_answer, sse_event, stream_llm_tokens
+from app.ai.stub import is_stubbed
+from app.ai.usage import write_llm_usage
 from app.auth import UserContext, get_current_user
 from app.db import get_db
-from app.engine.injury import resolve_substitution, union_contraindications
+from app.engine.injury import CONTRAINDICATIONS, resolve_substitution, union_contraindications
+from app.engine.safety import SafetyTier, classify_safety
 from app.middleware.rate_limit import limiter
 from app.models.coach import (
     ActiveInjurySummary,
@@ -29,6 +40,7 @@ from app.models.coach import (
     ChatStreamRequest,
     CheckWodRequest,
     CheckWodResponse,
+    Citation,
     CoachSession,
     HistoryMessage,
     ModifyWorkoutRequest,
@@ -39,8 +51,11 @@ from app.models.coach import (
     SessionMessagesResponse,
     TodaySessionContext,
     WodMovementResult,
+    _ChatAnswer,
 )
 from app.models.profile import UserProfile
+from app.repositories import profile as profile_repo
+from app.repositories.injuries import fetch_active_injuries
 
 log = logging.getLogger("fithub.coach")
 
@@ -160,14 +175,14 @@ async def parse_log(
         INSERT INTO coach_interactions (user_id, role, content, stub)
         VALUES (%s, 'user', %s, %s)
         """,
-        [str(user.user_id), body.text, result.stub],
+        [user.user_id, body.text, result.stub],
     )
     await db.execute(
         """
         INSERT INTO coach_interactions (user_id, role, content, stub)
         VALUES (%s, 'assistant', %s, %s)
         """,
-        [str(user.user_id), result.parsed.model_dump_json(), result.stub],
+        [user.user_id, result.parsed.model_dump_json(), result.stub],
     )
 
     return result
@@ -186,7 +201,7 @@ async def get_history(
                WHERE session_id = %s AND user_id = %s
                AND role IN ('user', 'assistant')
                ORDER BY created_at ASC LIMIT %s""",
-            [session_id, str(user.user_id), limit],
+            [session_id, user.user_id, limit],
         )
         rows = await cur.fetchall()
     return [HistoryMessage(**row) for row in rows]
@@ -201,8 +216,6 @@ async def chat(
     db: _Db,
     _kill: Annotated[None, Depends(require_llm_enabled)],
 ) -> ChatResponse:
-    from app.engine.safety import SafetyTier, classify_safety
-
     tier, _ = classify_safety(body.question)
     session_id_str = str(body.session_id) if body.session_id else None
 
@@ -210,7 +223,7 @@ async def chat(
         await db.execute(
             "INSERT INTO coach_interactions (user_id, role, content, stub, session_id)"
             " VALUES (%s, 'user', %s, false, %s)",
-            [str(user.user_id), body.question, session_id_str],
+            [user.user_id, body.question, session_id_str],
         )
         return ChatResponse(
             answer=(
@@ -221,8 +234,6 @@ async def chat(
             stub=False,
             safety_tier="stop",
         )
-
-    from app.ai.stub import is_stubbed
 
     if is_stubbed():
         if session_id_str:
@@ -245,26 +256,15 @@ async def chat(
 
     history = await fetch_session_history(session_id_str, db) if session_id_str else []
 
-    from app.ai.rag import hybrid_retrieve
-
     rag_query = rag_query_text(body.question, history)
     chunks, _max_rrf_score = await hybrid_retrieve(rag_query, db, top_k=5)
-
-    from app.ai.client import get_client
-    from app.ai.errors import call_llm
-    from app.models.coach import Citation, _ChatAnswer
-    from app.repositories import profile as profile_repo
-    from app.repositories.coach import fetch_today_session
-    from app.repositories.injuries import fetch_active_injuries
 
     context = "\n\n".join(str(c["body"]) for c in chunks)
     llm = get_client()
 
-    from datetime import date
-
     profile = await profile_repo.get_profile(db, user_id=user.user_id, email="", avatar_url=None)
     injuries = await fetch_active_injuries(db, user.user_id)
-    today_session = await fetch_today_session(db, user.user_id, date.today())
+    today_session = await coach_repo.fetch_today_session(db, user.user_id, date.today())
     system_prompt = build_system_prompt(profile, injuries=injuries, today_session=today_session)
 
     # XML delimiters separate retrieved data from user input so the model
@@ -347,8 +347,6 @@ async def list_sessions(
     limit: int = Query(default=20, ge=1, le=100),
     before_id: uuid.UUID | None = Query(default=None),
 ) -> list[CoachSession]:
-    import app.repositories.coach as coach_repo
-
     return await coach_repo.list_sessions(db, user.user_id, limit=limit, before_id=before_id)
 
 
@@ -359,8 +357,6 @@ async def get_session_messages(
     db: _Db,
     limit: int = Query(default=50, ge=1, le=200),
 ) -> SessionMessagesResponse:
-    import app.repositories.coach as coach_repo
-
     return await coach_repo.list_messages(db, session_id, user.user_id, limit=limit)
 
 
@@ -386,11 +382,6 @@ async def _do_stream(
     user_id: uuid.UUID,
     db: psycopg.AsyncConnection[object],
 ) -> AsyncIterator[str]:
-    import app.repositories.coach as coach_repo
-    from app.ai.streaming import _STUB_TOKENS, sanitize_answer, sse_event, stream_llm_tokens
-    from app.ai.stub import is_stubbed
-    from app.engine.safety import SafetyTier, classify_safety
-
     tier, _ = classify_safety(question)
 
     if tier == SafetyTier.STOP:
@@ -421,21 +412,12 @@ async def _do_stream(
     if stub:
         chunks: list[dict[str, object]] = []
     else:
-        from app.ai.chat_history import rag_query_text
-        from app.ai.rag import hybrid_retrieve
-
         rag_text = rag_query_text(question, history)
         chunks, max_rrf_score = await hybrid_retrieve(rag_text, db, top_k=5)
 
-    from datetime import date
-
-    from app.repositories import profile as profile_repo
-    from app.repositories.coach import fetch_today_session
-    from app.repositories.injuries import fetch_active_injuries
-
     profile = await profile_repo.get_profile(db, user_id=user_id, email="", avatar_url=None)
     injuries = await fetch_active_injuries(db, user_id)
-    today_session = await fetch_today_session(db, user_id, date.today())
+    today_session = await coach_repo.fetch_today_session(db, user_id, date.today())
     system_prompt = build_system_prompt(profile, injuries=injuries, today_session=today_session)
 
     context = "\n\n".join(str(c["body"]) for c in chunks)
@@ -466,13 +448,9 @@ async def _do_stream(
             full_answer.append(word + " ")
             yield sse_event({"type": "token", "text": word + " "})
     else:
-        from app.ai.client import get_client
-
         llm = get_client()
 
         if llm.backend == "anthropic":
-            import anthropic
-
             raw = llm.raw
             assert isinstance(raw, anthropic.AsyncAnthropic)
             try:
@@ -502,7 +480,7 @@ async def _do_stream(
                 usage_cache_read = getattr(u, "cache_read_input_tokens", 0)
                 usage_cache_write = getattr(u, "cache_creation_input_tokens", 0)
                 usage_duration_ms = round((time.perf_counter() - t_start) * 1000)
-            except Exception as exc:  # noqa: BLE001
+            except anthropic.APIError as exc:
                 log.exception("LLM stream error for user=%s: %s", user_id, exc)
                 yield sse_event(
                     {
@@ -518,7 +496,7 @@ async def _do_stream(
                         ttft_ms = round((time.perf_counter() - t_start) * 1000)
                     full_answer.append(token)
                     yield sse_event({"type": "token", "text": token})
-            except Exception as exc:  # noqa: BLE001
+            except openai.OpenAIError as exc:
                 log.exception("LLM stream error for user=%s: %s", user_id, exc)
                 yield sse_event(
                     {
@@ -547,8 +525,6 @@ async def _do_stream(
     )
 
     if have_usage:
-        from app.ai.usage import write_llm_usage
-
         await write_llm_usage(
             db,
             user_id=user_id,
@@ -568,6 +544,45 @@ async def _do_stream(
     yield sse_event({"type": "done", "session_id": str(session_id)})
 
 
+# ── Shared helpers ────────────────────────────────────────────────────────────
+
+
+def _collect_substitutions(driven_by: list[str], key: str) -> list[str]:
+    """Return deduplicated substitutions across all injury regions for one movement."""
+    seen: set[str] = set()
+    subs: list[str] = []
+    for region in driven_by:
+        for s in resolve_substitution(region, key):
+            if s not in seen:
+                seen.add(s)
+                subs.append(s)
+    return subs
+
+
+def _build_modifications(
+    movements: list[str],
+    blocked_map: dict[str, list[str]],
+) -> tuple[list[MovementModification], list[str]]:
+    """Classify movements into substitution-needed modifications and safe ones."""
+    modifications: list[MovementModification] = []
+    safe_movements: list[str] = []
+    for movement in movements:
+        key = movement.lower().replace(" ", "_")
+        driven_by = blocked_map.get(key, [])
+        if not driven_by:
+            safe_movements.append(movement)
+        else:
+            modifications.append(
+                MovementModification(
+                    original_movement=movement,
+                    driven_by=driven_by,
+                    substitutions=_collect_substitutions(driven_by, key),
+                    confidence="curated",
+                )
+            )
+    return modifications, safe_movements
+
+
 # ── Modify workout endpoint ───────────────────────────────────────────────────
 
 
@@ -577,49 +592,13 @@ async def modify_workout(
     user: Annotated[UserContext, Depends(get_current_user)],
     db: _Db,
 ) -> ModifyWorkoutResponse:
-    # 1. Verify session ownership and fetch its movements
-    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-        await cur.execute(
-            """
-            SELECT ps.id
-            FROM planned_sessions ps
-            JOIN plans p ON p.id = ps.plan_id
-            WHERE ps.id = %s AND p.user_id = %s
-            """,
-            [str(body.session_id), str(user.user_id)],
-        )
-        session_row = await cur.fetchone()
-
-    if session_row is None:
+    result = await coach_repo.get_workout_with_items(body.session_id, user.user_id, db)
+    if result is None:
         raise HTTPException(status_code=404, detail="Session not found")
-
-    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-        await cur.execute(
-            """
-            SELECT movement_name
-            FROM planned_items
-            WHERE session_id = %s
-            ORDER BY item_order
-            """,
-            [str(body.session_id)],
-        )
-        item_rows = await cur.fetchall()
-
+    _, item_rows = result
     movements = [str(r["movement_name"]) for r in item_rows]
 
-    # 2. Fetch active injuries
-    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-        await cur.execute(
-            """
-            SELECT body_region, requires_referral
-            FROM injuries
-            WHERE user_id = %s AND active = true
-            ORDER BY reported_at DESC
-            """,
-            [str(user.user_id)],
-        )
-        injury_rows = await cur.fetchall()
-
+    injury_rows = await coach_repo.get_session_injuries(user.user_id, db)
     if not injury_rows:
         return ModifyWorkoutResponse(
             session_id=str(body.session_id),
@@ -630,36 +609,9 @@ async def modify_workout(
         )
 
     injury_tuples = [(str(r["body_region"]), bool(r["requires_referral"])) for r in injury_rows]
-    referral_regions = [region for region, ref in injury_tuples if ref]
+    referral_regions = [reg for reg, ref in injury_tuples if ref]
     blocked_map = union_contraindications(injury_tuples)
-
-    modifications: list[MovementModification] = []
-    safe_movements: list[str] = []
-
-    for movement in movements:
-        key = movement.lower().replace(" ", "_")
-        driven_by = blocked_map.get(key, [])
-        if not driven_by:
-            safe_movements.append(movement)
-            continue
-
-        subs: list[str] = []
-        seen: set[str] = set()
-        for region in driven_by:
-            for s in resolve_substitution(region, key):
-                if s not in seen:
-                    seen.add(s)
-                    subs.append(s)
-
-        modifications.append(
-            MovementModification(
-                original_movement=movement,
-                driven_by=driven_by,
-                substitutions=subs,
-                confidence="curated",
-            )
-        )
-
+    modifications, safe_movements = _build_modifications(movements, blocked_map)
     return ModifyWorkoutResponse(
         session_id=str(body.session_id),
         modifications=modifications,
@@ -673,7 +625,6 @@ async def modify_workout(
 
 
 # Known movement names in the engine — normalised to snake_case.
-# We build this set lazily from CONTRAINDICATIONS keys.
 def _parse_movements_from_text(wod_text: str, known_movements: set[str]) -> list[str]:
     """Return the snake_case movement names found in wod_text.
 
@@ -713,27 +664,10 @@ async def check_wod(
     user: Annotated[UserContext, Depends(get_current_user)],
     db: _Db,
 ) -> CheckWodResponse:
-    from app.engine.injury import CONTRAINDICATIONS
-
-    known_movements: set[str] = set()
-    for region_movements in CONTRAINDICATIONS.values():
-        known_movements.update(region_movements)
-
+    known_movements = {m for ms in CONTRAINDICATIONS.values() for m in ms}
     movements_found = _parse_movements_from_text(body.wod_text, known_movements)
 
-    # Fetch user's active injuries
-    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-        await cur.execute(
-            """
-            SELECT body_region, requires_referral
-            FROM injuries
-            WHERE user_id = %s AND active = true
-            ORDER BY reported_at DESC
-            """,
-            [str(user.user_id)],
-        )
-        injury_rows = await cur.fetchall()
-
+    injury_rows = await coach_repo.get_session_injuries(user.user_id, db)
     if not injury_rows:
         return CheckWodResponse(
             movements_found=movements_found,
@@ -746,27 +680,18 @@ async def check_wod(
         )
 
     injury_tuples = [(str(r["body_region"]), bool(r["requires_referral"])) for r in injury_rows]
-    referral_regions = [region for region, ref in injury_tuples if ref]
+    referral_regions = [reg for reg, ref in injury_tuples if ref]
     blocked_map = union_contraindications(injury_tuples)
 
     results: list[WodMovementResult] = []
-    for movement in movements_found:
-        driven_by = blocked_map.get(movement, [])
-        if not driven_by:
-            results.append(
-                WodMovementResult(movement=movement, safe=True, driven_by=[], substitutions=[])
-            )
-            continue
-        subs: list[str] = []
-        seen_subs: set[str] = set()
-        for region in driven_by:
-            for s in resolve_substitution(region, movement):
-                if s not in seen_subs:
-                    seen_subs.add(s)
-                    subs.append(s)
+    for m in movements_found:
+        driven_by = blocked_map.get(m, [])
         results.append(
             WodMovementResult(
-                movement=movement, safe=False, driven_by=driven_by, substitutions=subs
+                movement=m,
+                safe=not driven_by,
+                driven_by=driven_by,
+                substitutions=_collect_substitutions(driven_by, m),
             )
         )
 

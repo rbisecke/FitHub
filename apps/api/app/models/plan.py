@@ -23,7 +23,9 @@ class PlanTaskResponse(BaseModel):
     error: str | None = None
 
 
-class PlanSummary(BaseModel):
+class PlanBase(BaseModel):
+    """Shared fields between PlanSummary and PlanDetail."""
+
     id: str
     goal: str
     title: str
@@ -33,6 +35,10 @@ class PlanSummary(BaseModel):
     start_date: date
     end_date: date
     created_at: str
+
+
+class PlanSummary(PlanBase):
+    pass
 
 
 class PlannedItemOut(BaseModel):
@@ -66,17 +72,8 @@ class MesocycleOut(BaseModel):
     focus: str | None
 
 
-class PlanDetail(BaseModel):
-    id: str
-    goal: str
-    title: str
-    branch_name: str
-    weeks: int
-    status: str
-    start_date: date
-    end_date: date
+class PlanDetail(PlanBase):
     training_age: str | None
-    created_at: str
     mesocycles: list[MesocycleOut]
     sessions: list[PlannedSessionOut]
 

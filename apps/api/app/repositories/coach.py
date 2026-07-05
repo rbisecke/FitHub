@@ -196,6 +196,63 @@ async def fetch_session_messages_history(
     return sanitized
 
 
+async def get_workout_with_items(
+    workout_id: uuid.UUID,
+    user_id: uuid.UUID,
+    db: psycopg.AsyncConnection[Any],
+) -> tuple[dict[str, Any], list[dict[str, Any]]] | None:
+    """Fetch (session_row, items) for ownership check before modification.
+
+    Returns None when the session does not exist or belongs to a different user.
+    """
+    async with db.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT ps.id
+            FROM planned_sessions ps
+            JOIN plans p ON p.id = ps.plan_id
+            WHERE ps.id = %s AND p.user_id = %s
+            """,
+            [workout_id, user_id],
+        )
+        session_row = await cur.fetchone()
+
+    if session_row is None:
+        return None
+
+    async with db.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT movement_name
+            FROM planned_items
+            WHERE session_id = %s
+            ORDER BY item_order
+            """,
+            [workout_id],
+        )
+        item_rows = await cur.fetchall()
+
+    return dict(session_row), list(item_rows)
+
+
+async def get_session_injuries(
+    user_id: uuid.UUID,
+    db: psycopg.AsyncConnection[Any],
+) -> list[dict[str, Any]]:
+    """Return active injury rows (body_region, requires_referral) for a user."""
+    async with db.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT body_region, requires_referral
+            FROM injuries
+            WHERE user_id = %s AND active = true
+            ORDER BY reported_at DESC
+            """,
+            [user_id],
+        )
+        return list(await cur.fetchall())
+
+
 async def fetch_today_session(
     db: psycopg.AsyncConnection[Any],
     user_id: uuid.UUID,
