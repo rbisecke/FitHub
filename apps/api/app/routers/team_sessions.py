@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated, Any
 
-import psycopg
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from psycopg.errors import UniqueViolation
 
 import app.repositories.team_sessions as repo
-from app.auth import UserContext, get_current_user
-from app.db import get_db
+from app.dependencies.common import Auth, DBConn
 from app.models.team_session import (
     AddParticipantRequest,
     CreateTeamSessionRequest,
@@ -24,27 +21,26 @@ from app.models.team_session import (
 
 router = APIRouter(prefix="/api/v1/team-sessions", tags=["team-sessions"])
 
-Auth = Annotated[UserContext, Depends(get_current_user)]
-DB = Annotated[psycopg.AsyncConnection[Any], Depends(get_db)]
-
 
 # IMPORTANT: /role-suggestions must be declared before /{team_session_id}
 # so FastAPI matches the literal path segment first.
 @router.get("/role-suggestions", response_model=RoleSuggestionsResponse)
-async def role_suggestions(user: Auth, conn: DB) -> RoleSuggestionsResponse:
+async def role_suggestions(user: Auth, conn: DBConn) -> RoleSuggestionsResponse:
     sug = await repo.get_role_suggestions(conn, user_id=user.user_id)
     return RoleSuggestionsResponse(suggestions=sug)
 
 
 @router.post("", response_model=TeamSession, status_code=status.HTTP_201_CREATED)
-async def create_team_session(user: Auth, conn: DB, req: CreateTeamSessionRequest) -> TeamSession:
+async def create_team_session(
+    user: Auth, conn: DBConn, req: CreateTeamSessionRequest
+) -> TeamSession:
     return await repo.create_team_session(conn, user_id=user.user_id, req=req)
 
 
 @router.get("", response_model=TeamSessionListResponse)
 async def list_team_sessions(
     user: Auth,
-    conn: DB,
+    conn: DBConn,
     before_id: uuid.UUID | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> TeamSessionListResponse:
@@ -56,7 +52,7 @@ async def list_team_sessions(
 
 
 @router.get("/{team_session_id}", response_model=TeamSession)
-async def get_team_session(user: Auth, conn: DB, team_session_id: uuid.UUID) -> TeamSession:
+async def get_team_session(user: Auth, conn: DBConn, team_session_id: uuid.UUID) -> TeamSession:
     ts = await repo.get_team_session(conn, user_id=user.user_id, team_session_id=team_session_id)
     if ts is None:
         raise HTTPException(status_code=404)
@@ -65,7 +61,7 @@ async def get_team_session(user: Auth, conn: DB, team_session_id: uuid.UUID) -> 
 
 @router.patch("/{team_session_id}", response_model=TeamSession)
 async def patch_team_session(
-    user: Auth, conn: DB, team_session_id: uuid.UUID, req: PatchTeamSessionRequest
+    user: Auth, conn: DBConn, team_session_id: uuid.UUID, req: PatchTeamSessionRequest
 ) -> TeamSession:
     ts = await repo.patch_team_session(
         conn, user_id=user.user_id, team_session_id=team_session_id, req=req
@@ -76,7 +72,7 @@ async def patch_team_session(
 
 
 @router.delete("/{team_session_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_team_session(user: Auth, conn: DB, team_session_id: uuid.UUID) -> Response:
+async def delete_team_session(user: Auth, conn: DBConn, team_session_id: uuid.UUID) -> Response:
     deleted = await repo.delete_team_session(
         conn, user_id=user.user_id, team_session_id=team_session_id
     )
@@ -87,7 +83,7 @@ async def delete_team_session(user: Auth, conn: DB, team_session_id: uuid.UUID) 
 
 @router.post("/{team_session_id}/participants", response_model=TeamSession)
 async def add_participant(
-    user: Auth, conn: DB, team_session_id: uuid.UUID, req: AddParticipantRequest
+    user: Auth, conn: DBConn, team_session_id: uuid.UUID, req: AddParticipantRequest
 ) -> TeamSession:
     try:
         ts = await repo.add_participant(
@@ -103,7 +99,7 @@ async def add_participant(
 @router.patch("/{team_session_id}/participants/{participant_user_id}", response_model=TeamSession)
 async def patch_participant(
     user: Auth,
-    conn: DB,
+    conn: DBConn,
     team_session_id: uuid.UUID,
     participant_user_id: uuid.UUID,
     req: PatchParticipantRequest,
@@ -131,7 +127,7 @@ async def patch_participant(
 )
 async def remove_participant(
     user: Auth,
-    conn: DB,
+    conn: DBConn,
     team_session_id: uuid.UUID,
     participant_user_id: uuid.UUID,
 ) -> Response:

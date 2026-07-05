@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated, Any
 
-import psycopg
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from pydantic import BaseModel
 
-from app.auth import UserContext, get_current_user
-from app.db import get_db
+from app.dependencies.common import Auth, DBConn
 from app.models.team_session import TeamSession
 from app.models.workout import (
     CreateWorkoutRequest,
@@ -36,9 +33,6 @@ class ParseNLResponse(BaseModel):
 
 
 router = APIRouter(prefix="/api/v1/workouts", tags=["workouts"])
-
-Auth = Annotated[UserContext, Depends(get_current_user)]
-DBConn = Annotated[psycopg.AsyncConnection[Any], Depends(get_db)]
 
 
 @router.get("", response_model=WorkoutListResponse)
