@@ -23,6 +23,7 @@ import type {
   HistoryMessage,
   TrainingBalanceResponse,
   BenchmarkResponse,
+  ContributionsResponse,
   LastResult,
   CoachSession,
   SessionMessagesResponse,
@@ -198,6 +199,11 @@ export const api = {
       ),
     benchmarks: (token: string) =>
       apiFetch<BenchmarkResponse>("/api/v1/analytics/benchmarks", token),
+    contributions: (token: string, days = 365) =>
+      apiFetch<ContributionsResponse>(
+        `/api/v1/analytics/contributions?days=${days}`,
+        token,
+      ),
   },
   trainingPartners: (token: string) =>
     apiFetch<TrainingPartner[]>("/api/v1/training-partners", token),
@@ -590,6 +596,8 @@ export function createApiClient(token: string) {
       trainingBalance: (days?: number) =>
         api.analytics.trainingBalance(token, days),
       benchmarks: () => api.analytics.benchmarks(token),
+      contributions: (days?: number) =>
+        api.analytics.contributions(token, days),
     },
     plans: {
       list: () => api.plans.list(token),

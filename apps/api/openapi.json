@@ -913,6 +913,56 @@
         ]
       }
     },
+    "/api/v1/analytics/contributions": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Contributions",
+        "operationId": "contributions_api_v1_analytics_contributions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 730,
+              "minimum": 30,
+              "default": 365,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContributionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/analytics/training-balance": {
       "get": {
         "tags": [
@@ -4773,6 +4823,51 @@
           "last_synced_at"
         ],
         "title": "ConnectionStatus"
+      },
+      "ContributionPoint": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "load_au": {
+            "type": "number",
+            "title": "Load Au"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "count",
+          "load_au"
+        ],
+        "title": "ContributionPoint"
+      },
+      "ContributionsResponse": {
+        "properties": {
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/ContributionPoint"
+            },
+            "type": "array",
+            "title": "Days"
+          },
+          "total_workouts": {
+            "type": "integer",
+            "title": "Total Workouts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "days",
+          "total_workouts"
+        ],
+        "title": "ContributionsResponse"
       },
       "CreateMovementRequest": {
         "properties": {

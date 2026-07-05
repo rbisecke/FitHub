@@ -13,6 +13,8 @@ from app.models.analytics import (
     BenchmarkAttempt,
     BenchmarkEntry,
     BenchmarkResponse,
+    ContributionPoint,
+    ContributionsResponse,
     DailyLoadPoint,
     E1RMPoint,
     LoadModelResponse,
@@ -26,6 +28,7 @@ from app.models.analytics import (
 )
 from app.repositories.analytics import (
     get_benchmark_attempts,
+    get_contributions,
     get_load_series,
     get_movement_history,
     get_movement_trend,
@@ -249,6 +252,27 @@ async def benchmarks(
         )
 
     return BenchmarkResponse(benchmarks=entries)
+
+
+@router.get("/contributions", response_model=ContributionsResponse)
+async def contributions(
+    days: int = Query(365, ge=30, le=730),
+    user: UserContext = Depends(get_current_user),
+    conn: psycopg.AsyncConnection[Any] = Depends(get_db),
+) -> ContributionsResponse:
+    rows = await get_contributions(conn, user.user_id, days)
+    points = [
+        ContributionPoint(
+            day=r["day"],
+            count=int(r["count"]),
+            load_au=float(r["load_au"]),
+        )
+        for r in rows
+    ]
+    return ContributionsResponse(
+        days=points,
+        total_workouts=sum(p.count for p in points),
+    )
 
 
 @router.get("/training-balance", response_model=TrainingBalanceResponse)
