@@ -144,32 +144,28 @@ async def merge_adaptation(
     user: Annotated[UserContext, Depends(get_current_user)],
     db: _Db,
 ) -> AdaptationOut:
-    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-        await cur.execute(
-            "SELECT id::text, status FROM adaptations WHERE id = %s::uuid AND user_id = %s",
-            [adaptation_id, str(user.user_id)],
-        )
-        row = await cur.fetchone()
-
-    if row is None:
-        raise HTTPException(status_code=404, detail="Adaptation not found")
-    if str(row["status"]) != "proposed":
-        raise HTTPException(status_code=409, detail="Adaptation is not in proposed state")
-
+    # Single atomic UPDATE with status guard — eliminates the SELECT+UPDATE TOCTOU race.
+    # If no row is returned, a follow-up SELECT distinguishes 404 from 409.
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             f"""
             UPDATE adaptations
             SET status = 'merged', merged_at = now()
-            WHERE id = %s::uuid AND user_id = %s
+            WHERE id = %s::uuid AND user_id = %s AND status = 'proposed'
             RETURNING {_SELECT_COLS}
             """,
             [adaptation_id, str(user.user_id)],
         )
         updated = await cur.fetchone()
 
-    if updated is None:
-        raise HTTPException(status_code=404, detail="Adaptation not found")
+        if updated is None:
+            await cur.execute(
+                "SELECT id FROM adaptations WHERE id = %s::uuid AND user_id = %s",
+                [adaptation_id, str(user.user_id)],
+            )
+            if await cur.fetchone() is None:
+                raise HTTPException(status_code=404, detail="Adaptation not found")
+            raise HTTPException(status_code=409, detail="Adaptation is not in proposed state")
 
     return _row_to_out(updated)
 
@@ -255,23 +251,25 @@ async def adjust_adaptation(
         prior_rationale=prior_rationale,
     )
 
-    # Atomically reject the old and insert the new
-    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+    # Atomically reject the old and insert the new inside a single transaction.
+    # Without this, a failed INSERT would leave the old adaptation permanently
+    # rejected with no replacement.
+    async with db.transaction(), db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
-            UPDATE adaptations
-            SET status = 'rejected', rejected_at = now(), rejection_reason = %s
-            WHERE id = %s::uuid AND user_id = %s
-            """,
+                UPDATE adaptations
+                SET status = 'rejected', rejected_at = now(), rejection_reason = %s
+                WHERE id = %s::uuid AND user_id = %s AND status = 'proposed'
+                """,
             [body.feedback, adaptation_id, str(user.user_id)],
         )
         await cur.execute(
             f"""
-            INSERT INTO adaptations
-                (plan_id, user_id, trigger_type, trigger_data, rationale, diff_json, stub)
-            VALUES (%s::uuid, %s, %s, %s::jsonb, %s, %s::jsonb, %s)
-            RETURNING {_SELECT_COLS}
-            """,
+                INSERT INTO adaptations
+                    (plan_id, user_id, trigger_type, trigger_data, rationale, diff_json, stub)
+                VALUES (%s::uuid, %s, %s, %s::jsonb, %s, %s::jsonb, %s)
+                RETURNING {_SELECT_COLS}
+                """,
             [
                 plan_id,
                 str(user.user_id),
