@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/requireAuth";
 import { TagPageClient } from "@/components/log/TagPageClient";
 import { api } from "@/lib/api/client";
 import type { Movement, LastResult } from "@/lib/api";
@@ -9,17 +8,7 @@ export default async function TagPage({
 }: {
   searchParams: Promise<{ movement_id?: string }>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  const token = session!.access_token;
+  const { token } = await requireAuth();
   const { movement_id } = await searchParams;
 
   // When arriving from Records page (?movement_id=...), pre-fetch movement + last result

@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/requireAuth";
 import { CoachShell } from "@/components/coach/CoachShell";
 
 interface Props {
@@ -8,17 +7,7 @@ interface Props {
 
 export default async function CoachSessionPage({ params }: Props) {
   const { sessionId } = await params;
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const token = session!.access_token;
+  const { user, token } = await requireAuth();
 
   return (
     <CoachShell
