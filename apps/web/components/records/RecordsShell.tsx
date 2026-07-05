@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
+import { BackButton } from "@/components/ui/BackButton";
 import type { PersonalRecord, E1RMPoint } from "@/lib/api";
 import type { PRCategory } from "@/lib/records/categorise";
 import {
@@ -106,30 +106,11 @@ export function RecordsShell({
 
   return (
     <div className="px-[18px] pt-[14px] pb-2 md:px-4 md:py-6 max-w-5xl mx-auto">
-      {/* Mobile back button */}
-      <div className="md:hidden flex items-center gap-[9px] mb-[14px]">
-        <Link
-          href="/dashboard"
-          className="flex text-[var(--muted)]"
-          aria-label="Back to home"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M15 6l-6 6 6 6" />
-          </svg>
-        </Link>
-        <span className="font-data text-[11.5px] text-[var(--muted)]">
-          Home
-        </span>
-      </div>
+      <BackButton
+        href="/dashboard"
+        label="Home"
+        className="md:hidden mb-[14px]"
+      />
 
       <RecordsHeader
         viewMode={viewMode}
