@@ -145,6 +145,7 @@ async def merge_adaptation(
     db: _Db,
 ) -> AdaptationOut:
     # Single atomic UPDATE with status guard — eliminates the SELECT+UPDATE TOCTOU race.
+    # If no row is returned, a follow-up SELECT distinguishes 404 from 409.
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             f"""
@@ -157,8 +158,14 @@ async def merge_adaptation(
         )
         updated = await cur.fetchone()
 
-    if updated is None:
-        raise HTTPException(status_code=404, detail="Adaptation not found or not in proposed state")
+        if updated is None:
+            await cur.execute(
+                "SELECT id FROM adaptations WHERE id = %s::uuid AND user_id = %s",
+                [adaptation_id, str(user.user_id)],
+            )
+            if await cur.fetchone() is None:
+                raise HTTPException(status_code=404, detail="Adaptation not found")
+            raise HTTPException(status_code=409, detail="Adaptation is not in proposed state")
 
     return _row_to_out(updated)
 
