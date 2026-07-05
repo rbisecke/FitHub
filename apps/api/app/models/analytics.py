@@ -92,7 +92,6 @@ class ReadinessResponse(BaseModel):
     acwr: float | None
     tsb: float
     mood_avg: float | None
-    energy_avg: float | None
     sleep_avg: float | None
     factors_available: int
     # Wearable-derived fields (populated from derived_metrics when available)

@@ -2547,8 +2547,6 @@ export interface components {
       tsb: number;
       /** Mood Avg */
       mood_avg: number | null;
-      /** Energy Avg */
-      energy_avg: number | null;
       /** Sleep Avg */
       sleep_avg: number | null;
       /** Factors Available */

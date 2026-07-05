@@ -299,7 +299,6 @@ async def get_readiness(
     # Fetch last 3 days of daily_checkins
     # Columns: motivation (1=low, 7=high — good), sleep_quality (1=very bad, 7=very good)
     mood_avg: float | None = None
-    energy_avg: float | None = None
     sleep_avg: float | None = None
 
     async with conn.cursor(row_factory=dict_row) as cur:
@@ -307,7 +306,6 @@ async def get_readiness(
             """
             SELECT
                 AVG(motivation)    AS mood_avg,
-                AVG(motivation)    AS energy_avg,
                 AVG(sleep_quality) AS sleep_avg
             FROM public.daily_checkins
             WHERE user_id = %s
@@ -318,10 +316,9 @@ async def get_readiness(
         row = await cur.fetchone()
         if row:
             mood_avg = float(row["mood_avg"]) if row["mood_avg"] is not None else None
-            energy_avg = float(row["energy_avg"]) if row["energy_avg"] is not None else None
             sleep_avg = float(row["sleep_avg"]) if row["sleep_avg"] is not None else None
 
-    factors_available = sum(1 for v in (mood_avg, energy_avg, sleep_avg) if v is not None)
+    factors_available = sum(1 for v in (mood_avg, sleep_avg) if v is not None)
 
     has_training_data = any(r["load_au"] > 0 for r in series)
 
@@ -364,7 +361,6 @@ async def get_readiness(
         "acwr": acwr,
         "tsb": tsb,
         "mood_avg": mood_avg,
-        "energy_avg": energy_avg,
         "sleep_avg": sleep_avg,
         "factors_available": factors_available,
     }
