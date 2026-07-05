@@ -162,6 +162,10 @@ jobs:
 
       - name: Export OpenAPI spec
         run: uv run --project apps/api python apps/api/scripts/export_openapi.py
+        env:
+          SUPABASE_URL: https://placeholder.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: placeholder
+          DATABASE_URL: postgresql+psycopg://placeholder:placeholder@localhost/placeholder
 
       - name: Regenerate TypeScript types
         run: pnpm -C apps/web generate-types
