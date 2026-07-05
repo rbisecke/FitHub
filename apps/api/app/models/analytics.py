@@ -103,6 +103,17 @@ class ReadinessResponse(BaseModel):
     strain_score: float | None = None
 
 
+class ContributionPoint(BaseModel):
+    day: date
+    count: int
+    load_au: float
+
+
+class ContributionsResponse(BaseModel):
+    days: list[ContributionPoint]
+    total_workouts: int
+
+
 class MovementHistoryEntry(BaseModel):
     """One logged set for a movement, used by the movement detail page."""
 

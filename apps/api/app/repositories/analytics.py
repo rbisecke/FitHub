@@ -410,6 +410,30 @@ async def get_training_balance(
         return await cur.fetchall()
 
 
+async def get_contributions(
+    conn: psycopg.AsyncConnection[Any],
+    user_id: uuid.UUID,
+    days: int = 365,
+) -> list[dict[str, Any]]:
+    """Return per-day workout count and total load for the contribution graph."""
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT
+                performed_at::date            AS day,
+                COUNT(*)::int                 AS count,
+                COALESCE(SUM(perceived_load_au), 0)::float AS load_au
+            FROM workouts
+            WHERE user_id = %s
+              AND performed_at >= NOW() - %s * INTERVAL '1 day'
+            GROUP BY 1
+            ORDER BY 1
+            """,
+            (user_id, days),
+        )
+        return await cur.fetchall()
+
+
 async def get_benchmark_attempts(
     conn: psycopg.AsyncConnection[Any],
     user_id: uuid.UUID,

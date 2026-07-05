@@ -25,6 +25,9 @@ export type TrainingPartner = components["schemas"]["TrainingPartner"];
 export type BenchmarkAttempt = components["schemas"]["BenchmarkAttempt"];
 export type BenchmarkEntry = components["schemas"]["BenchmarkEntry"];
 export type BenchmarkResponse = components["schemas"]["BenchmarkResponse"];
+export type ContributionPoint = components["schemas"]["ContributionPoint"];
+export type ContributionsResponse =
+  components["schemas"]["ContributionsResponse"];
 
 // Training balance — endpoint not yet in generated types; defined locally
 export interface TrainingBalanceBreakdown {
