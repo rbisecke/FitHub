@@ -40,7 +40,7 @@ async def _get_plan_detail(
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
-            SELECT id::text, goal, title, branch_name, weeks, status,
+            SELECT id, goal, title, branch_name, weeks, status,
                    start_date, end_date, training_age,
                    to_char(created_at AT TIME ZONE 'UTC',
                            'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
@@ -55,7 +55,7 @@ async def _get_plan_detail(
 
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
-            "SELECT id::text, name, phase, week_start, week_end, focus"
+            "SELECT id, name, phase, week_start, week_end, focus"
             " FROM mesocycles WHERE plan_id = %s ORDER BY week_start",
             [plan_id],
         )
@@ -64,7 +64,7 @@ async def _get_plan_detail(
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
-            SELECT ps.id::text, ps.mesocycle_id::text, ps.scheduled_date,
+            SELECT ps.id, ps.mesocycle_id, ps.scheduled_date,
                    ps.session_type, ps.title, ps.notes, ps.status,
                    COALESCE(
                        json_agg(
@@ -93,7 +93,7 @@ async def _get_plan_detail(
         sessions_raw = await cur.fetchall()
 
     return PlanDetail(
-        id=str(plan["id"]),
+        id=plan["id"],
         goal=str(plan["goal"]),
         title=str(plan["title"]),
         branch_name=str(plan["branch_name"]),
@@ -105,7 +105,7 @@ async def _get_plan_detail(
         created_at=str(plan["created_at"]),
         mesocycles=[
             MesocycleOut(
-                id=str(m["id"]),
+                id=m["id"],
                 name=str(m["name"]),
                 phase=str(m["phase"]),
                 week_start=int(str(m["week_start"])),
@@ -116,8 +116,8 @@ async def _get_plan_detail(
         ],
         sessions=[
             PlannedSessionOut(
-                id=str(s["id"]),
-                mesocycle_id=str(s["mesocycle_id"]),
+                id=s["id"],
+                mesocycle_id=s["mesocycle_id"],
                 scheduled_date=s["scheduled_date"],
                 session_type=str(s["session_type"]),
                 title=str(s["title"]),
@@ -125,7 +125,7 @@ async def _get_plan_detail(
                 status=str(s["status"]),
                 items=[
                     PlannedItemOut(
-                        id=str(it["id"]),
+                        id=it["id"],
                         movement_name=str(it["movement_name"]),
                         sets=it["sets"],
                         reps=str(it["reps"]) if it["reps"] else None,
@@ -261,7 +261,7 @@ async def get_task(
 ) -> PlanTaskResponse:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
-            "SELECT id::text, status, plan_id::text, error"
+            "SELECT id::text, status, plan_id, error"
             " FROM plan_tasks WHERE id = %s AND user_id = %s",
             [task_id, user.user_id],
         )
@@ -273,7 +273,7 @@ async def get_task(
     return PlanTaskResponse(
         task_id=str(row["id"]),
         status=str(row["status"]),
-        plan_id=str(row["plan_id"]) if row["plan_id"] else None,
+        plan_id=row["plan_id"],
         error=str(row["error"]) if row["error"] else None,
     )
 
@@ -286,7 +286,7 @@ async def list_plans(
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
-            SELECT id::text, goal, title, branch_name, weeks, status,
+            SELECT id, goal, title, branch_name, weeks, status,
                    start_date, end_date,
                    to_char(created_at AT TIME ZONE 'UTC',
                            'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
@@ -298,7 +298,7 @@ async def list_plans(
 
     return [
         PlanSummary(
-            id=str(r["id"]),
+            id=r["id"],
             goal=str(r["goal"]),
             title=str(r["title"]),
             branch_name=str(r["branch_name"]),
@@ -331,7 +331,7 @@ async def today_session(
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
-            SELECT ps.id::text FROM planned_sessions ps
+            SELECT ps.id FROM planned_sessions ps
             JOIN plans p ON p.id = ps.plan_id
             WHERE ps.plan_id = %s AND p.user_id = %s AND ps.scheduled_date = %s
             LIMIT 1
@@ -345,7 +345,7 @@ async def today_session(
 
     detail = await _get_plan_detail(plan_id, str(user.user_id), db)
     for s in detail.sessions:
-        if s.id == str(row["id"]):
+        if s.id == row["id"]:
             return s
     return None
 

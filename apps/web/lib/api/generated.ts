@@ -2014,7 +2014,10 @@ export interface components {
     };
     /** MesocycleOut */
     MesocycleOut: {
-      /** Id */
+      /**
+       * Id
+       * Format: uuid
+       */
       id: string;
       /** Name */
       name: string;
@@ -2476,7 +2479,10 @@ export interface components {
     };
     /** PlanDetail */
     PlanDetail: {
-      /** Id */
+      /**
+       * Id
+       * Format: uuid
+       */
       id: string;
       /** Goal */
       goal: string;
@@ -2514,7 +2520,10 @@ export interface components {
     };
     /** PlanSummary */
     PlanSummary: {
-      /** Id */
+      /**
+       * Id
+       * Format: uuid
+       */
       id: string;
       /** Goal */
       goal: string;
@@ -2552,7 +2561,10 @@ export interface components {
     };
     /** PlannedItemOut */
     PlannedItemOut: {
-      /** Id */
+      /**
+       * Id
+       * Format: uuid
+       */
       id: string;
       /** Movement Name */
       movement_name: string;
@@ -2571,9 +2583,15 @@ export interface components {
     };
     /** PlannedSessionOut */
     PlannedSessionOut: {
-      /** Id */
+      /**
+       * Id
+       * Format: uuid
+       */
       id: string;
-      /** Mesocycle Id */
+      /**
+       * Mesocycle Id
+       * Format: uuid
+       */
       mesocycle_id: string;
       /**
        * Scheduled Date

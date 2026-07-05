@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import date
 from typing import Literal
 
@@ -19,14 +20,14 @@ class CreatePlanRequest(BaseModel):
 class PlanTaskResponse(BaseModel):
     task_id: str
     status: str
-    plan_id: str | None = None
+    plan_id: uuid.UUID | None = None
     error: str | None = None
 
 
 class PlanBase(BaseModel):
     """Shared fields between PlanSummary and PlanDetail."""
 
-    id: str
+    id: uuid.UUID
     goal: str
     title: str
     branch_name: str
@@ -42,7 +43,7 @@ class PlanSummary(PlanBase):
 
 
 class PlannedItemOut(BaseModel):
-    id: str
+    id: uuid.UUID
     movement_name: str
     sets: int | None
     reps: str | None
@@ -53,8 +54,8 @@ class PlannedItemOut(BaseModel):
 
 
 class PlannedSessionOut(BaseModel):
-    id: str
-    mesocycle_id: str
+    id: uuid.UUID
+    mesocycle_id: uuid.UUID
     scheduled_date: date
     session_type: str
     title: str
@@ -64,7 +65,7 @@ class PlannedSessionOut(BaseModel):
 
 
 class MesocycleOut(BaseModel):
-    id: str
+    id: uuid.UUID
     name: str
     phase: str
     week_start: int

@@ -29,7 +29,7 @@ async def list_plans(
     async with db.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT id::text, goal, title, branch_name, weeks, status,
+            SELECT id, goal, title, branch_name, weeks, status,
                    start_date, end_date,
                    to_char(created_at AT TIME ZONE 'UTC',
                            'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
@@ -41,7 +41,7 @@ async def list_plans(
 
     return [
         PlanSummary(
-            id=str(r["id"]),
+            id=r["id"],
             goal=str(r["goal"]),
             title=str(r["title"]),
             branch_name=str(r["branch_name"]),
@@ -111,7 +111,7 @@ async def get_plan_detail(
     async with db.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT id::text, goal, title, branch_name, weeks, status,
+            SELECT id, goal, title, branch_name, weeks, status,
                    start_date, end_date, training_age,
                    to_char(created_at AT TIME ZONE 'UTC',
                            'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
@@ -126,7 +126,7 @@ async def get_plan_detail(
 
     async with db.cursor(row_factory=dict_row) as cur:
         await cur.execute(
-            "SELECT id::text, name, phase, week_start, week_end, focus"
+            "SELECT id, name, phase, week_start, week_end, focus"
             " FROM mesocycles WHERE plan_id = %s ORDER BY week_start",
             [plan_id],
         )
@@ -135,7 +135,7 @@ async def get_plan_detail(
     async with db.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT ps.id::text, ps.mesocycle_id::text, ps.scheduled_date,
+            SELECT ps.id, ps.mesocycle_id, ps.scheduled_date,
                    ps.session_type, ps.title, ps.notes, ps.status,
                    COALESCE(
                        json_agg(
@@ -164,7 +164,7 @@ async def get_plan_detail(
         sessions_raw = await cur.fetchall()
 
     return PlanDetail(
-        id=str(plan["id"]),
+        id=plan["id"],
         goal=str(plan["goal"]),
         title=str(plan["title"]),
         branch_name=str(plan["branch_name"]),
@@ -176,7 +176,7 @@ async def get_plan_detail(
         created_at=str(plan["created_at"]),
         mesocycles=[
             MesocycleOut(
-                id=str(m["id"]),
+                id=m["id"],
                 name=str(m["name"]),
                 phase=str(m["phase"]),
                 week_start=int(str(m["week_start"])),
@@ -187,8 +187,8 @@ async def get_plan_detail(
         ],
         sessions=[
             PlannedSessionOut(
-                id=str(s["id"]),
-                mesocycle_id=str(s["mesocycle_id"]),
+                id=s["id"],
+                mesocycle_id=s["mesocycle_id"],
                 scheduled_date=s["scheduled_date"],
                 session_type=str(s["session_type"]),
                 title=str(s["title"]),
@@ -196,7 +196,7 @@ async def get_plan_detail(
                 status=str(s["status"]),
                 items=[
                     PlannedItemOut(
-                        id=str(it["id"]),
+                        id=it["id"],
                         movement_name=str(it["movement_name"]),
                         sets=it["sets"],
                         reps=str(it["reps"]) if it["reps"] else None,
