@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { api } from "@/lib/api/client";
 import { PageHeader } from "@/components/ui/page-header";
+import { NotifyToggle } from "@/components/integrations/NotifyToggle";
 
 type ConnectionStatus = {
   provider: string;
@@ -139,9 +140,13 @@ function AppleHealthLogo() {
 }
 
 const COMING_SOON = [
-  { name: "Oura Ring", sub: "HRV, sleep, readiness score" },
-  { name: "Strava", sub: "Activities, routes, pace data" },
-  { name: "Garmin", sub: "Training load, body battery, stress" },
+  { name: "Oura Ring", slug: "oura", sub: "HRV, sleep, readiness score" },
+  { name: "Strava", slug: "strava", sub: "Activities, routes, pace data" },
+  {
+    name: "Garmin",
+    slug: "garmin",
+    sub: "Training load, body battery, stress",
+  },
 ];
 
 export default function IntegrationsPage() {
@@ -468,7 +473,7 @@ export default function IntegrationsPage() {
           {COMING_SOON.map((item) => (
             <div
               key={item.name}
-              className="rounded-xl border px-4 py-3 flex items-center justify-between opacity-50"
+              className="rounded-xl border px-4 py-3 flex items-center justify-between"
               style={{
                 background: "var(--surface)",
                 borderColor: "var(--border)",
@@ -485,15 +490,18 @@ export default function IntegrationsPage() {
                   {item.sub}
                 </p>
               </div>
-              <span
-                className="rounded border px-1.5 py-0.5 font-mono text-[10px]"
-                style={{
-                  borderColor: "var(--border)",
-                  color: "var(--muted)",
-                }}
-              >
-                soon
-              </span>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span
+                  className="rounded border px-1.5 py-0.5 font-mono text-[10px]"
+                  style={{
+                    borderColor: "var(--border)",
+                    color: "var(--muted)",
+                  }}
+                >
+                  soon
+                </span>
+                <NotifyToggle slug={item.slug} />
+              </div>
             </div>
           ))}
         </div>
