@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import json
-from typing import Annotated
 
 import psycopg
 import psycopg.rows
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 
-from app.auth import UserContext, get_current_user
-from app.db import get_db
+from app.dependencies.common import Auth, DBConn
 from app.models.adaptation import (
     AdaptationOut,
     AdjustAdaptationRequest,
@@ -18,9 +16,7 @@ from app.models.adaptation import (
     RejectAdaptationRequest,
 )
 
-router = APIRouter(tags=["adaptations"])
-
-_Db = Annotated[psycopg.AsyncConnection[object], Depends(get_db)]
+router = APIRouter(prefix="/api/v1", tags=["adaptations"])
 
 # ── Shared helpers ─────────────────────────────────────────────────────────────
 
@@ -61,16 +57,16 @@ def _row_to_out(r: dict[str, object]) -> AdaptationOut:
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 
-@router.post("/api/v1/plans/{plan_id}/adaptations/detect", response_model=DetectTriggersResponse)
+@router.post("/plans/{plan_id}/adaptations/detect", response_model=DetectTriggersResponse)
 async def detect_plan_adaptations(
     plan_id: str,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> DetectTriggersResponse:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             "SELECT id FROM plans WHERE id = %s::uuid AND user_id = %s",
-            [plan_id, str(user.user_id)],
+            [plan_id, user.user_id],
         )
         if await cur.fetchone() is None:
             raise HTTPException(status_code=404, detail="Plan not found")
@@ -93,7 +89,7 @@ async def detect_plan_adaptations(
                 """,
                 [
                     plan_id,
-                    str(user.user_id),
+                    user.user_id,
                     str(trigger["type"]),
                     str(trigger["data"]).replace("'", '"'),
                     str(result.get("rationale", "")),
@@ -116,11 +112,11 @@ async def detect_plan_adaptations(
     )
 
 
-@router.get("/api/v1/plans/{plan_id}/adaptations", response_model=list[AdaptationOut])
+@router.get("/plans/{plan_id}/adaptations", response_model=list[AdaptationOut])
 async def list_adaptations(
     plan_id: str,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> list[AdaptationOut]:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
@@ -131,18 +127,18 @@ async def list_adaptations(
             WHERE a.plan_id = %s::uuid AND a.user_id = %s AND p.user_id = %s
             ORDER BY a.proposed_at DESC
             """,
-            [plan_id, str(user.user_id), str(user.user_id)],
+            [plan_id, user.user_id, user.user_id],
         )
         rows = await cur.fetchall()
 
     return [_row_to_out(r) for r in rows]
 
 
-@router.post("/api/v1/adaptations/{adaptation_id}/merge", response_model=AdaptationOut)
+@router.post("/adaptations/{adaptation_id}/merge", response_model=AdaptationOut)
 async def merge_adaptation(
     adaptation_id: str,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> AdaptationOut:
     # Single atomic UPDATE with status guard — eliminates the SELECT+UPDATE TOCTOU race.
     # If no row is returned, a follow-up SELECT distinguishes 404 from 409.
@@ -154,14 +150,14 @@ async def merge_adaptation(
             WHERE id = %s::uuid AND user_id = %s AND status = 'proposed'
             RETURNING {_SELECT_COLS}
             """,
-            [adaptation_id, str(user.user_id)],
+            [adaptation_id, user.user_id],
         )
         updated = await cur.fetchone()
 
         if updated is None:
             await cur.execute(
                 "SELECT id FROM adaptations WHERE id = %s::uuid AND user_id = %s",
-                [adaptation_id, str(user.user_id)],
+                [adaptation_id, user.user_id],
             )
             if await cur.fetchone() is None:
                 raise HTTPException(status_code=404, detail="Adaptation not found")
@@ -170,17 +166,17 @@ async def merge_adaptation(
     return _row_to_out(updated)
 
 
-@router.post("/api/v1/adaptations/{adaptation_id}/reject", response_model=AdaptationOut)
+@router.post("/adaptations/{adaptation_id}/reject", response_model=AdaptationOut)
 async def reject_adaptation(
     adaptation_id: str,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
     body: RejectAdaptationRequest | None = None,
 ) -> AdaptationOut:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             "SELECT id::text, status FROM adaptations WHERE id = %s::uuid AND user_id = %s",
-            [adaptation_id, str(user.user_id)],
+            [adaptation_id, user.user_id],
         )
         row = await cur.fetchone()
 
@@ -199,7 +195,7 @@ async def reject_adaptation(
             WHERE id = %s::uuid AND user_id = %s
             RETURNING {_SELECT_COLS}
             """,
-            [rejection_reason, adaptation_id, str(user.user_id)],
+            [rejection_reason, adaptation_id, user.user_id],
         )
         updated = await cur.fetchone()
 
@@ -209,12 +205,12 @@ async def reject_adaptation(
     return _row_to_out(updated)
 
 
-@router.post("/api/v1/adaptations/{adaptation_id}/adjust", response_model=AdaptationOut)
+@router.post("/adaptations/{adaptation_id}/adjust", response_model=AdaptationOut)
 async def adjust_adaptation(
     adaptation_id: str,
     body: AdjustAdaptationRequest,
-    user: Annotated[UserContext, Depends(get_current_user)],
-    db: _Db,
+    user: Auth,
+    db: DBConn,
 ) -> AdaptationOut:
     """Reject the existing adaptation and propose a revised one in one atomic step."""
     from app.ai.adaptation import generate_adaptation
@@ -227,7 +223,7 @@ async def adjust_adaptation(
             FROM adaptations
             WHERE id = %s::uuid AND user_id = %s
             """,
-            [adaptation_id, str(user.user_id)],
+            [adaptation_id, user.user_id],
         )
         existing = await cur.fetchone()
 
@@ -261,7 +257,7 @@ async def adjust_adaptation(
                 SET status = 'rejected', rejected_at = now(), rejection_reason = %s
                 WHERE id = %s::uuid AND user_id = %s AND status = 'proposed'
                 """,
-            [body.feedback, adaptation_id, str(user.user_id)],
+            [body.feedback, adaptation_id, user.user_id],
         )
         await cur.execute(
             f"""
@@ -272,7 +268,7 @@ async def adjust_adaptation(
                 """,
             [
                 plan_id,
-                str(user.user_id),
+                user.user_id,
                 str(existing["trigger_type"]),
                 json.dumps(existing["trigger_data"]) if existing["trigger_data"] else "{}",
                 str(result.get("rationale", "")),
