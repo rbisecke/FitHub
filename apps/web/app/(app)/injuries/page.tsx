@@ -12,17 +12,17 @@ export default async function InjuriesPage() {
     <div className="mx-auto max-w-lg px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-xl font-bold text-zinc-100">
+          <h1 className="font-mono text-xl font-bold text-[var(--text)]">
             $ git issue --list
           </h1>
-          <p className="mt-0.5 font-mono text-xs text-zinc-500">
+          <p className="mt-0.5 font-mono text-xs text-[var(--muted)]">
             # active and cleared injuries
           </p>
         </div>
         <Link
           href="/injuries/new"
           data-testid="report-injury-link"
-          className="rounded border border-zinc-700 px-3 py-1.5 font-mono text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+          className="rounded border border-[var(--border)] px-3 py-1.5 font-mono text-xs text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
         >
           + report
         </Link>

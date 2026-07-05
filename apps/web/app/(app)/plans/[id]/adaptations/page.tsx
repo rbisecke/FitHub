@@ -61,7 +61,7 @@ export default function AdaptationsPage({ params }: Props) {
   if (loading || !accessToken || !planId) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <p className="font-mono text-xs text-zinc-600">
+        <p className="font-mono text-xs text-[var(--muted)]">
           # loading adaptations…
         </p>
       </div>
@@ -70,16 +70,16 @@ export default function AdaptationsPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
-      <h1 className="mb-1 font-mono text-xl font-bold text-zinc-100">
+      <h1 className="mb-1 font-mono text-xl font-bold text-[var(--text)]">
         $ git diff — proposed changes
       </h1>
-      <p className="mb-8 font-mono text-xs text-zinc-500">
+      <p className="mb-8 font-mono text-xs text-[var(--muted)]">
         # adaptation pull requests — review and merge or reject
       </p>
 
       {adaptations.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-zinc-700 p-10 text-center">
-          <p className="font-mono text-zinc-500">
+        <div className="rounded-lg border border-dashed border-[var(--border)] p-10 text-center">
+          <p className="font-mono text-[var(--muted)]">
             # no pending adaptations — your plan is on track
           </p>
         </div>
