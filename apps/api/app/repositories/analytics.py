@@ -8,6 +8,7 @@ from typing import Any
 import psycopg
 from psycopg.rows import dict_row
 
+from app.engine.metrics import compute_strain_score
 from app.engine.strength import project_e1rm
 
 
@@ -287,7 +288,13 @@ async def get_readiness(
     conn: psycopg.AsyncConnection[Any],
     user_id: uuid.UUID,
 ) -> dict[str, Any]:
-    """Compute readiness: derive ATL/CTL/ACWR from workouts, fetch checkins."""
+    """Compute readiness: derive ATL/CTL/ACWR from workouts, fetch checkins.
+
+    Also merges today's wearable-derived fields from derived_metrics and
+    metric_samples, and computes strain_score from active energy vs the
+    28-day baseline.  The returned dict contains all fields required by
+    ReadinessResponse.
+    """
     series = await get_load_series(conn, user_id, days=14)
     last: dict[str, Any] = (
         series[-1] if series else {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "acwr": None}
@@ -355,6 +362,79 @@ async def get_readiness(
         else:
             label = "high_load"
 
+    # Merge today's wearable-derived metrics from derived_metrics when available
+    today = date.today()
+    recovery_score: float | None = None
+    coverage: float | None = None
+    confidence_tier: str | None = None
+    hrv_type: str | None = None
+
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT recovery_score::float, coverage::float,
+                   confidence_tier, baseline_days
+            FROM derived_metrics
+            WHERE user_id = %s AND date = %s
+            """,
+            [user_id, today],
+        )
+        dm = await cur.fetchone()
+
+    if dm:
+        recovery_score = dm["recovery_score"]
+        coverage = dm["coverage"]
+        confidence_tier = dm["confidence_tier"]
+
+        # Infer hrv_type from which metric_samples type has data today
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT type FROM metric_samples
+                WHERE user_id = %s AND type IN ('hrv_sdnn', 'hrv_rmssd')
+                  AND started_at::date = %s
+                ORDER BY source_priority ASC LIMIT 1
+                """,
+                [user_id, today],
+            )
+            hrv_row = await cur.fetchone()
+        hrv_type = hrv_row["type"] if hrv_row else None
+
+    # Compute strain score from active energy vs 28-day baseline
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT value::float AS today_kcal
+            FROM metric_samples
+            WHERE user_id = %s AND type = 'active_energy_kcal'
+              AND started_at::date = %s
+            ORDER BY source_priority ASC, started_at DESC LIMIT 1
+            """,
+            [user_id, today],
+        )
+        energy_today_row = await cur.fetchone()
+
+    active_today = energy_today_row["today_kcal"] if energy_today_row else None
+
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT
+                AVG(value)::float                         AS avg_kcal,
+                COUNT(DISTINCT started_at::date)::int     AS n_days
+            FROM metric_samples
+            WHERE user_id = %s
+              AND type = 'active_energy_kcal'
+              AND started_at::date >= (CURRENT_DATE - INTERVAL '28 days')
+              AND started_at::date < CURRENT_DATE
+            """,
+            [user_id],
+        )
+        baseline_row = await cur.fetchone()
+
+    avg_kcal = baseline_row["avg_kcal"] if baseline_row else None
+    n_days = baseline_row["n_days"] if baseline_row else 0
+
     return {
         "score": score,
         "label": label,
@@ -363,6 +443,11 @@ async def get_readiness(
         "mood_avg": mood_avg,
         "sleep_avg": sleep_avg,
         "factors_available": factors_available,
+        "recovery_score": recovery_score,
+        "coverage": coverage,
+        "confidence_tier": confidence_tier,
+        "hrv_type": hrv_type,
+        "strain_score": compute_strain_score(active_today, avg_kcal, n_days),
     }
 
 
