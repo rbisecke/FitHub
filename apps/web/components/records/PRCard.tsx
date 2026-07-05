@@ -209,7 +209,7 @@ export function PRCard({ pr, points, isRecent, category }: Props) {
         <Link
           href={tagHref}
           aria-label={`Log new attempt for ${pr.movement_name}`}
-          className="absolute bottom-[10px] right-[10px] font-mono text-[9px] font-semibold px-[6px] py-[3px] rounded border border-[var(--border)] text-[var(--muted)] active:border-[var(--blue)] active:text-[var(--blue)]"
+          className="absolute bottom-[10px] right-[10px] font-mono text-[9px] font-semibold px-[6px] min-h-[44px] flex items-center rounded border border-[var(--border)] text-[var(--muted)] active:border-[var(--blue)] active:text-[var(--blue)]"
         >
           $ tag
         </Link>

@@ -103,4 +103,12 @@ describe("PRCard", () => {
     );
     expect(html).toContain("last logged");
   });
+
+  // WCAG touch target: mobile $ tag button must be at least 44px tall
+  it("mobile $ tag button includes min-h-[44px] class", () => {
+    const html = renderToStaticMarkup(
+      <PRCard pr={BASE_PR} points={[]} isRecent={false} category="strength" />,
+    );
+    expect(html).toContain("min-h-[44px]");
+  });
 });
