@@ -544,3 +544,119 @@ export const api = {
       apiFetch<AdminHealth>("/api/v1/admin/health", token),
   },
 };
+
+/**
+ * Bind a token once for Client Components. Use with useMemo:
+ *   const client = useMemo(() => createApiClient(token), [token]);
+ */
+export function createApiClient(token: string) {
+  return {
+    workouts: {
+      list: (params?: Parameters<typeof api.workouts.list>[1]) =>
+        api.workouts.list(token, params),
+      create: (body: Parameters<typeof api.workouts.create>[1]) =>
+        api.workouts.create(token, body),
+      get: (id: string) => api.workouts.get(token, id),
+      patch: (id: string, body: Parameters<typeof api.workouts.patch>[2]) =>
+        api.workouts.patch(token, id, body),
+      del: (id: string) => api.workouts.del(token, id),
+      parseNl: (text: string) => api.workouts.parseNl(token, text),
+    },
+    movements: {
+      search: (params: Parameters<typeof api.movements.search>[1]) =>
+        api.movements.search(token, params),
+      create: (body: Parameters<typeof api.movements.create>[1]) =>
+        api.movements.create(token, body),
+      lastResult: (
+        movementId: string,
+        params?: Parameters<typeof api.movements.lastResult>[2],
+      ) => api.movements.lastResult(token, movementId, params),
+      personalRecord: (
+        movementId: string,
+        params?: Parameters<typeof api.movements.personalRecord>[2],
+      ) => api.movements.personalRecord(token, movementId, params),
+      personalRecordsBatch: (movementIds: string[]) =>
+        api.movements.personalRecordsBatch(token, movementIds),
+    },
+    analytics: {
+      load: (days?: number) => api.analytics.load(token, days),
+      personalRecords: () => api.analytics.personalRecords(token),
+      movementTrend: (movementId: string) =>
+        api.analytics.movementTrend(token, movementId),
+      movementHistory: (movementId: string) =>
+        api.analytics.movementHistory(token, movementId),
+      volumeTrend: (weeks?: number) => api.analytics.volumeTrend(token, weeks),
+      readiness: () => api.analytics.readiness(token),
+      trainingBalance: (days?: number) =>
+        api.analytics.trainingBalance(token, days),
+      benchmarks: () => api.analytics.benchmarks(token),
+    },
+    plans: {
+      list: () => api.plans.list(token),
+      get: (id: string) => api.plans.get(token, id),
+      create: (body: Parameters<typeof api.plans.create>[1]) =>
+        api.plans.create(token, body),
+      pollTask: (taskId: string) => api.plans.pollTask(token, taskId),
+      today: (planId: string) => api.plans.today(token, planId),
+      revise: (planId: string, feedback: string) =>
+        api.plans.revise(token, planId, feedback),
+    },
+    adaptations: {
+      list: (planId: string) => api.adaptations.list(token, planId),
+      detect: (planId: string) => api.adaptations.detect(token, planId),
+      merge: (id: string) => api.adaptations.merge(token, id),
+      reject: (id: string, rejectionReason?: string) =>
+        api.adaptations.reject(token, id, rejectionReason),
+      adjust: (
+        id: string,
+        body: Parameters<typeof api.adaptations.adjust>[2],
+      ) => api.adaptations.adjust(token, id, body),
+    },
+    injuries: {
+      report: (body: Parameters<typeof api.injuries.report>[1]) =>
+        api.injuries.report(token, body),
+      list: () => api.injuries.list(token),
+      updateStatus: (
+        injuryId: string,
+        body: Parameters<typeof api.injuries.updateStatus>[2],
+      ) => api.injuries.updateStatus(token, injuryId, body),
+    },
+    profile: {
+      get: () => api.profile.get(token),
+      stats: () => api.profile.stats(token),
+      patch: (body: Parameters<typeof api.profile.patch>[1]) =>
+        api.profile.patch(token, body),
+      getPinnedMovements: () => api.profile.getPinnedMovements(token),
+      setPinnedMovements: (movementIds: string[]) =>
+        api.profile.setPinnedMovements(token, movementIds),
+    },
+    coach: {
+      parseLog: (text: string) => api.coach.parseLog(token, text),
+      chat: (question: string, sessionId?: string | null) =>
+        api.coach.chat(token, question, sessionId),
+      history: (sessionId: string, limit?: number) =>
+        api.coach.history(token, sessionId, limit),
+      sessions: {
+        list: (params?: Parameters<typeof api.coach.sessions.list>[1]) =>
+          api.coach.sessions.list(token, params),
+        messages: (sessionId: string, limit?: number) =>
+          api.coach.sessions.messages(token, sessionId, limit),
+      },
+      modifyWorkout: (sessionId: string) =>
+        api.coach.modifyWorkout(token, sessionId),
+      checkWod: (wodText: string) => api.coach.checkWod(token, wodText),
+    },
+    trainingPartners: () => api.trainingPartners(token),
+    addTrainingPartner: (email: string) => api.addTrainingPartner(token, email),
+    notifications: {
+      list: (includeRead?: boolean) =>
+        api.notifications.list(token, includeRead),
+      markRead: (id: string) => api.notifications.markRead(token, id),
+    },
+    profiles: {
+      search: (q: string) => api.profiles.search(token, q),
+    },
+  };
+}
+
+export type ApiClient = ReturnType<typeof createApiClient>;

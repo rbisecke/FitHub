@@ -7,12 +7,21 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 
+const { mockAdaptationsList } = vi.hoisted(() => ({
+  mockAdaptationsList: vi.fn(),
+}));
+
 vi.mock("@/lib/api/client", () => ({
   api: {
     adaptations: {
-      list: vi.fn(),
+      list: mockAdaptationsList,
     },
   },
+  createApiClient: vi.fn(() => ({
+    adaptations: {
+      list: mockAdaptationsList,
+    },
+  })),
 }));
 
 vi.mock("next/link", () => ({
@@ -34,16 +43,10 @@ vi.mock("next/link", () => ({
 }));
 
 import { AdaptationBanner } from "@/components/dashboard/AdaptationBanner";
-import { api } from "@/lib/api/client";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockedApi = api as unknown as {
-  adaptations: { list: ReturnType<typeof vi.fn> };
-};
 
 describe("AdaptationBanner", () => {
   it("renders null when there are no proposed adaptations", async () => {
-    mockedApi.adaptations.list.mockResolvedValueOnce([
+    mockAdaptationsList.mockResolvedValueOnce([
       { id: "1", status: "accepted" },
     ]);
 
@@ -57,7 +60,7 @@ describe("AdaptationBanner", () => {
   });
 
   it("renders null when count is 0", async () => {
-    mockedApi.adaptations.list.mockResolvedValueOnce([]);
+    mockAdaptationsList.mockResolvedValueOnce([]);
 
     const { container } = render(
       <AdaptationBanner accessToken="tok" planId="plan-1" />,
@@ -69,7 +72,7 @@ describe("AdaptationBanner", () => {
   });
 
   it("renders banner with correct copy when adaptations are pending", async () => {
-    mockedApi.adaptations.list.mockResolvedValueOnce([
+    mockAdaptationsList.mockResolvedValueOnce([
       { id: "1", status: "proposed" },
       { id: "2", status: "proposed" },
       { id: "3", status: "accepted" },
@@ -90,7 +93,7 @@ describe("AdaptationBanner", () => {
   });
 
   it("links to the plan adaptations page", async () => {
-    mockedApi.adaptations.list.mockResolvedValueOnce([
+    mockAdaptationsList.mockResolvedValueOnce([
       { id: "1", status: "proposed" },
     ]);
 
@@ -103,7 +106,7 @@ describe("AdaptationBanner", () => {
   });
 
   it("renders null when the API call fails", async () => {
-    mockedApi.adaptations.list.mockRejectedValueOnce(new Error("network"));
+    mockAdaptationsList.mockRejectedValueOnce(new Error("network"));
 
     const { container } = render(
       <AdaptationBanner accessToken="tok" planId="plan-1" />,
