@@ -16,46 +16,90 @@ async def get_load_series(
     user_id: uuid.UUID,
     days: int = 90,
 ) -> list[dict[str, Any]]:
-    """Fetch daily aggregated perceived load and compute EWMA metrics."""
+    """Fetch daily aggregated perceived load and compute EWMA and ACWR metrics.
+
+    ACWR rolling windows (7-day acute, 28-day chronic) are computed in SQL
+    using window functions. EWMA (ATL/CTL/TSB) requires each day's value to
+    depend on the previous day so it stays in Python.
+    """
+    # Use 42 extra warm-up days so the 28-day chronic window is meaningful
+    # on the first day of the requested range.
+    warmup = 42
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
+            WITH daily AS (
+                SELECT
+                    performed_at::date AS day,
+                    SUM(perceived_load_au)::float AS load_au
+                FROM public.workouts
+                WHERE user_id = %s
+                  AND performed_at >= NOW() - (%s + %s) * INTERVAL '1 day'
+                  AND perceived_load_au IS NOT NULL
+                GROUP BY 1
+            ),
+            series AS (
+                SELECT generate_series(
+                    (NOW() - (%s + %s) * INTERVAL '1 day')::date,
+                    NOW()::date,
+                    '1 day'::interval
+                )::date AS day
+            ),
+            filled AS (
+                SELECT s.day, COALESCE(d.load_au, 0.0) AS load_au
+                FROM series s
+                LEFT JOIN daily d ON d.day = s.day
+            ),
+            windowed AS (
+                SELECT
+                    day,
+                    load_au,
+                    SUM(load_au) OVER (
+                        ORDER BY day
+                        ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+                    ) AS acute_7,
+                    SUM(load_au) OVER (
+                        ORDER BY day
+                        ROWS BETWEEN 27 PRECEDING AND CURRENT ROW
+                    ) AS chronic_28
+                FROM filled
+            )
             SELECT
-                performed_at::date AS day,
-                SUM(perceived_load_au)::float AS load_au
-            FROM workouts
-            WHERE user_id = %s
-              AND performed_at >= NOW() - (%s + 42) * INTERVAL '1 day'
-              AND perceived_load_au IS NOT NULL
-            GROUP BY 1
-            ORDER BY 1
+                day,
+                load_au,
+                acute_7,
+                chronic_28,
+                CASE
+                    WHEN chronic_28 = 0 THEN NULL
+                    ELSE ROUND((acute_7::numeric / chronic_28)::numeric, 3)::float
+                END AS acwr
+            FROM windowed
+            ORDER BY day
             """,
-            (user_id, days),
+            (user_id, days, warmup, days, warmup),
         )
         rows = await cur.fetchall()
 
-    load_map: dict[date, float] = {r["day"]: float(r["load_au"]) for r in rows}
-    start = date.today() - timedelta(days=days + 42)
-    end = date.today()
-
+    # EWMA is inherently sequential (each day depends on the previous day),
+    # so it stays in Python.
     atl, ctl = 0.0, 0.0
     k_atl, k_ctl = 1 / 7, 1 / 42
 
     result: list[dict[str, Any]] = []
-    current = start
-    while current <= end:
-        load = load_map.get(current, 0.0)
+    for row in rows:
+        load = float(row["load_au"])
         atl = atl * (1 - k_atl) + load * k_atl
         ctl = ctl * (1 - k_ctl) + load * k_ctl
-        tsb = ctl - atl
-        result.append({"day": current, "load_au": load, "atl": atl, "ctl": ctl, "tsb": tsb})
-        current += timedelta(days=1)
-
-    for i, pt in enumerate(result):
-        window7 = sum(r["load_au"] for r in result[max(0, i - 6) : i + 1])
-        window28 = sum(r["load_au"] for r in result[max(0, i - 27) : i + 1])
-        chronic = window28 / 4
-        pt["acwr"] = (window7 / chronic) if chronic > 0 else None
+        result.append(
+            {
+                "day": row["day"],
+                "load_au": load,
+                "atl": atl,
+                "ctl": ctl,
+                "tsb": ctl - atl,
+                "acwr": row["acwr"],
+            }
+        )
 
     cutoff = date.today() - timedelta(days=days)
     return [r for r in result if r["day"] >= cutoff]
