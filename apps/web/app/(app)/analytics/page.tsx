@@ -1,4 +1,5 @@
 import { requireAuth } from "@/lib/supabase/requireAuth";
+import { getLoadTrend } from "@/lib/analytics/load-trend";
 import { BackButton } from "@/components/ui/BackButton";
 import { api } from "@/lib/api/client";
 import { StrengthProgressSection } from "@/components/analytics/StrengthProgressSection";
@@ -20,23 +21,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
-import type { DailyLoadPoint, TrainingPartner } from "@/lib/api";
-
-function getLoadTrend(
-  now: number,
-  series: DailyLoadPoint[],
-  key: "ctl" | "atl",
-): { direction: "up" | "down" | "flat"; label: string } {
-  if (series.length < 7)
-    return { direction: "flat", label: "Stable vs last week" };
-  const weekAgo = series[Math.max(0, series.length - 7)];
-  const diff = now - (weekAgo?.[key] ?? now);
-  if (diff > 1)
-    return { direction: "up", label: `+${diff.toFixed(1)} vs last week` };
-  if (diff < -1)
-    return { direction: "down", label: `${diff.toFixed(1)} vs last week` };
-  return { direction: "flat", label: "Stable vs last week" };
-}
+import type { TrainingPartner } from "@/lib/api";
 
 export default async function AnalyticsPage() {
   const { token } = await requireAuth();

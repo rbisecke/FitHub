@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  getAtlLevel,
+  getCtlTrend,
+  getTsbState,
+} from "@/lib/analytics/load-trend";
 import { cn } from "@/lib/utils";
 import type { DailyLoadPoint } from "@/lib/api";
 import { ACWRZone } from "@/components/analytics/ACWRZone";
@@ -44,32 +49,6 @@ function buildSummaryNarrative(
             ? "carrying high load — ease up this week"
             : "still building your baseline";
   return `Your fitness base is ${fitnessWord}, you're ${freshness}, and ${load}.`;
-}
-
-function getCtlTrend(
-  ctl: number,
-  series: DailyLoadPoint[],
-): { arrow: string; word: string } {
-  if (series.length < 14) return { arrow: "→", word: "Stable" };
-  const twoWeeksAgo = series[Math.max(0, series.length - 14)];
-  const diff = ctl - (twoWeeksAgo?.ctl ?? ctl);
-  if (diff > 2) return { arrow: "↑", word: "Rising" };
-  if (diff < 0) return { arrow: "↓", word: "Declining" };
-  return { arrow: "→", word: "Stable" };
-}
-
-function getAtlLevel(atl: number): string {
-  if (atl < 15) return "Low";
-  if (atl <= 25) return "Moderate";
-  return "High";
-}
-
-function getTsbState(tsb: number): { word: string; className: string } {
-  if (tsb > 10) return { word: "Peaked", className: "text-[--green]" };
-  if (tsb > 0) return { word: "Good", className: "text-[--green]" };
-  if (tsb >= -1) return { word: "Neutral", className: "text-[--muted]" };
-  if (tsb >= -10) return { word: "Tired", className: "text-[--amber]" };
-  return { word: "Fatigued", className: "text-[--red]" };
 }
 
 const METRIC_LABELS: Record<MetricKey, string> = {
