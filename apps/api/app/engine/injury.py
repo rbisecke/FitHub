@@ -666,11 +666,11 @@ def union_contraindications(
     """
     blocked: dict[str, list[str]] = {}
     for body_region, requires_referral in injuries:
-        movements = (
-            list(CONTRAINDICATIONS.keys())
-            if requires_referral
-            else CONTRAINDICATIONS.get(body_region, [])
-        )
+        if requires_referral:
+            # Referral injuries block every movement across all regions.
+            movements: list[str] = [m for ms in CONTRAINDICATIONS.values() for m in ms]
+        else:
+            movements = CONTRAINDICATIONS.get(body_region, [])
         for movement in movements:
             blocked.setdefault(movement, []).append(body_region)
     return blocked
