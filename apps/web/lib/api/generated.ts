@@ -1436,6 +1436,41 @@ export interface components {
       /** Benchmarks */
       benchmarks: components["schemas"]["BenchmarkEntry"][];
     };
+    /**
+     * BodyRegion
+     * @enum {string}
+     */
+    BodyRegion:
+      | "shoulder"
+      | "knee"
+      | "hip"
+      | "lower_back"
+      | "wrist"
+      | "elbow"
+      | "ankle"
+      | "neck"
+      | "hamstring"
+      | "quad"
+      | "calf"
+      | "glute"
+      | "upper_back"
+      | "chest"
+      | "bicep"
+      | "tricep"
+      | "lat"
+      | "hip_flexor"
+      | "it_band"
+      | "forearm"
+      | "rotator_cuff"
+      | "patellar_tendon"
+      | "lateral_elbow"
+      | "medial_elbow"
+      | "arch"
+      | "achilles"
+      | "shin"
+      | "groin"
+      | "si_joint"
+      | "other";
     /** ChatRequest */
     ChatRequest: {
       /** Question */
@@ -1843,8 +1878,7 @@ export interface components {
       id: string;
       /** User Id */
       user_id: string;
-      /** Body Region */
-      body_region: string;
+      body_region: components["schemas"]["BodyRegion"];
       /** Pain Level */
       pain_level: number;
       /** Mechanism */
@@ -2635,41 +2669,7 @@ export interface components {
     };
     /** ReportInjuryRequest */
     ReportInjuryRequest: {
-      /**
-       * Body Region
-       * @enum {string}
-       */
-      body_region:
-        | "shoulder"
-        | "knee"
-        | "hip"
-        | "lower_back"
-        | "wrist"
-        | "elbow"
-        | "ankle"
-        | "neck"
-        | "hamstring"
-        | "quad"
-        | "calf"
-        | "glute"
-        | "upper_back"
-        | "chest"
-        | "bicep"
-        | "tricep"
-        | "lat"
-        | "hip_flexor"
-        | "it_band"
-        | "forearm"
-        | "rotator_cuff"
-        | "patellar_tendon"
-        | "lateral_elbow"
-        | "medial_elbow"
-        | "arch"
-        | "achilles"
-        | "shin"
-        | "groin"
-        | "si_joint"
-        | "other";
+      body_region: components["schemas"]["BodyRegion"];
       /** Pain Level */
       pain_level: number;
       /** Mechanism */
