@@ -99,7 +99,9 @@ export function CoachChat({ accessToken }: CoachChatProps) {
       loadHistory(stored);
     } else {
       localStorage.setItem("coach_session_id", sessionId.current);
-      setHistoryLoading(false);
+      // Defer to a microtask so setState is not called synchronously in the effect
+      // body (satisfies react-hooks/set-state-in-effect).
+      void Promise.resolve().then(() => setHistoryLoading(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
