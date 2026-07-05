@@ -405,14 +405,140 @@ async def generate_plan(
 # ── DB helpers ────────────────────────────────────────────────────────────────
 
 
+async def _insert_mesocycles(
+    plan_id: str,
+    user_id: str,
+    mesocycles_raw: list[object],
+    db: psycopg.AsyncConnection[object],
+) -> dict[tuple[int, int], str]:
+    """Bulk-insert mesocycles and return {(week_start, week_end): id} map."""
+    rows = [
+        (
+            plan_id,
+            user_id,
+            str(m.get("name", "Block")),
+            str(m.get("phase", "accumulation")),
+            int(str(m.get("week_start", 1))),
+            int(str(m.get("week_end", 1))),
+            str(m.get("focus", "")) or None,
+        )
+        for m in mesocycles_raw
+        if isinstance(m, dict)
+    ]
+    if not rows:
+        return {}
+    async with db.cursor() as cur:
+        await cur.executemany(
+            "INSERT INTO mesocycles (plan_id, user_id, name, phase, week_start, week_end, focus)"
+            " VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            rows,
+        )
+    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            "SELECT id::text, week_start, week_end FROM mesocycles"
+            " WHERE plan_id = %s ORDER BY week_start",
+            [plan_id],
+        )
+        return {(r["week_start"], r["week_end"]): r["id"] for r in await cur.fetchall()}
+
+
+async def _insert_sessions(
+    plan_id: str,
+    user_id: str,
+    start_date: date,
+    meso_id_map: dict[tuple[int, int], str],
+    weeks_raw: list[object],
+    db: psycopg.AsyncConnection[object],
+) -> list[tuple[str, list[object]]]:
+    """Insert sessions individually (RETURNING id needed to link items).
+
+    Returns list of (session_id, items) pairs in insertion order.
+    """
+
+    def _meso_for_week(week_num: int) -> str:
+        for (ws, we), mid in meso_id_map.items():
+            if ws <= week_num <= we:
+                return mid
+        return next(iter(meso_id_map.values())) if meso_id_map else ""
+
+    result: list[tuple[str, list[object]]] = []
+    for week_data in weeks_raw:
+        if not isinstance(week_data, dict):
+            continue
+        week_num = int(str(week_data.get("week", 1)))
+        meso_id = _meso_for_week(week_num)
+        if not meso_id:
+            continue
+        for session in week_data.get("sessions", []):
+            if not isinstance(session, dict):
+                continue
+            day_offset = int(str(session.get("day_offset", 0)))
+            sched_date = start_date + timedelta(weeks=week_num - 1, days=day_offset)
+            async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+                await cur.execute(
+                    "INSERT INTO planned_sessions"
+                    " (plan_id, mesocycle_id, user_id, scheduled_date,"
+                    " session_type, title, notes)"
+                    " VALUES (%s, %s, %s, %s, %s, %s, %s)"
+                    " RETURNING id::text",
+                    [
+                        plan_id,
+                        meso_id,
+                        user_id,
+                        sched_date,
+                        str(session.get("session_type", "mixed")),
+                        str(session.get("title", "Session")),
+                        str(session.get("notes", "")) or None,
+                    ],
+                )
+                row = await cur.fetchone()
+            result.append((row["id"], list(session.get("items", []))))  # type: ignore[index]
+    return result
+
+
+async def _insert_items(
+    session_items: list[tuple[str, list[object]]],
+    user_id: str,
+    db: psycopg.AsyncConnection[object],
+) -> None:
+    """Bulk-insert all planned items across all sessions in one executemany."""
+    rows = []
+    for sess_id, items in session_items:
+        for order, item in enumerate(items):
+            if not isinstance(item, dict):
+                continue
+            rows.append(
+                (
+                    sess_id,
+                    user_id,
+                    str(item.get("movement_name", "Movement")),
+                    item.get("sets"),
+                    str(item["reps"]) if item.get("reps") is not None else None,
+                    item.get("load_pct_1rm"),
+                    item.get("load_kg"),
+                    str(item.get("notes", "")) or None,
+                    order,
+                )
+            )
+    if not rows:
+        return
+    async with db.cursor() as cur:
+        await cur.executemany(
+            "INSERT INTO planned_items"
+            " (session_id, user_id, movement_name, sets, reps,"
+            " load_pct_1rm, load_kg, notes, item_order)"
+            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            rows,
+        )
+
+
 async def _create_plan_records(
     user_id: str,
     req_data: dict[str, object],
     draft: dict[str, object],
     db: psycopg.AsyncConnection[object],
 ) -> str:
-    """Persist plan + mesocycles + sessions + items; return plan_id."""
-
+    """Persist plan + mesocycles + sessions + items inside a transaction; return plan_id."""
     goal = str(req_data["goal"])
     title = str(req_data["title"])
     start_date_raw = req_data["start_date"]
@@ -430,125 +556,49 @@ async def _create_plan_records(
     slug = goal.replace("_", "-")
     branch_name = f"plan/{slug}-{start_date.strftime('%Y-%m')}"
 
-    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-        await cur.execute(
-            """
-            INSERT INTO plans (user_id, goal, title, start_date, end_date,
-                               branch_name, weeks, training_age)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id::text
-            """,
-            [user_id, goal, title, start_date, end_date, branch_name, weeks, training_age],
-        )
-        plan_row = await cur.fetchone()
-    plan_id = plan_row["id"]  # type: ignore[index]
-
-    mesocycles_raw = draft.get("mesocycles", [])
+    mesocycles_raw: list[object] = draft.get("mesocycles", [])  # type: ignore[assignment]
+    weeks_raw: list[object] = draft.get("weeks", [])  # type: ignore[assignment]
     if not isinstance(mesocycles_raw, list):
         mesocycles_raw = []
-
-    meso_id_map: dict[tuple[int, int], str] = {}
-
-    for meso in mesocycles_raw:
-        if not isinstance(meso, dict):
-            continue
-        async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-            await cur.execute(
-                """
-                INSERT INTO mesocycles (plan_id, user_id, name, phase, week_start, week_end, focus)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                RETURNING id::text
-                """,
-                [
-                    plan_id,
-                    user_id,
-                    str(meso.get("name", "Block")),
-                    str(meso.get("phase", "accumulation")),
-                    int(str(meso.get("week_start", 1))),
-                    int(str(meso.get("week_end", 1))),
-                    str(meso.get("focus", "")) or None,
-                ],
-            )
-            meso_row = await cur.fetchone()
-        meso_id_map[
-            (
-                int(str(meso.get("week_start", 1))),
-                int(str(meso.get("week_end", 1))),
-            )
-        ] = meso_row["id"]  # type: ignore[index]
-
-    # Pick a mesocycle id for a given week number
-    def _meso_for_week(week_num: int) -> str:
-        for (ws, we), mid in meso_id_map.items():
-            if ws <= week_num <= we:
-                return mid
-        return next(iter(meso_id_map.values())) if meso_id_map else ""
-
-    weeks_raw = draft.get("weeks", [])
     if not isinstance(weeks_raw, list):
         weeks_raw = []
 
-    for week_data in weeks_raw:
-        if not isinstance(week_data, dict):
-            continue
-        week_num = int(str(week_data.get("week", 1)))
-        meso_id = _meso_for_week(week_num)
-        if not meso_id:
-            continue
+    # Validate structure; log warnings for sports-science rule violations
+    errors = validate_plan(draft, training_age)
+    if errors:
+        log.warning(
+            "plan_validation_warnings plan_id=pending errors=%s",
+            [e.message for e in errors],
+        )
+    total_sessions = sum(
+        len(w.get("sessions", []))  # type: ignore[union-attr]
+        for w in weeks_raw
+        if isinstance(w, dict)
+    )
+    if total_sessions == 0:
+        raise ValueError("Plan draft has no sessions — aborting insert")
 
-        for session in week_data.get("sessions", []):
-            if not isinstance(session, dict):
-                continue
-            day_offset = int(str(session.get("day_offset", 0)))
-            sched_date = start_date + timedelta(weeks=week_num - 1, days=day_offset)
+    async with db.transaction():
+        async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+            await cur.execute(
+                """
+                INSERT INTO plans (user_id, goal, title, start_date, end_date,
+                                   branch_name, weeks, training_age)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id::text
+                """,
+                [user_id, goal, title, start_date, end_date, branch_name, weeks, training_age],
+            )
+            plan_row = await cur.fetchone()
+        plan_id: str = plan_row["id"]  # type: ignore[index]
 
-            async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-                await cur.execute(
-                    """
-                    INSERT INTO planned_sessions
-                        (plan_id, mesocycle_id, user_id, scheduled_date,
-                         session_type, title, notes)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id::text
-                    """,
-                    [
-                        plan_id,
-                        meso_id,
-                        user_id,
-                        sched_date,
-                        str(session.get("session_type", "mixed")),
-                        str(session.get("title", "Session")),
-                        str(session.get("notes", "")) or None,
-                    ],
-                )
-                sess_row = await cur.fetchone()
-            sess_id = sess_row["id"]  # type: ignore[index]
+        meso_id_map = await _insert_mesocycles(plan_id, user_id, mesocycles_raw, db)
+        session_items = await _insert_sessions(
+            plan_id, user_id, start_date, meso_id_map, weeks_raw, db
+        )
+        await _insert_items(session_items, user_id, db)
 
-            for order, item in enumerate(session.get("items", [])):
-                if not isinstance(item, dict):
-                    continue
-                async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-                    await cur.execute(
-                        """
-                        INSERT INTO planned_items
-                            (session_id, user_id, movement_name, sets, reps,
-                             load_pct_1rm, load_kg, notes, item_order)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        """,
-                        [
-                            sess_id,
-                            user_id,
-                            str(item.get("movement_name", "Movement")),
-                            item.get("sets"),
-                            str(item["reps"]) if item.get("reps") is not None else None,
-                            item.get("load_pct_1rm"),
-                            item.get("load_kg"),
-                            str(item.get("notes", "")) or None,
-                            order,
-                        ],
-                    )
-
-    return str(plan_id)
+    return plan_id
 
 
 # ── Background task runner ────────────────────────────────────────────────────
