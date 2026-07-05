@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-CONTRAINDICATIONS: dict[str, list[str]] = {
+from app.models.injury import BodyRegion
+
+CONTRAINDICATIONS: dict[BodyRegion, list[str]] = {
     # --- existing joint regions ---
-    "shoulder": [
+    BodyRegion.SHOULDER: [
         "overhead_squat",
         "snatch",
         "push_jerk",
@@ -17,7 +19,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "strict_press",
         "handstand_walk",
     ],
-    "knee": [
+    BodyRegion.KNEE: [
         "pistol_squat",
         "box_jump",
         "air_squat",
@@ -30,7 +32,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "thruster",
         "double_under",
     ],
-    "lower_back": [
+    BodyRegion.LOWER_BACK: [
         "deadlift",
         "good_morning",
         "snatch",
@@ -44,8 +46,8 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "kettlebell_swing",
         "burpee",
     ],
-    "wrist": ["handstand", "handstand_pushup", "muscle_up", "overhead_squat", "snatch"],
-    "hip": [
+    BodyRegion.WRIST: ["handstand", "handstand_pushup", "muscle_up", "overhead_squat", "snatch"],
+    BodyRegion.HIP: [
         "pistol_squat",
         "clean",
         "snatch",
@@ -58,7 +60,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "running",
         "sumo_deadlift",
     ],
-    "elbow": [
+    BodyRegion.ELBOW: [
         "muscle_up",
         "dip",
         "handstand_pushup",
@@ -69,11 +71,11 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "push_press",
         "farmer_carry",
     ],
-    "ankle": ["box_jump", "pistol_squat", "running", "double_under"],
-    "neck": ["overhead_squat", "snatch", "push_jerk", "back_squat"],
-    "other": [],
+    BodyRegion.ANKLE: ["box_jump", "pistol_squat", "running", "double_under"],
+    BodyRegion.NECK: ["overhead_squat", "snatch", "push_jerk", "back_squat"],
+    BodyRegion.OTHER: [],
     # --- muscle belly regions ---
-    "hamstring": [
+    BodyRegion.HAMSTRING: [
         "deadlift",
         "romanian_deadlift",
         "good_morning",
@@ -86,7 +88,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "wall_ball",
         "toes_to_bar",
     ],
-    "quad": [
+    BodyRegion.QUAD: [
         "front_squat",
         "back_squat",
         "lunge",
@@ -98,7 +100,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "wall_ball",
         "step_up",
     ],
-    "calf": [
+    BodyRegion.CALF: [
         "double_under",
         "box_jump",
         "running",
@@ -108,7 +110,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "wall_ball",
         "thruster",
     ],
-    "glute": [
+    BodyRegion.GLUTE: [
         "back_squat",
         "box_jump",
         "sprint",
@@ -116,14 +118,14 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "single_leg_deadlift",
         "lunge",
     ],
-    "upper_back": [
+    BodyRegion.UPPER_BACK: [
         "back_squat",
         "deadlift",
         "clean",
         "snatch",
         "muscle_up",
     ],
-    "chest": [
+    BodyRegion.CHEST: [
         "pushup",
         "ring_pushup",
         "dip",
@@ -134,7 +136,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "push_press",
         "thruster",
     ],
-    "bicep": [
+    BodyRegion.BICEP: [
         "pull_up",
         "muscle_up",
         "ring_row",
@@ -143,7 +145,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "rope_climb",
         "rowing",
     ],
-    "tricep": [
+    BodyRegion.TRICEP: [
         "dip",
         "pushup",
         "muscle_up",
@@ -155,7 +157,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "wall_walk",
         "overhead_squat",
     ],
-    "lat": [
+    BodyRegion.LAT: [
         "pull_up",
         "muscle_up",
         "ring_row",
@@ -165,7 +167,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
     ],
     # --- soft-tissue / connective structures ---
     # iliopsoas / rectus femoris — distinct from hip joint/labrum
-    "hip_flexor": [
+    BodyRegion.HIP_FLEXOR: [
         "kipping_pullup",
         "toes_to_bar",
         "ghd_situp",
@@ -175,7 +177,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "front_squat",
     ],
     # iliotibial band syndrome — chronic overuse, distinct from lateral knee ligament
-    "it_band": [
+    BodyRegion.IT_BAND: [
         "running",
         "cycling",
         "box_jump",
@@ -184,7 +186,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "pistol_squat",
     ],
     # wrist flexor/extensor tendons + grip — distinct from wrist joint
-    "forearm": [
+    BodyRegion.FOREARM: [
         "pull_up",
         "deadlift",
         "barbell_row",
@@ -195,7 +197,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "farmer_carry",
     ],
     # --- foot / plantar ---
-    "arch": [
+    BodyRegion.ARCH: [
         "box_jump",
         "double_under",
         "single_under",
@@ -205,7 +207,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "burpee",
         "walking_lunge",
     ],
-    "achilles": [
+    BodyRegion.ACHILLES: [
         "box_jump",
         "double_under",
         "single_under",
@@ -216,7 +218,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "burpee",
         "pistol_squat",
     ],
-    "shin": [
+    BodyRegion.SHIN: [
         "running",
         "sprint",
         "double_under",
@@ -226,7 +228,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "wall_ball",
     ],
     # --- tendon / soft tissue additions ---
-    "patellar_tendon": [
+    BodyRegion.PATELLAR_TENDON: [
         "box_jump",
         "double_under",
         "running",
@@ -239,7 +241,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "burpee",
         "step_up",
     ],
-    "rotator_cuff": [
+    BodyRegion.ROTATOR_CUFF: [
         "strict_press",
         "push_press",
         "push_jerk",
@@ -255,7 +257,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "dip",
         "ring_dip",
     ],
-    "lateral_elbow": [
+    BodyRegion.LATERAL_ELBOW: [
         "barbell_row",
         "pull_up",
         "deadlift",
@@ -265,7 +267,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "ring_row",
     ],
     # --- joint additions ---
-    "groin": [
+    BodyRegion.GROIN: [
         "back_squat",
         "front_squat",
         "sumo_deadlift",
@@ -277,7 +279,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "box_jump",
         "kettlebell_swing",
     ],
-    "si_joint": [
+    BodyRegion.SI_JOINT: [
         "single_leg_deadlift",
         "lunge",
         "pistol_squat",
@@ -287,7 +289,7 @@ CONTRAINDICATIONS: dict[str, list[str]] = {
         "step_up",
         "ghd_situp",
     ],
-    "medial_elbow": [
+    BodyRegion.MEDIAL_ELBOW: [
         "rope_climb",
         "muscle_up",
         "rowing",
@@ -608,17 +610,17 @@ SUBSTITUTES: dict[tuple[str, str], list[str]] = {
 # Regions where injuries are chronic/overuse conditions, not acute rupture events.
 # For these regions, acute-rupture language in notes ("tore", "popped", "snapped")
 # does NOT trigger requires_referral — only pain_level >= 8 does.
-CHRONIC_REGIONS: frozenset[str] = frozenset(
+CHRONIC_REGIONS: frozenset[BodyRegion] = frozenset(
     {
-        "it_band",
-        "hip_flexor",
-        "forearm",
-        "arch",
-        "achilles",
-        "patellar_tendon",
-        "rotator_cuff",
-        "lateral_elbow",
-        "medial_elbow",
+        BodyRegion.IT_BAND,
+        BodyRegion.HIP_FLEXOR,
+        BodyRegion.FOREARM,
+        BodyRegion.ARCH,
+        BodyRegion.ACHILLES,
+        BodyRegion.PATELLAR_TENDON,
+        BodyRegion.ROTATOR_CUFF,
+        BodyRegion.LATERAL_ELBOW,
+        BodyRegion.MEDIAL_ELBOW,
     }
 )
 
@@ -636,7 +638,7 @@ RED_FLAG_PATTERNS: list[str] = [
 ]
 
 
-def has_red_flags(notes: str | None, pain_level: int, body_region: str = "") -> bool:
+def has_red_flags(notes: str | None, pain_level: int, body_region: BodyRegion | str = "") -> bool:
     if pain_level >= 8:
         return True
     if notes and body_region not in CHRONIC_REGIONS:
@@ -645,17 +647,17 @@ def has_red_flags(notes: str | None, pain_level: int, body_region: str = "") -> 
     return False
 
 
-def resolve_substitution(body_region: str, movement_name: str) -> list[str]:
+def resolve_substitution(body_region: BodyRegion | str, movement_name: str) -> list[str]:
     key = (body_region, movement_name.lower().replace(" ", "_"))
     return SUBSTITUTES.get(key, [])
 
 
-def get_contraindicated_movements(body_region: str) -> list[str]:
-    return CONTRAINDICATIONS.get(body_region, [])
+def get_contraindicated_movements(body_region: BodyRegion | str) -> list[str]:
+    return CONTRAINDICATIONS.get(body_region, [])  # type: ignore[arg-type]
 
 
 def union_contraindications(
-    injuries: list[tuple[str, bool]],
+    injuries: list[tuple[BodyRegion | str, bool]],
 ) -> dict[str, list[str]]:
     """Return {movement: [body_regions_that_block_it]} for a set of active injuries.
 
@@ -670,7 +672,7 @@ def union_contraindications(
             # Referral injuries block every movement across all regions.
             movements: list[str] = [m for ms in CONTRAINDICATIONS.values() for m in ms]
         else:
-            movements = CONTRAINDICATIONS.get(body_region, [])
+            movements = CONTRAINDICATIONS.get(body_region, [])  # type: ignore[arg-type]
         for movement in movements:
             blocked.setdefault(movement, []).append(body_region)
     return blocked
