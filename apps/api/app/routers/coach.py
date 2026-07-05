@@ -201,7 +201,7 @@ async def get_history(
                WHERE session_id = %s AND user_id = %s
                AND role IN ('user', 'assistant')
                ORDER BY created_at ASC LIMIT %s""",
-            [session_id, str(user.user_id), limit],
+            [session_id, user.user_id, limit],
         )
         rows = await cur.fetchall()
     return [HistoryMessage(**row) for row in rows]
@@ -223,7 +223,7 @@ async def chat(
         await db.execute(
             "INSERT INTO coach_interactions (user_id, role, content, stub, session_id)"
             " VALUES (%s, 'user', %s, false, %s)",
-            [str(user.user_id), body.question, session_id_str],
+            [user.user_id, body.question, session_id_str],
         )
         return ChatResponse(
             answer=(
