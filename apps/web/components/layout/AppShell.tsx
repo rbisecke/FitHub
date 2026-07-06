@@ -20,6 +20,7 @@ interface Props {
   user: User;
   defaultSidebarOpen: boolean;
   handle?: string;
+  isAdmin?: boolean;
   children: React.ReactNode;
 }
 
@@ -27,6 +28,7 @@ export function AppShell({
   user,
   defaultSidebarOpen,
   handle = "user",
+  isAdmin,
   children,
 }: Props) {
   const pathname = usePathname();
@@ -55,7 +57,7 @@ export function AppShell({
         Skip to main content
       </a>
 
-      <DesktopSidebar user={user} />
+      <DesktopSidebar user={user} isAdmin={isAdmin} />
 
       {/* Content column */}
       <div className="flex flex-1 flex-col min-h-screen overflow-hidden">
@@ -78,7 +80,7 @@ export function AppShell({
           </motion.main>
         </AnimatePresence>
 
-        <MobileBottomNav />
+        <MobileBottomNav isAdmin={isAdmin} />
       </div>
 
       <Toaster position="bottom-right" />

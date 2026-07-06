@@ -22,6 +22,12 @@ export default async function AppLayout({
   const user = session.user;
   const token = session.access_token;
 
+  const adminIds = (process.env.ADMIN_USER_IDS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const isAdmin = adminIds.includes(user.id);
+
   // Read sidebar cookie server-side to avoid flash on first paint
   const cookieStore = await cookies();
   const raw = cookieStore.get("sidebar_state")?.value;
@@ -60,6 +66,7 @@ export default async function AppLayout({
         user={user}
         defaultSidebarOpen={defaultSidebarOpen}
         handle={handle}
+        isAdmin={isAdmin}
       >
         <AppInit />
         {children}

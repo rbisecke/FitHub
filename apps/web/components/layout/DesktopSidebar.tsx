@@ -30,9 +30,10 @@ function InitialCollapseGuard() {
 
 interface Props {
   user: User;
+  isAdmin?: boolean;
 }
 
-export function DesktopSidebar({ user }: Props) {
+export function DesktopSidebar({ user, isAdmin }: Props) {
   return (
     <>
       <InitialCollapseGuard />
@@ -45,7 +46,7 @@ export function DesktopSidebar({ user }: Props) {
           <SidebarTrigger className="text-[var(--muted)] hover:text-[var(--text)] shrink-0" />
         </SidebarHeader>
 
-        <SidebarNav />
+        <SidebarNav isAdmin={isAdmin} />
 
         <SidebarStreakWidget streak={0} />
 
