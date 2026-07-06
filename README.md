@@ -253,6 +253,20 @@ Near-term:
 
 ---
 
+## Contributor documentation
+
+The [`docs/`](docs/) directory contains deeper documentation for contributors:
+
+| Document                                     | What it covers                                                                         |
+| -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| [docs/architecture.md](docs/architecture.md) | System map: monorepo layout, data flow, module boundaries, where things live           |
+| [docs/science.md](docs/science.md)           | Sports science methodology — sRPE, ACWR/EWMA, Hooper Index, ATL/CTL/TSB with citations |
+| [docs/ai.md](docs/ai.md)                     | LLM architecture — deterministic vs. generated decisions, RAG pipeline, safety design  |
+
+Start with `architecture.md` if you're new to the codebase. Read `science.md` before touching any load or readiness calculation. Read `ai.md` before touching the AI layer.
+
+---
+
 ## Contributing
 
 Bug reports and PRs welcome. For significant feature changes, open an issue first.
