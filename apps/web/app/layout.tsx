@@ -31,13 +31,23 @@ const archivoBlack = Archivo_Black({
   weight: "400",
 });
 
+const APP_URL = "https://fithub.run";
+
 export const metadata: Metadata = {
   title: "FitHub",
   description: "Git for your fitness.",
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-    apple: "/favicon.svg",
+  metadataBase: new URL(APP_URL),
+  openGraph: {
+    title: "FitHub",
+    description: "Git for your fitness.",
+    url: APP_URL,
+    siteName: "FitHub",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "FitHub",
+    description: "Git for your fitness.",
   },
 };
 
