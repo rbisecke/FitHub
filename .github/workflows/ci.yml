@@ -110,10 +110,23 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "apps/api/uv.lock"
 
+      # uv uses rustls; PyTorch's R2 CDN rejects its TLS handshake from GitHub
+      # Actions runners. Pre-download torch with the system pip (OpenSSL) so
+      # uv can find it locally via --find-links and skip the CDN entirely.
+      - name: Pre-download torch wheel
+        run: |
+          mkdir -p /tmp/torch-wheels
+          python3 -m pip download \
+            "torch==2.12.1+cpu" \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --no-deps \
+            --python-version 3.14 \
+            --abi cp314 \
+            --platform manylinux_2_28_x86_64 \
+            -d /tmp/torch-wheels
+
       - name: Install dependencies
-        run: uv sync --project apps/api --all-groups
-        env:
-          UV_NATIVE_TLS: "1"
+        run: uv sync --project apps/api --all-groups --find-links /tmp/torch-wheels
 
       # Apply schema migrations so the DB has public.profiles / workouts /
       # results / movements before pytest's session-scoped fixtures seed data.
@@ -160,10 +173,20 @@ jobs:
           node-version: "22"
           cache: "pnpm"
 
+      - name: Pre-download torch wheel
+        run: |
+          mkdir -p /tmp/torch-wheels
+          python3 -m pip download \
+            "torch==2.12.1+cpu" \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --no-deps \
+            --python-version 3.14 \
+            --abi cp314 \
+            --platform manylinux_2_28_x86_64 \
+            -d /tmp/torch-wheels
+
       - name: Install Python deps
-        run: uv sync --project apps/api --all-groups
-        env:
-          UV_NATIVE_TLS: "1"
+        run: uv sync --project apps/api --all-groups --find-links /tmp/torch-wheels
 
       - name: Install Node deps
         run: pnpm install --frozen-lockfile
@@ -233,10 +256,20 @@ jobs:
           node-version: "22"
           cache: "pnpm"
 
+      - name: Pre-download torch wheel
+        run: |
+          mkdir -p /tmp/torch-wheels
+          python3 -m pip download \
+            "torch==2.12.1+cpu" \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --no-deps \
+            --python-version 3.14 \
+            --abi cp314 \
+            --platform manylinux_2_28_x86_64 \
+            -d /tmp/torch-wheels
+
       - name: Install Python deps
-        run: uv sync --project apps/api --all-groups
-        env:
-          UV_NATIVE_TLS: "1"
+        run: uv sync --project apps/api --all-groups --find-links /tmp/torch-wheels
 
       - name: Install Node deps
         run: pnpm install --frozen-lockfile
