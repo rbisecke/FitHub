@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { cn } from "@/lib/utils";
 import { DonutChart, type DonutSlice } from "@/components/ui/donut-chart";
 import {
@@ -64,15 +65,11 @@ interface Props {
 }
 
 export function TrainingBalanceSection({ data, className }: Props) {
-  const [period, setPeriod] = useState(() => {
-    if (typeof window === "undefined") return "28";
-    return localStorage.getItem(STORAGE_KEY) ?? "28";
-  });
+  const [period, setPeriod] = useLocalStorage(STORAGE_KEY, "28");
   const [isOpen, setIsOpen] = useState(false);
 
   const handlePeriodChange = (value: string) => {
     setPeriod(value);
-    localStorage.setItem(STORAGE_KEY, value);
   };
 
   const inner = (

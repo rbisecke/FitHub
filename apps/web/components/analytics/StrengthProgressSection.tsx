@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
+import { useIsClient } from "@/lib/hooks/useIsClient";
 import { useReducedMotion } from "motion/react";
 import { X, Plus, Search } from "lucide-react";
 import {
@@ -69,10 +71,8 @@ export function StrengthProgressSection({
   const [selectedIds, setSelectedIds] = useState<string[]>(() =>
     personalRecords.slice(0, 2).map((pr) => pr.movement_id),
   );
-  const [period, setPeriod] = useState(() => {
-    if (typeof window === "undefined") return "84";
-    return localStorage.getItem(STORAGE_KEY) ?? "84";
-  });
+  const [period, setPeriod] = useLocalStorage(STORAGE_KEY, "84");
+  const isClient = useIsClient();
   const [series, setSeries] = useState<SeriesMap>({});
   const [searchResults, setSearchResults] = useState<Movement[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -124,7 +124,6 @@ export function StrengthProgressSection({
   const handlePeriodChange = (value: string) => {
     setPeriod(value);
     setSeries({});
-    localStorage.setItem(STORAGE_KEY, value);
   };
 
   const removeMovement = (id: string) => {
@@ -266,56 +265,58 @@ export function StrengthProgressSection({
           className="h-52 md:h-64 w-full"
           aria-label="Estimated one-rep max trend chart"
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              accessibilityLayer
-              data={chartData}
-              margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
-            >
-              <CartesianGrid
-                stroke="var(--chart-border)"
-                strokeDasharray="3 3"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="day"
-                tick={{ fill: "var(--chart-axis)", fontSize: 9 }}
-                tickLine={false}
-                axisLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                tick={{ fill: "var(--chart-axis)", fontSize: 9 }}
-                tickLine={false}
-                axisLine={false}
-                domain={["auto", "auto"]}
-                tickFormatter={(v: number) => `${v.toFixed(0)}`}
-              />
-              <Tooltip
-                contentStyle={tooltipContentStyle}
-                formatter={(value, name) => [
-                  `${value} kg`,
-                  series[name as string]?.name ?? (name as string),
-                ]}
-              />
-              <Legend
-                wrapperStyle={{ fontSize: 10, color: "var(--chart-axis)" }}
-                formatter={(value) => series[value]?.name ?? value}
-              />
-              {selectedIds.map((id, i) => (
-                <Line
-                  key={id}
-                  type="monotone"
-                  dataKey={id}
-                  stroke={LINE_COLORS[i % LINE_COLORS.length]}
-                  dot={false}
-                  strokeWidth={1.5}
-                  connectNulls
-                  isAnimationActive={!prefersReducedMotion}
+          {isClient && (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                accessibilityLayer
+                data={chartData}
+                margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+              >
+                <CartesianGrid
+                  stroke="var(--chart-border)"
+                  strokeDasharray="3 3"
+                  vertical={false}
                 />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
+                <XAxis
+                  dataKey="day"
+                  tick={{ fill: "var(--chart-axis)", fontSize: 9 }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  tick={{ fill: "var(--chart-axis)", fontSize: 9 }}
+                  tickLine={false}
+                  axisLine={false}
+                  domain={["auto", "auto"]}
+                  tickFormatter={(v: number) => `${v.toFixed(0)}`}
+                />
+                <Tooltip
+                  contentStyle={tooltipContentStyle}
+                  formatter={(value, name) => [
+                    `${value} kg`,
+                    series[name as string]?.name ?? (name as string),
+                  ]}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: 10, color: "var(--chart-axis)" }}
+                  formatter={(value) => series[value]?.name ?? value}
+                />
+                {selectedIds.map((id, i) => (
+                  <Line
+                    key={id}
+                    type="monotone"
+                    dataKey={id}
+                    stroke={LINE_COLORS[i % LINE_COLORS.length]}
+                    dot={false}
+                    strokeWidth={1.5}
+                    connectNulls
+                    isAnimationActive={!prefersReducedMotion}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       )}
     </div>
