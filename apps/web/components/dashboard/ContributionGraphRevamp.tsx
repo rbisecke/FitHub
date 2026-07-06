@@ -121,7 +121,7 @@ export function ContributionGraphRevamp({
             weightedDates={[]}
             variantClassnames={VARIANT_CLASSNAMES}
             numberOfMonths={window.numberOfMonths}
-            defaultMonth={window.fromDate}
+            defaultMonth={window.displayFromDate}
             disableNavigation
             showOutsideDays={false}
             className="text-[--muted]"
@@ -187,7 +187,7 @@ export function ContributionGraphRevamp({
           dayTitle={dayTitle}
           variantClassnames={VARIANT_CLASSNAMES}
           numberOfMonths={window.numberOfMonths}
-          defaultMonth={window.fromDate}
+          defaultMonth={window.displayFromDate}
           disableNavigation
           showOutsideDays={false}
           className="text-[--muted]"
