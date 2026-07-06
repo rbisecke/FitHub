@@ -82,7 +82,7 @@ async function getToken(): Promise<string> {
   return session.access_token;
 }
 
-async function loginAndSetSession(page: Page, token: string): Promise<void> {
+async function loginAndSetSession(page: Page, _token: string): Promise<void> {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: "POST",
     headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
