@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import uuid
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, Any
 
 import jwt
+import psycopg
 from fastapi import Depends, HTTPException, Request, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
 from pydantic import BaseModel
 
 from app.config import Settings, get_settings
+from app.db import get_db
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -59,3 +61,27 @@ async def get_current_user(
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
+
+
+async def require_invited(
+    user: Annotated[UserContext, Depends(get_current_user)],
+    conn: Annotated[psycopg.AsyncConnection[Any], Depends(get_db)],
+) -> UserContext:
+    """Reject any authenticated user whose email is not in the invited_emails allowlist.
+
+    Runs on every authenticated request, closing the gap where OAuth users can
+    bypass the before_user_created hook that guards email/magic-link signups.
+    """
+    async with conn.cursor() as cur:
+        await cur.execute(
+            "SELECT 1 FROM auth.users au "
+            "JOIN public.invited_emails ie ON lower(ie.email) = lower(au.email) "
+            "WHERE au.id = %s",
+            [user.user_id],
+        )
+        if await cur.fetchone() is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not invited",
+            )
+    return user

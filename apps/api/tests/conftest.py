@@ -128,6 +128,13 @@ async def _seed_users(_db_pool: None) -> None:
             """,
             [ALICE_ID, BOB_ID],
         )
+        await conn.execute(
+            """
+            INSERT INTO public.invited_emails (email)
+            VALUES ('alice@test.local'), ('bob@test.local')
+            ON CONFLICT (email) DO NOTHING
+            """,
+        )
 
 
 # ── Per-test cleanup ───────────────────────────────────────────────────────────
