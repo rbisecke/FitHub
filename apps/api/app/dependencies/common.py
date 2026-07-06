@@ -7,8 +7,8 @@ from typing import Annotated, Any
 import psycopg
 from fastapi import Depends
 
-from app.auth import UserContext, get_current_user
+from app.auth import UserContext, require_invited
 from app.db import get_db
 
-Auth = Annotated[UserContext, Depends(get_current_user)]
+Auth = Annotated[UserContext, Depends(require_invited)]
 DBConn = Annotated[psycopg.AsyncConnection[Any], Depends(get_db)]

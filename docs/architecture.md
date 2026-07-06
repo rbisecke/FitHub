@@ -119,7 +119,7 @@ The pgTAP tests are separate from the pytest suite by design. They verify that R
 6. FastAPI's `get_current_user` dependency fetches the Supabase JWKS, verifies the JWT, and returns the user's UUID.
 7. All repository calls receive the user UUID and scope queries accordingly.
 
-The invite-only gate is a `before user created` Supabase hook that checks the `invited_emails` table. A user whose email is not in that table cannot create an account.
+The invite-only gate is enforced at two layers. The `before_user_created` Supabase hook checks `invited_emails` before creating any email/magic-link account. For OAuth providers (Google), which bypass that hook, FastAPI's `require_invited` dependency performs the same `invited_emails` check on every authenticated request. A user whose email is not in the table is rejected at sign-up (email) or at first API call (OAuth).
 
 ---
 
