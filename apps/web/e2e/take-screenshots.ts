@@ -1,11 +1,19 @@
 /**
- * Standalone screenshot script — Phase 3b visual verification.
+ * README screenshot script.
  *
- * Uses the same auth injection strategy as workout-tracker.spec.ts
- * (Buffer.from().toString("base64url") via addCookies) to ensure the
- * dashboard SSR data path sees a valid session.
+ * Creates (or reuses) a "John Smith" demo user and takes the full set of
+ * screenshots used in the root README.
  *
- * Run: pnpm exec playwright test e2e/take-screenshots.ts --reporter=list
+ * Prerequisites (must be running):
+ *   - supabase start
+ *   - alembic upgrade head
+ *   - FastAPI on http://127.0.0.1:8000
+ *   - Next.js dev server on http://localhost:3000
+ *
+ * Run:
+ *   pnpm -C apps/web exec ts-node --project tsconfig.json -e "$(cat e2e/take-screenshots.ts)"
+ *   — or via the playwright runner:
+ *   pnpm exec playwright test e2e/take-screenshots.ts --reporter=list
  */
 
 import { type Page, chromium } from "@playwright/test";
@@ -15,17 +23,70 @@ import * as path from "path";
 const SUPABASE_URL = "http://127.0.0.1:54321";
 const ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
-const E2E_EMAIL = "e2e-workout@test.local";
-const E2E_PASSWORD = "E2eTestFitHub!2026";
+const SERVICE_ROLE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+
+const DEMO_EMAIL = "john.smith@fithub.local";
+const DEMO_PASSWORD = "DemoFitHub!2026";
+const DEMO_DISPLAY_NAME = "John Smith";
+
 const API_URL = "http://127.0.0.1:8000";
 const BASE_URL = "http://localhost:3000";
-const SCREENSHOT_DIR = path.join(__dirname, "../../..", "screenshots");
+const SCREENSHOT_DIR = path.join(
+  __dirname,
+  "../../..",
+  "screenshots",
+  "readme",
+);
 
-async function loginAndSetSession(page: Page): Promise<string> {
+// ── Auth helpers ──────────────────────────────────────────────────────────────
+
+async function ensureDemoUser(): Promise<string> {
+  // Add to invite allowlist (idempotent).
+  await fetch(`${SUPABASE_URL}/rest/v1/invited_emails`, {
+    method: "POST",
+    headers: {
+      apikey: SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=ignore-duplicates",
+    },
+    body: JSON.stringify({ email: DEMO_EMAIL }),
+  });
+
+  // Create the user (422 = already exists — fine).
+  await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: DEMO_EMAIL,
+      password: DEMO_PASSWORD,
+      email_confirm: true,
+    }),
+  });
+
+  return getToken();
+}
+
+async function getToken(): Promise<string> {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: "POST",
     headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ email: E2E_EMAIL, password: E2E_PASSWORD }),
+    body: JSON.stringify({ email: DEMO_EMAIL, password: DEMO_PASSWORD }),
+  });
+  if (!res.ok) throw new Error(`password grant failed: ${res.status}`);
+  const session = (await res.json()) as { access_token: string };
+  return session.access_token;
+}
+
+async function loginAndSetSession(page: Page, token: string): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email: DEMO_EMAIL, password: DEMO_PASSWORD }),
   });
   if (!res.ok) throw new Error(`auth failed: ${res.status}`);
 
@@ -51,8 +112,28 @@ async function loginAndSetSession(page: Page): Promise<string> {
       sameSite: "Lax",
     },
   ]);
+}
 
-  return session.access_token;
+// ── Data seeding ──────────────────────────────────────────────────────────────
+
+async function ensureProfile(token: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/v1/profile`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      display_name: DEMO_DISPLAY_NAME,
+      weight_unit: "kg",
+      onboarding_completed: true,
+    }),
+  });
+  if (res.ok) {
+    console.log(`  ✓ Profile set to "${DEMO_DISPLAY_NAME}"`);
+  } else {
+    console.warn(`  ⚠ Profile patch returned ${res.status}`);
+  }
 }
 
 async function ensureSeededWorkouts(token: string): Promise<void> {
@@ -63,15 +144,20 @@ async function ensureSeededWorkouts(token: string): Promise<void> {
     items: unknown[];
     next_cursor: string | null;
   };
-  if (data.items.length >= 3) {
+  if (data.items.length >= 10) {
     console.log(`  ✓ ${data.items.length}+ workouts already seeded`);
     return;
   }
 
+  // Build a realistic 10-week training history to populate analytics + contribution graph.
+  const now = new Date("2026-07-06T00:00:00Z");
+  const dayMs = 86400 * 1000;
+
   const workouts = [
+    // Week 10 (most recent)
     {
       title: "Fran",
-      performed_at: "2026-06-15T00:00:00Z",
+      performed_at: new Date(now.getTime() - 1 * dayMs).toISOString(),
       session_type: "metcon",
       workout_format: "for_time",
       session_rpe: 9,
@@ -81,7 +167,7 @@ async function ensureSeededWorkouts(token: string): Promise<void> {
     },
     {
       title: "Back Squat 5×5",
-      performed_at: "2026-06-14T00:00:00Z",
+      performed_at: new Date(now.getTime() - 2 * dayMs).toISOString(),
       session_type: "strength",
       workout_format: "strength",
       session_rpe: 8,
@@ -94,7 +180,7 @@ async function ensureSeededWorkouts(token: string): Promise<void> {
     },
     {
       title: "Murph",
-      performed_at: "2026-06-13T00:00:00Z",
+      performed_at: new Date(now.getTime() - 4 * dayMs).toISOString(),
       session_type: "metcon",
       workout_format: "for_time",
       session_rpe: 10,
@@ -103,9 +189,10 @@ async function ensureSeededWorkouts(token: string): Promise<void> {
         "Hero WOD — 1 mile run, 100 pull-ups, 200 push-ups, 300 squats, 1 mile run",
       results: [{ result_type: "time", time_s: 4187, order_index: 0 }],
     },
+    // Week 9
     {
       title: "Snatch Skill Work",
-      performed_at: "2026-06-12T00:00:00Z",
+      performed_at: new Date(now.getTime() - 7 * dayMs).toISOString(),
       session_type: "skill",
       workout_format: "benchmark",
       session_rpe: 6,
@@ -116,7 +203,7 @@ async function ensureSeededWorkouts(token: string): Promise<void> {
     },
     {
       title: "Annie",
-      performed_at: "2026-06-11T00:00:00Z",
+      performed_at: new Date(now.getTime() - 9 * dayMs).toISOString(),
       session_type: "metcon",
       workout_format: "for_time",
       session_rpe: 8,
@@ -124,17 +211,200 @@ async function ensureSeededWorkouts(token: string): Promise<void> {
       results: [{ result_type: "time", time_s: 718, order_index: 0 }],
     },
     {
+      title: "Deadlift 3×3",
+      performed_at: new Date(now.getTime() - 11 * dayMs).toISOString(),
+      session_type: "strength",
+      workout_format: "strength",
+      session_rpe: 8,
+      duration_s: 3000,
+      results: [
+        { result_type: "weight", load_kg: 160, reps: 3, order_index: 0 },
+        { result_type: "weight", load_kg: 160, reps: 3, order_index: 1 },
+        { result_type: "weight", load_kg: 160, reps: 3, order_index: 2 },
+      ],
+    },
+    // Week 8
+    {
+      title: "Helen",
+      performed_at: new Date(now.getTime() - 14 * dayMs).toISOString(),
+      session_type: "metcon",
+      workout_format: "for_time",
+      session_rpe: 8,
+      duration_s: 780,
+      notes: "3 rounds: 400m run, 21 KB swings, 12 pull-ups",
+      results: [{ result_type: "time", time_s: 768, order_index: 0 }],
+    },
+    {
       title: "Active Recovery",
-      performed_at: "2026-06-10T00:00:00Z",
+      performed_at: new Date(now.getTime() - 15 * dayMs).toISOString(),
       session_type: "active_recovery",
       workout_format: "intervals",
       session_rpe: 3,
       duration_s: 1800,
     },
+    {
+      title: "Strict Press 5×5",
+      performed_at: new Date(now.getTime() - 16 * dayMs).toISOString(),
+      session_type: "strength",
+      workout_format: "strength",
+      session_rpe: 7,
+      duration_s: 2700,
+      results: [
+        { result_type: "weight", load_kg: 60, reps: 5, order_index: 0 },
+        { result_type: "weight", load_kg: 60, reps: 5, order_index: 1 },
+        { result_type: "weight", load_kg: 60, reps: 5, order_index: 2 },
+      ],
+    },
+    // Week 7
+    {
+      title: "Grace",
+      performed_at: new Date(now.getTime() - 21 * dayMs).toISOString(),
+      session_type: "metcon",
+      workout_format: "for_time",
+      session_rpe: 9,
+      duration_s: 120,
+      notes: "30 clean and jerks for time at 60kg",
+      results: [{ result_type: "time", time_s: 118, order_index: 0 }],
+    },
+    {
+      title: "Back Squat 3×3",
+      performed_at: new Date(now.getTime() - 23 * dayMs).toISOString(),
+      session_type: "strength",
+      workout_format: "strength",
+      session_rpe: 9,
+      duration_s: 3600,
+      results: [
+        { result_type: "weight", load_kg: 130, reps: 3, order_index: 0 },
+        { result_type: "weight", load_kg: 130, reps: 3, order_index: 1 },
+        { result_type: "weight", load_kg: 130, reps: 3, order_index: 2 },
+      ],
+    },
+    // Week 6
+    {
+      title: "Isabel",
+      performed_at: new Date(now.getTime() - 28 * dayMs).toISOString(),
+      session_type: "metcon",
+      workout_format: "for_time",
+      session_rpe: 9,
+      duration_s: 180,
+      notes: "30 snatches for time at 60kg",
+      results: [{ result_type: "time", time_s: 174, order_index: 0 }],
+    },
+    {
+      title: "Active Recovery",
+      performed_at: new Date(now.getTime() - 29 * dayMs).toISOString(),
+      session_type: "active_recovery",
+      workout_format: "intervals",
+      session_rpe: 3,
+      duration_s: 2400,
+    },
+    {
+      title: "Bench Press 5×5",
+      performed_at: new Date(now.getTime() - 31 * dayMs).toISOString(),
+      session_type: "strength",
+      workout_format: "strength",
+      session_rpe: 8,
+      duration_s: 3000,
+      results: [
+        { result_type: "weight", load_kg: 90, reps: 5, order_index: 0 },
+        { result_type: "weight", load_kg: 90, reps: 5, order_index: 1 },
+        { result_type: "weight", load_kg: 90, reps: 5, order_index: 2 },
+      ],
+    },
+    // Week 5
+    {
+      title: "Karen",
+      performed_at: new Date(now.getTime() - 35 * dayMs).toISOString(),
+      session_type: "metcon",
+      workout_format: "for_time",
+      session_rpe: 8,
+      duration_s: 600,
+      notes: "150 wall balls for time at 9kg",
+      results: [{ result_type: "time", time_s: 592, order_index: 0 }],
+    },
+    {
+      title: "Deadlift 5×5",
+      performed_at: new Date(now.getTime() - 37 * dayMs).toISOString(),
+      session_type: "strength",
+      workout_format: "strength",
+      session_rpe: 8,
+      duration_s: 3600,
+      results: [
+        { result_type: "weight", load_kg: 150, reps: 5, order_index: 0 },
+        { result_type: "weight", load_kg: 150, reps: 5, order_index: 1 },
+        { result_type: "weight", load_kg: 150, reps: 5, order_index: 2 },
+      ],
+    },
+    // Week 4
+    {
+      title: "Cindy",
+      performed_at: new Date(now.getTime() - 42 * dayMs).toISOString(),
+      session_type: "metcon",
+      workout_format: "amrap",
+      session_rpe: 7,
+      duration_s: 1200,
+      notes: "AMRAP 20: 5 pull-ups, 10 push-ups, 15 air squats",
+      results: [{ result_type: "reps", reps: 22, order_index: 0 }],
+    },
+    {
+      title: "Back Squat 5×5",
+      performed_at: new Date(now.getTime() - 44 * dayMs).toISOString(),
+      session_type: "strength",
+      workout_format: "strength",
+      session_rpe: 8,
+      duration_s: 3600,
+      results: [
+        { result_type: "weight", load_kg: 115, reps: 5, order_index: 0 },
+        { result_type: "weight", load_kg: 115, reps: 5, order_index: 1 },
+        { result_type: "weight", load_kg: 115, reps: 5, order_index: 2 },
+      ],
+    },
+    {
+      title: "Active Recovery",
+      performed_at: new Date(now.getTime() - 45 * dayMs).toISOString(),
+      session_type: "active_recovery",
+      workout_format: "intervals",
+      session_rpe: 3,
+      duration_s: 1800,
+    },
+    // Week 3
+    {
+      title: "Nancy",
+      performed_at: new Date(now.getTime() - 49 * dayMs).toISOString(),
+      session_type: "metcon",
+      workout_format: "for_time",
+      session_rpe: 8,
+      duration_s: 1080,
+      notes: "5 rounds: 400m run, 15 overhead squats at 43kg",
+      results: [{ result_type: "time", time_s: 1062, order_index: 0 }],
+    },
+    {
+      title: "Deadlift 3×3",
+      performed_at: new Date(now.getTime() - 51 * dayMs).toISOString(),
+      session_type: "strength",
+      workout_format: "strength",
+      session_rpe: 9,
+      duration_s: 3000,
+      results: [
+        { result_type: "weight", load_kg: 165, reps: 3, order_index: 0 },
+        { result_type: "weight", load_kg: 165, reps: 3, order_index: 1 },
+        { result_type: "weight", load_kg: 165, reps: 3, order_index: 2 },
+      ],
+    },
+    {
+      title: "Ring Muscle-Up Skill",
+      performed_at: new Date(now.getTime() - 53 * dayMs).toISOString(),
+      session_type: "skill",
+      workout_format: "benchmark",
+      session_rpe: 6,
+      duration_s: 1800,
+      results: [{ result_type: "reps", reps: 5, order_index: 0 }],
+    },
   ];
 
+  let seeded = 0;
   for (const w of workouts) {
-    await fetch(`${API_URL}/api/v1/workouts`, {
+    const r = await fetch(`${API_URL}/api/v1/workouts`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -142,9 +412,12 @@ async function ensureSeededWorkouts(token: string): Promise<void> {
       },
       body: JSON.stringify(w),
     });
+    if (r.ok) seeded++;
   }
-  console.log(`  ✓ Seeded ${workouts.length} workouts`);
+  console.log(`  ✓ Seeded ${seeded} workouts`);
 }
+
+// ── Screenshot helpers ────────────────────────────────────────────────────────
 
 async function shot(page: Page, name: string): Promise<void> {
   const filepath = path.join(SCREENSHOT_DIR, `${name}.png`);
@@ -152,34 +425,8 @@ async function shot(page: Page, name: string): Promise<void> {
   console.log(`  📸 ${name}.png`);
 }
 
-async function main(): Promise<void> {
-  fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
-
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({
-    viewport: { width: 1280, height: 800 },
-  });
-  const page = await context.newPage();
-
-  console.log("→ Authenticating…");
-  const token = await loginAndSetSession(page);
-
-  console.log("→ Checking workout data…");
-  await ensureSeededWorkouts(token);
-
-  // 1. Login page (logged out context)
-  console.log("→ Taking screenshots…");
-  const loggedOutCtx = await browser.newContext({
-    viewport: { width: 1280, height: 800 },
-  });
-  const loggedOutPage = await loggedOutCtx.newPage();
-  await loggedOutPage.goto(`${BASE_URL}/login`, { waitUntil: "networkidle" });
-  await shot(loggedOutPage, "phase3b-01-login");
-  await loggedOutCtx.close();
-
-  // 2. Dashboard — wait for client-side contribution graph to hydrate
-  await page.goto(`${BASE_URL}/dashboard`, { waitUntil: "networkidle" });
-  // Wait until at least one non-empty cell appears (indicates client hydration complete)
+async function waitForHydration(page: Page): Promise<void> {
+  // Wait for content to appear (contribution graph or main heading)
   await page
     .waitForFunction(
       () => {
@@ -188,23 +435,52 @@ async function main(): Promise<void> {
             '[aria-label="Training contribution graph"] > div > div',
           ),
         );
-        return cells.some(function (c) {
-          return !c.className.includes("bg-zinc-800");
-        });
+        return cells.some((c) => !c.className.includes("bg-zinc-800"));
       },
       { timeout: 15000 },
     )
     .catch(() => {
-      /* OK if no workouts yet */
+      /* OK if no contribution graph on this page */
     });
-  await page.waitForTimeout(300);
-  await shot(page, "phase3b-02-dashboard");
+  await page.waitForTimeout(400);
+}
 
-  // 3. History page
+// ── Main ──────────────────────────────────────────────────────────────────────
+
+async function main(): Promise<void> {
+  fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
+
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+  });
+  const page = await context.newPage();
+
+  console.log("→ Ensuring demo user…");
+  const token = await ensureDemoUser();
+
+  console.log("→ Setting display name…");
+  await ensureProfile(token);
+
+  console.log("→ Seeding workout data…");
+  await ensureSeededWorkouts(token);
+
+  console.log("→ Setting up browser session…");
+  await loginAndSetSession(page, token);
+
+  console.log("→ Taking screenshots…");
+
+  // Dashboard
+  await page.goto(`${BASE_URL}/dashboard`, { waitUntil: "networkidle" });
+  await waitForHydration(page);
+  await shot(page, "revamp-dashboard");
+
+  // History (git log --all)
   await page.goto(`${BASE_URL}/history`, { waitUntil: "networkidle" });
-  await shot(page, "phase3b-03-history");
+  await page.waitForTimeout(800);
+  await shot(page, "revamp-history");
 
-  // 4. Workout detail — grab the first workout id from API
+  // Log result — detail page for the most recent workout
   const listRes = await fetch(`${API_URL}/api/v1/workouts?limit=1`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -214,31 +490,39 @@ async function main(): Promise<void> {
     await page.goto(`${BASE_URL}/history/${firstId}`, {
       waitUntil: "networkidle",
     });
-    await shot(page, "phase3b-04-detail");
+    await page.waitForTimeout(500);
+    await shot(page, "revamp-log-result");
   }
 
-  // 5. Log form collapsed
-  await page.goto(`${BASE_URL}/log/new`, { waitUntil: "networkidle" });
+  // Track / NL log entry (git commit -m)
+  await page.goto(`${BASE_URL}/track`, { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
-  await shot(page, "phase3b-05-logform-collapsed");
+  await shot(page, "revamp-track");
 
-  // 6. Log form expanded — click the progressive-disclosure toggle
-  const clicked = await page.evaluate(() => {
-    const btn = Array.from(document.querySelectorAll("button")).find(
-      (b) => b.textContent?.includes("More details"),
-    );
-    if (btn) {
-      btn.click();
-      return true;
-    }
-    return false;
-  });
-  if (!clicked)
-    console.warn(
-      "  ⚠ disclosure button not found — screenshot may be collapsed",
-    );
-  await page.waitForTimeout(400);
-  await shot(page, "phase3b-06-logform-expanded");
+  // Plans (git branch --list)
+  await page.goto(`${BASE_URL}/plans`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  await shot(page, "revamp-plans");
+
+  // Records (git tag --list)
+  await page.goto(`${BASE_URL}/records`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  await shot(page, "revamp-records");
+
+  // Analytics (CTL / ATL / TSB)
+  await page.goto(`${BASE_URL}/analytics`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(1000);
+  await shot(page, "revamp-analytics");
+
+  // Coach (streaming chat)
+  await page.goto(`${BASE_URL}/coach`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  await shot(page, "revamp-coach");
+
+  // Profile
+  await page.goto(`${BASE_URL}/profile`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  await shot(page, "revamp-profile");
 
   await browser.close();
   console.log(`\n✅ Screenshots saved to ${SCREENSHOT_DIR}`);
