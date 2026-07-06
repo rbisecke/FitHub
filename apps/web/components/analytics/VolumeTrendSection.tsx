@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import type { WeeklyVolume } from "@/lib/api";
 import { VolumeChart } from "@/components/analytics/VolumeChart";
@@ -26,11 +26,13 @@ interface Props {
 
 export function VolumeTrendSection({ initialWeeks, token, className }: Props) {
   const [weeks, setWeeks] = useState(initialWeeks);
-  const [period, setPeriod] = useState(() => {
-    if (typeof window === "undefined") return "8";
-    return localStorage.getItem(STORAGE_KEY) ?? "8";
-  });
+  const [period, setPeriod] = useState("8");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) setPeriod(stored);
+  }, []);
 
   const fetchVolume = useCallback(
     async (p: string) => {

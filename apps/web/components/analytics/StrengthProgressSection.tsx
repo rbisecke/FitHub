@@ -69,10 +69,12 @@ export function StrengthProgressSection({
   const [selectedIds, setSelectedIds] = useState<string[]>(() =>
     personalRecords.slice(0, 2).map((pr) => pr.movement_id),
   );
-  const [period, setPeriod] = useState(() => {
-    if (typeof window === "undefined") return "84";
-    return localStorage.getItem(STORAGE_KEY) ?? "84";
-  });
+  const [period, setPeriod] = useState("84");
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) setPeriod(stored);
+  }, []);
   const [series, setSeries] = useState<SeriesMap>({});
   const [searchResults, setSearchResults] = useState<Movement[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
