@@ -1,6 +1,7 @@
 export interface GraphWindow {
   numberOfMonths: number;
   fromDate: Date;
+  displayFromDate: Date;
   toDate: Date;
   isAnchored: boolean;
 }
@@ -42,5 +43,11 @@ export function graphWindow(
     }
   }
 
-  return { numberOfMonths, fromDate, toDate, isAnchored };
+  // Always end the visible calendar at today's month so future empty months
+  // never appear. fromDate is kept for workout filtering.
+  const displayFromDate = new Date(toDate);
+  displayFromDate.setMonth(displayFromDate.getMonth() - (numberOfMonths - 1));
+  displayFromDate.setDate(1);
+
+  return { numberOfMonths, fromDate, displayFromDate, toDate, isAnchored };
 }

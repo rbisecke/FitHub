@@ -63,12 +63,11 @@ export const NAV_ITEMS: NavItem[] = [
     mobileLabel: "History",
     icon: History,
     gitCommand: "$ git log --all",
-    mobileShow: true,
   },
   {
     href: "/injuries",
     label: "Injuries",
-    mobileLabel: "Issues",
+    mobileLabel: "Injuries",
     icon: ShieldAlert,
     gitCommand: "$ git issue --list",
     mobileShow: true,
