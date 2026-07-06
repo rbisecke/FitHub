@@ -7,7 +7,7 @@ import {
   History,
   ShieldAlert,
   MessageSquare,
-  User,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +37,13 @@ export const NAV_ITEMS: NavItem[] = [
     gitCommand: "$ git add .",
   },
   {
+    href: "/log/tag",
+    label: "Tag a Lift",
+    mobileLabel: "Tag",
+    icon: Tag,
+    gitCommand: "$ git tag",
+  },
+  {
     href: "/plans",
     label: "Plans",
     mobileLabel: "Plans",
@@ -63,6 +70,7 @@ export const NAV_ITEMS: NavItem[] = [
     mobileLabel: "History",
     icon: History,
     gitCommand: "$ git log --all",
+    mobileShow: true,
   },
   {
     href: "/injuries",
@@ -70,7 +78,6 @@ export const NAV_ITEMS: NavItem[] = [
     mobileLabel: "Injuries",
     icon: ShieldAlert,
     gitCommand: "$ git issue --list",
-    mobileShow: true,
   },
   {
     href: "/coach",
@@ -80,13 +87,49 @@ export const NAV_ITEMS: NavItem[] = [
     gitCommand: "$ git coach",
     mobileShow: true,
   },
+];
+
+// Exported separately so it is never mixed into NAV_ITEMS — callers iterate
+// NAV_ITEMS unconditionally, and the admin entry must only be rendered when
+// the current user is actually an admin.
+export const ADMIN_NAV_ITEM: NavItem = {
+  href: "/admin",
+  label: "Admin",
+  mobileLabel: "Admin",
+  icon: ShieldCheck,
+  gitCommand: "$ fithub admin",
+};
+
+// Items surfaced in the mobile "More" overflow sheet. These routes are not
+// reachable from the bottom tab bar directly.
+export const MOBILE_MORE_ITEMS: NavItem[] = [
   {
-    href: "/profile",
-    label: "Profile",
-    mobileLabel: "Profile",
-    icon: User,
-    gitCommand: "$ git config --user",
-    mobileShow: true,
+    href: "/log/tag",
+    label: "Tag a lift",
+    mobileLabel: "Tag",
+    icon: Tag,
+    gitCommand: "$ git tag",
+  },
+  {
+    href: "/injuries",
+    label: "Injuries",
+    mobileLabel: "Injuries",
+    icon: ShieldAlert,
+    gitCommand: "$ git issue",
+  },
+  {
+    href: "/plans",
+    label: "Plans",
+    mobileLabel: "Plans",
+    icon: GitBranch,
+    gitCommand: "$ git branch",
+  },
+  {
+    href: "/records",
+    label: "Records",
+    mobileLabel: "Records",
+    icon: Tag,
+    gitCommand: "$ git tag --list",
   },
 ];
 
@@ -164,6 +207,11 @@ export const PAGE_META: Record<
     title: "Profile",
     gitCommand: "$ git config --user",
     slug: "profile",
+  },
+  "/admin": {
+    title: "Admin",
+    gitCommand: "$ fithub admin",
+    slug: "admin",
   },
 };
 
