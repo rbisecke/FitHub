@@ -45,6 +45,10 @@ export const ChartContainer = React.forwardRef<
 >(({ id, className, children, config, ...props }, ref) => {
   const uid = React.useId();
   const chartId = `chart-${id ?? uid.replace(/:/g, "")}`;
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
   return (
     <ChartContext.Provider value={{ config }}>
       <div
@@ -54,7 +58,7 @@ export const ChartContainer = React.forwardRef<
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
-        <ResponsiveContainer>{children}</ResponsiveContainer>
+        {mounted && <ResponsiveContainer>{children}</ResponsiveContainer>}
       </div>
     </ChartContext.Provider>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   PieChart,
   Pie,
@@ -34,40 +35,46 @@ export function DonutChart({
 }: DonutChartProps) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const prefersReducedMotion = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <div className={className} style={{ width: "100%", height: 220 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart accessibilityLayer>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={innerRadius}
-            outerRadius={outerRadius}
-            paddingAngle={2}
-            dataKey="value"
-            strokeWidth={0}
-            isAnimationActive={!prefersReducedMotion}
-          >
-            {data.map((entry, i) => (
-              <Cell key={`cell-${i}`} fill={entry.color} />
-            ))}
-          </Pie>
-          <Tooltip
-            contentStyle={tooltipContentStyle}
-            formatter={(value, name) => [
-              `${(((value as number) / total) * 100).toFixed(0)}%`,
-              name,
-            ]}
-          />
-          {showLegend && (
-            <Legend
-              wrapperStyle={{ fontSize: 11, color: "var(--chart-axis)" }}
+      {mounted && (
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart accessibilityLayer>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={innerRadius}
+              outerRadius={outerRadius}
+              paddingAngle={2}
+              dataKey="value"
+              strokeWidth={0}
+              isAnimationActive={!prefersReducedMotion}
+            >
+              {data.map((entry, i) => (
+                <Cell key={`cell-${i}`} fill={entry.color} />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={tooltipContentStyle}
+              formatter={(value, name) => [
+                `${(((value as number) / total) * 100).toFixed(0)}%`,
+                name,
+              ]}
             />
-          )}
-        </PieChart>
-      </ResponsiveContainer>
+            {showLegend && (
+              <Legend
+                wrapperStyle={{ fontSize: 11, color: "var(--chart-axis)" }}
+              />
+            )}
+          </PieChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }
