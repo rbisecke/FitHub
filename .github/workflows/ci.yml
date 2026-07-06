@@ -107,6 +107,8 @@ jobs:
       - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
         with:
           python-version: "3.14"
+          enable-cache: true
+          cache-dependency-glob: "apps/api/uv.lock"
 
       - name: Install dependencies
         run: uv sync --project apps/api --all-groups
@@ -146,6 +148,8 @@ jobs:
       - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
         with:
           python-version: "3.14"
+          enable-cache: true
+          cache-dependency-glob: "apps/api/uv.lock"
 
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
@@ -215,6 +219,8 @@ jobs:
       - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
         with:
           python-version: "3.14"
+          enable-cache: true
+          cache-dependency-glob: "apps/api/uv.lock"
 
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
