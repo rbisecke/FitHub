@@ -15,7 +15,7 @@ const cspDirectives = [
   // Next.js requires 'unsafe-inline' for server-injected style tags and hydration scripts
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://*.googleusercontent.com",
   "font-src 'self'",
   isDev
     ? "connect-src 'self' http://localhost:54321 http://127.0.0.1:54321 http://localhost:8000 http://127.0.0.1:8000 ws://localhost:3000"
