@@ -112,6 +112,8 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --project apps/api --all-groups
+        env:
+          UV_NATIVE_TLS: "1"
 
       # Apply schema migrations so the DB has public.profiles / workouts /
       # results / movements before pytest's session-scoped fixtures seed data.
@@ -160,6 +162,8 @@ jobs:
 
       - name: Install Python deps
         run: uv sync --project apps/api --all-groups
+        env:
+          UV_NATIVE_TLS: "1"
 
       - name: Install Node deps
         run: pnpm install --frozen-lockfile
@@ -231,6 +235,8 @@ jobs:
 
       - name: Install Python deps
         run: uv sync --project apps/api --all-groups
+        env:
+          UV_NATIVE_TLS: "1"
 
       - name: Install Node deps
         run: pnpm install --frozen-lockfile
