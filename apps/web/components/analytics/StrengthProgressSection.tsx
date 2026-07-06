@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
+import { useIsClient } from "@/lib/hooks/useIsClient";
 import { useReducedMotion } from "motion/react";
 import { X, Plus, Search } from "lucide-react";
 import {
@@ -69,14 +71,8 @@ export function StrengthProgressSection({
   const [selectedIds, setSelectedIds] = useState<string[]>(() =>
     personalRecords.slice(0, 2).map((pr) => pr.movement_id),
   );
-  const [period, setPeriod] = useState("84");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) setPeriod(stored);
-    setMounted(true);
-  }, []);
+  const [period, setPeriod] = useLocalStorage(STORAGE_KEY, "84");
+  const isClient = useIsClient();
   const [series, setSeries] = useState<SeriesMap>({});
   const [searchResults, setSearchResults] = useState<Movement[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -128,7 +124,6 @@ export function StrengthProgressSection({
   const handlePeriodChange = (value: string) => {
     setPeriod(value);
     setSeries({});
-    localStorage.setItem(STORAGE_KEY, value);
   };
 
   const removeMovement = (id: string) => {
@@ -270,7 +265,7 @@ export function StrengthProgressSection({
           className="h-52 md:h-64 w-full"
           aria-label="Estimated one-rep max trend chart"
         >
-          {mounted && (
+          {isClient && (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 accessibilityLayer

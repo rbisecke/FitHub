@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import {
   PieChart,
   Pie,
@@ -11,6 +10,7 @@ import {
 } from "recharts";
 import { useReducedMotion } from "motion/react";
 import { tooltipContentStyle } from "@/lib/chart-utils";
+import { useIsClient } from "@/lib/hooks/useIsClient";
 
 export interface DonutSlice {
   name: string;
@@ -35,14 +35,11 @@ export function DonutChart({
 }: DonutChartProps) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const prefersReducedMotion = useReducedMotion();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const isClient = useIsClient();
 
   return (
     <div className={className} style={{ width: "100%", height: 220 }}>
-      {mounted && (
+      {isClient && (
         <ResponsiveContainer width="100%" height="100%">
           <PieChart accessibilityLayer>
             <Pie

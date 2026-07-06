@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
+import { useIsClient } from "@/lib/hooks/useIsClient";
 
 export type ChartConfig = {
   [k in string]: {
@@ -45,10 +46,7 @@ export const ChartContainer = React.forwardRef<
 >(({ id, className, children, config, ...props }, ref) => {
   const uid = React.useId();
   const chartId = `chart-${id ?? uid.replace(/:/g, "")}`;
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
+  const isClient = useIsClient();
   return (
     <ChartContext.Provider value={{ config }}>
       <div
@@ -58,7 +56,7 @@ export const ChartContainer = React.forwardRef<
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
-        {mounted && <ResponsiveContainer>{children}</ResponsiveContainer>}
+        {isClient && <ResponsiveContainer>{children}</ResponsiveContainer>}
       </div>
     </ChartContext.Provider>
   );
