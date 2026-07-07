@@ -324,7 +324,7 @@ async def chat(
         log.warning("Suspicious model output user=%s", user.user_id)
         answer_text = "I'm not able to answer that question. Please rephrase."
 
-    citations_raw = [
+    citations_raw: list[dict[str, str | float]] = [
         {
             "title": str(c["title"]),
             "source_type": str(c["source_type"]),
@@ -338,7 +338,7 @@ async def chat(
     )
 
     citations = [
-        Citation(title=str(c["title"]), source_type=str(c["source_type"]), score=float(c["score"]))
+        Citation(title=str(c["title"]), source_type=str(c["source_type"]), score=float(c["score"]))  # type: ignore[arg-type]
         for c in citations_raw
     ]
     return ChatResponse(answer=answer_text, citations=citations, stub=False, safety_tier=tier.value)
