@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { ls } from "@/lib/local-storage";
+import { formatWeight } from "@/lib/display";
 
 const MILESTONE_WEEKS = [4, 8, 12, 26, 52] as const;
 
@@ -43,11 +44,15 @@ export function firePrToast(
   movementName: string,
   bestKg: number,
   deltaKg: number | null,
+  weightUnit: "kg" | "lb" = "kg",
 ): void {
+  const best = formatWeight(bestKg, weightUnit);
+  const delta =
+    deltaKg != null ? formatWeight(Math.abs(deltaKg), weightUnit) : null;
   toast.success(
-    deltaKg != null && deltaKg > 0
-      ? `New PR! ${movementName} ${bestKg} kg — +${deltaKg} kg from your previous best`
-      : `First PR! ${movementName} ${bestKg} kg — your benchmark is set`,
+    delta != null && deltaKg != null && deltaKg > 0
+      ? `New PR! ${movementName} ${best} — +${delta} from your previous best`
+      : `First PR! ${movementName} ${best} — your benchmark is set`,
     {
       id: `pr_${movementName}_${bestKg}`,
       duration: 5000,
