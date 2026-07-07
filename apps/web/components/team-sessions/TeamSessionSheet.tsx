@@ -170,8 +170,7 @@ export function TeamSessionSheet({
       ...prev,
       {
         user_id: String(user.user_id),
-        display_name:
-          user.display_name ?? (user.email.split("@")[0] || user.email),
+        display_name: user.display_name ?? "Unknown",
         role: "athlete",
       },
     ]);
@@ -354,14 +353,11 @@ export function TeamSessionSheet({
                       className="w-full text-left px-3 py-2 text-sm text-[#e6edf3] hover:bg-[#30363d] flex items-center gap-2 transition-colors"
                     >
                       <span className="w-6 h-6 rounded-full bg-[#58a6ff] flex items-center justify-center text-[10px] font-bold text-[#0d1117] shrink-0">
-                        {(u.display_name ?? u.email).charAt(0).toUpperCase()}
+                        {(u.display_name ?? "?").charAt(0).toUpperCase()}
                       </span>
                       <span className="min-w-0">
                         <span className="block truncate">
-                          {u.display_name ?? u.email.split("@")[0]}
-                        </span>
-                        <span className="block truncate text-xs text-[#8b949e]">
-                          {u.email}
+                          {u.display_name ?? "Unknown"}
                         </span>
                       </span>
                     </button>

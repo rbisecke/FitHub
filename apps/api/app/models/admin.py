@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # ── Access requests ───────────────────────────────────────────────────────────
 
@@ -11,7 +11,7 @@ from pydantic import BaseModel
 class AccessRequestCreate(BaseModel):
     email: str
     name: str
-    motivation: str
+    motivation: str = Field(max_length=2000)
 
 
 class AccessRequestRow(BaseModel):

@@ -9,14 +9,17 @@ export interface AuthContext {
   token: string;
 }
 
-/**
- * Call at the top of any Server Component that requires authentication.
- * Uses a single getSession() call — avoids the double round trip from
- * calling getUser() + getSession() separately.
- * Redirects to /login if the session is missing or expired.
- */
 export async function requireAuth(): Promise<AuthContext> {
   const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) redirect("/login");
+
+  // getSession() here is safe — used only to retrieve the token string;
+  // identity is already validated by getUser() above.
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -25,8 +28,8 @@ export async function requireAuth(): Promise<AuthContext> {
 
   return {
     user: {
-      id: session.user.id,
-      email: session.user.email,
+      id: user.id,
+      email: user.email,
     },
     token: session.access_token,
   };

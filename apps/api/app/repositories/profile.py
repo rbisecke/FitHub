@@ -243,7 +243,7 @@ async def search_users(
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT p.id AS user_id, p.display_name, u.email
+            SELECT p.id AS user_id, p.display_name
             FROM   auth.users u
             JOIN   public.profiles p ON p.id = u.id
             WHERE  u.id != %s

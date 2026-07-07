@@ -21,7 +21,6 @@ router = APIRouter(prefix="/api/v1/profile", tags=["profile"])
 class UserSearchResult(BaseModel):
     user_id: uuid.UUID
     display_name: str | None
-    email: str
 
 
 @router.get("/search", response_model=list[UserSearchResult])
