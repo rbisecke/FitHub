@@ -9,6 +9,7 @@ import type {
   Workout,
   WorkoutListResponse,
   CreateWorkoutBody,
+  CreateMovementBody,
   ParseNLResponse,
   LoadModelResponse,
   PersonalRecord,
@@ -127,7 +128,7 @@ export const api = {
       if (params.limit != null) qs.set("limit", String(params.limit));
       return apiFetch<Movement[]>(`/api/v1/movements?${qs}`, token);
     },
-    create: (token: string, body: { name: string; modality: string }) =>
+    create: (token: string, body: CreateMovementBody) =>
       apiFetch<Movement>("/api/v1/movements", token, {
         method: "POST",
         body: JSON.stringify(body),
