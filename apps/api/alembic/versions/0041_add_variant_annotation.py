@@ -20,7 +20,15 @@ def upgrade() -> None:
           ADD COLUMN IF NOT EXISTS variant_annotation TEXT
     """)
 
-    # Migrate any existing results that used the variant:* prefix in notes
+    # Migrate any existing results that used the variant:* prefix in notes.
+    # NOTE (DB9): REPLACE removes ALL occurrences of 'variant:' in the string,
+    # not just the leading prefix. If notes ever contained 'variant:' more than
+    # once (e.g. "variant:foo variant:bar"), the second 'variant:' is also
+    # stripped, potentially leaving a double-space artifact. No corrective
+    # migration was run — this was caught post-deploy. To audit:
+    #   SELECT id, variant_annotation FROM results WHERE variant_annotation LIKE '%  %';
+    # If that returns rows, review whether the double-strip changed meaning and
+    # correct manually. No new migration is needed for the common case.
     op.execute("""
         UPDATE public.results
            SET variant_annotation = REPLACE(notes, 'variant:', ''),
