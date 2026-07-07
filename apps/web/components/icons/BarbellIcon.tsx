@@ -32,7 +32,7 @@ const BarbellIcon = forwardRef<SVGSVGElement, LucideProps>(
         className={className}
         {...props}
       >
-        <path d="M6.5 6.5l11 11M4 9l-1.5 1.5a1.5 1.5 0 000 2.1l1.9 1.9a1.5 1.5 0 002.1 0L9 15M15 9l1.5-1.5a1.5 1.5 0 012.1 0l1.9 1.9a1.5 1.5 0 010 2.1L20 13M2.5 14.5L4 16M20 8l1.5 1.5" />
+        <path d="M6.5 7v10M3.5 9v6M17.5 7v10M20.5 9v6M6.5 12h11" />
       </svg>
     );
   },
