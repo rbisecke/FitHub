@@ -33,7 +33,9 @@ class TestBuildSystemPromptInjuries:
         prompt = build_system_prompt(None, injuries=injuries)
         assert "hamstring" in prompt
         assert "pain 5/10" in prompt
-        assert "tightness after sprint" in prompt
+        # Notes are moved to the user message context to prevent prompt injection,
+        # so they no longer appear in the system prompt.
+        assert "tightness after sprint" not in prompt
         assert "`deadlift`" in prompt
         assert "`sprint`" in prompt
         assert "Active injuries" in prompt

@@ -111,11 +111,11 @@ async def test_search_users_returns_list(alice_client: AsyncClient) -> None:
     assert r.status_code == 200
     body = r.json()
     assert isinstance(body, list)
-    # Each result has the expected fields
+    # Each result has the expected fields (email is not returned, by design)
     for item in body:
         assert "user_id" in item
         assert "display_name" in item
-        assert "email" in item
+        assert "email" not in item
 
 
 @pytest.mark.asyncio
