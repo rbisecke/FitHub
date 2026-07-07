@@ -11,6 +11,7 @@ interface Props {
   recentPRIds: string[];
   highlighted?: string;
   highlightOpacity?: number;
+  weightUnit?: string;
   onHighlightRef?: (el: HTMLDivElement | null) => void;
   onCalcOpen?: (pr: PersonalRecord) => void;
 }
@@ -29,6 +30,7 @@ export function CategorySection({
   recentPRIds,
   highlighted,
   highlightOpacity = 0,
+  weightUnit = "kg",
   onHighlightRef,
   onCalcOpen,
 }: Props) {
@@ -76,6 +78,7 @@ export function CategorySection({
                   points={trendMap[pr.movement_id] ?? []}
                   isRecent={recentPRIds.includes(pr.movement_id)}
                   category={category}
+                  weightUnit={weightUnit}
                   onCalcOpen={onCalcOpen ? () => onCalcOpen(pr) : undefined}
                 />
                 {isHighlighted && (
