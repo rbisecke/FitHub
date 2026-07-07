@@ -1,10 +1,12 @@
 import type { PersonalRecord, E1RMPoint } from "@/lib/api";
 import type { PRCategory } from "@/lib/records/categorise";
 import { CATEGORY_ORDER } from "@/lib/records/categorise";
+import { formatWeight, formatWeightDelta } from "@/lib/display";
 
 interface Props {
   categorised: Record<PRCategory, PersonalRecord[]>;
   trendMap: Record<string, E1RMPoint[]>;
+  weightUnit?: string;
 }
 
 const CAT_COLOR: Record<PRCategory, string> = {
@@ -42,7 +44,12 @@ function formatAbsoluteDate(isoDate: string): string {
   });
 }
 
-export function TimelineView({ categorised, trendMap }: Props) {
+export function TimelineView({
+  categorised,
+  trendMap,
+  weightUnit = "kg",
+}: Props) {
+  const unit = weightUnit === "lb" ? "lb" : "kg";
   // Flatten all PRs into a single sorted list (newest first)
   const entries: TimelineEntry[] = [];
   for (const cat of CATEGORY_ORDER) {
@@ -88,7 +95,7 @@ export function TimelineView({ categorised, trendMap }: Props) {
             const curr = points[points.length - 1]!.estimated_1rm_kg;
             const delta = curr - prev;
             if (delta > 0.01) {
-              improvement = `+${delta.toFixed(1)} kg`;
+              improvement = `+${formatWeightDelta(delta, unit)}`;
             }
           }
 
@@ -150,9 +157,11 @@ export function TimelineView({ categorised, trendMap }: Props) {
                     className="font-heading leading-none"
                     style={{ fontSize: "28px", color: "var(--gold)" }}
                   >
-                    {pr.best_1rm_kg.toFixed(1)}
+                    {unit === "lb"
+                      ? Math.round(pr.best_1rm_kg * 2.20462)
+                      : pr.best_1rm_kg.toFixed(1)}
                     <span className="text-[14px] ml-1 text-[var(--muted)]">
-                      kg
+                      {unit}
                     </span>
                   </span>
                   {improvement && (

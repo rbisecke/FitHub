@@ -13,6 +13,7 @@ import { RecordsHeader } from "./RecordsHeader";
 import { CategoryTabs } from "./CategoryTabs";
 import type { CategoryFilter } from "./CategoryTabs";
 import { CategorySection } from "./CategorySection";
+import { formatWeight } from "@/lib/display";
 import { TimelineView } from "./TimelineView";
 import { EmptyRecords } from "./EmptyRecords";
 import { NewPRBanner } from "./NewPRBanner";
@@ -101,7 +102,9 @@ export function RecordsShell({
   // Banner data: use first recent PR's name and value
   const recentPR = prs.find((pr) => recentPRIds.includes(pr.movement_id));
   const recentMovement = recentPR?.movement_name ?? "";
-  const recentValue = recentPR ? `${recentPR.best_1rm_kg.toFixed(1)} kg` : "";
+  const recentValue = recentPR
+    ? formatWeight(recentPR.best_1rm_kg, weightUnit as "kg" | "lb")
+    : "";
 
   // Which category sections to show (desktop)
   const categoriesToShow: PRCategory[] =
@@ -176,6 +179,7 @@ export function RecordsShell({
                     points={trendMap[pr.movement_id] ?? []}
                     isRecent={recentPRIds.includes(pr.movement_id)}
                     category={categorise(pr.movement_name)}
+                    weightUnit={weightUnit}
                     onCalcOpen={() => setSheetPR(pr)}
                   />
                 ))}
@@ -245,6 +249,7 @@ export function RecordsShell({
                       recentPRIds={recentPRIds}
                       highlighted={highlighted}
                       highlightOpacity={highlightOpacity}
+                      weightUnit={weightUnit}
                       onHighlightRef={(el) => {
                         highlightRef.current = el;
                       }}
@@ -256,6 +261,7 @@ export function RecordsShell({
                 <TimelineView
                   categorised={timelineCategorised}
                   trendMap={trendMap}
+                  weightUnit={weightUnit}
                 />
               )}
             </div>
@@ -290,6 +296,7 @@ export function RecordsShell({
                             points={trendMap[pr.movement_id] ?? []}
                             isRecent={recentPRIds.includes(pr.movement_id)}
                             category={cat}
+                            weightUnit={weightUnit}
                             onCalcOpen={() => setSheetPR(pr)}
                           />
                           {isHighlighted && (
