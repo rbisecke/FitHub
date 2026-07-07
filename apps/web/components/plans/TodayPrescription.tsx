@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useReducedMotion } from "motion/react";
 import { createApiClient } from "@/lib/api/client";
+import { formatWeight } from "@/lib/display";
 import type { PlannedSessionOut, ModifyWorkoutResponse } from "@/lib/api/plans";
 import type { PersonalRecord } from "@/lib/api";
 import { WorkoutModifications } from "@/components/injuries/WorkoutModifications";
@@ -199,7 +200,10 @@ export function TodayPrescription({
                             aria-label={`Open load calculator for ${item.movement_name} at ${pct}%`}
                             data-testid={`weight-btn-${item.id}`}
                           >
-                            {computedKg.toFixed(1)} kg
+                            {formatWeight(
+                              computedKg,
+                              weightUnit as "kg" | "lb",
+                            )}
                           </button>
                         ) : (
                           <span
