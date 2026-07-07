@@ -9,6 +9,7 @@ import {
 } from "@/lib/tag";
 import type { LastResult, PersonalRecordResult } from "@/lib/api";
 import { api } from "@/lib/api/client";
+import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
 
 const CATEGORIES: Array<{ value: string | null; label: string }> = [
   { value: null, label: "All" },
@@ -41,6 +42,8 @@ export function MovementGrid({
   onSearchRequest,
   accessToken,
 }: MovementGridProps) {
+  const { weightUnit } = useUserPrefs();
+  const unit = weightUnit === "lb" ? "lb" : "kg";
   const [recent] = useState<RecentMovement[]>(() => {
     if (typeof window === "undefined") return [];
     return readRecentMovements();
@@ -130,7 +133,7 @@ export function MovementGrid({
             const isSelected = m.movement_id === selectedId;
             const pr = prMap.get(m.movement_id);
             const prDisplay = pr
-              ? formatCurrentBest(pr as unknown as LastResult)
+              ? formatCurrentBest(pr as unknown as LastResult, unit)
               : null;
             return (
               <button

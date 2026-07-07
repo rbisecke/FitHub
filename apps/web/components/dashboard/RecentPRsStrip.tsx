@@ -8,19 +8,22 @@ import { useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import type { PRWithDelta } from "@/lib/dashboard/prDelta";
+import { formatWeight } from "@/lib/display";
 
 interface RecentPRsStripProps {
   prs: PRWithDelta[];
   isNewPR?: boolean;
+  weightUnit?: string;
 }
 
 interface PRRowProps {
   pr: PRWithDelta;
   animate: boolean;
   prefersReducedMotion: boolean | null;
+  unit: "kg" | "lb";
 }
 
-function PRRow({ pr, animate, prefersReducedMotion }: PRRowProps) {
+function PRRow({ pr, animate, prefersReducedMotion, unit }: PRRowProps) {
   const shouldAnimate = animate && !prefersReducedMotion;
   return (
     <motion.div
@@ -62,14 +65,14 @@ function PRRow({ pr, animate, prefersReducedMotion }: PRRowProps) {
       </div>
       <div className="text-right">
         <p className="font-mono text-sm font-semibold text-[--text]">
-          {Number.isInteger(pr.bestKg) ? pr.bestKg : pr.bestKg.toFixed(1)} kg
+          {formatWeight(pr.bestKg, unit)}
         </p>
         {pr.deltaKg != null && pr.deltaKg > 0 && (
           <Badge
             variant="outline"
             className="text-[--green] border-[color:color-mix(in_srgb,var(--green)_40%,transparent)] text-[10px]"
           >
-            +{pr.deltaKg} kg
+            +{formatWeight(pr.deltaKg, unit)}
           </Badge>
         )}
       </div>
@@ -77,7 +80,12 @@ function PRRow({ pr, animate, prefersReducedMotion }: PRRowProps) {
   );
 }
 
-export function RecentPRsStrip({ prs, isNewPR = false }: RecentPRsStripProps) {
+export function RecentPRsStrip({
+  prs,
+  isNewPR = false,
+  weightUnit = "kg",
+}: RecentPRsStripProps) {
+  const unit = weightUnit === "lb" ? "lb" : "kg";
   const prefersReducedMotion = useReducedMotion();
   const router = useRouter();
   const pathname = usePathname();
@@ -87,13 +95,22 @@ export function RecentPRsStrip({ prs, isNewPR = false }: RecentPRsStripProps) {
     if (!isNewPR || prs.length === 0) return;
 
     if (!prefersReducedMotion) {
-      toast.success(`New PR! ${prs[0]!.movementName} — ${prs[0]!.bestKg} kg`, {
-        description:
-          prs[0]!.deltaKg != null
-            ? `+${prs[0]!.deltaKg} kg from your previous best`
-            : "First logged lift!",
-        duration: 5000,
-      });
+      toast.success(
+        `New PR! ${prs[0]!.movementName} — ${formatWeight(
+          prs[0]!.bestKg,
+          unit,
+        )}`,
+        {
+          description:
+            prs[0]!.deltaKg != null
+              ? `+${formatWeight(
+                  prs[0]!.deltaKg,
+                  unit,
+                )} from your previous best`
+              : "First logged lift!",
+          duration: 5000,
+        },
+      );
     }
 
     // Strip ?pr=1 so celebration doesn't replay on back/forward
@@ -132,6 +149,7 @@ export function RecentPRsStrip({ prs, isNewPR = false }: RecentPRsStripProps) {
               pr={pr}
               animate={isNewPR && i === 0}
               prefersReducedMotion={prefersReducedMotion}
+              unit={unit}
             />
           ))}
         </div>

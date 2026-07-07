@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api/client";
 import { WorkoutForm } from "./WorkoutForm";
-import { sessionLabel, formatLabel } from "@/lib/display";
+import { sessionLabel, formatLabel, formatWeight } from "@/lib/display";
 import type { Workout, PersonalRecord } from "@/lib/api";
 import { MovementTrendChart } from "@/components/analytics/MovementTrendChart";
 import {
@@ -59,7 +59,8 @@ export function WorkoutDetailClient({
   accessToken: string;
 }) {
   const router = useRouter();
-  const { distanceUnit } = useUserPrefs();
+  const { distanceUnit, weightUnit } = useUserPrefs();
+  const unit = weightUnit === "lb" ? "lb" : "kg";
   const [editing, setEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -289,14 +290,12 @@ export function WorkoutDetailClient({
                     </span>
                     <div className="flex items-center gap-3 text-[--muted] font-mono text-xs">
                       {r.load_kg && (
-                        <span>
-                          {parseFloat(Number(r.load_kg).toFixed(3))} kg
-                        </span>
+                        <span>{formatWeight(Number(r.load_kg), unit)}</span>
                       )}
                       {r.reps && <span>× {r.reps}</span>}
                       {r.estimated_1rm_kg && (
                         <span className="text-[--muted-strong]">
-                          e1RM {Number(r.estimated_1rm_kg).toFixed(1)} kg
+                          e1RM {formatWeight(Number(r.estimated_1rm_kg), unit)}
                         </span>
                       )}
                       {r.time_s && <span>{formatTime(r.time_s)}</span>}

@@ -10,7 +10,12 @@ import type {
   TeamSession,
   TeamSessionParticipant,
 } from "@/lib/api";
-import { sessionLabel, formatLabel, loadDisplay } from "@/lib/display";
+import {
+  sessionLabel,
+  formatLabel,
+  loadDisplay,
+  formatWeight,
+} from "@/lib/display";
 import { api } from "@/lib/api/client";
 import { isBenchmark } from "@/lib/workout/benchmarks";
 import { relativeDate } from "@/lib/display";
@@ -387,7 +392,8 @@ function ExpandedContent({
   teamSession: TeamSession | null | false;
   setTeamSession: (ts: TeamSession | null | false) => void;
 }) {
-  const { distanceUnit } = useUserPrefs();
+  const { distanceUnit, weightUnit } = useUserPrefs();
+  const unit = weightUnit === "lb" ? "lb" : "kg";
   const dateStr = summary.performed_at.slice(0, 10);
   const [y, mo, d] = dateStr.split("-").map(Number) as [number, number, number];
   const fullDateLabel = new Date(y, mo - 1, d).toLocaleDateString("en-US", {
@@ -434,8 +440,7 @@ function ExpandedContent({
                         </span>
                       )}
                       <span className="font-mono text-[#8b949e]">
-                        {r.load_kg &&
-                          `${parseFloat(Number(r.load_kg).toFixed(3))} kg`}
+                        {r.load_kg && formatWeight(Number(r.load_kg), unit)}
                         {r.reps && ` × ${r.reps}`}
                         {r.time_s && formatTime(r.time_s)}
                         {r.distance_m &&
@@ -443,7 +448,7 @@ function ExpandedContent({
                       </span>
                       {r.estimated_1rm_kg && (
                         <span className="font-mono text-[#8b949e]">
-                          e1RM {Number(r.estimated_1rm_kg).toFixed(1)} kg
+                          e1RM {formatWeight(Number(r.estimated_1rm_kg), unit)}
                         </span>
                       )}
                       {r.is_pr && (
@@ -710,11 +715,12 @@ function formatResultValue(
     watts?: number | null;
   },
   distanceUnit: DistanceUnit,
+  wUnit: "kg" | "lb" = "kg",
 ): string {
   if (r.result_type === "weight") {
-    const load = r.load_kg != null ? String(r.load_kg) : null;
-    if (!load) return "";
-    return r.reps != null ? `${load} kg × ${r.reps}` : `${load} kg`;
+    if (r.load_kg == null) return "";
+    const display = formatWeight(Number(r.load_kg), wUnit);
+    return r.reps != null ? `${display} × ${r.reps}` : display;
   }
   if (r.result_type === "reps") return r.reps != null ? `${r.reps} reps` : "";
   if (r.result_type === "time" && r.time_s != null) {
@@ -747,7 +753,8 @@ function TagCard({
   detailLoading: boolean;
   accessToken: string;
 }) {
-  const { distanceUnit } = useUserPrefs();
+  const { distanceUnit, weightUnit } = useUserPrefs();
+  const unit = weightUnit === "lb" ? "lb" : "kg";
   const [localDetail, setLocalDetail] = useState<Workout | null>(detail);
   const [loading, setLoading] = useState(detailLoading);
   const fetchedRef = useRef(false);
@@ -765,7 +772,9 @@ function TagCard({
 
   const result = localDetail?.results?.[0];
   const movementName = result?.movement_name ?? null;
-  const resultValue = result ? formatResultValue(result, distanceUnit) : null;
+  const resultValue = result
+    ? formatResultValue(result, distanceUnit, unit)
+    : null;
 
   const dateStr = workout.performed_at.slice(0, 10);
   const [y, mo, d] = dateStr.split("-").map(Number) as [number, number, number];

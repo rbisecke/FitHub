@@ -14,9 +14,11 @@ import type { E1RMPoint } from "@/lib/api";
 
 interface Props {
   points: E1RMPoint[];
+  weightUnit?: string;
 }
 
-export function PRSparkline({ points }: Props) {
+export function PRSparkline({ points, weightUnit = "kg" }: Props) {
+  const isImperial = weightUnit === "lb";
   if (points.length < 2) {
     return <ChartEmpty className="mt-1" message="Not enough PR history yet" />;
   }
@@ -50,7 +52,12 @@ export function PRSparkline({ points }: Props) {
             contentStyle={tooltipContentStyle}
             formatter={(value) =>
               typeof value === "number"
-                ? [`${value.toFixed(1)} kg`, "e1RM"]
+                ? [
+                    isImperial
+                      ? `${Math.round(value * 2.20462)} lb`
+                      : `${value.toFixed(1)} kg`,
+                    "e1RM",
+                  ]
                 : [String(value), "e1RM"]
             }
           />

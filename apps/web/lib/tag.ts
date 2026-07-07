@@ -1,5 +1,6 @@
 import type { ResultTypeValue } from "@/components/log/ResultFields";
 import type { LastResult } from "@/lib/api";
+import { formatWeight } from "@/lib/display";
 
 export function parseTimeText(raw: string): number | null {
   if (!raw) return null;
@@ -215,12 +216,15 @@ export function computePrStatus(
   return null;
 }
 
-export function formatCurrentBest(r: LastResult): string {
+export function formatCurrentBest(
+  r: LastResult,
+  weightUnit: "kg" | "lb" = "kg",
+): string {
   switch (r.result_type) {
     case "weight": {
-      const load = r.load_kg != null ? String(r.load_kg) : null;
-      if (!load) return "";
-      return r.reps != null ? `${load} kg × ${r.reps}` : `${load} kg`;
+      if (r.load_kg == null) return "";
+      const display = formatWeight(Number(r.load_kg), weightUnit);
+      return r.reps != null ? `${display} × ${r.reps}` : display;
     }
     case "reps":
       return r.reps != null ? `${r.reps} reps` : "";

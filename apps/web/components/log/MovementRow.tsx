@@ -400,6 +400,7 @@ export function MovementRow({
             lastResult={lastResult}
             onFill={handleFill}
             distanceUnit={distanceUnit}
+            weightUnit={weightUnit === "lb" ? "lb" : "kg"}
           />
         </div>
       )}
