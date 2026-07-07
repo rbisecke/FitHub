@@ -20,6 +20,9 @@ export default async function AdminLayout({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // ADMIN_USER_IDS is set in Vercel env vars (production) or .env.local (dev).
+  // The backend also reads ADMIN_USER_IDS_CSV from its own env — see apps/api/app/config.py.
+  // Both must be kept in sync when adding or removing admins.
   const adminIds = (process.env.ADMIN_USER_IDS ?? "")
     .split(",")
     .map((s) => s.trim())

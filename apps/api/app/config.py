@@ -16,8 +16,11 @@ class Settings(BaseSettings):
     supabase_service_role_key: str
     database_url: str  # postgresql+psycopg://... (Alembic/SQLAlchemy format)
     anthropic_monthly_budget_usd: float = 5.0
-    # Comma-separated admin UUIDs. Stored as str so pydantic-settings doesn't
-    # try to JSON-decode the value; parse with admin_user_ids property.
+    # ADMIN_USER_IDS_CSV: comma-separated admin UUIDs for the backend.
+    # The frontend also reads ADMIN_USER_IDS (same values) — see apps/web/app/(admin)/layout.tsx.
+    # Keep both in sync when adding or removing admins.
+    # Stored as str so pydantic-settings doesn't try to JSON-decode the value;
+    # parse with admin_user_ids property.
     admin_user_ids_csv: str = ""
     # Comma-separated allowed CORS origins. Production: set to the public frontend URL.
     cors_origin: str = "http://localhost:3000"

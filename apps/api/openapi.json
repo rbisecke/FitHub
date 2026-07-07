@@ -3998,6 +3998,7 @@
           },
           "motivation": {
             "type": "string",
+            "maxLength": 2000,
             "title": "Motivation"
           }
         },
@@ -9560,17 +9561,12 @@
               }
             ],
             "title": "Display Name"
-          },
-          "email": {
-            "type": "string",
-            "title": "Email"
           }
         },
         "type": "object",
         "required": [
           "user_id",
-          "display_name",
-          "email"
+          "display_name"
         ],
         "title": "UserSearchResult"
       },

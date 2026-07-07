@@ -133,14 +133,18 @@ async def apple_health_sync(
         raise HTTPException(status_code=401, detail="Missing bearer token")
     bearer = auth.removeprefix("Bearer ")
 
-    # Look up all apple_health connections and find the one matching this token
+    # Filter by stored token prefix first to avoid a full-table scan, then
+    # do the constant-time hash verify only on the (typically one) matching row.
+    token_prefix = bearer[:12]
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
             SELECT user_id::text, config
             FROM data_connections
             WHERE provider = 'apple_health'
+              AND config->>'ingest_token_prefix' = %s
             """,
+            [token_prefix],
         )
         rows = await cur.fetchall()
 
