@@ -11,6 +11,7 @@ export type WorkoutListResponse = components["schemas"]["WorkoutListResponse"];
 export type Movement = components["schemas"]["Movement"];
 export type CreateWorkoutBody = components["schemas"]["CreateWorkoutRequest"];
 export type CreateResultBody = components["schemas"]["CreateResultRequest"];
+export type CreateMovementBody = components["schemas"]["CreateMovementRequest"];
 
 export type LoadModelResponse = components["schemas"]["LoadModelResponse"];
 export type DailyLoadPoint = components["schemas"]["DailyLoadPoint"];
