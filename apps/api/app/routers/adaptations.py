@@ -91,7 +91,7 @@ async def detect_plan_adaptations(
                     plan_id,
                     user.user_id,
                     str(trigger["type"]),
-                    str(trigger["data"]).replace("'", '"'),
+                    json.dumps(trigger["data"]),
                     str(result.get("rationale", "")),
                     None,
                     bool(result.get("stub", False)),

@@ -81,10 +81,8 @@ class InjuryOut(BaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def staleness_days(self) -> int:
-        from datetime import date
-
         ref = self.resolved_at or self.reported_at
         if ref is None:
             return 0
         ref_date = ref.astimezone(UTC).date() if ref.tzinfo else ref.date()
-        return (date.today() - ref_date).days
+        return (datetime.now(UTC).date() - ref_date).days

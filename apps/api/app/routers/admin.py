@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 import uuid
 from datetime import UTC, datetime
@@ -34,6 +35,8 @@ from app.models.admin import (
     ReindexJob,
     UserCostRow,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["admin"])
 
@@ -335,10 +338,8 @@ async def _supabase_send_invite(email: str) -> None:
             json={"email": email},
         )
     if resp.status_code not in (200, 201):
-        raise HTTPException(
-            status_code=502,
-            detail=f"Supabase invite failed ({resp.status_code}): {resp.text[:200]}",
-        )
+        logger.error("Supabase error for admin op: %s", resp.text)
+        raise HTTPException(status_code=502, detail="Upstream auth service error")
 
 
 # ── Admin: user management ────────────────────────────────────────────────────
@@ -390,7 +391,8 @@ async def disable_user(
             json={"ban_duration": "876600h"},  # 100 years
         )
     if resp.status_code not in (200, 201):
-        raise HTTPException(status_code=502, detail=f"Supabase error: {resp.text[:200]}")
+        logger.error("Supabase error for admin op: %s", resp.text)
+        raise HTTPException(status_code=502, detail="Upstream auth service error")
 
 
 @router.post("/api/v1/admin/users/{user_id}/magic-link")
@@ -410,7 +412,8 @@ async def generate_magic_link(
             json={"type": "magiclink"},
         )
     if resp.status_code not in (200, 201):
-        raise HTTPException(status_code=502, detail=f"Supabase error: {resp.text[:200]}")
+        logger.error("Supabase error for admin op: %s", resp.text)
+        raise HTTPException(status_code=502, detail="Upstream auth service error")
     data = resp.json()
     return {"link": data.get("action_link", "")}
 
@@ -434,7 +437,8 @@ async def delete_user(
             },
         )
     if resp.status_code not in (200, 204):
-        raise HTTPException(status_code=502, detail=f"Supabase error: {resp.text[:200]}")
+        logger.error("Supabase error for admin op: %s", resp.text)
+        raise HTTPException(status_code=502, detail="Upstream auth service error")
 
 
 # ── Admin: invited emails ─────────────────────────────────────────────────────
@@ -493,7 +497,7 @@ async def remove_invited_email(
     result = await conn.execute(
         "DELETE FROM invited_emails WHERE lower(email) = lower(%s)", [email]
     )
-    if result.pgresult and result.pgresult.command_tuples == 0:
+    if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Email not found.")
 
 

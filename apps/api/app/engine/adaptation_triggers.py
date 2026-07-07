@@ -50,17 +50,19 @@ async def _compute_acwr(
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
-            WITH loads AS (
-                SELECT performed_at::date AS d, perceived_load_au
-                FROM workouts
-                WHERE user_id = %s
-                  AND performed_at >= current_date - 28
-                  AND perceived_load_au IS NOT NULL
+            WITH daily AS (
+                SELECT date_trunc('day', performed_at AT TIME ZONE 'UTC') AS day,
+                       SUM(perceived_load_au) AS daily_load
+                FROM   workouts
+                WHERE  user_id = %s
+                  AND  performed_at >= now() - INTERVAL '28 days'
+                  AND  perceived_load_au IS NOT NULL
+                GROUP  BY 1
             )
             SELECT
-                AVG(perceived_load_au) FILTER (WHERE d >= current_date - 7) AS acute,
-                AVG(perceived_load_au) AS chronic
-            FROM loads
+                AVG(daily_load) FILTER (WHERE day >= now()::date - 7) AS acute,
+                AVG(daily_load)                                         AS chronic
+            FROM daily
             """,
             [user_id],
         )
