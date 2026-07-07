@@ -1,6 +1,6 @@
 """Backfill coach_interactions into coach_messages.
 
-Revision ID: 0054_backfill_coach_interactions_to_messages
+Revision ID: 0054_backfill_chat_msgs
 Revises: 0053_add_ix_results_movement_1rm
 Create Date: 2026-07-07
 """
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from alembic import op
 
-revision: str = "0054_backfill_coach_interactions_to_messages"
+revision: str = "0054_backfill_chat_msgs"
 down_revision: str | None = "0053_add_ix_results_movement_1rm"
 branch_labels: str | None = None
 depends_on: str | None = None
