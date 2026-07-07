@@ -27,7 +27,7 @@ describe("PinnedMovementCard", () => {
         movement={make({ personal_record: { load_kg: 140 } })}
       />,
     );
-    expect(screen.getByText("140 kg")).toBeTruthy();
+    expect(screen.getByText("140.0 kg")).toBeTruthy();
   });
 
   it("shows — when personal_record is null", () => {
