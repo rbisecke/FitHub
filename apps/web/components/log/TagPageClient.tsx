@@ -22,7 +22,8 @@ import {
   writeRecentMovements,
   type RecentMovement,
 } from "@/lib/tag";
-import { relativeDate } from "@/lib/display";
+import { relativeDate, formatWeight } from "@/lib/display";
+import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
 
 function getTodayLocal(): string {
   const d = new Date();
@@ -80,6 +81,8 @@ export function TagPageClient({
   prefillLastResult,
 }: TagPageClientProps) {
   const router = useRouter();
+  const { weightUnit } = useUserPrefs();
+  const unit = weightUnit === "lb" ? "lb" : "kg";
 
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(
     prefillMovement ?? null,
@@ -193,7 +196,12 @@ export function TagPageClient({
       {
         ...EMPTY_SET,
         load_kg: r.load_kg != null ? String(r.load_kg) : "",
-        load_display: r.load_kg != null ? String(r.load_kg) : "",
+        load_display:
+          r.load_kg != null
+            ? unit === "lb"
+              ? String(Math.round(Number(r.load_kg) * 2.20462 * 10) / 10)
+              : String(r.load_kg)
+            : "",
         reps: r.reps != null ? String(r.reps) : "",
         time_text: r.time_s != null ? formatTime(r.time_s) : "",
         distance_m: r.distance_m != null ? String(r.distance_m) : "",
@@ -286,9 +294,9 @@ export function TagPageClient({
     const r = lastResult;
     switch (r.result_type) {
       case "weight": {
-        const load = r.load_kg != null ? String(r.load_kg) : null;
-        if (!load) return null;
-        return r.reps != null ? `${load} kg × ${r.reps}` : `${load} kg`;
+        if (r.load_kg == null) return null;
+        const display = formatWeight(Number(r.load_kg), unit);
+        return r.reps != null ? `${display} × ${r.reps}` : display;
       }
       case "reps":
         return r.reps != null ? `${r.reps} reps` : null;
