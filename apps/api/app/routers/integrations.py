@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
+
 import psycopg
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.dependencies.common import Auth, DBConn
 from app.integrations.ingest_tokens import generate_ingest_token, verify_ingest_token
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/integrations", tags=["integrations"])
 
@@ -167,11 +171,13 @@ async def apple_health_sync(
     )
 
     # Trigger recovery computation in background (best-effort)
+    recovery_computed = False
     try:
         from app.engine.baselines import compute_today_recovery
 
         await compute_today_recovery(user_id, db)
+        recovery_computed = True
     except Exception:
-        pass
+        logger.exception("Recovery computation failed for user %s", user_id)
 
-    return SyncResponse(rows_inserted=rows_inserted, recovery_computed=True)
+    return SyncResponse(rows_inserted=rows_inserted, recovery_computed=recovery_computed)

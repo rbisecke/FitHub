@@ -243,7 +243,7 @@ async def list_team_sessions(
                            WHERE user_id = %s
                         ))
                   AND  (ts.performed_at, ts.id) < (
-                           SELECT (performed_at, id) FROM public.team_sessions WHERE id = %s
+                           SELECT performed_at, id FROM public.team_sessions WHERE id = %s
                        )
                 GROUP  BY ts.id
                 ORDER  BY ts.performed_at DESC, ts.id DESC
