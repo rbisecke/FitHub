@@ -107,77 +107,18 @@ export type Notification = components["schemas"]["Notification"];
 // Profile search result — from generated OpenAPI schema (added in Feature 6)
 export type UserSearchResult = components["schemas"]["UserSearchResult"];
 
-// Admin types — not yet in generated schema; defined locally from app/models/admin.py
-export interface AdminUserCostRow {
-  user_id: string;
-  display_name: string | null;
-  email: string | null;
-  interactions_30d: number;
-  cost_30d_usd: number;
-}
-
-export interface AdminDailyCostPoint {
-  day: string; // ISO date "YYYY-MM-DD"
-  cost_usd: number;
-}
-
-export interface AdminMetricsSummary {
-  cost_30d_usd: number;
-  cost_mtd_usd: number;
-  projected_month_end_usd: number;
-  avg_cost_per_interaction_usd: number;
-  cache_hit_rate: number;
-  ttft_p50_ms: number | null;
-  ttft_p95_ms: number | null;
-  error_rate_7d: number;
-  interactions_30d: number;
-  per_user: AdminUserCostRow[];
-  daily_costs: AdminDailyCostPoint[];
-  budget_usd: number;
-}
-
-export interface AdminAccessRequest {
-  id: string;
-  created_at: string;
-  email: string;
-  name: string;
-  motivation: string;
+// Admin types — from generated OpenAPI schema
+export type AdminUserCostRow = components["schemas"]["UserCostRow"];
+export type AdminDailyCostPoint = components["schemas"]["DailyCostPoint"];
+export type AdminMetricsSummary = components["schemas"]["MetricsSummary"];
+export type AdminRecentError = components["schemas"]["RecentError"];
+export type AdminLLMError = components["schemas"]["LLMError"];
+export type AdminHealth = components["schemas"]["AdminHealth"];
+export type AdminUser = components["schemas"]["AdminUser"];
+// AccessRequestRow has status: string in generated; keep the more specific type alias
+export type AdminAccessRequest = Omit<
+  components["schemas"]["AccessRequestRow"],
+  "status"
+> & {
   status: "pending" | "approved" | "rejected";
-  reviewed_at: string | null;
-  reviewed_by: string | null;
-  review_note: string | null;
-}
-
-export interface AdminUser {
-  user_id: string;
-  email: string | null;
-  display_name: string | null;
-  created_at: string | null;
-  banned_until: string | null;
-  interactions_30d: number;
-}
-
-export interface AdminRecentError {
-  created_at: string;
-  path: string;
-  status_code: number;
-  error_type: string | null;
-  error_msg: string | null;
-}
-
-export interface AdminLLMError {
-  created_at: string;
-  endpoint: string;
-  error_code: string | null;
-  error_msg: string | null;
-}
-
-export interface AdminHealth {
-  api_version: string;
-  uptime_seconds: number;
-  last_llm_call_at: string | null;
-  errors_last_hour: number;
-  recent_errors: AdminRecentError[];
-  recent_llm_errors: AdminLLMError[];
-  safety_trigger_count_7d: number;
-}
+};
