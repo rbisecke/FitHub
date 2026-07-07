@@ -21,6 +21,7 @@ import { CATEGORY_LABEL } from "@/lib/records/categorise";
 import { PeriodSelector } from "@/components/analytics/PeriodSelector";
 import { tooltipContentStyle } from "@/lib/chart-utils";
 import { LoadCalculator } from "@/components/shared/LoadCalculator";
+import { formatWeight } from "@/lib/display";
 
 const PERIOD_OPTIONS = [
   { label: "3M", value: "3M" },
@@ -159,6 +160,22 @@ export function MovementDetailShell({
     [filteredPoints, pr],
   );
 
+  const isImperial = weightUnit === "lb";
+  const unit = isImperial ? "lb" : "kg";
+
+  // When displaying in lb, convert chart y-values so the axis and tooltip match
+  const displayChartData = useMemo(
+    () =>
+      isImperial
+        ? chartData.map((pt) => ({
+            ...pt,
+            e1rm: pt.e1rm != null ? Math.round(pt.e1rm * 2.20462) : undefined,
+            proj: pt.proj != null ? Math.round(pt.proj * 2.20462) : undefined,
+          }))
+        : chartData,
+    [chartData, isImperial],
+  );
+
   const isEmpty = history.length === 0;
   const hasProjection = pr.current_e1rm_kg != null;
 
@@ -215,13 +232,15 @@ export function MovementDetailShell({
             style={{ fontSize: "clamp(34px, 7vw, 48px)", color: "var(--gold)" }}
             data-testid="best-e1rm"
           >
-            {pr.best_1rm_kg.toFixed(1)}
+            {isImperial
+              ? Math.round(pr.best_1rm_kg * 2.20462)
+              : pr.best_1rm_kg.toFixed(1)}
           </span>
           <span
             className="font-mono text-[15px]"
             style={{ color: "var(--muted)" }}
           >
-            kg
+            {unit}
           </span>
           <span
             className="font-data text-[11px] ml-[4px]"
@@ -238,13 +257,15 @@ export function MovementDetailShell({
               className="font-mono tabular-nums"
               style={{ fontSize: "20px", color: "var(--blue)" }}
             >
-              {pr.current_e1rm_kg.toFixed(1)}
+              {isImperial
+                ? Math.round(pr.current_e1rm_kg * 2.20462)
+                : pr.current_e1rm_kg.toFixed(1)}
             </span>
             <span
               className="font-mono text-[12px]"
               style={{ color: "var(--muted)" }}
             >
-              kg
+              {unit}
             </span>
             <span
               className="font-data text-[11px] ml-[4px]"
@@ -269,7 +290,8 @@ export function MovementDetailShell({
             className="font-mono italic text-[12px]"
             style={{ color: "var(--muted)" }}
           >
-            on trend → {pr.next_pr_kg.toFixed(1)} kg in ~{pr.next_pr_weeks}wk
+            on trend → {formatWeight(pr.next_pr_kg, unit)} in ~
+            {pr.next_pr_weeks}wk
           </p>
         )}
       </div>
@@ -323,7 +345,7 @@ export function MovementDetailShell({
         <div aria-label={`e1RM trend chart for ${pr.movement_name}`}>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart
-              data={chartData}
+              data={displayChartData}
               margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
             >
               <XAxis
@@ -356,7 +378,9 @@ export function MovementDetailShell({
                 }
                 formatter={(value, name) => [
                   typeof value === "number"
-                    ? `${value.toFixed(1)} kg`
+                    ? isImperial
+                      ? `${value} lb`
+                      : `${value.toFixed(1)} kg`
                     : String(value),
                   name === "e1rm" ? "Est. 1RM" : "Projected",
                 ]}
@@ -480,7 +504,9 @@ export function MovementDetailShell({
                       borderBottom: "1px solid rgba(48,54,61,0.5)",
                     }}
                   >
-                    {row.load_kg != null ? `${row.load_kg.toFixed(1)} kg` : "—"}
+                    {row.load_kg != null
+                      ? formatWeight(row.load_kg, unit)
+                      : "—"}
                   </td>
                   <td
                     className="font-data tabular-nums py-[8px] pr-[16px]"
@@ -501,7 +527,7 @@ export function MovementDetailShell({
                       borderBottom: "1px solid rgba(48,54,61,0.5)",
                     }}
                   >
-                    {row.estimated_1rm_kg.toFixed(1)} kg
+                    {formatWeight(row.estimated_1rm_kg, unit)}
                     {row.is_pr && (
                       <span
                         className="ml-[4px]"
