@@ -9,6 +9,8 @@ import psycopg
 from app.ai.prompts import PARSE_LOG_SYSTEM
 from app.ai.stub import stubbed
 from app.models.coach import ParsedLogEntry, ParseLogResponse
+from app.models.result import ResultType
+from app.models.workout import SessionType, WorkoutFormat
 
 
 def _make_stub() -> ParseLogResponse:
@@ -17,20 +19,20 @@ def _make_stub() -> ParseLogResponse:
     return ParseLogResponse(
         parsed=ParsedLogEntry(
             title="Fran",
-            session_type="metcon",
-            workout_format="for_time",
+            session_type=SessionType.metcon,
+            workout_format=WorkoutFormat.for_time,
             duration_s=272,
             session_rpe=9.0,
             results=[
                 MovementResult(
                     movement_name="Thruster",
-                    result_type="reps",
+                    result_type=ResultType.reps,
                     reps=21,
                     load_kg=42.5,
                 ),
                 MovementResult(
                     movement_name="Pull-up",
-                    result_type="reps",
+                    result_type=ResultType.reps,
                     reps=21,
                     scaled=True,
                     notes="banded",
