@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { formatWeight } from "@/lib/display";
 
 interface Props {
   /** Where the calculator is rendered. 'inline': embedded in detail page (collapsible on mobile).
@@ -125,7 +126,7 @@ export function LoadCalculator({
           className="font-mono tabular-nums text-[13px]"
           style={{ color: "var(--text)" }}
         >
-          {basisKg.toFixed(1)} kg
+          {formatWeight(basisKg, isImperial ? "lb" : "kg")}
         </span>
         {isStale && basis === "current" && (
           <span

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { PersonalRecord, E1RMPoint } from "@/lib/api";
 import type { PRCategory } from "@/lib/records/categorise";
+import { formatWeight, formatWeightDelta } from "@/lib/display";
 
 // Category accent colors
 const CAT_COLOR: Record<PRCategory, string> = {
@@ -51,14 +52,24 @@ interface Props {
   points: E1RMPoint[];
   isRecent: boolean;
   category: PRCategory;
+  weightUnit?: string;
   onCalcOpen?: () => void;
 }
 
-export function PRCard({ pr, points, isRecent, category, onCalcOpen }: Props) {
+export function PRCard({
+  pr,
+  points,
+  isRecent,
+  category,
+  weightUnit = "kg",
+  onCalcOpen,
+}: Props) {
   const sortedPoints = [...points].sort((a, b) => a.day.localeCompare(b.day));
   const catColor = CAT_COLOR[category];
   const sparklinePts = computeSparkline(sortedPoints, 120, 34);
   const sparklinePtsMobile = computeSparkline(sortedPoints, 90, 24);
+  const isImperial = weightUnit === "lb";
+  const unit = isImperial ? "lb" : "kg";
 
   // Improvement badge: use server-computed delta_kg when available; fall back to sparkline approximation.
   // Design decision: delta_kg is null for first PRs (no prior best), so we show "First PR" in that case.
@@ -66,7 +77,7 @@ export function PRCard({ pr, points, isRecent, category, onCalcOpen }: Props) {
   let isFirstPR = false;
   if (pr.delta_kg != null) {
     if (pr.delta_kg > 0.01) {
-      improvement = `↑ ${pr.delta_kg.toFixed(1)} kg vs prev PR`;
+      improvement = `↑ ${formatWeightDelta(pr.delta_kg, unit)} vs prev PR`;
     } else if (pr.prev_best_1rm_kg == null) {
       isFirstPR = true;
     }
@@ -79,7 +90,7 @@ export function PRCard({ pr, points, isRecent, category, onCalcOpen }: Props) {
     const curr = sortedPoints[sortedPoints.length - 1]!.estimated_1rm_kg;
     const delta = curr - prev;
     if (delta > 0.01) {
-      improvement = `↑ ${delta.toFixed(1)} kg vs prev PR`;
+      improvement = `↑ ${formatWeightDelta(delta, unit)} vs prev PR`;
     }
   }
 
@@ -125,12 +136,14 @@ export function PRCard({ pr, points, isRecent, category, onCalcOpen }: Props) {
             className="font-heading leading-none mt-[3px]"
             style={{ fontSize: "26px", color: "var(--gold)" }}
           >
-            {pr.best_1rm_kg.toFixed(1)}
+            {isImperial
+              ? Math.round(pr.best_1rm_kg * 2.20462)
+              : pr.best_1rm_kg.toFixed(1)}
             <span
               className="text-[13px] ml-1"
               style={{ color: "var(--muted)" }}
             >
-              kg
+              {unit}
             </span>
           </div>
           {sparklinePtsMobile && (
@@ -160,7 +173,7 @@ export function PRCard({ pr, points, isRecent, category, onCalcOpen }: Props) {
                   className="font-mono tabular-nums"
                   style={{ fontSize: 10, color: "var(--blue)" }}
                 >
-                  est. now — {pr.current_e1rm_kg!.toFixed(1)} kg
+                  est. now — {formatWeight(pr.current_e1rm_kg!, unit)}
                 </span>
                 {pr.is_stale && (
                   <span
@@ -176,7 +189,7 @@ export function PRCard({ pr, points, isRecent, category, onCalcOpen }: Props) {
                   className="font-mono italic"
                   style={{ fontSize: 9, color: "var(--muted)" }}
                 >
-                  on trend → {pr.next_pr_kg!.toFixed(1)} kg in ~
+                  on trend → {formatWeight(pr.next_pr_kg!, unit)} in ~
                   {pr.next_pr_weeks}wk
                 </div>
               )}
@@ -232,9 +245,10 @@ export function PRCard({ pr, points, isRecent, category, onCalcOpen }: Props) {
       {/* Desktop card — body taps to detail page; hover reveals $ tag button */}
       <article
         className="group hidden md:block relative overflow-hidden bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 hover:border-[var(--blue)] transition-colors"
-        aria-label={`${
-          pr.movement_name
-        } personal record: ${pr.best_1rm_kg.toFixed(1)} kg`}
+        aria-label={`${pr.movement_name} personal record: ${formatWeight(
+          pr.best_1rm_kg,
+          unit,
+        )}`}
       >
         {/* TODAY ribbon */}
         {isToday && (
@@ -290,8 +304,12 @@ export function PRCard({ pr, points, isRecent, category, onCalcOpen }: Props) {
             className="font-heading leading-none mb-2"
             style={{ fontSize: "42px", color: "var(--gold)" }}
           >
-            {pr.best_1rm_kg.toFixed(1)}
-            <span className="text-[20px] ml-1.5 text-[var(--muted)]">kg</span>
+            {isImperial
+              ? Math.round(pr.best_1rm_kg * 2.20462)
+              : pr.best_1rm_kg.toFixed(1)}
+            <span className="text-[20px] ml-1.5 text-[var(--muted)]">
+              {unit}
+            </span>
           </p>
 
           {/* Strength intelligence section — secondary to the gold hero */}
@@ -302,7 +320,7 @@ export function PRCard({ pr, points, isRecent, category, onCalcOpen }: Props) {
                   className="font-mono tabular-nums text-[12px]"
                   style={{ color: "var(--blue)" }}
                 >
-                  est. now — {pr.current_e1rm_kg!.toFixed(1)} kg
+                  est. now — {formatWeight(pr.current_e1rm_kg!, unit)}
                 </span>
                 {pr.is_stale && (
                   <span className="font-mono text-[10px] text-[var(--muted)]">
@@ -312,7 +330,7 @@ export function PRCard({ pr, points, isRecent, category, onCalcOpen }: Props) {
               </div>
               {hasTrend && (
                 <p className="font-mono italic text-[11px] text-[var(--muted)]">
-                  on trend → {pr.next_pr_kg!.toFixed(1)} kg in ~
+                  on trend → {formatWeight(pr.next_pr_kg!, unit)} in ~
                   {pr.next_pr_weeks}wk
                 </p>
               )}

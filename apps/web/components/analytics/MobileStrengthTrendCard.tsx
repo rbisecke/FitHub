@@ -55,14 +55,17 @@ function fmtChartDay(iso: string): string {
 interface Props {
   personalRecords: PersonalRecord[];
   token: string;
+  weightUnit?: string;
   className?: string;
 }
 
 export function MobileStrengthTrendCard({
   personalRecords,
   token,
+  weightUnit = "kg",
   className,
 }: Props) {
+  const isImperial = weightUnit === "lb";
   const prefersReducedMotion = useReducedMotion();
   const topPR = personalRecords[0] ?? null;
 
@@ -125,9 +128,11 @@ export function MobileStrengthTrendCard({
     () =>
       filteredPoints.map((pt) => ({
         day: pt.day,
-        e1rm: +pt.estimated_1rm_kg.toFixed(1),
+        e1rm: isImperial
+          ? Math.round(pt.estimated_1rm_kg * 2.20462)
+          : +pt.estimated_1rm_kg.toFixed(1),
       })),
-    [filteredPoints],
+    [filteredPoints, isImperial],
   );
 
   const handleSelectMovement = (m: Movement) => {
@@ -294,7 +299,9 @@ export function MobileStrengthTrendCard({
                 }
                 formatter={(value) => [
                   typeof value === "number"
-                    ? `${value.toFixed(1)} kg`
+                    ? isImperial
+                      ? `${value} lb`
+                      : `${value.toFixed(1)} kg`
                     : String(value),
                   "Est. 1RM",
                 ]}

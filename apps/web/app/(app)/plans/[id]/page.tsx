@@ -26,13 +26,21 @@ export default async function PlanDetailPage({ params }: Props) {
   if (!plan) notFound();
 
   let hasActiveInjuries = false;
-  try {
-    const injuries = await api.injuries.list(token);
-    hasActiveInjuries = injuries.some(
+  let weightUnit = "kg";
+
+  const [injuriesResult, profileResult] = await Promise.allSettled([
+    api.injuries.list(token),
+    api.profile.get(token),
+  ]);
+
+  if (injuriesResult.status === "fulfilled") {
+    hasActiveInjuries = injuriesResult.value.some(
       (i) => i.status === "active" || i.status === "permanent",
     );
-  } catch {
-    // non-fatal — don't break the plan page if injuries fetch fails
+  }
+
+  if (profileResult.status === "fulfilled") {
+    weightUnit = profileResult.value.weight_unit ?? "kg";
   }
 
   return (
@@ -71,6 +79,7 @@ export default async function PlanDetailPage({ params }: Props) {
       <TodayPrescription
         accessToken={token}
         planId={plan.id}
+        weightUnit={weightUnit}
         hasActiveInjuries={hasActiveInjuries}
       />
 
