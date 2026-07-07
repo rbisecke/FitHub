@@ -67,14 +67,19 @@ export function WorkoutDetailClient({
   const [prMap, setPrMap] = useState<Record<string, number>>({});
 
   useEffect(() => {
+    let cancelled = false;
     api.analytics
       .personalRecords(accessToken)
       .then((prs: PersonalRecord[]) => {
+        if (cancelled) return;
         const map: Record<string, number> = {};
         for (const pr of prs) map[pr.movement_id] = pr.best_1rm_kg;
         setPrMap(map);
       })
       .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [accessToken]);
 
   // Parse date-only to avoid UTC-midnight → previous-local-day conversion.

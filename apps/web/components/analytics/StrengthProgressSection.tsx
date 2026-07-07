@@ -88,6 +88,7 @@ export function StrengthProgressSection({
   // Fetch e1rm trend for each selected movement — uses .then() so setState is async (passes lint)
   useEffect(() => {
     if (selectedIds.length === 0) return;
+    const controller = new AbortController();
     for (const id of selectedIds) {
       const name =
         personalRecords.find((pr) => pr.movement_id === id)?.movement_name ??
@@ -95,6 +96,7 @@ export function StrengthProgressSection({
       fetch(`${BASE}/api/v1/analytics/movement-trend/${id}?days=${period}`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
+        signal: controller.signal,
       })
         .then((r) => {
           if (!r.ok) throw new Error("fetch failed");
@@ -107,6 +109,7 @@ export function StrengthProgressSection({
           setSeries((prev) => ({ ...prev, [id]: { name, points: [] } })),
         );
     }
+    return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIds, period, token]);
 
@@ -118,7 +121,10 @@ export function StrengthProgressSection({
       headers: { Authorization: `Bearer ${token}` },
       signal: controller.signal,
     })
-      .then((r) => r.json() as Promise<Movement[]>)
+      .then((r) => {
+        if (!r.ok) return [] as Movement[];
+        return r.json() as Promise<Movement[]>;
+      })
       .then((data) => setSearchResults(data))
       .catch(() => {});
     return () => controller.abort();

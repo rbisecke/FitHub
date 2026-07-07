@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,9 +33,7 @@ function getTodayLocal(): string {
   )}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-const today = getTodayLocal();
-
-function formatDateChip(dateStr: string): string {
+function formatDateChip(dateStr: string, today: string): string {
   if (dateStr === today) return "Today";
   const d = new Date(`${dateStr}T00:00:00`);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -83,6 +81,7 @@ export function TagPageClient({
   const router = useRouter();
   const { weightUnit } = useUserPrefs();
   const unit = weightUnit === "lb" ? "lb" : "kg";
+  const today = useMemo(() => getTodayLocal(), []);
 
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(
     prefillMovement ?? null,
@@ -360,10 +359,11 @@ export function TagPageClient({
               className="inline-flex items-center gap-1.5 font-mono text-xs text-[#8b949e] hover:text-[#e6edf3] transition-colors rounded-md px-2 py-1 border border-transparent hover:border-[#30363d]"
               aria-label={`Date: ${formatDateChip(
                 selectedDate,
+                today,
               )}. Click to change`}
             >
               <span aria-hidden="true">📅</span>
-              {formatDateChip(selectedDate)}
+              {formatDateChip(selectedDate, today)}
             </button>
           )}
         </div>

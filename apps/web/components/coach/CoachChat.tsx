@@ -74,21 +74,29 @@ export function CoachChat({ accessToken }: CoachChatProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const historyAbortRef = useRef<AbortController | null>(null);
 
   function loadHistory(sid: string) {
+    historyAbortRef.current?.abort();
+    const controller = new AbortController();
+    historyAbortRef.current = controller;
     api.coach
       .history(accessToken, sid)
-      .then((turns) =>
+      .then((turns) => {
+        if (controller.signal.aborted) return;
         setMessages(
           turns.map((t) => ({
             id: crypto.randomUUID(),
             role: t.role as "user" | "assistant",
             content: t.content,
           })),
-        ),
-      )
+        );
+      })
       .catch(() => {})
-      .finally(() => setHistoryLoading(false));
+      .finally(() => {
+        if (controller.signal.aborted) return;
+        setHistoryLoading(false);
+      });
   }
 
   // Read the stored session ID on mount; upgrade to persisted session if found.

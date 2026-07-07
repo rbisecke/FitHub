@@ -53,11 +53,19 @@ export function NotificationPanel({
   const [loading, setLoading] = useState(initialNotifications.length === 0);
 
   useEffect(() => {
+    let cancelled = false;
     api.notifications
       .list(accessToken, false)
-      .then((notifs) => setNotifications(notifs))
+      .then((notifs) => {
+        if (!cancelled) setNotifications(notifs);
+      })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [accessToken]);
 
   async function markRead(notifId: string) {
