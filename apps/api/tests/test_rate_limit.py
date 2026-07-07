@@ -3,7 +3,7 @@
 Rate limiting is disabled in this test suite (RATE_LIMIT_ENABLED=false set in
 conftest.py before app import). These tests verify:
 1. The rate-limit plumbing is wired correctly (limiter attached to app).
-2. The X-Test-User-Id bypass key function returns unique keys.
+2. The key function returns the remote address.
 3. Limits fire correctly when enabled (via a secondary app instance).
 """
 
@@ -59,20 +59,8 @@ class _MockRequest:
         self.client = type("Client", (), {"host": client_host})()
 
 
-def test_get_key_returns_unique_uuid_for_test_header() -> None:
-    """_get_key must return a unique string per call when X-Test-User-Id is present."""
-    import uuid as uuid_mod
-
-    req = _MockRequest(headers={"X-Test-User-Id": str(uuid_mod.uuid4())})
-    key1 = _get_key(req)  # type: ignore[arg-type]
-    key2 = _get_key(req)  # type: ignore[arg-type]
-    assert key1 != key2, "Keys must be unique per request to prevent limit accumulation"
-    assert key1.startswith("test:")
-    assert key2.startswith("test:")
-
-
-def test_get_key_returns_ip_without_test_header() -> None:
-    """_get_key must use the remote address when no test header is present."""
+def test_get_key_returns_remote_address() -> None:
+    """_get_key must use the remote address as the rate-limit bucket key."""
     req = _MockRequest(headers={}, client_host="10.0.0.1")
     key = _get_key(req)  # type: ignore[arg-type]
     assert key == "10.0.0.1"

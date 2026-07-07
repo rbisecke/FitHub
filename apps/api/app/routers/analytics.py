@@ -4,11 +4,9 @@ import uuid
 from collections import defaultdict
 from typing import Any
 
-import psycopg
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Query
 
-from app.auth import UserContext, get_current_user
-from app.db import get_db
+from app.dependencies.common import Auth, DBConn
 from app.models.analytics import (
     BenchmarkAttempt,
     BenchmarkEntry,
@@ -40,9 +38,6 @@ from app.repositories.analytics import (
 
 router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 
-Auth = type[UserContext]  # just for the type annotation shorthand
-DBConn = psycopg.AsyncConnection[Any]
-
 
 def _acwr_zone(acwr: float | None) -> str:
     if acwr is None:
@@ -66,9 +61,9 @@ def _fmt_improvement(seconds: int) -> str:
 
 @router.get("/load", response_model=LoadModelResponse)
 async def load_model(
+    user: Auth,
+    conn: DBConn,
     days: int = Query(90, ge=7, le=365),
-    user: UserContext = Depends(get_current_user),
-    conn: psycopg.AsyncConnection[Any] = Depends(get_db),
 ) -> LoadModelResponse:
     series = await get_load_series(conn, user.user_id, days)
     last: dict[str, Any] = (
@@ -86,8 +81,8 @@ async def load_model(
 
 @router.get("/personal-records", response_model=list[PersonalRecord])
 async def personal_records(
-    user: UserContext = Depends(get_current_user),
-    conn: psycopg.AsyncConnection[Any] = Depends(get_db),
+    user: Auth,
+    conn: DBConn,
 ) -> list[PersonalRecord]:
     rows = await get_personal_records(conn, user.user_id)
     return [PersonalRecord(**r) for r in rows]
@@ -96,8 +91,8 @@ async def personal_records(
 @router.get("/movement-trend/{movement_id}", response_model=list[E1RMPoint])
 async def movement_trend(
     movement_id: uuid.UUID,
-    user: UserContext = Depends(get_current_user),
-    conn: psycopg.AsyncConnection[Any] = Depends(get_db),
+    user: Auth,
+    conn: DBConn,
 ) -> list[E1RMPoint]:
     rows = await get_movement_trend(conn, user.user_id, movement_id)
     return [E1RMPoint(**r) for r in rows]
@@ -106,8 +101,8 @@ async def movement_trend(
 @router.get("/movement-history/{movement_id}", response_model=list[MovementHistoryEntry])
 async def movement_history(
     movement_id: uuid.UUID,
-    user: UserContext = Depends(get_current_user),
-    conn: psycopg.AsyncConnection[Any] = Depends(get_db),
+    user: Auth,
+    conn: DBConn,
 ) -> list[MovementHistoryEntry]:
     """Full logged-set history for one movement, newest-first.
 
@@ -120,9 +115,9 @@ async def movement_history(
 
 @router.get("/volume-trend", response_model=VolumeTrendResponse)
 async def volume_trend(
+    user: Auth,
+    conn: DBConn,
     weeks: int = Query(12, ge=1, le=52),
-    user: UserContext = Depends(get_current_user),
-    conn: psycopg.AsyncConnection[Any] = Depends(get_db),
 ) -> VolumeTrendResponse:
     rows = await get_volume_trend(conn, user.user_id, weeks)
     return VolumeTrendResponse(weeks=[WeeklyVolume(**r) for r in rows])
@@ -130,8 +125,8 @@ async def volume_trend(
 
 @router.get("/readiness", response_model=ReadinessResponse)
 async def readiness(
-    user: UserContext = Depends(get_current_user),
-    conn: psycopg.AsyncConnection[Any] = Depends(get_db),
+    user: Auth,
+    conn: DBConn,
 ) -> ReadinessResponse:
     data = await get_readiness(conn, user.user_id)
     return ReadinessResponse(**data)
@@ -139,8 +134,8 @@ async def readiness(
 
 @router.get("/benchmarks", response_model=BenchmarkResponse)
 async def benchmarks(
-    user: UserContext = Depends(get_current_user),
-    conn: psycopg.AsyncConnection[Any] = Depends(get_db),
+    user: Auth,
+    conn: DBConn,
 ) -> BenchmarkResponse:
     rows = await get_benchmark_attempts(conn, user.user_id)
 
@@ -181,9 +176,9 @@ async def benchmarks(
 
 @router.get("/contributions", response_model=ContributionsResponse)
 async def contributions(
+    user: Auth,
+    conn: DBConn,
     days: int = Query(365, ge=30, le=730),
-    user: UserContext = Depends(get_current_user),
-    conn: psycopg.AsyncConnection[Any] = Depends(get_db),
 ) -> ContributionsResponse:
     rows = await get_contributions(conn, user.user_id, days)
     points = [
@@ -202,9 +197,9 @@ async def contributions(
 
 @router.get("/training-balance", response_model=TrainingBalanceResponse)
 async def training_balance(
+    user: Auth,
+    conn: DBConn,
     days: int = Query(28, ge=7, le=365),
-    user: UserContext = Depends(get_current_user),
-    conn: psycopg.AsyncConnection[Any] = Depends(get_db),
 ) -> TrainingBalanceResponse:
     rows = await get_training_balance(conn, user.user_id, days)
     return TrainingBalanceResponse(
