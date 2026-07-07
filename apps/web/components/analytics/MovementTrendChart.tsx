@@ -24,13 +24,16 @@ export function MovementTrendChart({ movementId, token }: Props) {
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
+    const controller = new AbortController();
     fetch(`${BASE}/api/v1/analytics/movement-trend/${movementId}`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
+      signal: controller.signal,
     })
       .then((r) => r.json())
       .then((data: E1RMPoint[]) => setPoints(data))
       .catch(() => setPoints([]));
+    return () => controller.abort();
   }, [movementId, token]);
 
   if (points === null) return null;

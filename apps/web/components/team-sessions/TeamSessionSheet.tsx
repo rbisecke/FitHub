@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useReducedMotion } from "motion/react";
 import {
   Sheet,
@@ -137,6 +137,12 @@ export function TeamSessionSheet({
   const [error, setError] = useState<string | null>(null);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, []);
 
   const handleSearchChange = useCallback(
     (q: string) => {

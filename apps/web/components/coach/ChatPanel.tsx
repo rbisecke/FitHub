@@ -67,9 +67,11 @@ export function ChatPanel({
       return;
     }
 
+    let cancelled = false;
     api.coach.sessions
       .messages(token, sessionId)
       .then((resp) => {
+        if (cancelled) return;
         setMessages(
           resp.messages.map((m) => ({
             id: makeId(),
@@ -81,9 +83,13 @@ export function ChatPanel({
       })
       .catch(() => {})
       .finally(() => {
+        if (cancelled) return;
         setHistoryLoading(false);
         onMessagesLoaded?.();
       });
+    return () => {
+      cancelled = true;
+    };
   }, [sessionId, token, onMessagesLoaded]);
 
   // Scroll to bottom on new messages

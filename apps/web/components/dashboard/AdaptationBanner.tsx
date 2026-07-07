@@ -15,13 +15,20 @@ export function AdaptationBanner({ accessToken, planId }: Props) {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     client.adaptations
       .list(planId)
       .then((adaptations: AdaptationOut[]) => {
+        if (cancelled) return;
         const proposed = adaptations.filter((a) => a.status === "proposed");
         setCount(proposed.length);
       })
-      .catch(() => setCount(0));
+      .catch(() => {
+        if (!cancelled) setCount(0);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [client, planId]);
 
   if (count === null || count === 0) return null;
