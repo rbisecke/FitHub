@@ -18,12 +18,14 @@ import { EmptyRecords } from "./EmptyRecords";
 import { NewPRBanner } from "./NewPRBanner";
 import { PRCard } from "./PRCard";
 import { EmptyRecordSlot } from "./EmptyRecordSlot";
+import { LoadCalculatorSheet } from "@/components/shared/LoadCalculatorSheet";
 
 interface Props {
   prs: PersonalRecord[];
   trendMap: Record<string, E1RMPoint[]>;
   recentPRIds: string[];
   highlighted?: string;
+  weightUnit?: string;
 }
 
 export function RecordsShell({
@@ -31,9 +33,12 @@ export function RecordsShell({
   trendMap,
   recentPRIds,
   highlighted,
+  weightUnit = "kg",
 }: Props) {
   const [viewMode, setViewMode] = useState<"current" | "timeline">("current");
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sheetPR, setSheetPR] = useState<PersonalRecord | null>(null);
   // Highlight ring: fades from full opacity to 0 over 2s after a 70ms delay
   const [highlightOpacity, setHighlightOpacity] = useState(highlighted ? 1 : 0);
   const highlightRef = useRef<HTMLDivElement | null>(null);
@@ -77,6 +82,22 @@ export function RecordsShell({
     categorised[categorise(pr.movement_name)].push(pr);
   }
 
+  // Client-side movement search — filters the already-loaded prs array
+  const searchResults = searchQuery.trim()
+    ? prs
+        .filter((pr) =>
+          pr.movement_name.toLowerCase().includes(searchQuery.toLowerCase()),
+        )
+        .sort((a, b) => {
+          const q = searchQuery.toLowerCase();
+          const aPrefix = a.movement_name.toLowerCase().startsWith(q);
+          const bPrefix = b.movement_name.toLowerCase().startsWith(q);
+          if (aPrefix && !bPrefix) return -1;
+          if (!aPrefix && bPrefix) return 1;
+          return a.movement_name.localeCompare(b.movement_name);
+        })
+    : null;
+
   // Banner data: use first recent PR's name and value
   const recentPR = prs.find((pr) => recentPRIds.includes(pr.movement_id));
   const recentMovement = recentPR?.movement_name ?? "";
@@ -105,136 +126,205 @@ export function RecordsShell({
   const mobileCats = CATEGORY_ORDER.filter((c) => categorised[c].length > 0);
 
   return (
-    <div className="px-[18px] pt-[14px] pb-2 md:px-4 md:py-6 max-w-5xl mx-auto">
-      <BackButton
-        href="/dashboard"
-        label="Home"
-        className="md:hidden mb-[14px]"
-      />
+    <>
+      <div className="px-[18px] pt-[14px] pb-2 md:px-4 md:py-6 max-w-5xl mx-auto">
+        <BackButton
+          href="/dashboard"
+          label="Home"
+          className="md:hidden mb-[14px]"
+        />
 
-      <RecordsHeader
-        viewMode={viewMode}
-        onToggle={setViewMode}
-        totalCount={prs.length}
-      />
+        <RecordsHeader
+          viewMode={viewMode}
+          onToggle={setViewMode}
+          totalCount={prs.length}
+        />
 
-      {/* Mobile PR announcement banner */}
-      {recentPRIds.length > 0 && (
-        <div
-          className="md:hidden flex items-start gap-[11px] rounded-[13px] mb-[16px] p-[11px_14px]"
-          style={{
-            background: "rgba(255,200,61,0.1)",
-            border: "1px solid rgba(255,200,61,0.3)",
-          }}
-        >
-          <span className="text-[18px] leading-none mt-px flex-shrink-0">
-            🏆
-          </span>
-          <div>
-            <div
-              className="font-bold text-[12px]"
-              style={{ color: "var(--gold)" }}
-            >
-              New PR in the last 24h!
-            </div>
-            <div className="font-data text-[10.5px] text-[var(--muted)] mt-[2px]">
-              {recentMovement} — {recentValue}
-              {recentPRIds.length > 1 && ` + ${recentPRIds.length - 1} more`}
-            </div>
-          </div>
+        {/* Movement search */}
+        <div className="mb-4">
+          <input
+            type="search"
+            placeholder="Search movements…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full font-data text-[13px] px-[12px] py-[10px] min-h-[44px] rounded-[8px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              color: "var(--text)",
+            }}
+            aria-label="Search movements"
+          />
         </div>
-      )}
 
-      {/* Desktop PR banner */}
-      <div className="hidden md:block">
-        <NewPRBanner
-          movement={recentMovement}
-          value={recentValue}
-          count={recentPRIds.length}
-        />
-      </div>
-
-      {/* Desktop category filter pills */}
-      <div className="hidden md:block mb-6">
-        <CategoryTabs
-          activeCategory={activeCategory}
-          onSelect={setActiveCategory}
-        />
-      </div>
-
-      {/* Desktop sections */}
-      <div className="hidden md:block">
-        {viewMode === "current" ? (
-          <div className="space-y-8">
-            {categoriesToShow.map((cat) => (
-              <CategorySection
-                key={cat}
-                category={cat}
-                prs={categorised[cat]}
-                trendMap={trendMap}
-                recentPRIds={recentPRIds}
-                highlighted={highlighted}
-                highlightOpacity={highlightOpacity}
-                onHighlightRef={(el) => {
-                  highlightRef.current = el;
-                }}
-              />
-            ))}
+        {/* Search results — replaces categorised view when a query is active */}
+        {searchResults && (
+          <div>
+            {searchResults.length === 0 ? (
+              <p
+                className="font-data text-[12px] py-[24px] text-center"
+                style={{ color: "var(--muted)" }}
+              >
+                No movements match &quot;{searchQuery}&quot;
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-[9px] md:grid-cols-3 md:gap-[13px]">
+                {searchResults.map((pr) => (
+                  <PRCard
+                    key={pr.movement_id}
+                    pr={pr}
+                    points={trendMap[pr.movement_id] ?? []}
+                    isRecent={recentPRIds.includes(pr.movement_id)}
+                    category={categorise(pr.movement_name)}
+                    onCalcOpen={() => setSheetPR(pr)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        ) : (
-          <TimelineView categorised={timelineCategorised} trendMap={trendMap} />
+        )}
+
+        {/* Categorised view — shown when no search query */}
+        {!searchResults && (
+          <>
+            {/* Mobile PR announcement banner */}
+            {recentPRIds.length > 0 && (
+              <div
+                className="md:hidden flex items-start gap-[11px] rounded-[13px] mb-[16px] p-[11px_14px]"
+                style={{
+                  background: "rgba(255,200,61,0.1)",
+                  border: "1px solid rgba(255,200,61,0.3)",
+                }}
+              >
+                <span className="text-[18px] leading-none mt-px flex-shrink-0">
+                  🏆
+                </span>
+                <div>
+                  <div
+                    className="font-bold text-[12px]"
+                    style={{ color: "var(--gold)" }}
+                  >
+                    New PR in the last 24h!
+                  </div>
+                  <div className="font-data text-[10.5px] text-[var(--muted)] mt-[2px]">
+                    {recentMovement} — {recentValue}
+                    {recentPRIds.length > 1 &&
+                      ` + ${recentPRIds.length - 1} more`}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Desktop PR banner */}
+            <div className="hidden md:block">
+              <NewPRBanner
+                movement={recentMovement}
+                value={recentValue}
+                count={recentPRIds.length}
+              />
+            </div>
+
+            {/* Desktop category filter pills */}
+            <div className="hidden md:block mb-6">
+              <CategoryTabs
+                activeCategory={activeCategory}
+                onSelect={setActiveCategory}
+              />
+            </div>
+
+            {/* Desktop sections */}
+            <div className="hidden md:block">
+              {viewMode === "current" ? (
+                <div className="space-y-8">
+                  {categoriesToShow.map((cat) => (
+                    <CategorySection
+                      key={cat}
+                      category={cat}
+                      prs={categorised[cat]}
+                      trendMap={trendMap}
+                      recentPRIds={recentPRIds}
+                      highlighted={highlighted}
+                      highlightOpacity={highlightOpacity}
+                      onHighlightRef={(el) => {
+                        highlightRef.current = el;
+                      }}
+                      onCalcOpen={(pr) => setSheetPR(pr)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <TimelineView
+                  categorised={timelineCategorised}
+                  trendMap={trendMap}
+                />
+              )}
+            </div>
+
+            {/* Mobile sections: all non-empty categories, 2-col compact grid */}
+            <div className="md:hidden space-y-5">
+              {mobileCats.map((cat) => (
+                <div key={cat}>
+                  <div className="flex items-center gap-[9px] mb-[12px]">
+                    <span className="font-data text-[11px] text-[var(--muted)] uppercase tracking-[0.5px]">
+                      {CATEGORY_LABEL[cat]}
+                    </span>
+                    <span className="h-px flex-1 bg-[var(--border)]" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-[9px]">
+                    {categorised[cat].map((pr) => {
+                      const isHighlighted = highlighted === pr.movement_id;
+                      return (
+                        <div
+                          key={pr.movement_id}
+                          ref={
+                            isHighlighted
+                              ? (el) => {
+                                  highlightRef.current = el;
+                                }
+                              : undefined
+                          }
+                          className="relative"
+                        >
+                          <PRCard
+                            pr={pr}
+                            points={trendMap[pr.movement_id] ?? []}
+                            isRecent={recentPRIds.includes(pr.movement_id)}
+                            category={cat}
+                            onCalcOpen={() => setSheetPR(pr)}
+                          />
+                          {isHighlighted && (
+                            <div
+                              aria-hidden="true"
+                              className="pointer-events-none absolute inset-0 rounded-[14px] ring-2 ring-[var(--blue)] motion-reduce:transition-none"
+                              style={{
+                                opacity: highlightOpacity,
+                                transition: "opacity 2s ease-out",
+                              }}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                    {categorised[cat].length % 2 !== 0 && <EmptyRecordSlot />}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </> /* end !searchResults */
         )}
       </div>
 
-      {/* Mobile sections: all non-empty categories, 2-col compact grid */}
-      <div className="md:hidden space-y-5">
-        {mobileCats.map((cat) => (
-          <div key={cat}>
-            <div className="flex items-center gap-[9px] mb-[12px]">
-              <span className="font-data text-[11px] text-[var(--muted)] uppercase tracking-[0.5px]">
-                {CATEGORY_LABEL[cat]}
-              </span>
-              <span className="h-px flex-1 bg-[var(--border)]" />
-            </div>
-            <div className="grid grid-cols-2 gap-[9px]">
-              {categorised[cat].map((pr) => {
-                const isHighlighted = highlighted === pr.movement_id;
-                return (
-                  <div
-                    key={pr.movement_id}
-                    ref={
-                      isHighlighted
-                        ? (el) => {
-                            highlightRef.current = el;
-                          }
-                        : undefined
-                    }
-                    className="relative"
-                  >
-                    <PRCard
-                      pr={pr}
-                      points={trendMap[pr.movement_id] ?? []}
-                      isRecent={recentPRIds.includes(pr.movement_id)}
-                      category={cat}
-                    />
-                    {isHighlighted && (
-                      <div
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-0 rounded-[14px] ring-2 ring-[var(--blue)] motion-reduce:transition-none"
-                        style={{
-                          opacity: highlightOpacity,
-                          transition: "opacity 2s ease-out",
-                        }}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-              {categorised[cat].length % 2 !== 0 && <EmptyRecordSlot />}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+      {/* Load calculator sheet — shared across all PR cards */}
+      {sheetPR && (
+        <LoadCalculatorSheet
+          movementName={sheetPR.movement_name}
+          bestKg={sheetPR.best_1rm_kg}
+          currentKg={sheetPR.current_e1rm_kg}
+          isStale={sheetPR.is_stale}
+          weightUnit={weightUnit}
+          onClose={() => setSheetPR(null)}
+        />
+      )}
+    </>
   );
 }

@@ -12,6 +12,7 @@ interface Props {
   highlighted?: string;
   highlightOpacity?: number;
   onHighlightRef?: (el: HTMLDivElement | null) => void;
+  onCalcOpen?: (pr: PersonalRecord) => void;
 }
 
 const DOT_COLOR: Record<PRCategory, string> = {
@@ -29,6 +30,7 @@ export function CategorySection({
   highlighted,
   highlightOpacity = 0,
   onHighlightRef,
+  onCalcOpen,
 }: Props) {
   return (
     <section aria-label={`${CATEGORY_LABEL[category]} records`}>
@@ -74,6 +76,7 @@ export function CategorySection({
                   points={trendMap[pr.movement_id] ?? []}
                   isRecent={recentPRIds.includes(pr.movement_id)}
                   category={category}
+                  onCalcOpen={onCalcOpen ? () => onCalcOpen(pr) : undefined}
                 />
                 {isHighlighted && (
                   <div

@@ -274,7 +274,11 @@ export default async function DashboardPage() {
 
         {/* Right sidebar */}
         <div className="space-y-[18px]">
-          <OpenPRsWidget goals={goals} />
+          <OpenPRsWidget
+            goals={goals}
+            prs={prs.slice(0, 3)}
+            weightUnit={profile?.weight_unit ?? "kg"}
+          />
           <CoachPreviewCard />
           <QuickCommitWidget />
         </div>

@@ -1,6 +1,6 @@
 import { requireAuth } from "@/lib/supabase/requireAuth";
 import { api } from "@/lib/api/client";
-import type { PersonalRecord, E1RMPoint } from "@/lib/api";
+import type { PersonalRecord, E1RMPoint, UserProfile } from "@/lib/api";
 import { RecordsShell } from "@/components/records/RecordsShell";
 
 export const metadata = { title: "Records · FitHub" };
@@ -13,9 +13,10 @@ export default async function RecordsPage({
   const { token } = await requireAuth();
   const { highlighted } = await searchParams;
 
-  const prs = await api.analytics
-    .personalRecords(token)
-    .catch((): PersonalRecord[] => []);
+  const [prs, profile] = await Promise.all([
+    api.analytics.personalRecords(token).catch((): PersonalRecord[] => []),
+    api.profile.get(token).catch((): UserProfile | null => null),
+  ]);
 
   const trendPromises = prs.map((pr) =>
     api.analytics
@@ -43,6 +44,7 @@ export default async function RecordsPage({
       trendMap={trendMap}
       recentPRIds={recentPRIds}
       highlighted={highlighted}
+      weightUnit={profile?.weight_unit ?? "kg"}
     />
   );
 }
