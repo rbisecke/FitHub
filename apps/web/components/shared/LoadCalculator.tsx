@@ -43,7 +43,7 @@ export function LoadCalculator({
     isStale && currentKg != null ? "current" : "actual",
   );
   const [pct, setPct] = useState(initialPct);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [copied, setCopied] = useState(false);
 
   const hasCurrent = currentKg != null;

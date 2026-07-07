@@ -214,7 +214,7 @@ export function PRCard({ pr, points, isRecent, category, onCalcOpen }: Props) {
               onCalcOpen();
             }}
             aria-label={`Open load calculator for ${pr.movement_name}`}
-            className="absolute bottom-[10px] right-[58px] font-mono text-[9px] font-semibold px-[6px] min-h-[44px] flex items-center rounded border border-[var(--border)] text-[var(--muted)] active:border-[var(--accent)] active:text-[var(--accent)]"
+            className="absolute bottom-[10px] right-[58px] font-mono text-[9px] font-semibold px-[12px] min-w-[32px] min-h-[44px] flex items-center justify-center rounded border border-[var(--border)] text-[var(--muted)] active:border-[var(--accent)] active:text-[var(--accent)]"
           >
             %
           </button>
@@ -373,7 +373,7 @@ export function PRCard({ pr, points, isRecent, category, onCalcOpen }: Props) {
             aria-label={`Open load calculator for ${pr.movement_name}`}
             className={[
               "absolute bottom-4 right-[84px]",
-              "opacity-0 group-hover:opacity-100",
+              "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
               "flex items-center gap-1 px-2.5 py-1",
               "font-mono text-[11px] font-semibold",
               "rounded-md border border-[var(--accent)] text-[var(--accent)]",
@@ -392,7 +392,7 @@ export function PRCard({ pr, points, isRecent, category, onCalcOpen }: Props) {
           onClick={(e) => e.stopPropagation()}
           className={[
             "absolute bottom-4 right-4",
-            "opacity-0 group-hover:opacity-100",
+            "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
             "flex items-center gap-1 px-2.5 py-1",
             "font-mono text-[11px] font-semibold",
             "rounded-md border border-[var(--blue)] text-[var(--blue)]",

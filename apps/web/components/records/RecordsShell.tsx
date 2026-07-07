@@ -141,13 +141,13 @@ export function RecordsShell({
         />
 
         {/* Movement search */}
-        <div className="mb-[14px]">
+        <div className="mb-4">
           <input
             type="search"
             placeholder="Search movements…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full font-data text-[13px] px-[12px] py-[8px] rounded-[8px] outline-none"
+            className="w-full font-data text-[13px] px-[12px] py-[10px] min-h-[44px] rounded-[8px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
             style={{
               background: "var(--surface)",
               border: "1px solid var(--border)",

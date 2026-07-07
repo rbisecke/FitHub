@@ -89,25 +89,7 @@ export function OpenPRsWidget({
                         <button
                           onClick={() => setSheetPR(pr)}
                           aria-label={`Open load calculator for ${pr.movement_name}`}
-                          className="font-mono text-[9px] font-semibold px-[5px] py-[2px] rounded border transition-colors"
-                          style={{
-                            border: "1px solid var(--border)",
-                            color: "var(--muted)",
-                          }}
-                          onMouseEnter={(e) => {
-                            (
-                              e.currentTarget as HTMLButtonElement
-                            ).style.borderColor = "var(--accent)";
-                            (e.currentTarget as HTMLButtonElement).style.color =
-                              "var(--accent)";
-                          }}
-                          onMouseLeave={(e) => {
-                            (
-                              e.currentTarget as HTMLButtonElement
-                            ).style.borderColor = "var(--border)";
-                            (e.currentTarget as HTMLButtonElement).style.color =
-                              "var(--muted)";
-                          }}
+                          className="font-mono text-[9px] font-semibold px-[8px] min-h-[44px] min-w-[32px] flex items-center justify-center rounded border border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:border-[var(--accent)] focus-visible:text-[var(--accent)] transition-colors"
                         >
                           %
                         </button>
