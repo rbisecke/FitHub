@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
+import { BarbellIcon } from "@/components/icons/BarbellIcon";
 
 export interface NavItem {
   href: string;
@@ -40,7 +41,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/log/tag",
     label: "Tag a Lift",
     mobileLabel: "Tag",
-    icon: Tag,
+    icon: BarbellIcon,
     gitCommand: "$ git tag",
   },
   {
@@ -107,7 +108,7 @@ export const MOBILE_MORE_ITEMS: NavItem[] = [
     href: "/log/tag",
     label: "Tag a lift",
     mobileLabel: "Tag",
-    icon: Tag,
+    icon: BarbellIcon,
     gitCommand: "$ git tag",
   },
   {
