@@ -32,7 +32,28 @@ async def create_session(
     *,
     user_id: uuid.UUID,
     title: str,
+    session_id: uuid.UUID | None = None,
 ) -> uuid.UUID:
+    """Create a new coach session, optionally with a caller-provided UUID.
+
+    Passing ``session_id`` preserves backward compatibility for the non-streaming
+    /chat endpoint, which accepted client-side session UUIDs before this table
+    existed. The caller must first confirm the ID is not already owned by another
+    user via ``get_session``.
+    """
+    if session_id is not None:
+        async with db.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                INSERT INTO public.coach_sessions (id, user_id, title)
+                VALUES (%s, %s, %s)
+                RETURNING id
+                """,
+                [session_id, user_id, title],
+            )
+            row = await cur.fetchone()
+        assert row is not None
+        return uuid.UUID(str(row["id"]))
     async with db.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """

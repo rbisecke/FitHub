@@ -21,8 +21,8 @@ async def fetch_session_history(
     """Return alternating user/assistant dicts, capped and token-trimmed."""
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
-            """SELECT role, content FROM coach_interactions
-               WHERE session_id = %s AND role IN ('user', 'assistant')
+            """SELECT role, content FROM public.coach_messages
+               WHERE session_id = %s::uuid AND role IN ('user', 'assistant')
                ORDER BY created_at ASC LIMIT %s""",
             [session_id, MAX_HISTORY_TURNS * 2],
         )

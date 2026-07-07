@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
 import app.repositories.coach as coach_repo
-from app.ai.chat_history import fetch_session_history, rag_query_text
+from app.ai.chat_history import rag_query_text
 from app.ai.client import get_client
 from app.ai.errors import call_llm
 from app.ai.kill_switch import require_llm_enabled
@@ -194,10 +194,12 @@ async def get_history(
 ) -> list[HistoryMessage]:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
-            """SELECT role, content, created_at FROM coach_interactions
-               WHERE session_id = %s AND user_id = %s
-               AND role IN ('user', 'assistant')
-               ORDER BY created_at ASC LIMIT %s""",
+            """SELECT cm.role, cm.content, cm.created_at
+               FROM public.coach_messages cm
+               JOIN public.coach_sessions cs ON cs.id = cm.session_id
+               WHERE cm.session_id = %s::uuid AND cs.user_id = %s
+               AND cm.role IN ('user', 'assistant')
+               ORDER BY cm.created_at ASC LIMIT %s""",
             [session_id, user.user_id, limit],
         )
         rows = await cur.fetchall()
@@ -214,14 +216,29 @@ async def chat(
     _kill: Annotated[None, Depends(require_llm_enabled)],
 ) -> ChatResponse:
     tier, _ = classify_safety(body.question)
-    session_id_str = str(body.session_id) if body.session_id else None
+
+    # Resolve or create the session so all writes go through coach_messages.
+    # If the client supplied a session_id that already exists and belongs to this
+    # user, reuse it. If the ID is new (legacy client-side UUID or a brand-new
+    # request), create a coach_sessions row for it. If no ID is given, auto-create.
+    if body.session_id is not None:
+        session_row = await coach_repo.get_session(db, body.session_id, user.user_id)
+        if session_row is not None:
+            session_id: uuid.UUID = body.session_id
+        else:
+            session_id = await coach_repo.create_session(
+                db,
+                user_id=user.user_id,
+                title=body.question[:200],
+                session_id=body.session_id,
+            )
+    else:
+        session_id = await coach_repo.create_session(
+            db, user_id=user.user_id, title=body.question[:200]
+        )
 
     if tier == SafetyTier.STOP:
-        await db.execute(
-            "INSERT INTO coach_interactions (user_id, role, content, stub, session_id)"
-            " VALUES (%s, 'user', %s, false, %s)",
-            [user.user_id, body.question, session_id_str],
-        )
+        await coach_repo.write_message(db, session_id, "user", body.question, safety_tier="stop")
         return ChatResponse(
             answer=(
                 "Please stop your workout and consult a medical professional immediately. "
@@ -233,17 +250,8 @@ async def chat(
         )
 
     if is_stubbed():
-        if session_id_str:
-            await db.execute(
-                "INSERT INTO coach_interactions (user_id, role, content, stub, session_id)"
-                " VALUES (%s, 'user', %s, true, %s)",
-                [user.user_id, body.question, session_id_str],
-            )
-            await db.execute(
-                "INSERT INTO coach_interactions (user_id, role, content, stub, session_id)"
-                " VALUES (%s, 'assistant', %s, true, %s)",
-                [user.user_id, _STUB_ANSWER, session_id_str],
-            )
+        await coach_repo.write_message(db, session_id, "user", body.question, stub=True)
+        await coach_repo.write_message(db, session_id, "assistant", _STUB_ANSWER, stub=True)
         return ChatResponse(
             answer=_STUB_ANSWER,
             citations=[],
@@ -251,7 +259,7 @@ async def chat(
             safety_tier=tier.value,
         )
 
-    history = await fetch_session_history(session_id_str, db) if session_id_str else []
+    history = await coach_repo.fetch_session_messages_history(db, session_id)
 
     rag_query = rag_query_text(body.question, history)
     chunks, _max_rrf_score = await hybrid_retrieve(rag_query, db, top_k=5)
@@ -316,20 +324,22 @@ async def chat(
         log.warning("Suspicious model output user=%s", user.user_id)
         answer_text = "I'm not able to answer that question. Please rephrase."
 
-    await db.execute(
-        "INSERT INTO coach_interactions (user_id, role, content, stub, session_id)"
-        " VALUES (%s, 'user', %s, false, %s)",
-        [user.user_id, body.question, session_id_str],
-    )
-    await db.execute(
-        "INSERT INTO coach_interactions (user_id, role, content, stub, session_id)"
-        " VALUES (%s, 'assistant', %s, false, %s)",
-        [user.user_id, answer_text, session_id_str],
+    citations_raw: list[dict[str, str | float]] = [
+        {
+            "title": str(c["title"]),
+            "source_type": str(c["source_type"]),
+            "score": float(c["score"]),  # type: ignore[arg-type]
+        }
+        for c in chunks
+    ]
+    await coach_repo.write_message(db, session_id, "user", body.question, safety_tier=tier.value)
+    await coach_repo.write_message(
+        db, session_id, "assistant", answer_text, citations=citations_raw
     )
 
     citations = [
         Citation(title=str(c["title"]), source_type=str(c["source_type"]), score=float(c["score"]))  # type: ignore[arg-type]
-        for c in chunks
+        for c in citations_raw
     ]
     return ChatResponse(answer=answer_text, citations=citations, stub=False, safety_tier=tier.value)
 

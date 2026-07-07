@@ -24,17 +24,26 @@ async def _seed_turns(
     session_id: str,
     n_turns: int,
 ) -> None:
-    """Insert n_turns pairs (user + assistant) directly into coach_interactions."""
+    """Insert n_turns pairs (user + assistant) into coach_sessions + coach_messages."""
+    # Ensure the session row exists before inserting messages (FK requirement).
+    await conn.execute(
+        """
+        INSERT INTO public.coach_sessions (id, user_id, title)
+        VALUES (%s::uuid, %s, 'Test session')
+        ON CONFLICT (id) DO NOTHING
+        """,
+        [session_id, str(user_id)],
+    )
     for i in range(n_turns):
         await conn.execute(
-            "INSERT INTO coach_interactions (user_id, role, content, stub, session_id)"
-            " VALUES (%s, 'user', %s, true, %s)",
-            [str(user_id), f"question {i}", session_id],
+            "INSERT INTO public.coach_messages (session_id, role, content, stub)"
+            " VALUES (%s::uuid, 'user', %s, true)",
+            [session_id, f"question {i}"],
         )
         await conn.execute(
-            "INSERT INTO coach_interactions (user_id, role, content, stub, session_id)"
-            " VALUES (%s, 'assistant', %s, true, %s)",
-            [str(user_id), f"answer {i}", session_id],
+            "INSERT INTO public.coach_messages (session_id, role, content, stub)"
+            " VALUES (%s::uuid, 'assistant', %s, true)",
+            [session_id, f"answer {i}"],
         )
 
 
@@ -43,7 +52,7 @@ async def _seed_turns(
 
 @pytest.mark.asyncio
 async def test_session_history_stored_and_fetched(alice_client: AsyncClient) -> None:
-    """Two chat turns with the same session_id produce 4 DB rows; GET /history returns them."""
+    """Two chat turns with the same session_id produce 4 rows in coach_messages."""
     sid = str(uuid.uuid4())
 
     r1 = await alice_client.post(
@@ -60,7 +69,11 @@ async def test_session_history_stored_and_fetched(alice_client: AsyncClient) -> 
 
     async with await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn:
         cur = await conn.execute(
-            "SELECT COUNT(*) FROM coach_interactions WHERE session_id = %s AND user_id = %s",
+            """
+            SELECT COUNT(*) FROM public.coach_messages cm
+            JOIN public.coach_sessions cs ON cs.id = cm.session_id
+            WHERE cm.session_id = %s::uuid AND cs.user_id = %s
+            """,
             [sid, str(ALICE_ID)],
         )
         row = await cur.fetchone()
@@ -94,8 +107,8 @@ async def test_different_sessions_do_not_share_history(alice_client: AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_no_session_id_is_stateless(alice_client: AsyncClient) -> None:
-    """POST /chat with no session_id returns 200 and writes nothing with a session_id."""
+async def test_no_session_id_creates_new_session(alice_client: AsyncClient) -> None:
+    """POST /chat with no session_id auto-creates a session and writes to coach_messages."""
     r = await alice_client.post(
         "/api/v1/coach/chat",
         json={"question": "How do I improve my clean?"},
@@ -104,14 +117,25 @@ async def test_no_session_id_is_stateless(alice_client: AsyncClient) -> None:
     data = r.json()
     assert isinstance(data["answer"], str)
 
+    # Verify nothing was written to the legacy coach_interactions table.
     async with await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn:
         cur = await conn.execute(
-            "SELECT COUNT(*) FROM coach_interactions WHERE user_id = %s AND session_id IS NOT NULL",
+            "SELECT COUNT(*) FROM coach_interactions WHERE user_id = %s",
             [str(ALICE_ID)],
         )
         row = await cur.fetchone()
     assert row is not None
     assert row[0] == 0
+
+    # A session was auto-created and messages landed in coach_messages.
+    async with await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn:
+        cur = await conn.execute(
+            "SELECT COUNT(*) FROM public.coach_sessions WHERE user_id = %s",
+            [str(ALICE_ID)],
+        )
+        row = await cur.fetchone()
+    assert row is not None
+    assert row[0] == 1
 
 
 @pytest.mark.asyncio
