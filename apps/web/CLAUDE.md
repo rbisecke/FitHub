@@ -18,6 +18,15 @@ pnpm generate-types   # regenerate lib/api/generated.ts from openapi.json
 
 **Run `pnpm generate-types` whenever the FastAPI `response_model` for any route changes.** Commit `lib/api/generated.ts` alongside the API change.
 
+**Dev server lifecycle — kill it when done.** `next dev` (Turbopack) is CPU-intensive and will slow down the user's machine if left running. Always start it with `run_in_background`, capture the PID, and kill it as soon as the task that needed it is complete (e.g. after taking screenshots). Pattern:
+
+```bash
+pnpm -C /Users/rbisecke/FitHub/apps/web dev &> /tmp/fithub-dev.log &
+DEV_PID=$!
+# ... do work (screenshots, smoke test, etc.) ...
+kill $DEV_PID
+```
+
 ## Key conventions
 
 - **App Router only** — no Pages Router.
