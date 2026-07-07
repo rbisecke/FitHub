@@ -84,8 +84,13 @@ export function convertWeight(kg: number, unit: "kg" | "lb"): number {
 }
 
 export function formatWeight(kg: number, unit: "kg" | "lb"): string {
-  const val = convertWeight(kg, unit);
-  return `${val} ${unit}`;
+  if (unit === "lb") return `${Math.round(kg * 2.20462)} lb`;
+  return `${kg.toFixed(1)} kg`;
+}
+
+export function formatWeightDelta(deltaKg: number, unit: "kg" | "lb"): string {
+  if (unit === "lb") return `${Math.round(Math.abs(deltaKg) * 2.20462)} lb`;
+  return `${Math.abs(deltaKg).toFixed(1)} kg`;
 }
 
 type AcwrZone =
