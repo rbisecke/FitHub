@@ -34,6 +34,7 @@ export default async function AnalyticsPage() {
     balanceRes,
     benchmarksRes,
     partnersRes,
+    profileRes,
   ] = await Promise.allSettled([
     api.analytics.load(token, 90),
     api.analytics.personalRecords(token),
@@ -42,6 +43,7 @@ export default async function AnalyticsPage() {
     api.analytics.trainingBalance(token, 28),
     api.analytics.benchmarks(token),
     api.trainingPartners(token),
+    api.profile.get(token),
   ]);
 
   const load =
@@ -66,6 +68,10 @@ export default async function AnalyticsPage() {
     benchmarksRes.status === "fulfilled" ? benchmarksRes.value : null;
   const partners: TrainingPartner[] =
     partnersRes.status === "fulfilled" ? partnersRes.value : [];
+  const weightUnit =
+    profileRes.status === "fulfilled"
+      ? profileRes.value.weight_unit ?? "kg"
+      : "kg";
 
   const nonZeroDays = load.series.filter((pt) => pt.load_au > 0).length;
 
@@ -265,6 +271,7 @@ export default async function AnalyticsPage() {
             {/* PR Summary Strip — full width */}
             <PRSummaryStrip
               records={personalRecords}
+              weightUnit={weightUnit}
               className="col-span-1 md:col-span-2"
             />
           </div>
@@ -277,10 +284,11 @@ export default async function AnalyticsPage() {
             <MobileStrengthTrendCard
               personalRecords={personalRecords}
               token={token}
+              weightUnit={weightUnit}
             />
             <VolumeTrendSection initialWeeks={volume.weeks} token={token} />
             <TrainingBalanceSection data={balance} />
-            <PRSummaryStrip records={personalRecords} />
+            <PRSummaryStrip records={personalRecords} weightUnit={weightUnit} />
           </div>
         </div>
       )}

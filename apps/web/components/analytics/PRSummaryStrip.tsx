@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { PersonalRecord } from "@/lib/api";
+import { formatWeight } from "@/lib/display";
 
 interface Props {
   records: PersonalRecord[];
+  weightUnit?: string;
   className?: string;
 }
 
@@ -14,7 +16,12 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export function PRSummaryStrip({ records, className }: Props) {
+export function PRSummaryStrip({
+  records,
+  weightUnit = "kg",
+  className,
+}: Props) {
+  const unit = weightUnit === "lb" ? "lb" : "kg";
   const top = records.slice(0, 5);
   const topDesktop = records.slice(0, 3);
 
@@ -63,7 +70,7 @@ export function PRSummaryStrip({ records, className }: Props) {
                   className="font-heading text-[17px] mt-[2px]"
                   style={{ color: "var(--gold)" }}
                 >
-                  {Number(pr.best_1rm_kg).toFixed(1)} kg
+                  {formatWeight(pr.best_1rm_kg, unit)}
                 </div>
               </Link>
             ))}
@@ -103,7 +110,7 @@ export function PRSummaryStrip({ records, className }: Props) {
                     {pr.movement_name}
                   </span>
                   <span className="font-data text-xs text-[var(--gold)] flex-shrink-0">
-                    {Number(pr.best_1rm_kg).toFixed(1)} kg ·{" "}
+                    {formatWeight(pr.best_1rm_kg, unit)} ·{" "}
                     {formatDate(pr.achieved_at)}
                   </span>
                 </Link>
