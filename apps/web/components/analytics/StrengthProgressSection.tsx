@@ -23,6 +23,7 @@ import {
   PeriodSelector,
   type PeriodOption,
 } from "@/components/analytics/PeriodSelector";
+import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
 import { SectionSkeleton } from "@/components/analytics/SectionSkeleton";
 import {
   Popover,
@@ -68,6 +69,8 @@ export function StrengthProgressSection({
   className,
 }: Props) {
   const prefersReducedMotion = useReducedMotion();
+  const { weightUnit } = useUserPrefs();
+  const isImperial = weightUnit === "lb";
   const [selectedIds, setSelectedIds] = useState<string[]>(() =>
     personalRecords.slice(0, 2).map((pr) => pr.movement_id),
   );
@@ -154,7 +157,10 @@ export function StrengthProgressSection({
     const row: Record<string, string | number> = { day: day.slice(5) };
     for (const [id, s] of Object.entries(series)) {
       const pt = s.points.find((p) => p.day === day);
-      if (pt) row[id] = +pt.estimated_1rm_kg.toFixed(1);
+      if (pt) {
+        const kg = +pt.estimated_1rm_kg.toFixed(1);
+        row[id] = isImperial ? Math.round(kg * 2.20462) : kg;
+      }
     }
     return row;
   });
@@ -294,7 +300,7 @@ export function StrengthProgressSection({
                 <Tooltip
                   contentStyle={tooltipContentStyle}
                   formatter={(value, name) => [
-                    `${value} kg`,
+                    isImperial ? `${value} lb` : `${value} kg`,
                     series[name as string]?.name ?? (name as string),
                   ]}
                 />
