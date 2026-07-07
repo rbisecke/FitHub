@@ -25,13 +25,14 @@ async def test_parse_log_returns_valid_schema(ollama_env: None) -> None:
     assert result.stub is False
     assert result.parsed is not None
     assert result.parsed.session_type in {
+        None,
         "metcon",
         "strength",
         "skill",
-        "cardio",
         "mixed",
         "rest",
-        "unknown",
+        "deload",
+        "active_recovery",
     }
     assert 0.0 <= result.confidence <= 1.0
 
@@ -47,7 +48,7 @@ async def test_parse_log_metcon_has_results(ollama_env: None) -> None:
         "Metcon: 5 rounds of 10 thrusters at 42 kg and 10 pull-ups, finished in 8 minutes"
     )
     assert result.stub is False
-    valid = {"metcon", "strength", "skill", "cardio", "mixed", "rest", "unknown"}
+    valid = {None, "metcon", "strength", "skill", "mixed", "rest", "deload", "active_recovery"}
     assert result.parsed.session_type in valid
 
 
@@ -59,7 +60,7 @@ async def test_parse_log_rest_day(ollama_env: None) -> None:
     result = await parse_log_text("Complete rest day, feeling well recovered")
     assert result.stub is False
     # Any valid session type is acceptable — LLM may classify rest day differently
-    valid = {"metcon", "strength", "skill", "cardio", "mixed", "rest", "unknown"}
+    valid = {None, "metcon", "strength", "skill", "mixed", "rest", "deload", "active_recovery"}
     assert result.parsed.session_type in valid
 
 
@@ -183,11 +184,12 @@ async def test_parse_log_endpoint_with_ollama(ollama_env: None, alice_client: ob
     data = res.json()
     assert data["stub"] is False
     assert data["parsed"]["session_type"] in {
+        None,
         "strength",
         "metcon",
         "skill",
-        "cardio",
         "mixed",
         "rest",
-        "unknown",
+        "deload",
+        "active_recovery",
     }

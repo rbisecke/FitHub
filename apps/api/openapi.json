@@ -6838,16 +6838,8 @@
             "title": "Movement Name"
           },
           "result_type": {
-            "type": "string",
-            "enum": [
-              "reps",
-              "time_s",
-              "distance_m",
-              "weight_kg",
-              "rounds",
-              "calories"
-            ],
-            "title": "Result Type"
+            "$ref": "#/components/schemas/ResultType",
+            "default": "reps"
           },
           "reps": {
             "anyOf": [
@@ -6901,8 +6893,7 @@
         },
         "type": "object",
         "required": [
-          "movement_name",
-          "result_type"
+          "movement_name"
         ],
         "title": "MovementResult"
       },
@@ -7048,37 +7039,24 @@
             "title": "Title"
           },
           "session_type": {
-            "type": "string",
-            "enum": [
-              "metcon",
-              "strength",
-              "skill",
-              "cardio",
-              "mixed",
-              "rest",
-              "unknown"
-            ],
-            "title": "Session Type"
-          },
-          "workout_format": {
             "anyOf": [
               {
-                "type": "string",
-                "enum": [
-                  "amrap",
-                  "for_time",
-                  "emom",
-                  "tabata",
-                  "rft",
-                  "straight_sets",
-                  "other"
-                ]
+                "$ref": "#/components/schemas/SessionType"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Workout Format"
+            ]
+          },
+          "workout_format": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutFormat"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "duration_s": {
             "anyOf": [
@@ -7119,9 +7097,6 @@
           }
         },
         "type": "object",
-        "required": [
-          "session_type"
-        ],
         "title": "ParsedLogEntry"
       },
       "PatchParticipantRequest": {

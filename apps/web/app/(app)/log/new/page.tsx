@@ -1,7 +1,7 @@
 import { requireAuth } from "@/lib/supabase/requireAuth";
 import { LogPageClient } from "@/components/log/LogPageClient";
 import { api } from "@/lib/api/client";
-import type { WorkoutSummary } from "@/lib/api";
+import type { ResultType, WorkoutSummary } from "@/lib/api";
 
 export default async function NewWorkoutPage({
   searchParams,
@@ -42,7 +42,7 @@ export default async function NewWorkoutPage({
         movement_entries: (parsed.results ?? []).map((r, i) => ({
           movement_name: r.movement_name,
           modality: undefined as string | undefined,
-          result_type: "weight" as const,
+          result_type: (r.result_type ?? "reps") as ResultType,
           sets: [
             {
               set_index: 0,

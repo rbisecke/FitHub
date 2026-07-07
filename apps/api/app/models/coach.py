@@ -9,6 +9,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.models.result import ResultType
+from app.models.workout import SessionType, WorkoutFormat
+
 # ---------------------------------------------------------------------------
 # Internal context models (not serialised — used to build system prompts)
 # ---------------------------------------------------------------------------
@@ -41,7 +44,7 @@ class TodaySessionContext:
 
 class MovementResult(BaseModel):
     movement_name: str
-    result_type: Literal["reps", "time_s", "distance_m", "weight_kg", "rounds", "calories"]
+    result_type: ResultType = ResultType.reps
     reps: int | None = None
     load_kg: float | None = None
     time_s: float | None = None
@@ -51,10 +54,8 @@ class MovementResult(BaseModel):
 
 class ParsedLogEntry(BaseModel):
     title: str | None = None
-    session_type: Literal["metcon", "strength", "skill", "cardio", "mixed", "rest", "unknown"]
-    workout_format: (
-        Literal["amrap", "for_time", "emom", "tabata", "rft", "straight_sets", "other"] | None
-    ) = None
+    session_type: SessionType | None = None
+    workout_format: WorkoutFormat | None = None
     duration_s: int | None = None
     session_rpe: float | None = Field(None, ge=0.0, le=10.0)
     results: list[MovementResult] = []
