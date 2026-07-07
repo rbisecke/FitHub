@@ -337,7 +337,10 @@ async def chat(
         db, session_id, "assistant", answer_text, citations=citations_raw
     )
 
-    citations = [Citation(**c) for c in citations_raw]
+    citations = [
+        Citation(title=str(c["title"]), source_type=str(c["source_type"]), score=float(c["score"]))
+        for c in citations_raw
+    ]
     return ChatResponse(answer=answer_text, citations=citations, stub=False, safety_tier=tier.value)
 
 
