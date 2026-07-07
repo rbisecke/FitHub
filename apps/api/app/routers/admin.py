@@ -311,17 +311,14 @@ async def review_access_request(
 
 
 async def _add_invited_email(conn: DBConn, email: str, invited_by: uuid.UUID) -> None:
-    import contextlib
-
-    with contextlib.suppress(Exception):
-        await conn.execute(
-            """
-            INSERT INTO invited_emails (email, invited_by)
-            VALUES (%s, (SELECT id FROM profiles WHERE id = %s LIMIT 1))
-            ON CONFLICT (email) DO NOTHING
-            """,
-            [email, str(invited_by)],
-        )
+    await conn.execute(
+        """
+        INSERT INTO invited_emails (email, invited_by)
+        VALUES (%s, (SELECT id FROM profiles WHERE id = %s LIMIT 1))
+        ON CONFLICT (email) DO NOTHING
+        """,
+        [email, str(invited_by)],
+    )
 
 
 async def _supabase_send_invite(email: str) -> None:
