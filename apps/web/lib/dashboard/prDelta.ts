@@ -29,7 +29,11 @@ function slugify(name: string): string {
   );
 }
 
-export function prGoals(prs: PersonalRecord[]): GoalItem[] {
+export function prGoals(
+  prs: PersonalRecord[],
+  weightUnit: "kg" | "lb" = "kg",
+): GoalItem[] {
+  const isImperial = weightUnit === "lb";
   return prs.slice(0, 3).map((pr) => {
     const current = pr.best_1rm_kg;
     const target = nextMilestone(current);
@@ -37,6 +41,21 @@ export function prGoals(prs: PersonalRecord[]): GoalItem[] {
     const gap = (target - current).toFixed(1).replace(/\.0$/, "");
     const color: GoalItem["color"] =
       pct >= 85 ? "accent" : pct >= 60 ? "blue" : "hot";
+
+    if (isImperial) {
+      const currentLb = Math.round(current * 2.20462);
+      const targetLb = Math.round(target * 2.20462);
+      const gapLb = Math.round(Number(gap) * 2.20462);
+      return {
+        name: `${pr.movement_name} ${targetLb}lb`,
+        branch: slugify(`${pr.movement_name}-${target}`),
+        progressPct: pct,
+        currentValue: `${currentLb}lb`,
+        targetValue: `${targetLb}lb`,
+        gapText: `${gapLb}lb to merge`,
+        color,
+      };
+    }
 
     return {
       name: `${pr.movement_name} ${target}kg`,

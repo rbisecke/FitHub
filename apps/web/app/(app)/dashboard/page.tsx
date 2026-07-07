@@ -143,7 +143,8 @@ export default async function DashboardPage() {
   });
 
   // ── Open PRs widget (goals-in-progress) ──────────────────────────────────
-  const goals = prGoals(prs);
+  const weightUnit = profile?.weight_unit === "lb" ? "lb" : "kg";
+  const goals = prGoals(prs, weightUnit);
 
   // ── Greeting streak count (simple day-based, 30-day window) ──────────────
   const recentStreak = workouts.filter((w) => {
