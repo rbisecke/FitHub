@@ -2191,17 +2191,8 @@ export interface components {
     MovementResult: {
       /** Movement Name */
       movement_name: string;
-      /**
-       * Result Type
-       * @enum {string}
-       */
-      result_type:
-        | "reps"
-        | "time_s"
-        | "distance_m"
-        | "weight_kg"
-        | "rounds"
-        | "calories";
+      /** @default reps */
+      result_type: components["schemas"]["ResultType"];
       /** Reps */
       reps?: number | null;
       /** Load Kg */
@@ -2281,30 +2272,8 @@ export interface components {
     ParsedLogEntry: {
       /** Title */
       title?: string | null;
-      /**
-       * Session Type
-       * @enum {string}
-       */
-      session_type:
-        | "metcon"
-        | "strength"
-        | "skill"
-        | "cardio"
-        | "mixed"
-        | "rest"
-        | "unknown";
-      /** Workout Format */
-      workout_format?:
-        | (
-            | "amrap"
-            | "for_time"
-            | "emom"
-            | "tabata"
-            | "rft"
-            | "straight_sets"
-            | "other"
-          )
-        | null;
+      session_type?: components["schemas"]["SessionType"] | null;
+      workout_format?: components["schemas"]["WorkoutFormat"] | null;
       /** Duration S */
       duration_s?: number | null;
       /** Session Rpe */
