@@ -51,9 +51,10 @@ interface Props {
   points: E1RMPoint[];
   isRecent: boolean;
   category: PRCategory;
+  onCalcOpen?: () => void;
 }
 
-export function PRCard({ pr, points, isRecent, category }: Props) {
+export function PRCard({ pr, points, isRecent, category, onCalcOpen }: Props) {
   const sortedPoints = [...points].sort((a, b) => a.day.localeCompare(b.day));
   const catColor = CAT_COLOR[category];
   const sparklinePts = computeSparkline(sortedPoints, 120, 34);
@@ -205,6 +206,19 @@ export function PRCard({ pr, points, isRecent, category }: Props) {
             )}
           </div>
         </Link>
+        {/* % calc button — left of $ tag */}
+        {onCalcOpen && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              onCalcOpen();
+            }}
+            aria-label={`Open load calculator for ${pr.movement_name}`}
+            className="absolute bottom-[10px] right-[58px] font-mono text-[9px] font-semibold px-[6px] min-h-[44px] flex items-center rounded border border-[var(--border)] text-[var(--muted)] active:border-[var(--accent)] active:text-[var(--accent)]"
+          >
+            %
+          </button>
+        )}
         {/* $ tag button — absolute in corner, separate from the body link */}
         <Link
           href={tagHref}
@@ -348,6 +362,29 @@ export function PRCard({ pr, points, isRecent, category }: Props) {
           )}
         </Link>
 
+        {/* % calc button — appears on hover, left of $ tag */}
+        {onCalcOpen && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onCalcOpen();
+            }}
+            aria-label={`Open load calculator for ${pr.movement_name}`}
+            className={[
+              "absolute bottom-4 right-[84px]",
+              "opacity-0 group-hover:opacity-100",
+              "flex items-center gap-1 px-2.5 py-1",
+              "font-mono text-[11px] font-semibold",
+              "rounded-md border border-[var(--accent)] text-[var(--accent)]",
+              "hover:bg-[var(--accent)] hover:text-[var(--bg)]",
+              "transition-all duration-150",
+              "motion-reduce:transition-none",
+            ].join(" ")}
+          >
+            %
+          </button>
+        )}
         {/* $ tag button — appears on hover, bottom-right */}
         <Link
           href={tagHref}
@@ -361,7 +398,6 @@ export function PRCard({ pr, points, isRecent, category }: Props) {
             "rounded-md border border-[var(--blue)] text-[var(--blue)]",
             "hover:bg-[var(--blue)] hover:text-[var(--bg)]",
             "transition-all duration-150",
-            // Respect prefers-reduced-motion
             "motion-reduce:transition-none",
           ].join(" ")}
         >
