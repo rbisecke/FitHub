@@ -1,7 +1,7 @@
 import type { PersonalRecord, E1RMPoint } from "@/lib/api";
 import type { PRCategory } from "@/lib/records/categorise";
 import { CATEGORY_ORDER } from "@/lib/records/categorise";
-import { formatWeight, formatWeightDelta } from "@/lib/display";
+import { formatWeightDelta } from "@/lib/display";
 
 interface Props {
   categorised: Record<PRCategory, PersonalRecord[]>;
