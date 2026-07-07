@@ -5,6 +5,7 @@ import type { PinnedMovement } from "@/lib/api";
 import { Separator } from "@/components/ui/separator";
 import { PinnedMovementCard } from "./PinnedMovementCard";
 import { PinnedMovementEdit } from "./PinnedMovementEdit";
+import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
 
 interface PinnedMovementsProps {
   initial: PinnedMovement[];
@@ -15,6 +16,8 @@ export function PinnedMovements({
   initial,
   accessToken,
 }: PinnedMovementsProps) {
+  const { weightUnit } = useUserPrefs();
+  const unit = weightUnit === "lb" ? "lb" : "kg";
   const [pinned, setPinned] = useState<PinnedMovement[]>(
     [...initial].sort((a, b) => a.display_order - b.display_order),
   );
@@ -53,7 +56,11 @@ export function PinnedMovements({
       ) : (
         <div className="grid grid-cols-3 gap-3 pt-2">
           {pinned.map((m) => (
-            <PinnedMovementCard key={m.movement_id} movement={m} />
+            <PinnedMovementCard
+              key={m.movement_id}
+              movement={m}
+              weightUnit={unit}
+            />
           ))}
         </div>
       )}

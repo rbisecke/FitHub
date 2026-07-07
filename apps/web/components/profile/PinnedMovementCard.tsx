@@ -1,4 +1,5 @@
 import type { PinnedMovement } from "@/lib/api";
+import { formatWeight } from "@/lib/display";
 
 const MODALITY_CHIP: Record<string, string> = {
   strength: "bg-[#bc8cff]/10 text-[#bc8cff] border-[#bc8cff]/30",
@@ -10,11 +11,14 @@ const MODALITY_CHIP: Record<string, string> = {
   strongman: "bg-[#ff7b72]/10 text-[#ff7b72] border-[#ff7b72]/30",
 };
 
-function formatPR(pr: Record<string, unknown> | null | undefined): string {
+function formatPR(
+  pr: Record<string, unknown> | null | undefined,
+  weightUnit: "kg" | "lb" = "kg",
+): string {
   if (!pr) return "—";
 
   if (typeof pr.load_kg === "number") {
-    return `${pr.load_kg} kg`;
+    return formatWeight(pr.load_kg, weightUnit);
   }
   if (typeof pr.time_s === "number") {
     const mins = Math.floor(pr.time_s / 60);
@@ -32,11 +36,16 @@ function formatPR(pr: Record<string, unknown> | null | undefined): string {
 
 interface PinnedMovementCardProps {
   movement: PinnedMovement;
+  weightUnit?: "kg" | "lb";
 }
 
-export function PinnedMovementCard({ movement }: PinnedMovementCardProps) {
+export function PinnedMovementCard({
+  movement,
+  weightUnit = "kg",
+}: PinnedMovementCardProps) {
   const prDisplay = formatPR(
     movement.personal_record as Record<string, unknown> | null,
+    weightUnit,
   );
   const chipClass =
     MODALITY_CHIP[movement.modality] ??
