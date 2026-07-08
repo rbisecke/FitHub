@@ -17,7 +17,7 @@ async def test_report_injury_no_red_flags(alice_client: AsyncClient) -> None:
             "notes": "aches on squats",
         },
     )
-    assert r.status_code == 200
+    assert r.status_code == 201
     data = r.json()
     assert data["requires_referral"] is False
     assert data["body_region"] == "knee"
@@ -30,7 +30,7 @@ async def test_report_injury_red_flag_pain(alice_client: AsyncClient) -> None:
         "/api/v1/injuries",
         json={"body_region": "shoulder", "pain_level": 9, "notes": None},
     )
-    assert r.status_code == 200
+    assert r.status_code == 201
     data = r.json()
     assert data["requires_referral"] is True
     assert data["substitutions"] == []
@@ -42,7 +42,7 @@ async def test_report_injury_red_flag_keyword(alice_client: AsyncClient) -> None
         "/api/v1/injuries",
         json={"body_region": "knee", "pain_level": 5, "notes": "heard a pop and it locked up"},
     )
-    assert r.status_code == 200
+    assert r.status_code == 201
     assert r.json()["requires_referral"] is True
 
 
@@ -52,7 +52,7 @@ async def test_report_injury_has_substitutions(alice_client: AsyncClient) -> Non
         "/api/v1/injuries",
         json={"body_region": "knee", "pain_level": 3, "notes": "mild ache"},
     )
-    assert r.status_code == 200
+    assert r.status_code == 201
     data = r.json()
     assert data["requires_referral"] is False
     assert isinstance(data["substitutions"], list)
@@ -104,7 +104,7 @@ async def test_report_hamstring_injury_red_flag_keyword(alice_client: AsyncClien
         "/api/v1/injuries",
         json={"body_region": "hamstring", "pain_level": 4, "notes": "tore it sprinting"},
     )
-    assert r.status_code == 200
+    assert r.status_code == 201
     data = r.json()
     assert data["body_region"] == "hamstring"
     assert data["requires_referral"] is True  # "tore" triggers for non-chronic region
@@ -120,7 +120,7 @@ async def test_it_band_tore_keyword_no_referral(alice_client: AsyncClient) -> No
             "notes": "my IT band tore up during the run",
         },
     )
-    assert r.status_code == 200
+    assert r.status_code == 201
     data = r.json()
     assert data["requires_referral"] is False  # chronic region — keyword doesn't trigger
 
@@ -131,7 +131,7 @@ async def test_report_forearm_injury_with_substitutions(alice_client: AsyncClien
         "/api/v1/injuries",
         json={"body_region": "forearm", "pain_level": 3, "notes": "wrist flexor tendinopathy"},
     )
-    assert r.status_code == 200
+    assert r.status_code == 201
     data = r.json()
     assert data["requires_referral"] is False
     assert len(data["substitutions"]) > 0
@@ -156,7 +156,7 @@ async def _create_injury(client: AsyncClient, body_region: str = "knee") -> str:
         "/api/v1/injuries",
         json={"body_region": body_region, "pain_level": 3},
     )
-    assert r.status_code == 200
+    assert r.status_code == 201
     return r.json()["id"]
 
 
