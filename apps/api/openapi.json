@@ -3928,25 +3928,6 @@
         ]
       }
     },
-    "/api/v1/wellness/checkin/reject-if-missing": {
-      "get": {
-        "tags": [
-          "wellness"
-        ],
-        "summary": " Reject Missing",
-        "operationId": "_reject_missing_api_v1_wellness_checkin_reject_if_missing_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -4022,12 +4003,17 @@
         "properties": {
           "action": {
             "type": "string",
+            "enum": [
+              "approved",
+              "rejected"
+            ],
             "title": "Action"
           },
           "note": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 1000
               },
               {
                 "type": "null"
@@ -4068,6 +4054,11 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ],
             "title": "Status"
           },
           "reviewed_at": {
@@ -4229,6 +4220,8 @@
         "properties": {
           "email": {
             "type": "string",
+            "maxLength": 254,
+            "format": "email",
             "title": "Email"
           }
         },
@@ -4267,7 +4260,8 @@
           "guest_name": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 100
               },
               {
                 "type": "null"
@@ -4278,7 +4272,8 @@
           "role": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 100
               },
               {
                 "type": "null"
@@ -4294,6 +4289,8 @@
         "properties": {
           "email": {
             "type": "string",
+            "maxLength": 254,
+            "format": "email",
             "title": "Email"
           }
         },
@@ -4941,7 +4938,8 @@
           "start_position": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 200
               },
               {
                 "type": "null"
@@ -4952,7 +4950,8 @@
           "catch_position": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 200
               },
               {
                 "type": "null"
@@ -4963,7 +4962,8 @@
           "pause_position": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 200
               },
               {
                 "type": "null"
@@ -5016,7 +5016,8 @@
           "implement": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 100
               },
               {
                 "type": "null"
@@ -5029,6 +5030,7 @@
               "type": "string"
             },
             "type": "array",
+            "maxItems": 10,
             "title": "Default Result Types"
           },
           "default_result_type": {
@@ -5080,7 +5082,8 @@
           "guest_name": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 100
               },
               {
                 "type": "null"
@@ -5091,7 +5094,8 @@
           "role": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 100
               },
               {
                 "type": "null"
@@ -5484,7 +5488,8 @@
           "name": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 200
               },
               {
                 "type": "null"
@@ -5512,7 +5517,8 @@
           "team_score": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 50
               },
               {
                 "type": "null"
@@ -5547,7 +5553,8 @@
           "notes": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 2000
               },
               {
                 "type": "null"
@@ -5946,6 +5953,12 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "active",
+              "cleared_with_restrictions",
+              "permanent",
+              "resolved"
+            ],
             "title": "Status",
             "default": "active"
           },
@@ -7133,7 +7146,8 @@
           "role": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 100
               },
               {
                 "type": "null"
@@ -7150,7 +7164,9 @@
           "frequency_target_days": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "integer",
+                "maximum": 7.0,
+                "minimum": 1.0
               },
               {
                 "type": "null"
@@ -7161,7 +7177,11 @@
           "graph_colour_mode": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "intensity",
+                  "volume"
+                ]
               },
               {
                 "type": "null"
@@ -7172,7 +7192,11 @@
           "weight_unit": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "kg",
+                  "lb"
+                ]
               },
               {
                 "type": "null"
@@ -7304,7 +7328,8 @@
           "name": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 200
               },
               {
                 "type": "null"
@@ -7325,7 +7350,8 @@
           "team_score": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 50
               },
               {
                 "type": "null"
@@ -7360,7 +7386,8 @@
           "notes": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 2000
               },
               {
                 "type": "null"
@@ -9476,10 +9503,18 @@
           },
           "graph_colour_mode": {
             "type": "string",
+            "enum": [
+              "intensity",
+              "volume"
+            ],
             "title": "Graph Colour Mode"
           },
           "weight_unit": {
             "type": "string",
+            "enum": [
+              "kg",
+              "lb"
+            ],
             "title": "Weight Unit"
           },
           "checkin_enabled": {
@@ -9525,6 +9560,10 @@
           },
           "distance_unit": {
             "type": "string",
+            "enum": [
+              "km",
+              "mi"
+            ],
             "title": "Distance Unit",
             "default": "km"
           },

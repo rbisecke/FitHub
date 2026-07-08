@@ -75,7 +75,8 @@ async def create_movement(
             ],
         )
         row = await cur.fetchone()
-    assert row is not None
+    if row is None:
+        raise RuntimeError("Movement INSERT returned no row")
     return Movement(**row)
 
 

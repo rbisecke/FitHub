@@ -52,7 +52,8 @@ async def create_session(
                 [session_id, user_id, title],
             )
             row = await cur.fetchone()
-        assert row is not None
+        if row is None:
+            raise RuntimeError("Coach session INSERT returned no row")
         return uuid.UUID(str(row["id"]))
     async with db.cursor(row_factory=dict_row) as cur:
         await cur.execute(
@@ -64,7 +65,8 @@ async def create_session(
             [user_id, title],
         )
         row = await cur.fetchone()
-    assert row is not None
+    if row is None:
+        raise RuntimeError("Coach session INSERT returned no row")
     return uuid.UUID(str(row["id"]))
 
 
@@ -304,6 +306,7 @@ async def fetch_today_session(
             LEFT JOIN planned_items pi ON pi.session_id = ps.id
             WHERE p.user_id = %s AND ps.scheduled_date = %s
             GROUP BY ps.id, ps.session_type, ps.title
+            ORDER BY (p.status = 'active') DESC, ps.scheduled_date
             LIMIT 1
             """,
             [user_id, today],

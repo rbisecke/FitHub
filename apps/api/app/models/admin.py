@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -20,15 +21,15 @@ class AccessRequestRow(BaseModel):
     email: str
     name: str
     motivation: str
-    status: str
+    status: Literal["pending", "approved", "rejected"]
     reviewed_at: datetime | None
     reviewed_by: uuid.UUID | None
     review_note: str | None
 
 
 class AccessRequestReview(BaseModel):
-    action: str  # "approved" | "rejected"
-    note: str | None = None
+    action: Literal["approved", "rejected"]
+    note: str | None = Field(default=None, max_length=1000)
 
 
 # ── Metrics summary ───────────────────────────────────────────────────────────
@@ -82,7 +83,7 @@ class InvitedEmail(BaseModel):
 
 
 class AddInviteBody(BaseModel):
-    email: str
+    email: EmailStr = Field(max_length=254)
 
 
 # ── Health ────────────────────────────────────────────────────────────────────

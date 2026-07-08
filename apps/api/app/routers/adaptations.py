@@ -6,9 +6,10 @@ import json
 
 import psycopg
 import psycopg.rows
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from app.dependencies.common import Auth, DBConn
+from app.middleware.rate_limit import limiter
 from app.models.adaptation import (
     AdaptationOut,
     AdjustAdaptationRequest,
@@ -58,8 +59,10 @@ def _row_to_out(r: dict[str, object]) -> AdaptationOut:
 
 
 @router.post("/plans/{plan_id}/adaptations/detect", response_model=DetectTriggersResponse)
+@limiter.limit("5/hour")
 async def detect_plan_adaptations(
     plan_id: str,
+    request: Request,
     user: Auth,
     db: DBConn,
 ) -> DetectTriggersResponse:
@@ -78,7 +81,10 @@ async def detect_plan_adaptations(
 
     proposed: list[AdaptationOut] = []
     for trigger in triggers:
-        result = await generate_adaptation(trigger, [])
+        result = await generate_adaptation(
+            {"trigger_type": trigger["type"], "trigger_data": trigger["data"]},
+            [],
+        )
         async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
             await cur.execute(
                 f"""
@@ -93,7 +99,7 @@ async def detect_plan_adaptations(
                     str(trigger["type"]),
                     json.dumps(trigger["data"]),
                     str(result.get("rationale", "")),
-                    None,
+                    json.dumps(result.get("diff", []) or []),
                     bool(result.get("stub", False)),
                 ],
             )
@@ -203,8 +209,10 @@ async def reject_adaptation(
 
 
 @router.post("/adaptations/{adaptation_id}/adjust", response_model=AdaptationOut)
+@limiter.limit("10/hour")
 async def adjust_adaptation(
     adaptation_id: str,
+    request: Request,
     body: AdjustAdaptationRequest,
     user: Auth,
     db: DBConn,
@@ -256,6 +264,11 @@ async def adjust_adaptation(
                 """,
             [body.feedback, adaptation_id, user.user_id],
         )
+        if cur.rowcount == 0:
+            raise HTTPException(
+                status_code=409,
+                detail="Adaptation was already merged or rejected by a concurrent request",
+            )
         await cur.execute(
             f"""
                 INSERT INTO adaptations
@@ -269,7 +282,7 @@ async def adjust_adaptation(
                 str(existing["trigger_type"]),
                 json.dumps(existing["trigger_data"]) if existing["trigger_data"] else "{}",
                 str(result.get("rationale", "")),
-                None,
+                json.dumps(result.get("diff", []) or []),
                 bool(result.get("stub", False)),
             ],
         )

@@ -33,7 +33,7 @@ async def list_plans(
                    start_date, end_date,
                    to_char(created_at AT TIME ZONE 'UTC',
                            'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
-            FROM plans WHERE user_id = %s ORDER BY created_at DESC
+            FROM plans WHERE user_id = %s ORDER BY created_at DESC LIMIT 50
             """,
             [user_id],
         )
@@ -263,6 +263,7 @@ async def load_prescribed_sessions(
             GROUP BY ps.id, ps.scheduled_date, ps.session_type,
                      ps.title, ps.notes, ps.status
             ORDER BY ps.scheduled_date
+            LIMIT 50
             """,
             [plan_id, user_id],
         )

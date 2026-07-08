@@ -132,7 +132,8 @@ async def _insert_result(
         ],
     )
     row = await cur.fetchone()
-    assert row is not None
+    if row is None:
+        raise RuntimeError("INSERT INTO workouts returned no row")
     return Result(**row)
 
 
@@ -176,7 +177,8 @@ async def create_workout(
             ],
         )
         workout_row = await cur.fetchone()
-        assert workout_row is not None
+        if workout_row is None:
+            raise RuntimeError("Workout not found after update")
 
         for r in req.results:
             await _insert_result(cur, user_id=user_id, workout_id=workout_id, req=r)

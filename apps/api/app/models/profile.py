@@ -14,15 +14,15 @@ class UserProfile(BaseModel):
     timezone: str
     first_workout_date: str | None  # "YYYY-MM-DD" or None
     frequency_target_days: int  # 1–7
-    graph_colour_mode: str  # 'intensity' | 'volume'
-    weight_unit: str  # 'kg' | 'lb'
+    graph_colour_mode: Literal["intensity", "volume"]
+    weight_unit: Literal["kg", "lb"]
     checkin_enabled: bool
     onboarding_completed: bool
     # Extended profile fields
     bio: str | None = None
     location: str | None = None
     box_affiliation: str | None = None
-    distance_unit: str = "km"  # 'km' | 'mi'
+    distance_unit: Literal["km", "mi"] = "km"
     training_level: str | None = (
         None  # 'recreational'|'intermediate'|'competitive'|'masters'|'elite'
     )
@@ -37,9 +37,9 @@ class ProfileStats(BaseModel):
 
 
 class PatchProfileRequest(BaseModel):
-    frequency_target_days: int | None = None
-    graph_colour_mode: str | None = None
-    weight_unit: str | None = None  # maps to unit_preference column in DB
+    frequency_target_days: int | None = Field(default=None, ge=1, le=7)
+    graph_colour_mode: Literal["intensity", "volume"] | None = None
+    weight_unit: Literal["kg", "lb"] | None = None  # maps to unit_preference column in DB
     checkin_enabled: bool | None = None
     onboarding_completed: bool | None = None
     # Extended patchable fields

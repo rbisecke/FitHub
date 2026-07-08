@@ -155,7 +155,8 @@ async def create_team_session(
             ],
         )
         row = await cur.fetchone()
-        assert row is not None
+        if row is None:
+            raise RuntimeError("Team session INSERT returned no row")
         session_id: uuid.UUID = row["id"]
 
         # Creator is always participant 0.  If req.workout_id is supplied,
@@ -208,7 +209,8 @@ async def create_team_session(
                 )
 
     result = await _fetch_team_session(conn, team_session_id=session_id)
-    assert result is not None
+    if result is None:
+        raise RuntimeError("Team session not found after update")
     return result
 
 

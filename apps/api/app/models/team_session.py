@@ -41,8 +41,8 @@ class TeamSessionParticipant(BaseModel):
 class CreateParticipantRequest(BaseModel):
     user_id: uuid.UUID | None = None
     workout_id: uuid.UUID | None = None
-    guest_name: str | None = None
-    role: str | None = None
+    guest_name: str | None = Field(default=None, max_length=100)
+    role: str | None = Field(default=None, max_length=100)
 
     @model_validator(mode="after")
     def require_identity(self) -> CreateParticipantRequest:
@@ -57,7 +57,7 @@ class AddParticipantRequest(CreateParticipantRequest):
 
 class PatchParticipantRequest(BaseModel):
     workout_id: uuid.UUID | None = None
-    role: str | None = None
+    role: str | None = Field(default=None, max_length=100)
 
 
 class TeamSession(BaseModel):
@@ -93,13 +93,13 @@ class TeamSessionSummary(BaseModel):
 
 class CreateTeamSessionRequest(BaseModel):
     performed_at: datetime
-    name: str | None = None
+    name: str | None = Field(default=None, max_length=200)
     team_size: int = Field(default=2, ge=2, le=20)
     scoring_type: ScoringType | None = None
-    team_score: str | None = None
+    team_score: str | None = Field(default=None, max_length=50)
     team_score_s: int | None = Field(default=None, gt=0)
     team_score_reps: int | None = Field(default=None, gt=0)
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=2000)
     # workout_id links the creator's own workout to this session.
     # When provided, workouts.team_session_id is set and the creator's
     # participant row is updated with the workout reference.
@@ -119,12 +119,12 @@ class CreateTeamSessionRequest(BaseModel):
 
 
 class PatchTeamSessionRequest(BaseModel):
-    name: str | None = None
+    name: str | None = Field(default=None, max_length=200)
     scoring_type: ScoringType | None = None
-    team_score: str | None = None
+    team_score: str | None = Field(default=None, max_length=50)
     team_score_s: int | None = Field(default=None, gt=0)
     team_score_reps: int | None = Field(default=None, gt=0)
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=2000)
     status: TeamSessionStatus | None = None
 
 

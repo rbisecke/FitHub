@@ -69,7 +69,7 @@ class InjuryOut(BaseModel):
     mechanism: str | None = None
     notes: str | None = None
     active: bool
-    status: str = "active"
+    status: Literal["active", "cleared_with_restrictions", "permanent", "resolved"] = "active"
     requires_referral: bool
     substitutions: list[str] = []
     contraindicated: list[str] = []

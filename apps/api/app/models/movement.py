@@ -77,15 +77,15 @@ class CreateMovementRequest(BaseModel):
     slug: str = Field(..., min_length=1, max_length=200, pattern=r"^[a-z0-9-]+$")
     base_movement: str = Field(..., min_length=1, max_length=200)
     modality: Modality
-    start_position: str | None = None
-    catch_position: str | None = None
-    pause_position: str | None = None
+    start_position: str | None = Field(default=None, max_length=200)
+    catch_position: str | None = Field(default=None, max_length=200)
+    pause_position: str | None = Field(default=None, max_length=200)
     tempo: str | None = Field(default=None, pattern=_TEMPO_RE)
     execution_style: ExecutionStyle | None = None
     movement_pattern: MovementPattern | None = None
     limb_style: LimbStyle | None = None
-    implement: str | None = None
-    default_result_types: list[str] = Field(default_factory=list)
+    implement: str | None = Field(default=None, max_length=100)
+    default_result_types: list[str] = Field(default_factory=list, max_length=10)
     default_result_type: ResultType | None = None
 
 
