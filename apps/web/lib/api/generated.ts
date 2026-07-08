@@ -1218,23 +1218,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/v1/wellness/checkin/reject-if-missing": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Reject Missing */
-    get: operations["_reject_missing_api_v1_wellness_checkin_reject_if_missing_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   "/health": {
     parameters: {
       query?: never;
@@ -1287,8 +1270,11 @@ export interface components {
     };
     /** AccessRequestReview */
     AccessRequestReview: {
-      /** Action */
-      action: string;
+      /**
+       * Action
+       * @enum {string}
+       */
+      action: "approved" | "rejected";
       /** Note */
       note?: string | null;
     };
@@ -1310,8 +1296,11 @@ export interface components {
       name: string;
       /** Motivation */
       motivation: string;
-      /** Status */
-      status: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "pending" | "approved" | "rejected";
       /** Reviewed At */
       reviewed_at: string | null;
       /** Reviewed By */
@@ -1355,7 +1344,10 @@ export interface components {
     };
     /** AddInviteBody */
     AddInviteBody: {
-      /** Email */
+      /**
+       * Email
+       * Format: email
+       */
       email: string;
     };
     /** AddParticipantRequest */
@@ -1893,8 +1885,9 @@ export interface components {
       /**
        * Status
        * @default active
+       * @enum {string}
        */
-      status: string;
+      status: "active" | "cleared_with_restrictions" | "permanent" | "resolved";
       /** Requires Referral */
       requires_referral: boolean;
       /**
@@ -2304,9 +2297,9 @@ export interface components {
       /** Frequency Target Days */
       frequency_target_days?: number | null;
       /** Graph Colour Mode */
-      graph_colour_mode?: string | null;
+      graph_colour_mode?: ("intensity" | "volume") | null;
       /** Weight Unit */
-      weight_unit?: string | null;
+      weight_unit?: ("kg" | "lb") | null;
       /** Checkin Enabled */
       checkin_enabled?: boolean | null;
       /** Onboarding Completed */
@@ -3001,10 +2994,16 @@ export interface components {
       first_workout_date: string | null;
       /** Frequency Target Days */
       frequency_target_days: number;
-      /** Graph Colour Mode */
-      graph_colour_mode: string;
-      /** Weight Unit */
-      weight_unit: string;
+      /**
+       * Graph Colour Mode
+       * @enum {string}
+       */
+      graph_colour_mode: "intensity" | "volume";
+      /**
+       * Weight Unit
+       * @enum {string}
+       */
+      weight_unit: "kg" | "lb";
       /** Checkin Enabled */
       checkin_enabled: boolean;
       /** Onboarding Completed */
@@ -3018,8 +3017,9 @@ export interface components {
       /**
        * Distance Unit
        * @default km
+       * @enum {string}
        */
-      distance_unit: string;
+      distance_unit: "km" | "mi";
       /** Training Level */
       training_level?: string | null;
       /** Training Since */
@@ -5685,26 +5685,6 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["TodayCheckInResponse"];
-        };
-      };
-    };
-  };
-  _reject_missing_api_v1_wellness_checkin_reject_if_missing_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": unknown;
         };
       };
     };

@@ -287,7 +287,7 @@ async def list_plans(
                    start_date, end_date,
                    to_char(created_at AT TIME ZONE 'UTC',
                            'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
-            FROM plans WHERE user_id = %s ORDER BY created_at DESC
+            FROM plans WHERE user_id = %s ORDER BY created_at DESC LIMIT 50
             """,
             [user.user_id],
         )
@@ -328,9 +328,29 @@ async def today_session(
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
-            SELECT ps.id FROM planned_sessions ps
+            SELECT ps.id, ps.mesocycle_id, ps.scheduled_date,
+                   ps.session_type, ps.title, ps.notes, ps.status,
+                   COALESCE(
+                       json_agg(
+                           json_build_object(
+                               'id', pi.id,
+                               'movement_name', pi.movement_name,
+                               'sets', pi.sets, 'reps', pi.reps,
+                               'load_pct_1rm', pi.load_pct_1rm::float,
+                               'load_kg', pi.load_kg::float,
+                               'notes', pi.notes,
+                               'item_order', pi.item_order
+                           ) ORDER BY pi.item_order
+                       ) FILTER (WHERE pi.id IS NOT NULL),
+                       '[]'
+                   ) AS items
+            FROM planned_sessions ps
             JOIN plans p ON p.id = ps.plan_id
+            LEFT JOIN planned_items pi ON pi.session_id = ps.id
             WHERE ps.plan_id = %s AND p.user_id = %s AND ps.scheduled_date = %s
+            GROUP BY ps.id, ps.mesocycle_id, ps.scheduled_date,
+                     ps.session_type, ps.title, ps.notes, ps.status
+            ORDER BY (p.status = 'active') DESC
             LIMIT 1
             """,
             [plan_id, user.user_id, today],
@@ -340,11 +360,8 @@ async def today_session(
     if row is None:
         return None
 
-    detail = await _get_plan_detail(plan_id, str(user.user_id), db)
-    for s in detail.sessions:
-        if s.id == row["id"]:
-            return s
-    return None
+    items = [PlannedItemOut(**item) for item in (row["items"] or [])]
+    return PlannedSessionOut(**{k: v for k, v in row.items() if k != "items"}, items=items)
 
 
 @router.post("/{plan_id}/revise", response_model=PlanDetail)

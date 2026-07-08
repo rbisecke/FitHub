@@ -120,34 +120,40 @@ async def get_personal_records(
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT DISTINCT ON (r.movement_id)
-                r.movement_id::text,
-                m.name                    AS movement_name,
-                r.estimated_1rm_kg::float AS best_1rm_kg,
-                w.performed_at::date      AS achieved_at,
-                w.id::text                AS workout_id,
-                r.load_kg::float          AS load_kg,
-                r.reps,
-                r.time_s,
-                (
-                    SELECT r2.estimated_1rm_kg::float
-                    FROM   public.results r2
-                    JOIN   public.workouts w2 ON r2.workout_id = w2.id
-                    WHERE  w2.user_id           = %s
-                      AND  r2.movement_id       = r.movement_id
-                      AND  r2.estimated_1rm_kg IS NOT NULL
-                      AND  r2.id              != r.id
-                    ORDER  BY r2.estimated_1rm_kg DESC
-                    LIMIT  1
-                )                         AS prev_best_1rm_kg
-            FROM results r
-            JOIN workouts  w ON r.workout_id  = w.id
-            JOIN movements m ON r.movement_id = m.id
-            WHERE w.user_id            = %s
-              AND r.estimated_1rm_kg IS NOT NULL
-            ORDER BY r.movement_id, r.estimated_1rm_kg DESC
+            WITH ranked AS (
+                SELECT
+                    r.movement_id,
+                    m.name                    AS movement_name,
+                    r.estimated_1rm_kg::float AS estimated_1rm_kg,
+                    w.performed_at::date      AS achieved_at,
+                    w.id                      AS workout_id,
+                    r.load_kg::float          AS load_kg,
+                    r.reps,
+                    r.time_s,
+                    LAG(r.estimated_1rm_kg::float) OVER (
+                        PARTITION BY r.movement_id
+                        ORDER BY r.estimated_1rm_kg ASC
+                    ) AS prev_best_1rm_kg
+                FROM results r
+                JOIN workouts  w ON r.workout_id  = w.id
+                JOIN movements m ON r.movement_id = m.id
+                WHERE w.user_id = %s
+                  AND r.estimated_1rm_kg IS NOT NULL
+            )
+            SELECT DISTINCT ON (movement_id)
+                movement_id::text,
+                movement_name,
+                estimated_1rm_kg AS best_1rm_kg,
+                achieved_at,
+                workout_id::text,
+                load_kg,
+                reps,
+                time_s,
+                prev_best_1rm_kg
+            FROM ranked
+            ORDER BY movement_id, estimated_1rm_kg DESC
             """,
-            (user_id, user_id),
+            (user_id,),
         )
         rows = await cur.fetchall()
 
@@ -210,11 +216,12 @@ async def get_movement_trend(
             FROM results r
             JOIN workouts w ON r.workout_id = w.id
             WHERE w.user_id            = %s
+              AND r.user_id            = %s
               AND r.movement_id        = %s
               AND r.estimated_1rm_kg IS NOT NULL
             ORDER BY w.performed_at ASC
             """,
-            (user_id, movement_id),
+            (user_id, user_id, movement_id),
         )
         return await cur.fetchall()
 
@@ -242,11 +249,13 @@ async def get_movement_history(
             FROM results r
             JOIN workouts w ON r.workout_id = w.id
             WHERE w.user_id         = %s
+              AND r.user_id         = %s
               AND r.movement_id     = %s
               AND r.estimated_1rm_kg IS NOT NULL
             ORDER BY w.performed_at DESC
+            LIMIT 200
             """,
-            (user_id, movement_id),
+            (user_id, user_id, movement_id),
         )
         rows = await cur.fetchall()
 
@@ -348,6 +357,12 @@ async def get_readiness(
         tsb_score = min(1.0, max(0.0, (tsb + 20) / 40))
 
     available_scores = [s for s in [acwr_score, tsb_score] if s is not None]
+    # motivation: higher = better (1..7), normalize to [0,1]
+    if mood_avg is not None:
+        available_scores.append((mood_avg - 1.0) / 6.0)
+    # sleep_quality: higher = worse (1..7), invert normalize
+    if sleep_avg is not None:
+        available_scores.append((7.0 - sleep_avg) / 6.0)
     if factors_available + len(available_scores) < 1:
         score = 0.5
         label = "insufficient_data"

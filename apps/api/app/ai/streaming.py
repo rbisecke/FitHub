@@ -47,7 +47,8 @@ async def stream_llm_tokens(
         import anthropic
 
         raw = llm.raw
-        assert isinstance(raw, anthropic.AsyncAnthropic)
+        if not isinstance(raw, anthropic.AsyncAnthropic):
+            raise RuntimeError(f"Expected AsyncAnthropic client, got {type(raw)}")
         async with raw.messages.stream(
             model=llm.model,
             max_tokens=1024,
@@ -61,7 +62,8 @@ async def stream_llm_tokens(
         from openai.types.chat import ChatCompletionChunk
 
         raw = llm.raw
-        assert isinstance(raw, AsyncOpenAI)
+        if not isinstance(raw, AsyncOpenAI):
+            raise RuntimeError(f"Expected AsyncOpenAI client, got {type(raw)}")
         oai_stream: AsyncStream[ChatCompletionChunk] = await raw.chat.completions.create(  # type: ignore[assignment]
             model=llm.model,
             max_tokens=1024,

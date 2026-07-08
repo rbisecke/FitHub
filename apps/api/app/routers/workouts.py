@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import uuid
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
@@ -72,7 +73,6 @@ async def create_workout_route(
 @router.post("/parse-nl", response_model=ParseNLResponse)
 async def parse_workout_nl(body: ParseNLRequest, user: Auth) -> ParseNLResponse:
     """Minimal NL workout parser — extracts title from free-form text."""
-    import re
 
     text = body.text.strip()
     parts = re.split(r"[.!?\n]", text)

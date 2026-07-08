@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import calendar
 import logging
 import time
 import uuid
@@ -208,7 +209,8 @@ async def admin_metrics(
 
     cost_mtd = float(mtd.get("cost_mtd_usd") or 0)
     day_of_month = datetime.now(UTC).day
-    days_in_month = 30  # close enough for projection
+    now = datetime.now(UTC)
+    days_in_month = calendar.monthrange(now.year, now.month)[1]
     projected = cost_mtd / day_of_month * days_in_month if day_of_month > 0 else 0.0
 
     avg_cost = cost_30d / interactions_30d if interactions_30d > 0 else 0.0
@@ -281,9 +283,6 @@ async def review_access_request(
     admin_id: Annotated[uuid.UUID, Depends(require_admin)],
     conn: Annotated[DBConn, Depends(get_db)],
 ) -> AccessRequestRow:
-    if body.action not in ("approved", "rejected"):
-        raise HTTPException(status_code=400, detail="action must be 'approved' or 'rejected'")
-
     async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """

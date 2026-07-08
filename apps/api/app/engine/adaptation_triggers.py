@@ -60,8 +60,8 @@ async def _compute_acwr(
                 GROUP  BY 1
             )
             SELECT
-                AVG(daily_load) FILTER (WHERE day >= now()::date - 7) AS acute,
-                AVG(daily_load)                                         AS chronic
+                SUM(daily_load) FILTER (WHERE day >= now()::date - 7) * 4.0 AS acute,
+                SUM(daily_load)                                               AS chronic
             FROM daily
             """,
             [user_id],

@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import app.repositories.team_sessions as repo
 from app.dependencies.common import Auth, DBConn
@@ -40,7 +40,7 @@ async def list_training_partners(user: Auth, conn: DBConn) -> list[TrainingPartn
 
 
 class AddPartnerRequest(BaseModel):
-    email: str
+    email: str = Field(max_length=254)
 
 
 @router.post("/api/v1/training-partners", response_model=TrainingPartner, status_code=201)

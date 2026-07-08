@@ -37,7 +37,7 @@ def _row_to_injury_out(
         mechanism=str(r["mechanism"]) if r["mechanism"] else None,
         notes=str(r["notes"]) if r["notes"] else None,
         active=bool(r["active"]),
-        status=str(r.get("status") or "active"),
+        status=str(r.get("status") or "active"),  # type: ignore[arg-type]
         requires_referral=bool(r["requires_referral"]),
         substitutions=substitutions if substitutions is not None else [],
         contraindicated=get_contraindicated_movements(body_region),

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 
 import psycopg.rows
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from app.dependencies.common import Auth, DBConn
@@ -150,8 +150,3 @@ async def today_checkin(
             hooper_index=hooper,
         ),
     )
-
-
-@router.get("/checkin/reject-if-missing")
-async def _reject_missing() -> None:
-    raise HTTPException(status_code=404, detail="Not found")
