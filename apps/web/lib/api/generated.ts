@@ -1275,7 +1275,10 @@ export interface components {
   schemas: {
     /** AccessRequestCreate */
     AccessRequestCreate: {
-      /** Email */
+      /**
+       * Email
+       * Format: email
+       */
       email: string;
       /** Name */
       name: string;
@@ -3301,7 +3304,7 @@ export interface operations {
   list_access_requests_api_v1_admin_access_requests_get: {
     parameters: {
       query?: {
-        status?: string | null;
+        status?: ("pending" | "approved" | "rejected") | null;
       };
       header?: never;
       path?: never;
