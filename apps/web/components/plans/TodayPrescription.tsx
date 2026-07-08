@@ -67,10 +67,18 @@ export function TodayPrescription({
   }, [client, planId]);
 
   useEffect(() => {
+    let cancelled = false;
     client.analytics
       .personalRecords()
-      .then(setPrs)
-      .catch(() => setPrs([]));
+      .then((data) => {
+        if (!cancelled) setPrs(data);
+      })
+      .catch(() => {
+        if (!cancelled) setPrs([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [client]);
 
   // Name-indexed PR map (case-insensitive match)

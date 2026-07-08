@@ -45,13 +45,16 @@ function hooperLabel(index: number): string {
 function PipSelector({
   value,
   onChange,
+  label,
 }: {
   value: number;
   onChange: (v: number) => void;
+  label: string;
 }) {
+  const pips = 7;
   return (
     <div className="flex gap-[4px]">
-      {Array.from({ length: 7 }, (_, i) => {
+      {Array.from({ length: pips }, (_, i) => {
         const pip = i + 1;
         const active = pip <= value;
         const color = active ? pipColor(pip) : undefined;
@@ -64,7 +67,7 @@ function PipSelector({
               background: active ? color : "var(--surface)",
               borderColor: active ? color : "var(--border)",
             }}
-            aria-label={`${pip}`}
+            aria-label={`${label} ${pip} of ${pips}`}
           />
         );
       })}
@@ -204,6 +207,7 @@ export function HooperCheckIn({
             <PipSelector
               value={values[key]}
               onChange={(v) => setValues((prev) => ({ ...prev, [key]: v }))}
+              label={label}
             />
           </div>
         ))}

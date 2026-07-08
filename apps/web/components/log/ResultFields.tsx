@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { UseFormRegister, UseFormSetValue } from "react-hook-form";
+import type { UseFormRegister, UseFormSetValue, Path } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { parseTimeInput, timeTextToSeconds } from "@/lib/time";
 import { fmtPace } from "@/lib/distance";
@@ -44,8 +44,8 @@ export function ResultFields({
 }: ResultFieldsProps) {
   const { distanceUnit } = useUserPrefs();
   const prefix = fieldPrefix ?? `movement_entries.${index}.sets.0`;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const r = (field: string) => register(`${prefix}.${field}` as any);
+  const r = (field: string) =>
+    register(`${prefix}.${field}` as Path<LogFormValues>);
 
   // Local state for cardio compound pace computation
   const [cardioDistance, setCardioDistance] = useState("");
@@ -97,8 +97,10 @@ export function ResultFields({
               const normalised = parseTimeInput(e.target.value);
               setCardioTime(normalised);
               if (setValue) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                setValue(`${prefix}.time_text` as any, normalised);
+                setValue(
+                  `${prefix}.time_text` as Path<LogFormValues>,
+                  normalised,
+                );
               }
               timeRegCardio.onBlur(e);
             }}
@@ -169,8 +171,7 @@ export function ResultFields({
         onBlur={(e) => {
           const normalised = parseTimeInput(e.target.value);
           if (setValue) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setValue(`${prefix}.time_text` as any, normalised);
+            setValue(`${prefix}.time_text` as Path<LogFormValues>, normalised);
           }
           timeReg.onBlur(e);
         }}

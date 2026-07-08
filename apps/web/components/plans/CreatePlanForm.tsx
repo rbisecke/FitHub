@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api/client";
+import { api, ApiError } from "@/lib/api/client";
 import type { CreatePlanRequest } from "@/lib/api/plans";
 
 const GOALS = [
@@ -24,6 +24,13 @@ interface Props {
 
 export function CreatePlanForm({ accessToken }: Props) {
   const router = useRouter();
+  const cancelledRef = useRef(false);
+  useEffect(
+    () => () => {
+      cancelledRef.current = true;
+    },
+    [],
+  );
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [goal, setGoal] = useState<CreatePlanRequest["goal"] | "">("");
   const [title, setTitle] = useState<string>("");
@@ -59,7 +66,9 @@ export function CreatePlanForm({ accessToken }: Props) {
 
       for (let i = 0; i < 30; i++) {
         await new Promise((r) => setTimeout(r, 300));
+        if (cancelledRef.current) return;
         const status = await api.plans.pollTask(accessToken, taskId);
+        if (cancelledRef.current) return;
         if (status.status === "complete" && status.plan_id) {
           planId = status.plan_id;
           break;
@@ -70,9 +79,15 @@ export function CreatePlanForm({ accessToken }: Props) {
       }
 
       if (!planId) throw new Error("Timed out waiting for plan");
+      if (cancelledRef.current) return;
       router.push(`/plans/${planId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create plan");
+      if (cancelledRef.current) return;
+      setError(
+        err instanceof ApiError
+          ? "Something went wrong. Please try again."
+          : "Failed to create plan",
+      );
       setLoading(false);
     }
   }
