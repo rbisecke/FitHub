@@ -344,9 +344,9 @@ export function WorkoutDetailClient({
                         </span>
                       )}
                       {r.variant_annotation &&
-                        r.variant_annotation.split(",").map((chip, ci) => (
+                        r.variant_annotation.split(",").map((chip) => (
                           <span
-                            key={ci}
+                            key={chip}
                             className="font-mono text-[10px] px-1 py-0.5 rounded border border-[--border] bg-[--surface] text-[--muted]"
                           >
                             {chip}

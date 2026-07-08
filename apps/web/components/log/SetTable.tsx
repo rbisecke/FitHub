@@ -53,7 +53,7 @@ export function SetTable({
   return (
     <div className="space-y-2">
       {/* Column headers */}
-      <div className="grid grid-cols-[2rem_1fr_1fr_3rem_auto] gap-2 items-center text-xs font-mono text-[#8b949e] px-1">
+      <div className="grid grid-cols-[2rem_1fr_1fr_3rem_auto] gap-2 items-center text-xs font-mono text-[var(--muted)] px-1">
         <span className="text-right">Set</span>
         <span>{weightUnit}</span>
         <span>Reps</span>
@@ -118,7 +118,7 @@ export function SetTable({
       <button
         type="button"
         onClick={handleAddSet}
-        className="inline-flex items-center text-xs font-mono text-[#58a6ff] hover:text-[#e6edf3] transition-colors min-h-[44px] px-2"
+        className="inline-flex items-center text-xs font-mono text-[var(--accent)] hover:text-[var(--text)] transition-colors min-h-[44px] px-2"
       >
         + Add set
       </button>

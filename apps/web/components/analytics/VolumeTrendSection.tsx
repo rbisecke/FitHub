@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import type { WeeklyVolume } from "@/lib/api";
@@ -29,9 +29,13 @@ export function VolumeTrendSection({ initialWeeks, token, className }: Props) {
   const [weeks, setWeeks] = useState(initialWeeks);
   const [period, setPeriod] = useLocalStorage(STORAGE_KEY, "8");
   const [loading, setLoading] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   const fetchVolume = useCallback(
     async (p: string) => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
       setLoading(true);
       try {
         const res = await fetch(
@@ -39,15 +43,18 @@ export function VolumeTrendSection({ initialWeeks, token, className }: Props) {
           {
             headers: { Authorization: `Bearer ${token}` },
             cache: "no-store",
+            signal: controller.signal,
           },
         );
+        if (controller.signal.aborted) return;
         if (!res.ok) throw new Error("volume-trend fetch failed");
-        const data = await res.json();
+        const data = (await res.json()) as { weeks?: typeof weeks };
         setWeeks(data.weeks ?? []);
-      } catch {
-        // keep existing data on error
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        // keep existing data on non-abort error
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     },
     [token],

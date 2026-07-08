@@ -115,15 +115,20 @@ export function WorkoutCard({
   });
 
   useEffect(() => {
-    if (isExpanded && !fetchedRef.current) {
-      fetchedRef.current = true;
-      setDetailLoading(true);
-      api.workouts
-        .get(accessToken, workout.id)
-        .then((w) => setDetail(w))
-        .catch(() => {})
-        .finally(() => setDetailLoading(false));
-    }
+    if (!isExpanded || fetchedRef.current) return;
+    fetchedRef.current = true;
+    const controller = new AbortController();
+    setDetailLoading(true);
+    api.workouts
+      .get(accessToken, workout.id)
+      .then((w) => {
+        if (!controller.signal.aborted) setDetail(w);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!controller.signal.aborted) setDetailLoading(false);
+      });
+    return () => controller.abort();
   }, [isExpanded, accessToken, workout.id]);
 
   // Lazy fetch team session when card is first expanded
@@ -148,8 +153,6 @@ export function WorkoutCard({
         workout={workout}
         detail={detail}
         detailLoading={detailLoading}
-        accessToken={accessToken}
-        isExpanded={isExpanded}
       />
     );
   }
@@ -480,9 +483,9 @@ function ExpandedContent({
                           </span>
                         )}
                         {r.variant_annotation &&
-                          r.variant_annotation.split(",").map((chip, ci) => (
+                          r.variant_annotation.split(",").map((chip) => (
                             <span
-                              key={ci}
+                              key={chip}
                               className="font-mono text-[10px] px-1 py-0.5 rounded border border-[#30363d] bg-[#161b22] text-[#8b949e]"
                             >
                               {chip}
@@ -745,34 +748,15 @@ function TagCard({
   workout,
   detail,
   detailLoading,
-  accessToken,
-  isExpanded,
 }: {
   workout: WorkoutSummary;
   detail: Workout | null;
   detailLoading: boolean;
-  accessToken: string;
-  isExpanded: boolean;
 }) {
   const { distanceUnit, weightUnit } = useUserPrefs();
   const unit = weightUnit === "lb" ? "lb" : "kg";
-  const [localDetail, setLocalDetail] = useState<Workout | null>(detail);
-  const [loading, setLoading] = useState(detailLoading);
-  const fetchedRef = useRef(detail !== null);
 
-  useEffect(() => {
-    if (!isExpanded) return;
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
-    setLoading(true);
-    api.workouts
-      .get(accessToken, workout.id)
-      .then((w) => setLocalDetail(w))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [isExpanded, accessToken, workout.id]);
-
-  const result = localDetail?.results?.[0];
+  const result = detail?.results?.[0];
   const movementName = result?.movement_name ?? null;
   const resultValue = result
     ? formatResultValue(result, distanceUnit, unit)
@@ -809,7 +793,7 @@ function TagCard({
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          {loading ? (
+          {detailLoading ? (
             <span className="font-data text-[11px] text-[var(--muted-foreground)]">
               Loading…
             </span>
@@ -842,7 +826,7 @@ function TagCard({
 
       {/* Desktop: original layout */}
       <div className="hidden md:block rounded-lg border border-[#30363d] px-4 py-3 transition-colors hover:border-[#58a6ff]/20">
-        {loading ? (
+        {detailLoading ? (
           <div className="flex items-center gap-2 font-mono text-xs text-[#8b949e]">
             <span>🏷</span>
             <span className="text-[#8b949e]">Loading…</span>
@@ -876,9 +860,9 @@ function TagCard({
                 {dateLabel}
               </span>
             </div>
-            {localDetail?.notes && (
+            {detail?.notes && (
               <p className="mt-1 font-mono text-xs text-[#8b949e] pl-6">
-                {localDetail.notes}
+                {detail.notes}
               </p>
             )}
           </>

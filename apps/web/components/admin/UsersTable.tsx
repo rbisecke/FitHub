@@ -52,7 +52,7 @@ function SortButton({ label, sortKey, active, dir, onSort }: SortButtonProps) {
         textTransform: "uppercase",
         letterSpacing: ".5px",
         padding: 0,
-        color: isActive ? "#e6edf3" : "#8b949e",
+        color: isActive ? "var(--text)" : "var(--muted)",
         transition: "color 150ms ease",
       }}
     >
@@ -99,8 +99,8 @@ export function UsersTable({ users }: Props) {
   return (
     <div
       style={{
-        background: "#161b22",
-        border: "1px solid #30363d",
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
         borderRadius: 16,
         overflow: "hidden",
       }}
@@ -110,12 +110,12 @@ export function UsersTable({ users }: Props) {
         <div
           style={{
             padding: "12px 20px",
-            borderBottom: "1px solid #30363d",
+            borderBottom: "1px solid var(--border)",
             display: "grid",
             gridTemplateColumns: GRID,
             gap: 12,
             fontSize: 10.5,
-            color: "#8b949e",
+            color: "var(--muted)",
             textTransform: "uppercase",
             letterSpacing: ".5px",
             alignItems: "center",
@@ -145,7 +145,7 @@ export function UsersTable({ users }: Props) {
         className="md:hidden"
         style={{
           padding: "10px 20px",
-          borderBottom: "1px solid #30363d",
+          borderBottom: "1px solid var(--border)",
           display: "flex",
           alignItems: "center",
           gap: 14,
@@ -154,7 +154,7 @@ export function UsersTable({ users }: Props) {
         <span
           style={{
             fontSize: 10.5,
-            color: "#8b949e",
+            color: "var(--muted)",
             textTransform: "uppercase",
             letterSpacing: ".5px",
             fontFamily: "var(--font-jetbrains-mono), monospace",
@@ -183,7 +183,7 @@ export function UsersTable({ users }: Props) {
           style={{
             padding: 44,
             textAlign: "center",
-            color: "#8b949e",
+            color: "var(--muted)",
             fontSize: 13,
           }}
         >
@@ -201,7 +201,7 @@ export function UsersTable({ users }: Props) {
                 <div
                   style={{
                     padding: "14px 20px",
-                    borderBottom: "1px solid #30363d",
+                    borderBottom: "1px solid var(--border)",
                     display: "grid",
                     gridTemplateColumns: GRID,
                     gap: 12,
@@ -228,7 +228,7 @@ export function UsersTable({ users }: Props) {
                         justifyContent: "center",
                         fontWeight: 800,
                         fontSize: 11,
-                        color: "#0d1117",
+                        color: "var(--bg)",
                         flexShrink: 0,
                       }}
                     >
@@ -244,13 +244,13 @@ export function UsersTable({ users }: Props) {
                       {label}
                     </span>
                   </div>
-                  <span style={{ color: "#8b949e" }}>
+                  <span style={{ color: "var(--muted)" }}>
                     {formatDate(user.created_at)}
                   </span>
-                  <span style={{ color: "#8b949e" }}>—</span>
+                  <span style={{ color: "var(--muted)" }}>—</span>
                   <span
                     style={{
-                      color: "#8b949e",
+                      color: "var(--muted)",
                       fontFamily: "var(--font-jetbrains-mono), monospace",
                     }}
                   >
@@ -264,7 +264,7 @@ export function UsersTable({ users }: Props) {
                 <div
                   style={{
                     padding: "14px 20px",
-                    borderBottom: "1px solid #30363d",
+                    borderBottom: "1px solid var(--border)",
                     display: "flex",
                     alignItems: "center",
                     gap: 12,
@@ -281,7 +281,7 @@ export function UsersTable({ users }: Props) {
                       justifyContent: "center",
                       fontWeight: 800,
                       fontSize: 11,
-                      color: "#0d1117",
+                      color: "var(--bg)",
                       flexShrink: 0,
                     }}
                   >
@@ -291,7 +291,7 @@ export function UsersTable({ users }: Props) {
                     <div
                       style={{
                         fontSize: 13,
-                        color: "#e6edf3",
+                        color: "var(--text)",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -305,7 +305,7 @@ export function UsersTable({ users }: Props) {
                         gap: 10,
                         marginTop: 3,
                         fontSize: 11,
-                        color: "#8b949e",
+                        color: "var(--muted)",
                         fontFamily: "var(--font-jetbrains-mono), monospace",
                       }}
                     >

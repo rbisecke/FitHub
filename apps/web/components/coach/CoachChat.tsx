@@ -53,7 +53,7 @@ function CoachTypingIndicator() {
         {[0, 150, 300].map((delay) => (
           <span
             key={delay}
-            className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--muted)]"
+            className="inline-block h-1.5 w-1.5 motion-safe:animate-pulse rounded-full bg-[var(--muted)]"
             style={{ animationDelay: `${delay}ms` }}
           />
         ))}
@@ -115,6 +115,9 @@ export function CoachChat({ accessToken }: CoachChatProps) {
       // body (satisfies react-hooks/set-state-in-effect).
       void Promise.resolve().then(() => setHistoryLoading(false));
     }
+    return () => {
+      historyAbortRef.current?.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

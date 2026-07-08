@@ -106,7 +106,10 @@ export function NLLogInput({ accessToken }: NLLogInputProps) {
           {result.parsed.results.length > 0 && (
             <ul className="mt-3 space-y-1">
               {result.parsed.results.map((r, i) => (
-                <li key={i} className="font-mono text-xs text-[var(--text)]">
+                <li
+                  key={r.movement_name ?? i}
+                  className="font-mono text-xs text-[var(--text)]"
+                >
                   {r.movement_name}
                   {r.reps != null ? ` · ${r.reps} reps` : ""}
                   {r.load_kg != null ? ` @ ${r.load_kg}kg` : ""}

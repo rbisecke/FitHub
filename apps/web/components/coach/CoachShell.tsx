@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { api } from "@/lib/api/client";
@@ -30,11 +30,21 @@ export function CoachShell({
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const mountedRef = useRef(true);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    [],
+  );
+
   // Silent refresh — called after session creation, no loading spinner
   const refreshSessions = useCallback(() => {
     api.coach.sessions
       .list(token, { limit: 20 })
-      .then(setSessions)
+      .then((data) => {
+        if (mountedRef.current) setSessions(data);
+      })
       .catch(() => {});
   }, [token]);
 
