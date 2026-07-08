@@ -132,13 +132,6 @@ async def update_injury_status(
     if existing is None:
         raise HTTPException(status_code=404, detail="Injury not found")
 
-    current_status = str(existing.get("status") or "active")
-    if current_status == "resolved":
-        raise HTTPException(
-            status_code=400,
-            detail="Cannot update a resolved injury. File a new injury report instead.",
-        )
-
     set_clauses = ["status = %s", "restriction_notes = %s"]
     params: list[object] = [req.status, req.restriction_notes]
 
@@ -157,7 +150,7 @@ async def update_injury_status(
             f"""
             UPDATE injuries
             SET {", ".join(set_clauses)}
-            WHERE id = %s AND user_id = %s
+            WHERE id = %s AND user_id = %s AND status != 'resolved'
             RETURNING {_SELECT_COLS}
             """,
             params,
@@ -165,6 +158,17 @@ async def update_injury_status(
         updated = await cur.fetchone()
 
     if updated is None:
-        raise RuntimeError("Update returned no row")
+        async with db.cursor(row_factory=psycopg.rows.dict_row) as check:
+            await check.execute(
+                "SELECT status FROM injuries WHERE id = %s AND user_id = %s",
+                [injury_id, user.user_id],
+            )
+            existing_check = await check.fetchone()
+        if existing_check is None:
+            raise HTTPException(status_code=404, detail="Injury not found")
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot update a resolved injury. File a new injury report instead.",
+        )
 
     return _row_to_injury_out(updated)

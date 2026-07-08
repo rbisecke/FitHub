@@ -1086,6 +1086,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Session Id"
             }
           },
@@ -2643,6 +2644,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Task Id"
             }
           }
@@ -2690,6 +2692,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Plan Id"
             }
           }
@@ -2737,6 +2740,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Plan Id"
             }
           }
@@ -2792,6 +2796,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Plan Id"
             }
           }
