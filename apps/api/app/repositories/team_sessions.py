@@ -177,25 +177,28 @@ async def create_team_session(
                 "(team_session_id, user_id) VALUES (%s, %s)",
                 [str(session_id), user_id],
             )
-        for p in req.participants:
-            # Skip if the request explicitly lists the creator themselves
-            if p.user_id and p.user_id == user_id:
-                continue
-            await cur.execute(
-                """
-                    INSERT INTO public.team_session_participants
-                        (team_session_id, user_id, workout_id, guest_name, role)
-                    VALUES (%s, %s, %s, %s, %s)
-                    """,
-                [
-                    str(session_id),
-                    str(p.user_id) if p.user_id else None,
-                    str(p.workout_id) if p.workout_id else None,
-                    _normalise_guest_name(p.guest_name),
-                    p.role,
-                ],
+        participants_to_insert = [
+            (
+                str(session_id),
+                str(p.user_id) if p.user_id else None,
+                str(p.workout_id) if p.workout_id else None,
+                _normalise_guest_name(p.guest_name),
+                p.role,
             )
-            if p.user_id:
+            for p in req.participants
+            if not (p.user_id and p.user_id == user_id)
+        ]
+        if participants_to_insert:
+            await cur.executemany(
+                """
+                INSERT INTO public.team_session_participants
+                    (team_session_id, user_id, workout_id, guest_name, role)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                participants_to_insert,
+            )
+        for p in req.participants:
+            if p.user_id and p.user_id != user_id:
                 notif_type = "team_session_linked" if p.workout_id else "workout_link_pending"
                 await _create_notification(
                     cur,
@@ -298,7 +301,7 @@ async def patch_team_session(
         row = await cur.fetchone()
     if row is None:
         return None
-    return await _fetch_team_session(conn, team_session_id=team_session_id)
+    return await get_team_session(conn, user_id=user_id, team_session_id=team_session_id)
 
 
 async def delete_team_session(

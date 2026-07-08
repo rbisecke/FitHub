@@ -251,6 +251,7 @@ async def get_workout_with_items(
             FROM planned_items
             WHERE session_id = %s
             ORDER BY item_order
+            LIMIT 100
             """,
             [workout_id],
         )
@@ -271,6 +272,7 @@ async def get_session_injuries(
             FROM injuries
             WHERE user_id = %s AND active = true AND status != 'resolved'
             ORDER BY reported_at DESC
+            LIMIT 50
             """,
             [user_id],
         )

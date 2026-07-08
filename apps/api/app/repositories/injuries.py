@@ -24,6 +24,7 @@ async def fetch_active_injuries(
             FROM injuries
             WHERE user_id = %s AND active = true AND status != 'resolved'
             ORDER BY reported_at DESC
+            LIMIT 50
             """,
             [user_id],
         )

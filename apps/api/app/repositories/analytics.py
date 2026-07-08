@@ -314,16 +314,13 @@ async def get_readiness(
     acwr: float | None = last["acwr"]
     tsb: float = last["tsb"]
 
-    # Fetch last 3 days of daily_checkins
-    # Columns: motivation (1=low, 7=high — good), sleep_quality (1=very bad, 7=very good)
-    mood_avg: float | None = None
+    # Fetch last 3 days of daily_checkins — sleep_quality only (motivation not collected)
     sleep_avg: float | None = None
 
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
             SELECT
-                AVG(motivation)    AS mood_avg,
                 AVG(sleep_quality) AS sleep_avg
             FROM public.daily_checkins
             WHERE user_id = %s
@@ -333,7 +330,6 @@ async def get_readiness(
         )
         row = await cur.fetchone()
         if row:
-            mood_avg = float(row["mood_avg"]) if row["mood_avg"] is not None else None
             sleep_avg = float(row["sleep_avg"]) if row["sleep_avg"] is not None else None
 
     has_training_data = any(r["load_au"] > 0 for r in series)
@@ -357,10 +353,7 @@ async def get_readiness(
         tsb_score = min(1.0, max(0.0, (tsb + 20) / 40))
 
     available_scores = [s for s in [acwr_score, tsb_score] if s is not None]
-    # motivation: higher = better (1..7), normalize to [0,1]
-    if mood_avg is not None:
-        available_scores.append((mood_avg - 1.0) / 6.0)
-    # sleep_quality: higher = better (1..7), same scale as motivation
+    # sleep_quality: higher = better (1..7), normalize to [0,1]
     if sleep_avg is not None:
         available_scores.append((sleep_avg - 1.0) / 6.0)
     factors_available = len(available_scores)
@@ -456,7 +449,7 @@ async def get_readiness(
         "label": label,
         "acwr": acwr,
         "tsb": tsb,
-        "mood_avg": mood_avg,
+        "mood_avg": None,
         "sleep_avg": sleep_avg,
         "factors_available": factors_available,
         "recovery_score": recovery_score,

@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Literal, cast
 
 import psycopg.rows
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 
 from app.dependencies.common import Auth, DBConn
 from app.engine.injury import (
@@ -53,7 +53,7 @@ def _row_to_injury_out(
     )
 
 
-@router.post("", response_model=InjuryOut)
+@router.post("", response_model=InjuryOut, status_code=status.HTTP_201_CREATED)
 async def report_injury(
     req: ReportInjuryRequest,
     user: Auth,
@@ -106,6 +106,7 @@ async def list_injuries(
             FROM injuries
             WHERE user_id = %s AND status != 'resolved'
             ORDER BY reported_at DESC
+            LIMIT 50
             """,
             [user.user_id],
         )

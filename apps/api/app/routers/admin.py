@@ -18,7 +18,7 @@ from psycopg.errors import UniqueViolation
 from app.config import get_settings
 from app.db import get_db
 from app.dependencies.admin import require_admin
-from app.middleware.rate_limit import limiter
+from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.admin import (
     AccessRequestCreate,
     AccessRequestReview,
@@ -71,7 +71,7 @@ def _cost_expr(table: str = "lu") -> str:
     status_code=status.HTTP_201_CREATED,
     response_model=SubmitAccessRequestResponse,
 )
-@limiter.limit("3/hour")
+@limiter.limit("3/hour", key_func=user_or_ip_key)
 async def submit_access_request(
     request: Request,
     body: AccessRequestCreate,
@@ -289,30 +289,34 @@ async def review_access_request(
     admin_id: Annotated[uuid.UUID, Depends(require_admin)],
     conn: Annotated[DBConn, Depends(get_db)],
 ) -> AccessRequestRow:
-    async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
-        await cur.execute(
-            """
-            UPDATE access_requests
-               SET status      = %s,
-                   reviewed_at = now(),
-                   reviewed_by = %s,
-                   review_note = %s
-             WHERE id = %s AND status = 'pending'
-             RETURNING id, created_at, email, name, motivation, status,
-                       reviewed_at, reviewed_by, review_note
-            """,
-            [body.action, str(admin_id), body.note, str(request_id)],
-        )
-        row = await cur.fetchone()
+    row = None
+    async with conn.transaction():
+        async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+            await cur.execute(
+                """
+                UPDATE access_requests
+                   SET status      = %s,
+                       reviewed_at = now(),
+                       reviewed_by = %s,
+                       review_note = %s
+                 WHERE id = %s AND status = 'pending'
+                 RETURNING id, created_at, email, name, motivation, status,
+                           reviewed_at, reviewed_by, review_note
+                """,
+                [body.action, str(admin_id), body.note, str(request_id)],
+            )
+            row = await cur.fetchone()
 
-    if not row:
-        raise HTTPException(
-            status_code=404,
-            detail="Access request not found or already reviewed.",
-        )
+        if not row:
+            raise HTTPException(
+                status_code=404,
+                detail="Access request not found or already reviewed.",
+            )
 
-    if body.action == "approved":
-        await _add_invited_email(conn, row["email"], admin_id)
+        if body.action == "approved":
+            await _add_invited_email(conn, row["email"], admin_id)
+
+    if body.action == "approved" and row:
         await _supabase_send_invite(row["email"])
 
     return AccessRequestRow(**row)
@@ -372,6 +376,7 @@ async def list_admin_users(
                   AND lu.stub = false
             GROUP BY p.id, p.display_name, p.created_at
             ORDER BY p.created_at DESC
+            LIMIT 200
             """,
         )
         rows = await cur.fetchall()
@@ -459,7 +464,8 @@ async def list_invited_emails(
 ) -> list[InvitedEmail]:
     async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
-            "SELECT id, email, invited_at, used_at FROM invited_emails ORDER BY invited_at DESC"
+            "SELECT id, email, invited_at, used_at FROM invited_emails"
+            " ORDER BY invited_at DESC LIMIT 500"
         )
         rows = await cur.fetchall()
     return [InvitedEmail(**r) for r in rows]

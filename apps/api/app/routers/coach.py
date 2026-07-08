@@ -10,7 +10,7 @@ import time
 import uuid
 from collections.abc import AsyncIterator
 from datetime import date
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal, cast
 
 import anthropic
 import openai
@@ -264,7 +264,7 @@ async def chat(
             answer=_STUB_ANSWER,
             citations=[],
             stub=True,
-            safety_tier=tier.value,
+            safety_tier=cast(Literal["coach", "modify", "stop"], tier.value),
         )
 
     history = await coach_repo.fetch_session_messages_history(db, session_id)
@@ -286,7 +286,7 @@ async def chat(
     injury_context_block = ""
     if injury_notes:
         parts = [
-            f"<injury_note body_region='{i.body_region}'>{i.notes}</injury_note>"
+            f"<injury_note body_region='{i.body_region}'>{html.escape(i.notes)}</injury_note>"
             for i in injury_notes
         ]
         _instruction = (
@@ -367,7 +367,12 @@ async def chat(
         Citation(title=str(c["title"]), source_type=str(c["source_type"]), score=float(c["score"]))
         for c in citations_raw
     ]
-    return ChatResponse(answer=answer_text, citations=citations, stub=False, safety_tier=tier.value)
+    return ChatResponse(
+        answer=answer_text,
+        citations=citations,
+        stub=False,
+        safety_tier=cast(Literal["coach", "modify", "stop"], tier.value),
+    )
 
 
 # ── Session endpoints ─────────────────────────────────────────────────────────
@@ -473,7 +478,7 @@ async def _do_stream(
     injury_context_block = ""
     if injury_notes:
         parts = [
-            f"<injury_note body_region='{i.body_region}'>{i.notes}</injury_note>"
+            f"<injury_note body_region='{i.body_region}'>{html.escape(i.notes)}</injury_note>"
             for i in injury_notes
         ]
         _instruction = (

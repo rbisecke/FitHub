@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel
+
+from app.models.workout import SessionType
 
 
 class DailyLoadPoint(BaseModel):
@@ -20,7 +23,9 @@ class LoadModelResponse(BaseModel):
     ctl_now: float
     atl_now: float
     tsb_now: float
-    acwr_zone: str
+    acwr_zone: Literal[
+        "insufficient_data", "undertraining", "sweet_spot", "caution", "overreaching"
+    ]
 
 
 class PersonalRecord(BaseModel):
@@ -49,7 +54,7 @@ class E1RMPoint(BaseModel):
 
 class WeeklyVolume(BaseModel):
     week_start: date
-    session_type: str | None
+    session_type: SessionType | None
     total_load: float
     workout_count: int
 
@@ -97,8 +102,8 @@ class ReadinessResponse(BaseModel):
     # Wearable-derived fields (populated from derived_metrics when available)
     recovery_score: float | None = None
     coverage: float | None = None
-    confidence_tier: str | None = None
-    hrv_type: str | None = None
+    confidence_tier: Literal["calibrating_14d", "low_14_28", "standard"] | None = None
+    hrv_type: Literal["hrv_sdnn", "hrv_rmssd"] | None = None
     # Strain score: normalized daily active energy vs 28-day baseline (0–100)
     strain_score: float | None = None
 

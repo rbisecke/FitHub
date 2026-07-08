@@ -64,7 +64,9 @@ async def ingest_apple_health(
 ) -> int:
     """Parse an HAE payload and upsert metric_samples. Returns row count."""
     metrics: list[dict[str, Any]] = payload.get("data", {}).get("metrics", [])
-    rows_inserted = 0
+
+    sleep_rows: list[tuple[str, float, str, int, object]] = []
+    metric_rows: list[tuple[str, str, float, str, str, int, object]] = []
 
     for metric in metrics:
         name: str = metric.get("name", "")
@@ -72,22 +74,12 @@ async def ingest_apple_health(
 
         if name == "sleep_analysis":
             for dp in data_points:
-                stages = dp.get("data", [])
-                score = compute_sleep_score(stages)
+                score = compute_sleep_score(dp.get("data", []))
                 if score is None:
                     continue
-                ts = _parse_hae_timestamp(dp["date"])
-                await db.execute(
-                    """
-                    INSERT INTO metric_samples
-                        (user_id, type, value, unit, source, source_priority, started_at)
-                    VALUES (%s, 'sleep_score', %s, 'score_0_100', %s, %s, %s)
-                    ON CONFLICT (user_id, type, started_at, source)
-                    DO UPDATE SET value = EXCLUDED.value
-                    """,
-                    [user_id, score, SOURCE, SOURCE_PRIORITY, ts],
+                sleep_rows.append(
+                    (user_id, score, SOURCE, SOURCE_PRIORITY, _parse_hae_timestamp(dp["date"]))
                 )
-                rows_inserted += 1
             continue
 
         mapping = METRIC_MAP.get(name)
@@ -99,17 +91,37 @@ async def ingest_apple_health(
             raw_val = dp.get("qty") or dp.get("avg")
             if raw_val is None:
                 continue
-            ts = _parse_hae_timestamp(dp["date"])
-            await db.execute(
-                """
-                INSERT INTO metric_samples
-                    (user_id, type, value, unit, source, source_priority, started_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (user_id, type, started_at, source)
-                DO UPDATE SET value = EXCLUDED.value
-                """,
-                [user_id, fithub_type, float(raw_val), unit, SOURCE, SOURCE_PRIORITY, ts],
+            metric_rows.append(
+                (
+                    user_id,
+                    fithub_type,
+                    float(raw_val),
+                    unit,
+                    SOURCE,
+                    SOURCE_PRIORITY,
+                    _parse_hae_timestamp(dp["date"]),
+                )
             )
-            rows_inserted += 1
 
-    return rows_inserted
+    sleep_sql = """
+        INSERT INTO metric_samples
+            (user_id, type, value, unit, source, source_priority, started_at)
+        VALUES (%s, 'sleep_score', %s, 'score_0_100', %s, %s, %s)
+        ON CONFLICT (user_id, type, started_at, source)
+        DO UPDATE SET value = EXCLUDED.value
+    """
+    metric_sql = """
+        INSERT INTO metric_samples
+            (user_id, type, value, unit, source, source_priority, started_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (user_id, type, started_at, source)
+        DO UPDATE SET value = EXCLUDED.value
+    """
+
+    async with db.transaction(), db.cursor() as cur:
+        if sleep_rows:
+            await cur.executemany(sleep_sql, sleep_rows)
+        if metric_rows:
+            await cur.executemany(metric_sql, metric_rows)
+
+    return len(sleep_rows) + len(metric_rows)

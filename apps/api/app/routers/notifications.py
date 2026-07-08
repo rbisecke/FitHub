@@ -5,11 +5,10 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
 
 import app.repositories.team_sessions as repo
 from app.dependencies.common import Auth, DBConn
-from app.models.team_session import Notification, TrainingPartner
+from app.models.team_session import AddPartnerRequest, Notification, TrainingPartner
 from app.repositories import profile as profile_repo
 
 router = APIRouter(tags=["notifications"])
@@ -37,10 +36,6 @@ async def mark_read(user: Auth, conn: DBConn, notification_id: uuid.UUID) -> Not
 @router.get("/api/v1/training-partners", response_model=list[TrainingPartner])
 async def list_training_partners(user: Auth, conn: DBConn) -> list[TrainingPartner]:
     return await repo.list_training_partners(conn, user_id=user.user_id)
-
-
-class AddPartnerRequest(BaseModel):
-    email: str = Field(max_length=254)
 
 
 @router.post("/api/v1/training-partners", response_model=TrainingPartner, status_code=201)

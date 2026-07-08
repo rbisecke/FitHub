@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Query
 
@@ -39,7 +39,9 @@ from app.repositories.analytics import (
 router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 
 
-def _acwr_zone(acwr: float | None) -> str:
+def _acwr_zone(
+    acwr: float | None,
+) -> Literal["insufficient_data", "undertraining", "sweet_spot", "caution", "overreaching"]:
     if acwr is None:
         return "insufficient_data"
     if acwr < 0.8:

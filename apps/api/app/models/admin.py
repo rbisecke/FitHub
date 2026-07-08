@@ -131,7 +131,7 @@ class ReindexBody(BaseModel):
 
 class ReindexJob(BaseModel):
     job_id: str
-    status: str
+    status: Literal["queued", "unknown"]
     message: str
 
 

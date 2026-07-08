@@ -286,7 +286,7 @@ async def get_task(
 
     return PlanTaskResponse(
         task_id=str(row["id"]),
-        status=str(row["status"]),
+        status=cast(Literal["pending", "running", "complete", "failed"], row["status"]),
         plan_id=row["plan_id"],
         error=str(row["error"]) if row["error"] else None,
     )

@@ -23,9 +23,9 @@ class UserProfile(BaseModel):
     location: str | None = None
     box_affiliation: str | None = None
     distance_unit: Literal["km", "mi"] = "km"
-    training_level: str | None = (
-        None  # 'recreational'|'intermediate'|'competitive'|'masters'|'elite'
-    )
+    training_level: (
+        Literal["recreational", "intermediate", "competitive", "masters", "elite"] | None
+    ) = None
     training_since: str | None = None  # 'YYYY-MM-DD'
 
 

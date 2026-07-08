@@ -19,7 +19,7 @@ class CreatePlanRequest(BaseModel):
 
 class PlanTaskResponse(BaseModel):
     task_id: str
-    status: str
+    status: Literal["pending", "running", "complete", "failed"]
     plan_id: uuid.UUID | None = None
     error: str | None = None
 
