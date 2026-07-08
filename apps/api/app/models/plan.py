@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 class CreatePlanRequest(BaseModel):
     goal: Literal["general_fitness", "strength", "endurance", "competition_prep"]
-    title: str
+    title: str = Field(max_length=200)
     start_date: date
     weeks: int = Field(ge=4, le=24)
     training_age: Literal["beginner", "intermediate", "advanced"]
@@ -81,19 +81,19 @@ class PlanDetail(PlanBase):
 
 class PlannedItemPatch(BaseModel):
     item_id: str | None = None
-    movement_name: str
+    movement_name: str = Field(max_length=100)
     sets: int | None = None
     reps: str | None = None
     load_pct_1rm: float | None = None
     load_kg: float | None = None
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=500)
     item_order: int = 0
 
 
 class SessionPatch(BaseModel):
     session_id: str
-    new_title: str | None = None
-    new_notes: str | None = None
+    new_title: str | None = Field(default=None, max_length=200)
+    new_notes: str | None = Field(default=None, max_length=500)
     modified_items: list[PlannedItemPatch] = []
 
 

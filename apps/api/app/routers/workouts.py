@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.dependencies.common import Auth, DBConn
 from app.models.team_session import TeamSession
@@ -24,7 +24,7 @@ from app.repositories.workouts import (
 
 
 class ParseNLRequest(BaseModel):
-    text: str
+    text: str = Field(max_length=5000)
 
 
 class ParseNLResponse(BaseModel):

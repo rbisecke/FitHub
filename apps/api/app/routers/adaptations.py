@@ -173,34 +173,31 @@ async def reject_adaptation(
     db: DBConn,
     body: RejectAdaptationRequest | None = None,
 ) -> AdaptationOut:
-    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-        await cur.execute(
-            "SELECT id::text, status FROM adaptations WHERE id = %s::uuid AND user_id = %s",
-            [adaptation_id, user.user_id],
-        )
-        row = await cur.fetchone()
-
-    if row is None:
-        raise HTTPException(status_code=404, detail="Adaptation not found")
-    if str(row["status"]) != "proposed":
-        raise HTTPException(status_code=409, detail="Adaptation is not in proposed state")
-
     rejection_reason = body.rejection_reason if body else None
 
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             f"""
             UPDATE adaptations
-            SET status = 'rejected', rejected_at = now(), rejection_reason = %s
-            WHERE id = %s::uuid AND user_id = %s
+               SET status = 'rejected',
+                   rejected_at = now(),
+                   rejection_reason = %s
+             WHERE id = %s::uuid
+               AND user_id = %s
+               AND status = 'proposed'
             RETURNING {_SELECT_COLS}
             """,
             [rejection_reason, adaptation_id, user.user_id],
         )
         updated = await cur.fetchone()
-
-    if updated is None:
-        raise HTTPException(status_code=404, detail="Adaptation not found")
+        if updated is None:
+            await cur.execute(
+                "SELECT id FROM adaptations WHERE id = %s::uuid AND user_id = %s",
+                [adaptation_id, user.user_id],
+            )
+            if await cur.fetchone() is None:
+                raise HTTPException(status_code=404, detail="Adaptation not found")
+            raise HTTPException(status_code=409, detail="Adaptation is not in proposed state")
 
     return _row_to_out(updated)
 

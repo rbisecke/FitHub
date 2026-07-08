@@ -72,7 +72,7 @@ async def get_load_series(
                 chronic_28,
                 CASE
                     WHEN chronic_28 = 0 THEN NULL
-                    ELSE ROUND((acute_7::numeric / chronic_28)::numeric, 3)::float
+                    ELSE ROUND((4.0 * acute_7::numeric / chronic_28)::numeric, 3)::float
                 END AS acwr
             FROM windowed
             ORDER BY day

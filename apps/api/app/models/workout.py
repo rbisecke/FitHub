@@ -72,13 +72,13 @@ class WorkoutSummary(WorkoutBase):
 
 class CreateWorkoutRequest(BaseModel):
     performed_at: datetime
-    title: str | None = None
-    notes: str | None = None
+    title: str | None = Field(default=None, max_length=200)
+    notes: str | None = Field(default=None, max_length=5000)
     bodyweight_kg: Decimal | None = Field(default=None, gt=0, le=600)
     session_type: SessionType | None = None
     workout_format: WorkoutFormat | None = None
     time_cap_s: int | None = Field(default=None, gt=0)
-    location: str | None = None
+    location: str | None = Field(default=None, max_length=200)
     session_rpe: Decimal | None = Field(default=None, ge=0, le=10)
     duration_s: int | None = Field(default=None, gt=0)
     is_tag: bool = False
@@ -87,13 +87,13 @@ class CreateWorkoutRequest(BaseModel):
 
 class PatchWorkoutRequest(BaseModel):
     performed_at: datetime | None = None
-    title: str | None = None
-    notes: str | None = None
+    title: str | None = Field(default=None, max_length=200)
+    notes: str | None = Field(default=None, max_length=5000)
     bodyweight_kg: Decimal | None = Field(default=None, gt=0, le=600)
     session_type: SessionType | None = None
     workout_format: WorkoutFormat | None = None
     time_cap_s: int | None = Field(default=None, gt=0)
-    location: str | None = None
+    location: str | None = Field(default=None, max_length=200)
     session_rpe: Decimal | None = Field(default=None, ge=0, le=10)
     duration_s: int | None = Field(default=None, gt=0)
 

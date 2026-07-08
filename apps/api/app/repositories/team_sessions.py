@@ -381,6 +381,8 @@ async def patch_participant(
                 "WHERE team_session_id = %s AND user_id = %s",
                 values,
             )
+            if cur.rowcount == 0:
+                return None
 
     return await _fetch_team_session(conn, team_session_id=team_session_id)
 
