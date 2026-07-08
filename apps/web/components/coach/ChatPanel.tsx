@@ -49,6 +49,14 @@ export function ChatPanel({
   const [showScrollPill, setShowScrollPill] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
+
+  // Abort any in-flight SSE stream on unmount
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const liveRegionRef = useRef<HTMLDivElement>(null);

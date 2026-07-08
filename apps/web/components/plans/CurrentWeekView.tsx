@@ -99,7 +99,11 @@ export function CurrentWeekView({ sessions }: Props) {
   const days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date(start);
     date.setDate(start.getDate() + i);
-    const dateKey = date.toISOString().slice(0, 10);
+    const dateKey = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
     const session = sessionByDate.get(dateKey);
     const isToday = date.toDateString() === today.toDateString();
     const isPast = date < today;

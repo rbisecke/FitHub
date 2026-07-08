@@ -38,11 +38,9 @@ export function ProfilePage({
 }: Props) {
   const [profile, setProfile] = useState<UserProfile>(initialProfile);
 
-  const frequencyTarget = (
-    [3, 4, 5, 6].includes(profile.frequency_target_days)
-      ? profile.frequency_target_days
-      : 3
-  ) as FrequencyTarget;
+  const raw = profile.frequency_target_days;
+  const freq = raw >= 1 && raw <= 7 ? (raw as FrequencyTarget) : 3;
+  const frequencyTarget = freq;
 
   return (
     <div className="animate-fadeUp">

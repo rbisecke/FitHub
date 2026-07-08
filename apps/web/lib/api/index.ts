@@ -59,7 +59,7 @@ export type SessionMessagesResponse =
 export type WeightUnit = "kg" | "lb";
 export type DistanceUnit = "km" | "mi";
 export type GraphColourMode = "intensity" | "volume";
-export type FrequencyTarget = 3 | 4 | 5 | 6;
+export type FrequencyTarget = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export type UserProfile = components["schemas"]["UserProfile"];
 

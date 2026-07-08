@@ -8,6 +8,21 @@ import {
   type RecentMovement,
 } from "@/lib/tag";
 import type { LastResult, PersonalRecordResult } from "@/lib/api";
+
+function prToLastResult(pr: PersonalRecordResult): LastResult {
+  return {
+    result_type: pr.result_type,
+    load_kg: pr.load_kg ?? null,
+    reps: pr.reps ?? null,
+    time_s: pr.time_s ?? null,
+    distance_m: pr.distance_m ?? null,
+    rounds: null,
+    partial_reps: null,
+    calories: null,
+    watts: null,
+    performed_at: pr.achieved_at,
+  };
+}
 import { api } from "@/lib/api/client";
 import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
 
@@ -133,7 +148,7 @@ export function MovementGrid({
             const isSelected = m.movement_id === selectedId;
             const pr = prMap.get(m.movement_id);
             const prDisplay = pr
-              ? formatCurrentBest(pr as unknown as LastResult, unit)
+              ? formatCurrentBest(prToLastResult(pr), unit)
               : null;
             return (
               <button
