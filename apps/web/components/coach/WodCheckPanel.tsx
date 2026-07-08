@@ -42,13 +42,15 @@ export function WodCheckPanel({ accessToken }: Props) {
         }}
         className="w-full flex items-center justify-between px-4 py-2.5 font-mono text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--card)] transition-colors"
         aria-expanded={open}
+        aria-controls="wod-check-content"
+        aria-label="Toggle workout check"
       >
         <span>$ coach check-wod</span>
         <span className="text-[10px]">{open ? "▲" : "▼"}</span>
       </button>
 
       {open && (
-        <div className="px-4 pb-4 flex flex-col gap-3">
+        <div id="wod-check-content" className="px-4 pb-4 flex flex-col gap-3">
           <textarea
             value={wodText}
             onChange={(e) => setWodText(e.target.value)}

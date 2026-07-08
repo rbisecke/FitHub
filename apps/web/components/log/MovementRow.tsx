@@ -121,6 +121,7 @@ export function MovementRow({
           side: s,
         }),
       ]);
+      if (!mountedRef.current) return;
       if (resultData.status === "fulfilled") {
         setLastResult(resultData.value);
       } else {

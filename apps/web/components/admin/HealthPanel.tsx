@@ -244,7 +244,7 @@ export function HealthPanel({ health }: Props) {
           value={endpointFilter}
           onChange={(e) => setEndpointFilter(e.target.value)}
           style={{
-            background: "#21262d",
+            background: "var(--surface)",
             border: "1px solid var(--border)",
             borderRadius: 9,
             color: "var(--text)",
@@ -318,8 +318,8 @@ export function HealthPanel({ health }: Props) {
             No errors recorded.
           </div>
         ) : (
-          filtered.map((error) => (
-            <div key={`${error.created_at}-${error.path}`}>
+          filtered.map((error, idx) => (
+            <div key={`${error.created_at}-${error.path}-${idx}`}>
               {/* Desktop row */}
               <div className="hidden md:block">
                 <ErrorRow error={error} />

@@ -83,10 +83,10 @@ export function EditIdentitySheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-md bg-[#0d1117] border-[#30363d] flex flex-col"
+        className="w-full sm:max-w-md bg-[var(--bg)] border-[var(--border)] flex flex-col"
       >
-        <SheetHeader className="border-b border-[#30363d] pb-4">
-          <SheetTitle className="font-mono text-sm text-[#8b949e]">
+        <SheetHeader className="border-b border-[var(--border)] pb-4">
+          <SheetTitle className="font-mono text-sm text-[var(--muted)]">
             $ git config --edit
           </SheetTitle>
         </SheetHeader>
@@ -100,7 +100,7 @@ export function EditIdentitySheet({
             <div className="space-y-1.5">
               <Label
                 htmlFor="edit-display-name"
-                className="text-xs font-mono text-[#8b949e] uppercase tracking-wide"
+                className="text-xs font-mono text-[var(--muted)] uppercase tracking-wide"
               >
                 Display name
               </Label>
@@ -108,7 +108,7 @@ export function EditIdentitySheet({
                 id="edit-display-name"
                 {...register("display_name")}
                 placeholder="Your name"
-                className="bg-[#161b22] border-[#30363d] text-[#e6edf3] placeholder:text-[#8b949e] focus-visible:border-[#58a6ff]"
+                className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)] focus-visible:border-[var(--accent)]"
               />
             </div>
 
@@ -117,15 +117,15 @@ export function EditIdentitySheet({
               <div className="flex items-center justify-between">
                 <Label
                   htmlFor="edit-bio"
-                  className="text-xs font-mono text-[#8b949e] uppercase tracking-wide"
+                  className="text-xs font-mono text-[var(--muted)] uppercase tracking-wide"
                 >
                   Bio
                 </Label>
                 <span
                   className={`font-mono text-xs ${
                     (bioValue?.length ?? 0) > MAX_BIO
-                      ? "text-[#ff7b72]"
-                      : "text-[#8b949e]"
+                      ? "text-[var(--red)]"
+                      : "text-[var(--muted)]"
                   }`}
                   aria-live="polite"
                   aria-label={`${
@@ -145,10 +145,10 @@ export function EditIdentitySheet({
                 })}
                 placeholder="A short bio"
                 maxLength={MAX_BIO}
-                className="bg-[#161b22] border-[#30363d] text-[#e6edf3] placeholder:text-[#8b949e] focus-visible:border-[#58a6ff]"
+                className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)] focus-visible:border-[var(--accent)]"
               />
               {errors.bio && (
-                <p className="text-xs text-[#ff7b72]" role="alert">
+                <p className="text-xs text-[var(--red)]" role="alert">
                   {errors.bio.message}
                 </p>
               )}
@@ -158,7 +158,7 @@ export function EditIdentitySheet({
             <div className="space-y-1.5">
               <Label
                 htmlFor="edit-location"
-                className="text-xs font-mono text-[#8b949e] uppercase tracking-wide"
+                className="text-xs font-mono text-[var(--muted)] uppercase tracking-wide"
               >
                 Location
               </Label>
@@ -166,7 +166,7 @@ export function EditIdentitySheet({
                 id="edit-location"
                 {...register("location")}
                 placeholder="City, Country"
-                className="bg-[#161b22] border-[#30363d] text-[#e6edf3] placeholder:text-[#8b949e] focus-visible:border-[#58a6ff]"
+                className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)] focus-visible:border-[var(--accent)]"
               />
             </div>
 
@@ -174,7 +174,7 @@ export function EditIdentitySheet({
             <div className="space-y-1.5">
               <Label
                 htmlFor="edit-box"
-                className="text-xs font-mono text-[#8b949e] uppercase tracking-wide"
+                className="text-xs font-mono text-[var(--muted)] uppercase tracking-wide"
               >
                 Box / Gym
               </Label>
@@ -182,7 +182,7 @@ export function EditIdentitySheet({
                 id="edit-box"
                 {...register("box_affiliation")}
                 placeholder="CrossFit HQ"
-                className="bg-[#161b22] border-[#30363d] text-[#e6edf3] placeholder:text-[#8b949e] focus-visible:border-[#58a6ff]"
+                className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)] focus-visible:border-[var(--accent)]"
               />
             </div>
 
@@ -190,7 +190,7 @@ export function EditIdentitySheet({
             <div className="space-y-1.5">
               <Label
                 htmlFor="edit-training-since"
-                className="text-xs font-mono text-[#8b949e] uppercase tracking-wide"
+                className="text-xs font-mono text-[var(--muted)] uppercase tracking-wide"
               >
                 Training since
               </Label>
@@ -198,20 +198,20 @@ export function EditIdentitySheet({
                 id="edit-training-since"
                 {...register("training_since")}
                 type="date"
-                className="bg-[#161b22] border-[#30363d] text-[#e6edf3] focus-visible:border-[#58a6ff] [color-scheme:dark]"
+                className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)] focus-visible:border-[var(--accent)] [color-scheme:dark]"
               />
             </div>
 
             {error && (
-              <p className="text-xs text-[#ff7b72] font-mono">{error}</p>
+              <p className="text-xs text-[var(--red)] font-mono">{error}</p>
             )}
           </div>
 
-          <div className="px-4 pb-6 pt-2 border-t border-[#30363d]">
+          <div className="px-4 pb-6 pt-2 border-t border-[var(--border)]">
             <Button
               type="submit"
               disabled={saving || (bioValue?.length ?? 0) > MAX_BIO}
-              className="w-full bg-[#58a6ff] hover:bg-[#58a6ff]/90 text-[#0d1117] font-semibold disabled:opacity-50"
+              className="w-full bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-[var(--bg)] font-semibold disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save changes"}
             </Button>

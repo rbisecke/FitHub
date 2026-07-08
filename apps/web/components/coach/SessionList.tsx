@@ -30,7 +30,7 @@ export function SessionList({
       <div className="px-2 py-2 shrink-0">
         <button
           onClick={onNewSession}
-          className="w-full text-left font-mono text-xs text-[#58a6ff] border border-[#30363d] rounded-md px-3 py-2 hover:bg-[#161b22] transition-colors flex items-center gap-1.5"
+          className="w-full text-left font-mono text-xs text-[var(--accent)] border border-[var(--border)] rounded-md px-3 py-2 hover:bg-[var(--surface)] transition-colors flex items-center gap-1.5"
         >
           <Plus size={12} aria-hidden />
           new session
@@ -43,7 +43,7 @@ export function SessionList({
             {[...Array(5)].map((_, i) => (
               <Skeleton
                 key={i}
-                className="h-11 w-full rounded-md bg-[#161b22]"
+                className="h-11 w-full rounded-md bg-[var(--surface)]"
               />
             ))}
           </div>
@@ -62,13 +62,13 @@ export function SessionList({
             {hasMore && (
               <button
                 onClick={onLoadMore}
-                className="w-full text-center font-mono text-xs text-[#8b949e] hover:text-[#e6edf3] py-2 transition-colors"
+                className="w-full text-center font-mono text-xs text-[var(--muted)] hover:text-[var(--text)] py-2 transition-colors"
               >
                 load more sessions
               </button>
             )}
             {sessions.length === 0 && !isLoading && (
-              <p className="px-3 py-4 font-mono text-xs text-[#8b949e] text-center">
+              <p className="px-3 py-4 font-mono text-xs text-[var(--muted)] text-center">
                 no sessions yet
               </p>
             )}

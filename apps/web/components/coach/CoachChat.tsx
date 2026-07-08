@@ -85,7 +85,7 @@ export function CoachChat({ accessToken }: CoachChatProps) {
     const controller = new AbortController();
     historyAbortRef.current = controller;
     api.coach
-      .history(accessToken, sid)
+      .history(accessToken, sid, 20, controller.signal)
       .then((turns) => {
         if (controller.signal.aborted) return;
         setMessages(
@@ -294,7 +294,7 @@ export function CoachChat({ accessToken }: CoachChatProps) {
                 <ul className="mt-2 space-y-0.5">
                   {msg.citations.map((c, j) => (
                     <li
-                      key={j}
+                      key={c.title ?? `${c.source_type}-${j}`}
                       className="font-mono text-xs text-[var(--muted)]"
                     >
                       [{c.source_type}] {c.title}

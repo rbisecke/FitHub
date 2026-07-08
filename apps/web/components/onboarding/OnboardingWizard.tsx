@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import type { UserProfile, WeightUnit, DistanceUnit } from "@/lib/api";
@@ -21,6 +22,7 @@ interface Props {
 
 export function OnboardingWizard({ step, token, profile }: Props) {
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
   function goTo(s: number) {
     router.push(`/onboarding/${s}`);
@@ -36,21 +38,29 @@ export function OnboardingWizard({ step, token, profile }: Props) {
   }
 
   async function finishStep2(frequencyTargetDays: number) {
-    await api.profile.patch(token, {
-      frequency_target_days: frequencyTargetDays,
-    });
-    goTo(3);
+    try {
+      await api.profile.patch(token, {
+        frequency_target_days: frequencyTargetDays,
+      });
+      goTo(3);
+    } catch {
+      setError("Failed to save preferences. Please try again.");
+    }
   }
 
   async function finishStep3(units: {
     weight: WeightUnit;
     distance: DistanceUnit;
   }) {
-    await api.profile.patch(token, {
-      weight_unit: units.weight,
-      distance_unit: units.distance,
-    });
-    goTo(4);
+    try {
+      await api.profile.patch(token, {
+        weight_unit: units.weight,
+        distance_unit: units.distance,
+      });
+      goTo(4);
+    } catch {
+      setError("Failed to save preferences. Please try again.");
+    }
   }
 
   async function finish() {
@@ -112,6 +122,7 @@ export function OnboardingWizard({ step, token, profile }: Props) {
       )}
       {step === 4 && <Step4FirstWorkout onSkip={() => goTo(5)} />}
       {step === 5 && <Step5Done onFinish={finish} />}
+      {error && <p className="mt-4 text-sm text-[var(--red)]">{error}</p>}
     </div>
   );
 }

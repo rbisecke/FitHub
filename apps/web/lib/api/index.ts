@@ -102,10 +102,4 @@ export type AdminRecentError = components["schemas"]["RecentError"];
 export type AdminLLMError = components["schemas"]["LLMError"];
 export type AdminHealth = components["schemas"]["AdminHealth"];
 export type AdminUser = components["schemas"]["AdminUser"];
-// AccessRequestRow has status: string in generated; keep the more specific type alias
-export type AdminAccessRequest = Omit<
-  components["schemas"]["AccessRequestRow"],
-  "status"
-> & {
-  status: "pending" | "approved" | "rejected";
-};
+export type AdminAccessRequest = components["schemas"]["AccessRequestRow"];

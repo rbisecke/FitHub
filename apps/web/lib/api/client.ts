@@ -373,12 +373,18 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ question, session_id: sessionId ?? null }),
       }),
-    history: (token: string, sessionId: string, limit = 20) =>
+    history: (
+      token: string,
+      sessionId: string,
+      limit = 20,
+      signal?: AbortSignal,
+    ) =>
       apiFetch<HistoryMessage[]>(
         `/api/v1/coach/history?session_id=${encodeURIComponent(
           sessionId,
         )}&limit=${limit}`,
         token,
+        { signal },
       ),
     sessions: {
       list: (token: string, params?: { beforeId?: string; limit?: number }) => {

@@ -199,7 +199,7 @@ export function CreatePlanForm({ accessToken }: Props) {
           </div>
 
           {error && (
-            <p className="mt-3 font-mono text-xs text-red-400">{error}</p>
+            <p className="mt-3 font-mono text-xs text-[var(--red)]">{error}</p>
           )}
 
           <div className="mt-6 flex gap-3">

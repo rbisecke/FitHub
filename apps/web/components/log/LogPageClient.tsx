@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { BackButton } from "@/components/ui/BackButton";
 import { useForm, useFieldArray, type Resolver } from "react-hook-form";
@@ -44,13 +44,15 @@ export function LogPageClient({
 }: LogPageClientProps) {
   const router = useRouter();
   const timer = useRestTimer();
-  const today = useMemo(() => {
-    const now = new Date();
-    return [
-      now.getFullYear(),
-      String(now.getMonth() + 1).padStart(2, "0"),
-      String(now.getDate()).padStart(2, "0"),
-    ].join("-");
+  const [today, setToday] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
+  useEffect(() => {
+    const id = setInterval(
+      () => setToday(new Date().toISOString().slice(0, 10)),
+      60_000,
+    );
+    return () => clearInterval(id);
   }, []);
 
   // NL input state
@@ -178,10 +180,11 @@ export function LogPageClient({
     setMobileSubmitting(true);
     setSubmitError(null);
     try {
+      const todayStr = new Date().toLocaleDateString("sv-SE");
       const rt =
         mobileSelectedMovement.result_type as LogFormValues["movement_entries"][number]["result_type"];
       const workout = await api.workouts.create(accessToken, {
-        performed_at: toISOLocal(today),
+        performed_at: toISOLocal(todayStr),
         is_tag: false,
         results: [
           {

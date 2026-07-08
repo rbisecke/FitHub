@@ -31,10 +31,10 @@ const PERIOD_OPTIONS = [
 ];
 
 const CAT_COLOR: Record<PRCategory, string> = {
-  strength: "#58a6ff",
-  gymnastics: "#bc8cff",
-  metcon: "#FF7A45",
-  endurance: "#4ADE80",
+  strength: "var(--accent)",
+  gymnastics: "var(--purple)",
+  metcon: "var(--amber)",
+  endurance: "var(--green)",
 };
 
 function filterByPeriod(points: E1RMPoint[], period: string): E1RMPoint[] {

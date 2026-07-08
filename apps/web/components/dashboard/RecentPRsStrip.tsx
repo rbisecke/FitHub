@@ -57,10 +57,17 @@ function PRRow({ pr, animate, prefersReducedMotion, unit }: PRRowProps) {
       <div>
         <p className="text-sm font-medium text-[--text]">{pr.movementName}</p>
         <p className="font-mono text-xs text-[--muted]">
-          {new Date(pr.achievedAt).toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "short",
-          })}
+          {(() => {
+            const [y, m, d] = pr.achievedAt.split("-").map(Number) as [
+              number,
+              number,
+              number,
+            ];
+            return new Date(y, m - 1, d).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+            });
+          })()}
         </p>
       </div>
       <div className="text-right">

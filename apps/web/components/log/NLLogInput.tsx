@@ -67,7 +67,7 @@ export function NLLogInput({ accessToken }: NLLogInputProps) {
         {loading ? "parsing..." : "pre-fill from text"}
       </button>
 
-      {error && <p className="font-mono text-xs text-red-400">{error}</p>}
+      {error && <p className="font-mono text-xs text-[var(--red)]">{error}</p>}
 
       {result && (
         <div className="rounded border border-[var(--border)] bg-[var(--surface)] p-4 text-sm">

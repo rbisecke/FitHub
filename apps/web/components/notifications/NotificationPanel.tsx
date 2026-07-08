@@ -52,6 +52,7 @@ export function NotificationPanel({
     useState<Notification[]>(initialNotifications);
   const [loading, setLoading] = useState(initialNotifications.length === 0);
   const [fetchError, setFetchError] = useState(false);
+  const [markError, setMarkError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,9 +83,20 @@ export function NotificationPanel({
     }
   }
 
-  async function markAllRead() {
+  function markAllRead() {
     const unread = notifications.filter((n) => !n.read_at);
-    await Promise.all(unread.map((n) => markRead(n.id)));
+    Promise.all(
+      unread.map((n) => api.notifications.markRead(accessToken, n.id)),
+    )
+      .then(() =>
+        setNotifications((prev) =>
+          prev.map((n) => ({
+            ...n,
+            read_at: n.read_at ?? new Date().toISOString(),
+          })),
+        ),
+      )
+      .catch(() => setMarkError(true));
   }
 
   const unreadCount = notifications.filter((n) => !n.read_at).length;
@@ -112,6 +124,11 @@ export function NotificationPanel({
           </button>
         )}
       </div>
+      {markError && (
+        <p className="px-4 py-1.5 text-xs font-mono text-[var(--red)]">
+          Failed to mark all as read.
+        </p>
+      )}
 
       {/* List */}
       <div className="overflow-y-auto flex-1">

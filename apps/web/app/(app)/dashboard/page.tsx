@@ -67,13 +67,9 @@ export default async function DashboardPage() {
   const terminalHandle = toHandle(profile?.display_name, user.email);
 
   // ── Stat grid data ────────────────────────────────────────────────────────
-  const tz = profile?.timezone ?? "UTC";
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: tz });
+  const todayStr = new Date().toLocaleDateString("sv-SE");
   const hasWorkoutToday = workouts.some(
-    (w) =>
-      new Date(w.performed_at).toLocaleDateString("en-CA", {
-        timeZone: tz,
-      }) === today,
+    (w) => w.performed_at?.slice(0, 10) === todayStr,
   );
 
   const tsbValue = readiness ? Math.round(readiness.tsb) : 0;
@@ -149,6 +145,13 @@ export default async function DashboardPage() {
   // ── Open PRs widget (goals-in-progress) ──────────────────────────────────
   const weightUnit = profile?.weight_unit === "lb" ? "lb" : "kg";
   const goals = prGoals(prs, weightUnit);
+
+  // ── PRs this month ────────────────────────────────────────────────────────
+  const now = new Date();
+  const monthPRs = prs.filter((pr) => {
+    const [y, m] = pr.achieved_at.split("-").map(Number) as [number, number];
+    return y === now.getFullYear() && m === now.getMonth() + 1;
+  });
 
   // ── Greeting streak count (simple day-based, 30-day window) ──────────────
   const recentStreak = workouts.filter((w) => {
@@ -234,7 +237,7 @@ export default async function DashboardPage() {
             className="font-heading text-[24px] mt-1"
             style={{ color: "var(--gold)" }}
           >
-            {prs.length}
+            {monthPRs.length}
           </div>
           <div className="font-data text-[10.5px] text-[var(--muted)] mt-0.5">
             {weekCount} this week

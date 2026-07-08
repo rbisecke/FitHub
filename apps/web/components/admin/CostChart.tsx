@@ -33,7 +33,7 @@ export function CostChart({ data, dailyAvg }: Props) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "#8b949e",
+          color: "var(--muted)",
           fontSize: 13,
           fontFamily: "var(--font-jetbrains-mono), monospace",
         }}
@@ -77,7 +77,7 @@ export function CostChart({ data, dailyAvg }: Props) {
             style={{
               fontWeight: 700,
               fontSize: 14,
-              color: "#e6edf3",
+              color: "var(--text)",
               fontFamily: "var(--font-jetbrains-mono), monospace",
             }}
           >
@@ -86,7 +86,7 @@ export function CostChart({ data, dailyAvg }: Props) {
           <div
             style={{
               fontSize: 11.5,
-              color: "#8b949e",
+              color: "var(--muted)",
               marginTop: 2,
               fontFamily: "var(--font-jetbrains-mono), monospace",
             }}
@@ -99,7 +99,7 @@ export function CostChart({ data, dailyAvg }: Props) {
             style={{
               fontFamily: "var(--font-archivo-black), sans-serif",
               fontSize: 18,
-              color: "#e6edf3",
+              color: "var(--text)",
             }}
           >
             {formatCost(dailyAvg)}
@@ -107,7 +107,7 @@ export function CostChart({ data, dailyAvg }: Props) {
           <div
             style={{
               fontSize: 10.5,
-              color: "#8b949e",
+              color: "var(--muted)",
               fontFamily: "var(--font-jetbrains-mono), monospace",
             }}
           >
@@ -134,7 +134,7 @@ export function CostChart({ data, dailyAvg }: Props) {
                 y1={y}
                 x2={660 - RIGHT}
                 y2={y}
-                stroke="#30363d"
+                stroke="var(--border)"
                 strokeWidth="1"
                 strokeDasharray="3 4"
               />
@@ -143,7 +143,7 @@ export function CostChart({ data, dailyAvg }: Props) {
                 y={y + 3.5}
                 fontSize="9"
                 fontFamily="JetBrains Mono, monospace"
-                fill="#8b949e"
+                fill="var(--muted)"
                 textAnchor="end"
               >
                 {formatCost(labelVal)}
@@ -166,7 +166,7 @@ export function CostChart({ data, dailyAvg }: Props) {
               width={barW}
               height={Math.max(barH, 1)}
               rx="2"
-              fill={isToday ? "#4ADE80" : "#2f4055"}
+              fill={isToday ? "var(--green)" : "#2f4055"}
             />
           );
         })}
@@ -178,7 +178,7 @@ export function CostChart({ data, dailyAvg }: Props) {
           display: "flex",
           justifyContent: "space-between",
           fontSize: 10,
-          color: "#8b949e",
+          color: "var(--muted)",
           marginTop: 4,
           paddingLeft: LEFT,
           fontFamily: "var(--font-jetbrains-mono), monospace",
