@@ -6,7 +6,7 @@ import asyncio
 import json
 import uuid
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Literal, cast
 
 import psycopg
 import psycopg.rows
@@ -93,20 +93,26 @@ async def _get_plan_detail(
 
     return PlanDetail(
         id=plan["id"],
-        goal=str(plan["goal"]),
+        goal=cast(
+            Literal["general_fitness", "strength", "endurance", "competition_prep"], plan["goal"]
+        ),
         title=str(plan["title"]),
         branch_name=str(plan["branch_name"]),
         weeks=int(str(plan["weeks"])),
-        status=str(plan["status"]),
+        status=cast(Literal["active", "archived", "draft"], plan["status"]),
         start_date=plan["start_date"],
         end_date=plan["end_date"],
-        training_age=str(plan["training_age"]) if plan["training_age"] else None,
+        training_age=cast(
+            Literal["beginner", "intermediate", "advanced"] | None, plan["training_age"]
+        ),
         created_at=str(plan["created_at"]),
         mesocycles=[
             MesocycleOut(
                 id=m["id"],
                 name=str(m["name"]),
-                phase=str(m["phase"]),
+                phase=cast(
+                    Literal["accumulation", "intensification", "deload", "peak", "test"], m["phase"]
+                ),
                 week_start=int(str(m["week_start"])),
                 week_end=int(str(m["week_end"])),
                 focus=str(m["focus"]) if m["focus"] else None,
@@ -118,10 +124,13 @@ async def _get_plan_detail(
                 id=s["id"],
                 mesocycle_id=s["mesocycle_id"],
                 scheduled_date=s["scheduled_date"],
-                session_type=str(s["session_type"]),
+                session_type=cast(
+                    Literal["strength", "metcon", "skill", "mixed", "rest", "active_recovery"],
+                    s["session_type"],
+                ),
                 title=str(s["title"]),
                 notes=str(s["notes"]) if s["notes"] else None,
-                status=str(s["status"]),
+                status=cast(Literal["prescribed", "completed", "skipped", "adapted"], s["status"]),
                 items=[
                     PlannedItemOut(
                         id=it["id"],
@@ -323,11 +332,13 @@ async def list_plans(
     return [
         PlanSummary(
             id=r["id"],
-            goal=str(r["goal"]),
+            goal=cast(
+                Literal["general_fitness", "strength", "endurance", "competition_prep"], r["goal"]
+            ),
             title=str(r["title"]),
             branch_name=str(r["branch_name"]),
             weeks=int(str(r["weeks"])),
-            status=str(r["status"]),
+            status=cast(Literal["active", "archived", "draft"], r["status"]),
             start_date=r["start_date"],
             end_date=r["end_date"],
             created_at=str(r["created_at"]),

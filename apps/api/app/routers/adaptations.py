@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
+from typing import Literal, cast
 
 import psycopg
 import psycopg.rows
@@ -44,14 +46,14 @@ def _row_to_out(r: dict[str, object]) -> AdaptationOut:
         user_id=str(r["user_id"]),
         trigger_type=str(r["trigger_type"]),
         trigger_data=dict(r["trigger_data"]) if r["trigger_data"] else {},  # type: ignore[call-overload]
-        status=str(r["status"]),
+        status=cast(Literal["proposed", "merged", "rejected"], r["status"]),
         rationale=str(r["rationale"]) if r["rationale"] else None,
         rejection_reason=str(r["rejection_reason"]) if r.get("rejection_reason") else None,
         diff_json=r["diff_json"],
         stub=bool(r["stub"]),
-        proposed_at=r["proposed_at"],
-        merged_at=r["merged_at"],
-        rejected_at=r["rejected_at"],
+        proposed_at=cast(datetime | None, r["proposed_at"]),
+        merged_at=cast(datetime | None, r["merged_at"]),
+        rejected_at=cast(datetime | None, r["rejected_at"]),
     )
 
 
