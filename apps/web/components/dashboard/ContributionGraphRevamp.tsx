@@ -59,7 +59,13 @@ export function ContributionGraphRevamp({
 
   const firstWorkoutDate = useMemo(() => {
     if (workouts.length === 0) return null;
-    return new Date(workouts[workouts.length - 1]!.performed_at);
+    const dateStr = workouts[workouts.length - 1]!.performed_at.slice(0, 10);
+    const [y, m, d] = dateStr.split("-").map(Number) as [
+      number,
+      number,
+      number,
+    ];
+    return new Date(y, m - 1, d);
   }, [workouts]);
 
   const window = useMemo(
@@ -69,14 +75,22 @@ export function ContributionGraphRevamp({
 
   const weightedDates = useMemo(() => {
     return workouts
-      .filter((w) => new Date(w.performed_at) >= window.fromDate)
-      .map((w) => ({
-        date: new Date(w.performed_at),
-        weight:
-          mode === "intensity"
-            ? w.perceived_load_au ?? 1
-            : (w.duration_s ?? 60) / 60,
-      }));
+      .filter((w) => {
+        const s = w.performed_at.slice(0, 10);
+        const [y, m, d] = s.split("-").map(Number) as [number, number, number];
+        return new Date(y, m - 1, d) >= window.fromDate;
+      })
+      .map((w) => {
+        const s = w.performed_at.slice(0, 10);
+        const [y, m, d] = s.split("-").map(Number) as [number, number, number];
+        return {
+          date: new Date(y, m - 1, d),
+          weight:
+            mode === "intensity"
+              ? w.perceived_load_au ?? 1
+              : (w.duration_s ?? 60) / 60,
+        };
+      });
   }, [workouts, window.fromDate, mode]);
 
   // Per-day aggregation so the cell tooltip carries magnitude (not colour-only).

@@ -151,6 +151,7 @@ export function WorkoutCard({
         detail={detail}
         detailLoading={detailLoading}
         accessToken={accessToken}
+        isExpanded={isExpanded}
       />
     );
   }
@@ -481,9 +482,9 @@ function ExpandedContent({
                           </span>
                         )}
                         {r.variant_annotation &&
-                          r.variant_annotation.split(",").map((chip) => (
+                          r.variant_annotation.split(",").map((chip, ci) => (
                             <span
-                              key={chip}
+                              key={ci}
                               className="font-mono text-[10px] px-1 py-0.5 rounded border border-[#30363d] bg-[#161b22] text-[#8b949e]"
                             >
                               {chip}
@@ -747,11 +748,13 @@ function TagCard({
   detail,
   detailLoading,
   accessToken,
+  isExpanded,
 }: {
   workout: WorkoutSummary;
   detail: Workout | null;
   detailLoading: boolean;
   accessToken: string;
+  isExpanded: boolean;
 }) {
   const { distanceUnit, weightUnit } = useUserPrefs();
   const unit = weightUnit === "lb" ? "lb" : "kg";
@@ -760,6 +763,7 @@ function TagCard({
   const fetchedRef = useRef(false);
 
   useEffect(() => {
+    if (!isExpanded) return;
     if (fetchedRef.current) return;
     fetchedRef.current = true;
     setLoading(true);
@@ -768,7 +772,7 @@ function TagCard({
       .then((w) => setLocalDetail(w))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [accessToken, workout.id]);
+  }, [isExpanded, accessToken, workout.id]);
 
   const result = localDetail?.results?.[0];
   const movementName = result?.movement_name ?? null;

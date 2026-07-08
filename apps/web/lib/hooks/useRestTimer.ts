@@ -49,10 +49,12 @@ export function useRestTimer(): RestTimerApi {
   );
   const [remaining, setRemaining] = useState(0);
   const [active, setActive] = useState(false);
+  const [restartKey, setRestartKey] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Countdown interval — clear immediately when the timer expires rather than
-  // waiting for the reactive cleanup cycle.
+  // waiting for the reactive cleanup cycle. restartKey increments let start()
+  // re-trigger this effect even when active is already true.
   useEffect(() => {
     if (!active) return;
     intervalRef.current = setInterval(() => {
@@ -74,13 +76,14 @@ export function useRestTimer(): RestTimerApi {
         intervalRef.current = null;
       }
     };
-  }, [active]);
+  }, [active, restartKey]);
 
   const start = useCallback(
     (seconds?: number) => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       const secs = seconds ?? duration;
       setRemaining(secs);
+      setRestartKey((k) => k + 1);
       setActive(true);
     },
     [duration],
