@@ -1,7 +1,7 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 import type { UserProfile, WeightUnit, DistanceUnit } from "@/lib/api";
 import { toWeightUnit, toDistanceUnit } from "@/lib/api";
@@ -22,6 +22,7 @@ interface Props {
 
 export function OnboardingWizard({ step, token, profile }: Props) {
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
   function goTo(s: number) {
     router.push(`/onboarding/${s}`);
@@ -43,7 +44,7 @@ export function OnboardingWizard({ step, token, profile }: Props) {
       });
       goTo(3);
     } catch {
-      toast.error("Failed to save. Please try again.");
+      setError("Failed to save preferences. Please try again.");
     }
   }
 
@@ -58,7 +59,7 @@ export function OnboardingWizard({ step, token, profile }: Props) {
       });
       goTo(4);
     } catch {
-      toast.error("Failed to save. Please try again.");
+      setError("Failed to save preferences. Please try again.");
     }
   }
 
@@ -121,6 +122,7 @@ export function OnboardingWizard({ step, token, profile }: Props) {
       )}
       {step === 4 && <Step4FirstWorkout onSkip={() => goTo(5)} />}
       {step === 5 && <Step5Done onFinish={finish} />}
+      {error && <p className="mt-4 text-sm text-[var(--red)]">{error}</p>}
     </div>
   );
 }

@@ -168,7 +168,9 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
           </button>
         </div>
         {detectError && (
-          <p className="mt-2 font-mono text-xs text-red-400">{detectError}</p>
+          <p className="mt-2 font-mono text-xs text-[var(--red)]">
+            {detectError}
+          </p>
         )}
         {detectResult !== null && (
           <p className="mt-2 font-mono text-xs text-[var(--muted)]">
@@ -216,7 +218,7 @@ export function PlanBranchView({ plan: initialPlan, accessToken }: Props) {
           </span>
         </div>
         {error && (
-          <p className="mt-2 font-mono text-xs text-red-400">{error}</p>
+          <p className="mt-2 font-mono text-xs text-[var(--red)]">{error}</p>
         )}
         {success && (
           <p className="mt-2 font-mono text-xs text-[var(--green)]">

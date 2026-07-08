@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
@@ -15,6 +15,12 @@ export function WeightUnitToggle({ initial, token }: Props) {
   const [value, setValue] = useState<WeightUnit>(initial);
   const { setWeightUnit } = useUserPrefs();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   function handleSelect(u: WeightUnit) {
     setValue(u);

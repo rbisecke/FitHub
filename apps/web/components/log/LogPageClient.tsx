@@ -180,10 +180,11 @@ export function LogPageClient({
     setMobileSubmitting(true);
     setSubmitError(null);
     try {
+      const todayStr = new Date().toLocaleDateString("sv-SE");
       const rt =
         mobileSelectedMovement.result_type as LogFormValues["movement_entries"][number]["result_type"];
       const workout = await api.workouts.create(accessToken, {
-        performed_at: toISOLocal(today),
+        performed_at: toISOLocal(todayStr),
         is_tag: false,
         results: [
           {
@@ -223,7 +224,6 @@ export function LogPageClient({
     accessToken,
     isFirstWorkout,
     router,
-    today,
   ]);
 
   async function onSubmit(values: LogFormValues) {

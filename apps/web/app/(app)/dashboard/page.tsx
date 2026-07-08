@@ -67,17 +67,10 @@ export default async function DashboardPage() {
   const terminalHandle = toHandle(profile?.display_name, user.email);
 
   // ── Stat grid data ────────────────────────────────────────────────────────
-  const tz = profile?.timezone ?? "UTC";
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: tz });
-  const hasWorkoutToday = workouts.some((w) => {
-    const [y, m, d] = w.performed_at.slice(0, 10).split("-").map(Number) as [
-      number,
-      number,
-      number,
-    ];
-    const wDate = new Date(y, m - 1, d);
-    return wDate.toLocaleDateString("en-CA", { timeZone: tz }) === today;
-  });
+  const todayStr = new Date().toLocaleDateString("sv-SE");
+  const hasWorkoutToday = workouts.some(
+    (w) => w.performed_at?.slice(0, 10) === todayStr,
+  );
 
   const tsbValue = readiness ? Math.round(readiness.tsb) : 0;
   const fitnessValue = readiness ? Math.round(readiness.score * 100) : 0;

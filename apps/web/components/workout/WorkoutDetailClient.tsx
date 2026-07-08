@@ -149,6 +149,31 @@ export function WorkoutDetailClient({
     );
   }
 
+  const workoutResults = workout.results ?? [];
+  const prResultIds = new Set<string>(
+    Object.values(
+      workoutResults
+        .filter((r) => r.movement_id != null && r.estimated_1rm_kg != null)
+        .reduce<Record<string, (typeof workoutResults)[number]>>((acc, r) => {
+          const movId = r.movement_id!;
+          if (
+            !acc[movId] ||
+            Number(r.estimated_1rm_kg!) > Number(acc[movId].estimated_1rm_kg!)
+          )
+            acc[movId] = r;
+          return acc;
+        }, {}),
+    )
+      .filter((r) => {
+        const pr = prMap[r.movement_id!];
+        return (
+          pr !== undefined && Math.abs(Number(r.estimated_1rm_kg!) - pr) < 0.01
+        );
+      })
+      .map((r) => r.id)
+      .filter((id): id is string => id != null),
+  );
+
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
       {/* Breadcrumb */}
@@ -264,21 +289,14 @@ export function WorkoutDetailClient({
       {/* Results */}
       <div>
         <h2 className="text-sm font-medium text-[--text] mb-3">Results</h2>
-        {(workout.results ?? []).length === 0 ? (
+        {workoutResults.length === 0 ? (
           <p className="text-sm text-[--muted] font-mono italic">
             No results logged.
           </p>
         ) : (
           <div className="space-y-1">
-            {(workout.results ?? []).map((r, i) => {
-              const isPr =
-                r.movement_id !== null &&
-                r.movement_id !== undefined &&
-                r.estimated_1rm_kg !== null &&
-                r.estimated_1rm_kg !== undefined &&
-                prMap[r.movement_id] !== undefined &&
-                Math.round(Number(r.estimated_1rm_kg) * 10) ===
-                  Math.round((prMap[r.movement_id] ?? 0) * 10);
+            {workoutResults.map((r, i) => {
+              const isPr = prResultIds.has(r.id);
               return (
                 <div
                   key={r.id}
