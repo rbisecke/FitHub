@@ -110,14 +110,7 @@ export function OnboardingWizard({ step, token, profile }: Props) {
           onNext={finishStep3}
         />
       )}
-      {step === 4 && (
-        <Step4FirstWorkout
-          token={token}
-          onNext={() => goTo(5)}
-          onSkip={() => goTo(5)}
-          onBack={() => goTo(3)}
-        />
-      )}
+      {step === 4 && <Step4FirstWorkout onSkip={() => goTo(5)} />}
       {step === 5 && <Step5Done onFinish={finish} />}
     </div>
   );

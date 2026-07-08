@@ -15,18 +15,18 @@ export function RestTimer({ remaining, onSkip }: RestTimerProps) {
       role="status"
       aria-live="polite"
       aria-label={`Rest timer: ${formatTime(remaining)} remaining`}
-      className="fixed bottom-[calc(env(safe-area-inset-bottom)+64px)] md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 rounded-full border border-[#30363d] bg-[#161b22] px-5 py-2.5 shadow-lg"
+      className="fixed bottom-[calc(env(safe-area-inset-bottom)+64px)] md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 rounded-full border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 shadow-lg"
     >
-      <span className="font-mono text-xs text-[#8b949e] uppercase tracking-widest">
+      <span className="font-mono text-xs text-[var(--muted)] uppercase tracking-widest">
         Rest
       </span>
-      <span className="font-mono text-xl tabular-nums text-[#e6edf3]">
+      <span className="font-mono text-xl tabular-nums text-[var(--text)]">
         {formatTime(remaining)}
       </span>
       <button
         type="button"
         onClick={onSkip}
-        className="font-mono text-xs text-[#58a6ff] hover:text-[#e6edf3] transition-colors min-h-[32px] px-2"
+        className="font-mono text-xs text-[var(--accent)] hover:text-[var(--text)] transition-colors min-h-[32px] px-2"
         aria-label="Skip rest"
       >
         Skip ▶

@@ -473,9 +473,9 @@ export function MovementDetailShell({
               </tr>
             </thead>
             <tbody>
-              {history.map((row, i) => (
+              {history.map((row) => (
                 <tr
-                  key={`${row.workout_id}-${i}`}
+                  key={`${row.workout_id}-${row.date}`}
                   style={
                     row.is_pr
                       ? { background: "rgba(255,200,61,0.04)" }

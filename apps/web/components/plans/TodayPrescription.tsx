@@ -245,7 +245,9 @@ export function TodayPrescription({
             )}
           </ul>
         )}
-        {modError && <p className="text-sm text-red-400 mt-2">{modError}</p>}
+        {modError && (
+          <p className="text-sm text-[var(--red)] mt-2">{modError}</p>
+        )}
         <div className="mt-3 flex items-center gap-3">
           <Link
             href={`/plans/${planId}`}
@@ -261,7 +263,6 @@ export function TodayPrescription({
                 setModLoading(true);
                 setModError(null);
                 try {
-                  await new Promise((r) => setTimeout(r, 1500));
                   const result = await client.coach.modifyWorkout(session.id);
                   setModifications(result);
                 } catch {

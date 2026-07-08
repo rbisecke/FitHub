@@ -51,6 +51,7 @@ export function NotificationPanel({
   const [notifications, setNotifications] =
     useState<Notification[]>(initialNotifications);
   const [loading, setLoading] = useState(initialNotifications.length === 0);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,7 +60,9 @@ export function NotificationPanel({
       .then((notifs) => {
         if (!cancelled) setNotifications(notifs);
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setFetchError(true);
+      })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -115,6 +118,10 @@ export function NotificationPanel({
         {loading ? (
           <div className="px-4 py-6 text-xs font-mono text-[--muted]">
             Loading…
+          </div>
+        ) : fetchError ? (
+          <div className="px-4 py-6 text-xs text-[--muted]">
+            Could not load notifications.
           </div>
         ) : notifications.length === 0 ? (
           <div className="px-4 py-6 text-xs text-[--muted]">

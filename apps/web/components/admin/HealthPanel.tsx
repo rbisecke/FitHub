@@ -15,9 +15,9 @@ function formatTimestamp(iso: string) {
 }
 
 function statusColor(code: number): React.CSSProperties {
-  if (code >= 500) return { color: "#f85149", fontWeight: 700 };
-  if (code >= 400) return { color: "#FFC83D", fontWeight: 700 };
-  return { color: "#8b949e" };
+  if (code >= 500) return { color: "var(--red)", fontWeight: 700 };
+  if (code >= 400) return { color: "var(--amber)", fontWeight: 700 };
+  return { color: "var(--muted)" };
 }
 
 const GRID = "150px 1.4fr 60px 130px minmax(0,2fr)";
@@ -27,7 +27,7 @@ function ErrorRow({ error }: { error: AdminRecentError }) {
     <div
       style={{
         padding: "13px 20px",
-        borderBottom: "1px solid #30363d",
+        borderBottom: "1px solid var(--border)",
         display: "grid",
         gridTemplateColumns: GRID,
         gap: 12,
@@ -37,7 +37,7 @@ function ErrorRow({ error }: { error: AdminRecentError }) {
     >
       <span
         style={{
-          color: "#8b949e",
+          color: "var(--muted)",
           fontFamily: "var(--font-jetbrains-mono), monospace",
           fontSize: 11,
         }}
@@ -46,7 +46,7 @@ function ErrorRow({ error }: { error: AdminRecentError }) {
       </span>
       <span
         style={{
-          color: "#58a6ff",
+          color: "var(--accent)",
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
@@ -55,13 +55,13 @@ function ErrorRow({ error }: { error: AdminRecentError }) {
         {error.path}
       </span>
       <span style={statusColor(error.status_code)}>{error.status_code}</span>
-      <span style={{ color: "#8b949e" }}>{error.error_type ?? "—"}</span>
+      <span style={{ color: "var(--muted)" }}>{error.error_type ?? "—"}</span>
       <span
         style={{
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
-          color: "#e6edf3",
+          color: "var(--text)",
         }}
       >
         {error.error_msg ?? "—"}
@@ -75,7 +75,7 @@ function ErrorCard({ error }: { error: AdminRecentError }) {
     <div
       style={{
         padding: "13px 16px",
-        borderBottom: "1px solid #30363d",
+        borderBottom: "1px solid var(--border)",
         fontFamily: "var(--font-jetbrains-mono), monospace",
       }}
     >
@@ -88,7 +88,7 @@ function ErrorCard({ error }: { error: AdminRecentError }) {
           marginBottom: 5,
         }}
       >
-        <span style={{ fontSize: 11, color: "#8b949e" }}>
+        <span style={{ fontSize: 11, color: "var(--muted)" }}>
           {formatTimestamp(error.created_at)}
         </span>
         <span
@@ -104,7 +104,7 @@ function ErrorCard({ error }: { error: AdminRecentError }) {
       <div
         style={{
           fontSize: 12,
-          color: "#58a6ff",
+          color: "var(--accent)",
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
@@ -114,7 +114,7 @@ function ErrorCard({ error }: { error: AdminRecentError }) {
         {error.path}
       </div>
       {error.error_type && (
-        <div style={{ fontSize: 11, color: "#8b949e", marginBottom: 4 }}>
+        <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>
           {error.error_type}
         </div>
       )}
@@ -122,7 +122,7 @@ function ErrorCard({ error }: { error: AdminRecentError }) {
         <div
           style={{
             fontSize: 12,
-            color: "#e6edf3",
+            color: "var(--text)",
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical" as const,
@@ -146,8 +146,8 @@ function UptimeStat({
   return (
     <div
       style={{
-        background: "#161b22",
-        border: "1px solid #30363d",
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
         borderRadius: 12,
         padding: "14px 16px",
       }}
@@ -155,7 +155,7 @@ function UptimeStat({
       <div
         style={{
           fontSize: 10.5,
-          color: "#8b949e",
+          color: "var(--muted)",
           textTransform: "uppercase",
           letterSpacing: ".5px",
           marginBottom: 6,
@@ -167,7 +167,7 @@ function UptimeStat({
         style={{
           fontFamily: "var(--font-archivo-black), sans-serif",
           fontSize: 20,
-          color: "#e6edf3",
+          color: "var(--text)",
         }}
       >
         {value}
@@ -234,7 +234,7 @@ export function HealthPanel({ health }: Props) {
         <span
           style={{
             fontSize: 11.5,
-            color: "#8b949e",
+            color: "var(--muted)",
             fontFamily: "var(--font-jetbrains-mono), monospace",
           }}
         >
@@ -245,9 +245,9 @@ export function HealthPanel({ health }: Props) {
           onChange={(e) => setEndpointFilter(e.target.value)}
           style={{
             background: "#21262d",
-            border: "1px solid #30363d",
+            border: "1px solid var(--border)",
             borderRadius: 9,
-            color: "#e6edf3",
+            color: "var(--text)",
             fontSize: 12.5,
             padding: "8px 12px",
             cursor: "pointer",
@@ -265,7 +265,7 @@ export function HealthPanel({ health }: Props) {
         <span
           style={{
             fontSize: 11.5,
-            color: "#8b949e",
+            color: "var(--muted)",
             marginLeft: "auto",
             fontFamily: "var(--font-jetbrains-mono), monospace",
           }}
@@ -277,8 +277,8 @@ export function HealthPanel({ health }: Props) {
       {/* Error log table */}
       <div
         style={{
-          background: "#161b22",
-          border: "1px solid #30363d",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
           borderRadius: 16,
           overflow: "hidden",
         }}
@@ -288,12 +288,12 @@ export function HealthPanel({ health }: Props) {
           <div
             style={{
               padding: "12px 20px",
-              borderBottom: "1px solid #30363d",
+              borderBottom: "1px solid var(--border)",
               display: "grid",
               gridTemplateColumns: GRID,
               gap: 12,
               fontSize: 10.5,
-              color: "#8b949e",
+              color: "var(--muted)",
               textTransform: "uppercase",
               letterSpacing: ".5px",
             }}
@@ -311,15 +311,15 @@ export function HealthPanel({ health }: Props) {
             style={{
               padding: 44,
               textAlign: "center",
-              color: "#8b949e",
+              color: "var(--muted)",
               fontSize: 13,
             }}
           >
             No errors recorded.
           </div>
         ) : (
-          filtered.map((error, i) => (
-            <div key={i}>
+          filtered.map((error) => (
+            <div key={`${error.created_at}-${error.path}`}>
               {/* Desktop row */}
               <div className="hidden md:block">
                 <ErrorRow error={error} />

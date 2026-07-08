@@ -3,10 +3,7 @@
 import Link from "next/link";
 
 interface Props {
-  token: string;
-  onNext: () => void;
   onSkip: () => void;
-  onBack: () => void;
 }
 
 export function Step4FirstWorkout({ onSkip }: Props) {

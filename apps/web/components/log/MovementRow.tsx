@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type {
   UseFormRegister,
   UseFormSetValue,
@@ -90,6 +90,14 @@ export function MovementRow({
   const [side, setSide] = useState<string | undefined>(undefined);
   const [limbStyle, setLimbStyle] = useState<string | null>(null);
 
+  const mountedRef = useRef(true);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    [],
+  );
+
   // keep refs to current movement id, implement, and side for re-fire callbacks
   const movementIdRef = useRef<string | undefined>(undefined);
   const implementRef = useRef<string | undefined>(undefined);
@@ -170,6 +178,8 @@ export function MovementRow({
             side: undefined,
           }),
         ]);
+
+        if (!mountedRef.current) return;
 
         if (resultData.status === "fulfilled") {
           const r = resultData.value;
