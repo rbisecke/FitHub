@@ -46,7 +46,9 @@ def _row_to_out(r: dict[str, object]) -> AdaptationOut:
         id=str(r["id"]),
         plan_id=str(r["plan_id"]),
         user_id=str(r["user_id"]),
-        trigger_type=str(r["trigger_type"]),
+        trigger_type=cast(
+            Literal["high_acwr", "low_readiness", "missed_session", "rpe_creep"], r["trigger_type"]
+        ),
         trigger_data=dict(r["trigger_data"]) if r["trigger_data"] else {},  # type: ignore[call-overload]
         status=cast(Literal["proposed", "merged", "rejected"], r["status"]),
         rationale=str(r["rationale"]) if r["rationale"] else None,
