@@ -123,14 +123,13 @@ async def update_injury_status(
         raise HTTPException(status_code=422, detail="Invalid injury ID") from exc
 
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-        # Fetch first — return 404 for other users' injuries (IDOR prevention)
         await cur.execute(
-            f"SELECT {_SELECT_COLS} FROM injuries WHERE id = %s",
-            [injury_id],
+            f"SELECT {_SELECT_COLS} FROM injuries WHERE id = %s AND user_id = %s",
+            [injury_id, user.user_id],
         )
         existing = await cur.fetchone()
 
-    if existing is None or existing["user_id"] != user.user_id:
+    if existing is None:
         raise HTTPException(status_code=404, detail="Injury not found")
 
     current_status = str(existing.get("status") or "active")
@@ -151,13 +150,14 @@ async def update_injury_status(
     # permanent: stays active=true so the injury engine keeps filtering workouts
 
     params.append(injury_id)
+    params.append(user.user_id)
 
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             f"""
             UPDATE injuries
             SET {", ".join(set_clauses)}
-            WHERE id = %s
+            WHERE id = %s AND user_id = %s
             RETURNING {_SELECT_COLS}
             """,
             params,

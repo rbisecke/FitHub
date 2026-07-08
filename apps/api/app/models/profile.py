@@ -43,10 +43,10 @@ class PatchProfileRequest(BaseModel):
     checkin_enabled: bool | None = None
     onboarding_completed: bool | None = None
     # Extended patchable fields
-    display_name: str | None = None
+    display_name: str | None = Field(default=None, max_length=50)
     bio: Annotated[str, Field(max_length=160)] | None = None
-    location: str | None = None
-    box_affiliation: str | None = None
+    location: str | None = Field(default=None, max_length=200)
+    box_affiliation: str | None = Field(default=None, max_length=200)
     distance_unit: Literal["km", "mi"] | None = None
     training_level: (
         Literal["recreational", "intermediate", "competitive", "masters", "elite"] | None

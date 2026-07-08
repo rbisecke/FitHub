@@ -82,9 +82,9 @@ class CreateResultRequest(BaseModel):
     set_index: int | None = None
     order_index: int = Field(default=0, ge=0)
     is_pr: bool = False
-    notes: str | None = None
-    variant_annotation: str | None = None
-    implement: str | None = None
+    notes: str | None = Field(default=None, max_length=500)
+    variant_annotation: str | None = Field(default=None, max_length=500)
+    implement: str | None = Field(default=None, max_length=100)
     tempo: str | None = None
     side: str | None = None
     rpe: Decimal | None = Field(default=None, ge=0, le=10)

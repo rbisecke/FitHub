@@ -98,10 +98,11 @@ async def list_sessions(
                 SELECT id, title, created_at
                 FROM public.coach_sessions
                 WHERE user_id = %s
-                  AND created_at < (
-                      SELECT created_at FROM public.coach_sessions WHERE id = %s AND user_id = %s
+                  AND (created_at, id) < (
+                      SELECT created_at, id FROM public.coach_sessions
+                      WHERE id = %s AND user_id = %s
                   )
-                ORDER BY created_at DESC LIMIT %s
+                ORDER BY created_at DESC, id DESC LIMIT %s
                 """,
                 [user_id, before_id, user_id, limit],
             )

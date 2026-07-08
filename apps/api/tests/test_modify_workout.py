@@ -100,7 +100,7 @@ async def _create_session_with_items(client: AsyncClient, movements: list[str]) 
         await conn.execute(
             """
             INSERT INTO mesocycles (id, plan_id, user_id, name, phase, week_start, week_end)
-            VALUES (%s, %s, %s, 'Block 1', 'accumulation', 1, 1)
+            VALUES (%s, %s, %s, 'Block 1', 'accumulation', 1, 4)
             """,
             [meso_id, plan_id, str(ALICE_ID)],
         )

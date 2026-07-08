@@ -6,7 +6,7 @@ import logging
 import time
 import uuid
 from datetime import UTC, datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal  # noqa: F401 – Literal used in query param below
 
 import httpx
 import psycopg
@@ -251,7 +251,7 @@ async def admin_metrics(
 async def list_access_requests(
     _admin: Annotated[uuid.UUID, Depends(require_admin)],
     conn: Annotated[DBConn, Depends(get_db)],
-    status_filter: str | None = Query(None, alias="status"),
+    status_filter: Literal["pending", "approved", "rejected"] | None = Query(None, alias="status"),
 ) -> list[AccessRequestRow]:
     query = """
         SELECT id, created_at, email, name, motivation, status,
