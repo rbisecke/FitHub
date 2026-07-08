@@ -440,7 +440,7 @@ async def _create_sessions(
         return ""
 
     insert_rows: list[tuple[object, ...]] = []
-    key_to_items: dict[tuple[object, str, str, str], list[object]] = {}
+    items_list: list[list[object]] = []
 
     for week_data in weeks_raw:
         if not isinstance(week_data, dict):
@@ -463,8 +463,7 @@ async def _create_sessions(
             title = str(session.get("title", "Session"))
             notes = str(session.get("notes", "")) or None
             insert_rows.append((plan_id, meso_id, user_id, sched_date, session_type, title, notes))
-            key = (sched_date, session_type, title, meso_id)
-            key_to_items[key] = list(session.get("items", []))
+            items_list.append(list(session.get("items", [])))
 
     if not insert_rows:
         return []
@@ -478,21 +477,16 @@ async def _create_sessions(
             insert_rows,
         )
 
+    # Fetch inserted rows in stable order matching insert_rows (scheduled_date, then id for ties).
+    # Using positional pairing avoids key-collision when two sessions share date/type/title/meso.
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
-            "SELECT id::text, scheduled_date, session_type, title, mesocycle_id::text"
-            " FROM planned_sessions WHERE plan_id = %s ORDER BY scheduled_date",
+            "SELECT id::text FROM planned_sessions WHERE plan_id = %s ORDER BY scheduled_date, id",
             [plan_id],
         )
         rows = await cur.fetchall()
 
-    result: list[tuple[str, list[object]]] = []
-    for row in rows:
-        key = (row["scheduled_date"], row["session_type"], row["title"], row["mesocycle_id"])
-        items = key_to_items.get(key, [])
-        result.append((row["id"], items))
-
-    return result
+    return [(row["id"], items_list[i]) for i, row in enumerate(rows)]
 
 
 async def _create_items(

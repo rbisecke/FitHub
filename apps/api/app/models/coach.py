@@ -87,11 +87,11 @@ class ChatResponse(BaseModel):
     answer: str
     citations: list[Citation] = []
     stub: bool = False
-    safety_tier: str | None = None
+    safety_tier: Literal["coach", "modify", "stop"] | None = None
 
 
 class HistoryMessage(BaseModel):
-    role: str
+    role: Literal["user", "assistant"]
     content: str
     created_at: datetime
 

@@ -2877,6 +2877,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Plan Id"
             }
           }
@@ -2924,6 +2925,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Plan Id"
             }
           }
@@ -2975,6 +2977,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Adaptation Id"
             }
           }
@@ -3022,6 +3025,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Adaptation Id"
             }
           }
@@ -3087,6 +3091,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Adaptation Id"
             }
           }
@@ -3171,7 +3176,7 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Successful Response",
             "content": {
               "application/json": {
@@ -4631,7 +4636,12 @@
           "safety_tier": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "coach",
+                  "modify",
+                  "stop"
+                ]
               },
               {
                 "type": "null"
@@ -5930,6 +5940,10 @@
         "properties": {
           "role": {
             "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
             "title": "Role"
           },
           "content": {
@@ -6378,6 +6392,13 @@
           },
           "acwr_zone": {
             "type": "string",
+            "enum": [
+              "insufficient_data",
+              "undertraining",
+              "sweet_spot",
+              "caution",
+              "overreaching"
+            ],
             "title": "Acwr Zone"
           }
         },
@@ -8043,6 +8064,12 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "complete",
+              "failed"
+            ],
             "title": "Status"
           },
           "plan_id": {
@@ -8339,7 +8366,12 @@
           "confidence_tier": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "calibrating_14d",
+                  "low_14_28",
+                  "standard"
+                ]
               },
               {
                 "type": "null"
@@ -8350,7 +8382,11 @@
           "hrv_type": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "hrv_sdnn",
+                  "hrv_rmssd"
+                ]
               },
               {
                 "type": "null"
@@ -8455,6 +8491,10 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "queued",
+              "unknown"
+            ],
             "title": "Status"
           },
           "message": {
@@ -9686,7 +9726,14 @@
           "training_level": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "recreational",
+                  "intermediate",
+                  "competitive",
+                  "masters",
+                  "elite"
+                ]
               },
               {
                 "type": "null"
@@ -9813,13 +9860,12 @@
           "session_type": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/SessionType"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Session Type"
+            ]
           },
           "total_load": {
             "type": "number",

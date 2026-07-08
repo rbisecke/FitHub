@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Request
 
 from app.dependencies.common import Auth, DBConn
 from app.integrations.ingest_tokens import generate_ingest_token, verify_ingest_token
-from app.middleware.rate_limit import limiter
+from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.integrations import ConnectionStatus, ConnectResponse, SyncResponse
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api/v1/integrations", tags=["integrations"])
 
 
 @router.post("/apple-health/connect", response_model=ConnectResponse)
-@limiter.limit("10/hour")
+@limiter.limit("10/hour", key_func=user_or_ip_key)
 async def connect_apple_health(
     request: Request,
     user: Auth,
@@ -106,7 +106,7 @@ async def list_integrations(
 
 
 @router.post("/apple-health/sync", response_model=SyncResponse)
-@limiter.limit("60/hour")
+@limiter.limit("60/hour", key_func=user_or_ip_key)
 async def apple_health_sync(
     request: Request,
     db: DBConn,

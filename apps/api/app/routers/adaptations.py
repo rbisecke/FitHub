@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from datetime import datetime
 from typing import Literal, cast
 
@@ -63,7 +64,7 @@ def _row_to_out(r: dict[str, object]) -> AdaptationOut:
 @router.post("/plans/{plan_id}/adaptations/detect", response_model=DetectTriggersResponse)
 @limiter.limit("5/hour", key_func=user_or_ip_key)
 async def detect_plan_adaptations(
-    plan_id: str,
+    plan_id: uuid.UUID,
     request: Request,
     user: Auth,
     db: DBConn,
@@ -71,7 +72,7 @@ async def detect_plan_adaptations(
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             "SELECT id FROM plans WHERE id = %s::uuid AND user_id = %s",
-            [plan_id, user.user_id],
+            [str(plan_id), user.user_id],
         )
         if await cur.fetchone() is None:
             raise HTTPException(status_code=404, detail="Plan not found")
@@ -79,7 +80,7 @@ async def detect_plan_adaptations(
     from app.ai.adaptation import generate_adaptation
     from app.engine.adaptation_triggers import detect_triggers
 
-    triggers = await detect_triggers(str(user.user_id), plan_id, db)
+    triggers = await detect_triggers(str(user.user_id), str(plan_id), db)
 
     # Generate all adaptation results before opening the transaction so LLM
     # calls don't hold a DB transaction open.
@@ -103,7 +104,7 @@ async def detect_plan_adaptations(
                     RETURNING {_SELECT_COLS}
                     """,
                     [
-                        plan_id,
+                        str(plan_id),
                         user.user_id,
                         str(trigger["type"]),
                         json.dumps(trigger["data"]),
@@ -121,7 +122,7 @@ async def detect_plan_adaptations(
                 proposed.append(out)
 
     return DetectTriggersResponse(
-        plan_id=plan_id,
+        plan_id=str(plan_id),
         triggers=triggers,
         proposed_adaptations=proposed,
     )
@@ -129,7 +130,7 @@ async def detect_plan_adaptations(
 
 @router.get("/plans/{plan_id}/adaptations", response_model=list[AdaptationOut])
 async def list_adaptations(
-    plan_id: str,
+    plan_id: uuid.UUID,
     user: Auth,
     db: DBConn,
 ) -> list[AdaptationOut]:
@@ -141,8 +142,9 @@ async def list_adaptations(
             JOIN plans p ON p.id = a.plan_id
             WHERE a.plan_id = %s::uuid AND a.user_id = %s AND p.user_id = %s
             ORDER BY a.proposed_at DESC
+            LIMIT 200
             """,
-            [plan_id, user.user_id, user.user_id],
+            [str(plan_id), user.user_id, user.user_id],
         )
         rows = await cur.fetchall()
 
@@ -151,7 +153,7 @@ async def list_adaptations(
 
 @router.post("/adaptations/{adaptation_id}/merge", response_model=AdaptationOut)
 async def merge_adaptation(
-    adaptation_id: str,
+    adaptation_id: uuid.UUID,
     user: Auth,
     db: DBConn,
 ) -> AdaptationOut:
@@ -165,14 +167,14 @@ async def merge_adaptation(
             WHERE id = %s::uuid AND user_id = %s AND status = 'proposed'
             RETURNING {_SELECT_COLS}
             """,
-            [adaptation_id, user.user_id],
+            [str(adaptation_id), user.user_id],
         )
         updated = await cur.fetchone()
 
         if updated is None:
             await cur.execute(
                 "SELECT id FROM adaptations WHERE id = %s::uuid AND user_id = %s",
-                [adaptation_id, user.user_id],
+                [str(adaptation_id), user.user_id],
             )
             if await cur.fetchone() is None:
                 raise HTTPException(status_code=404, detail="Adaptation not found")
@@ -183,7 +185,7 @@ async def merge_adaptation(
 
 @router.post("/adaptations/{adaptation_id}/reject", response_model=AdaptationOut)
 async def reject_adaptation(
-    adaptation_id: str,
+    adaptation_id: uuid.UUID,
     user: Auth,
     db: DBConn,
     body: RejectAdaptationRequest | None = None,
@@ -202,13 +204,13 @@ async def reject_adaptation(
                AND status = 'proposed'
             RETURNING {_SELECT_COLS}
             """,
-            [rejection_reason, adaptation_id, user.user_id],
+            [rejection_reason, str(adaptation_id), user.user_id],
         )
         updated = await cur.fetchone()
         if updated is None:
             await cur.execute(
                 "SELECT id FROM adaptations WHERE id = %s::uuid AND user_id = %s",
-                [adaptation_id, user.user_id],
+                [str(adaptation_id), user.user_id],
             )
             if await cur.fetchone() is None:
                 raise HTTPException(status_code=404, detail="Adaptation not found")
@@ -220,7 +222,7 @@ async def reject_adaptation(
 @router.post("/adaptations/{adaptation_id}/adjust", response_model=AdaptationOut)
 @limiter.limit("10/hour", key_func=user_or_ip_key)
 async def adjust_adaptation(
-    adaptation_id: str,
+    adaptation_id: uuid.UUID,
     request: Request,
     body: AdjustAdaptationRequest,
     user: Auth,
@@ -237,7 +239,7 @@ async def adjust_adaptation(
             FROM adaptations
             WHERE id = %s::uuid AND user_id = %s
             """,
-            [adaptation_id, user.user_id],
+            [str(adaptation_id), user.user_id],
         )
         existing = await cur.fetchone()
 
@@ -271,7 +273,7 @@ async def adjust_adaptation(
                 SET status = 'rejected', rejected_at = now(), rejection_reason = %s
                 WHERE id = %s::uuid AND user_id = %s AND status = 'proposed'
                 """,
-            [body.feedback, adaptation_id, user.user_id],
+            [body.feedback, str(adaptation_id), user.user_id],
         )
         if cur.rowcount == 0:
             raise HTTPException(

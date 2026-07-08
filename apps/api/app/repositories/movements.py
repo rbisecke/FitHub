@@ -15,6 +15,10 @@ from app.models.movement import (
 )
 
 
+def _escape_like(s: str) -> str:
+    return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 async def search_movements(
     conn: psycopg.AsyncConnection[Any],
     *,
@@ -22,13 +26,13 @@ async def search_movements(
     modality: Modality | None = None,
     limit: int = 50,
 ) -> list[Movement]:
-    like = f"%{query}%" if query else None
+    like = f"%{_escape_like(query)}%" if query else None
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
             SELECT *
             FROM   public.movements
-            WHERE  (%s::text IS NULL OR name ILIKE %s OR slug ILIKE %s)
+            WHERE  (%s::text IS NULL OR name ILIKE %s ESCAPE '\\' OR slug ILIKE %s ESCAPE '\\')
               AND  (%s::text IS NULL OR modality = %s)
             ORDER  BY is_official DESC, name
             LIMIT  %s

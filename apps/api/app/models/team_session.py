@@ -152,3 +152,7 @@ class TeamSessionListResponse(BaseModel):
 
 class RoleSuggestionsResponse(BaseModel):
     suggestions: list[str]
+
+
+class AddPartnerRequest(BaseModel):
+    email: str = Field(max_length=254)

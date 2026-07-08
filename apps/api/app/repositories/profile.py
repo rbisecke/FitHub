@@ -303,7 +303,7 @@ async def set_pinned_movements(
     user_id: uuid.UUID,
     body: SetPinnedMovementsRequest,
 ) -> list[PinnedMovement]:
-    async with conn.cursor() as cur:
+    async with conn.transaction(), conn.cursor() as cur:
         await cur.execute(
             "DELETE FROM public.user_pinned_movements WHERE user_id = %s",
             (user_id,),
@@ -311,10 +311,10 @@ async def set_pinned_movements(
         if body.movement_ids:
             await cur.executemany(
                 """
-                INSERT INTO public.user_pinned_movements
-                    (user_id, movement_id, display_order)
-                VALUES (%s, %s, %s)
-                """,
+                    INSERT INTO public.user_pinned_movements
+                        (user_id, movement_id, display_order)
+                    VALUES (%s, %s, %s)
+                    """,
                 [(user_id, mid, idx) for idx, mid in enumerate(body.movement_ids)],
             )
     return await list_pinned_movements(conn, user_id=user_id)
