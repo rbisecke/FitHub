@@ -628,7 +628,7 @@ async def run_plan_generation(
                     [str(exc)[:500], task_id],
                 )
         except Exception:
-            pass
+            log.exception("Failed to record plan generation failure for task=%s", task_id)
 
 
 # ── Plan revision ─────────────────────────────────────────────────────────────

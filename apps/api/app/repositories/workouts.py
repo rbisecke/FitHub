@@ -30,7 +30,7 @@ def _epley_1rm(load_kg: Decimal | None, reps: int | None) -> Decimal | None:
 
 
 def _compute_volume_load(results: list[CreateResultRequest]) -> Decimal | None:
-    """Σ sets × reps × load_kg; None if no result has both fields."""
+    """Σ reps × load_kg across results; each row represents one set."""
     total = Decimal(0)
     found = False
     for r in results:
@@ -133,7 +133,7 @@ async def _insert_result(
     )
     row = await cur.fetchone()
     if row is None:
-        raise RuntimeError("INSERT INTO workouts returned no row")
+        raise RuntimeError("INSERT INTO results returned no row")
     return Result(**row)
 
 
@@ -178,7 +178,7 @@ async def create_workout(
         )
         workout_row = await cur.fetchone()
         if workout_row is None:
-            raise RuntimeError("Workout not found after update")
+            raise RuntimeError("Workout INSERT returned no row")
 
         for r in req.results:
             await _insert_result(cur, user_id=user_id, workout_id=workout_id, req=r)

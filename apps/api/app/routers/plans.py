@@ -256,7 +256,7 @@ async def create_plan(
 
 @router.get("/tasks/{task_id}", response_model=PlanTaskResponse)
 async def get_task(
-    task_id: str,
+    task_id: uuid.UUID,
     user: Auth,
     db: DBConn,
 ) -> PlanTaskResponse:
@@ -315,16 +315,16 @@ async def list_plans(
 
 @router.get("/{plan_id}", response_model=PlanDetail)
 async def get_plan(
-    plan_id: str,
+    plan_id: uuid.UUID,
     user: Auth,
     db: DBConn,
 ) -> PlanDetail:
-    return await _get_plan_detail(plan_id, str(user.user_id), db)
+    return await _get_plan_detail(str(plan_id), str(user.user_id), db)
 
 
 @router.get("/{plan_id}/today", response_model=PlannedSessionOut | None)
 async def today_session(
-    plan_id: str,
+    plan_id: uuid.UUID,
     user: Auth,
     db: DBConn,
 ) -> PlannedSessionOut | None:
@@ -371,7 +371,7 @@ async def today_session(
 @router.post("/{plan_id}/revise", response_model=PlanDetail)
 @limiter.limit("3/hour")
 async def revise_plan(
-    plan_id: str,
+    plan_id: uuid.UUID,
     request: Request,
     req: PlanRevisionRequest,
     user: Auth,
@@ -388,7 +388,7 @@ async def revise_plan(
             raise HTTPException(status_code=404, detail="Plan not found")
 
     # 2. Load prescribed sessions — 422 if none remain
-    prescribed = await _load_prescribed_sessions(plan_id, str(user.user_id), db)
+    prescribed = await _load_prescribed_sessions(str(plan_id), str(user.user_id), db)
     if not prescribed:
         raise HTTPException(status_code=422, detail="No prescribed sessions to revise")
 
@@ -409,7 +409,7 @@ async def revise_plan(
     # 5. Apply patches + write audit row in one transaction
     async with db.transaction():
         for patch in diff.changed_sessions:
-            await _apply_session_patch(patch, plan_id, str(user.user_id), db)
+            await _apply_session_patch(patch, str(plan_id), str(user.user_id), db)
 
         await db.execute(
             """
@@ -429,4 +429,4 @@ async def revise_plan(
         )
 
     # 6. Return updated plan detail
-    return await _get_plan_detail(plan_id, str(user.user_id), db)
+    return await _get_plan_detail(str(plan_id), str(user.user_id), db)

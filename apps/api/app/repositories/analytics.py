@@ -360,9 +360,9 @@ async def get_readiness(
     # motivation: higher = better (1..7), normalize to [0,1]
     if mood_avg is not None:
         available_scores.append((mood_avg - 1.0) / 6.0)
-    # sleep_quality: higher = worse (1..7), invert normalize
+    # sleep_quality: higher = better (1..7), same scale as motivation
     if sleep_avg is not None:
-        available_scores.append((7.0 - sleep_avg) / 6.0)
+        available_scores.append((sleep_avg - 1.0) / 6.0)
     if factors_available + len(available_scores) < 1:
         score = 0.5
         label = "insufficient_data"
