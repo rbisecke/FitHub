@@ -40,6 +40,35 @@ The `.html` docs are large self-contained references — open them in a browser,
 - **Local-first, money-last:** build + validate everything on a local Supabase (CLI/Docker) stack for $0; don't deploy to paid cloud until the final deployment phase. Stub the LLM / use Haiku + a local embedding model during AI dev.
 - Per-package `CLAUDE.md` (apps/web, apps/api), hooks, skills, and the MCP set (context7 + Playwright + Supabase) are in `.claude/`.
 
+## Code quality checklist (apply before every commit)
+
+Hard-won rules from 6 rounds of automated auditing. Violations cause silent runtime failures.
+
+**Backend:**
+
+- [ ] Every list query has a LIMIT
+- [ ] Multi-row INSERTs use `executemany`, not a per-row loop
+- [ ] Multi-INSERT flows are wrapped in a transaction
+- [ ] All UPDATE/DELETE WHERE clauses include `user_id`
+- [ ] All routes have a Pydantic `response_model`, never `dict[str, ...]`
+- [ ] All finite-value fields use `Literal[]`, not `str`
+- [ ] Pydantic models live in `models/`, not inside routers
+- [ ] All user strings entering LLM prompts are XML-sandboxed
+- [ ] Raw DB exceptions are never returned to the client
+- [ ] Email/string lookup inputs are `.strip().lower()` before hitting the DB
+- [ ] `@limiter.limit()` is on every AI-facing and write endpoint
+- [ ] Rate limiter key function reads `X-Forwarded-For`
+
+**Frontend:**
+
+- [ ] Date-only strings parsed via local parts, not `new Date(iso)`
+- [ ] Every `useEffect` fetch has AbortController + cancelled flag + cleanup
+- [ ] AbortController signal is forwarded to the actual fetch, not just used as a guard
+- [ ] All colors use CSS custom properties (`var(--token)`), not hex
+- [ ] No Tailwind color utilities (`text-red-400` → `text-[var(--red)]`)
+- [ ] All async event handlers have try/catch with user feedback
+- [ ] List `key` props are stable entity IDs, not array indices
+
 ## UI/UX validation rule (mandatory for frontend rendering changes)
 
 Any change that affects how something is **rendered for a user** must go through this loop before the PR is merged:
