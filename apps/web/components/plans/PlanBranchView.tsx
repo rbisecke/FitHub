@@ -11,8 +11,8 @@ import { api } from "@/lib/api/client";
 
 const SESSION_COLORS: Record<string, string> = {
   strength: "bg-[var(--accent)]",
-  metcon: "bg-orange-500",
-  skill: "bg-yellow-500",
+  metcon: "bg-[var(--amber)]",
+  skill: "bg-[var(--green)]",
   mixed: "bg-[var(--purple)]",
   rest: "bg-[var(--surface)]",
   active_recovery: "bg-[var(--green)]",

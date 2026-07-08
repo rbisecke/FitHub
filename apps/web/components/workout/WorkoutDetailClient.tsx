@@ -277,8 +277,8 @@ export function WorkoutDetailClient({
                 r.estimated_1rm_kg !== null &&
                 r.estimated_1rm_kg !== undefined &&
                 prMap[r.movement_id] !== undefined &&
-                Math.abs(Number(r.estimated_1rm_kg) - prMap[r.movement_id]!) <
-                  0.01;
+                Math.round(Number(r.estimated_1rm_kg) * 10) ===
+                  Math.round((prMap[r.movement_id] ?? 0) * 10);
               return (
                 <div
                   key={r.id}

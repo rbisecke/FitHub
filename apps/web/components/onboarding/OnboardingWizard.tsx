@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 import type { UserProfile, WeightUnit, DistanceUnit } from "@/lib/api";
 import { toWeightUnit, toDistanceUnit } from "@/lib/api";
@@ -36,21 +37,29 @@ export function OnboardingWizard({ step, token, profile }: Props) {
   }
 
   async function finishStep2(frequencyTargetDays: number) {
-    await api.profile.patch(token, {
-      frequency_target_days: frequencyTargetDays,
-    });
-    goTo(3);
+    try {
+      await api.profile.patch(token, {
+        frequency_target_days: frequencyTargetDays,
+      });
+      goTo(3);
+    } catch {
+      toast.error("Failed to save. Please try again.");
+    }
   }
 
   async function finishStep3(units: {
     weight: WeightUnit;
     distance: DistanceUnit;
   }) {
-    await api.profile.patch(token, {
-      weight_unit: units.weight,
-      distance_unit: units.distance,
-    });
-    goTo(4);
+    try {
+      await api.profile.patch(token, {
+        weight_unit: units.weight,
+        distance_unit: units.distance,
+      });
+      goTo(4);
+    } catch {
+      toast.error("Failed to save. Please try again.");
+    }
   }
 
   async function finish() {

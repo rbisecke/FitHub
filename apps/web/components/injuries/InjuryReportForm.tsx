@@ -221,7 +221,7 @@ export function InjuryReportForm({ accessToken }: Props) {
         />
       </div>
 
-      {error && <p className="font-mono text-xs text-red-400">{error}</p>}
+      {error && <p className="font-mono text-xs text-[var(--red)]">{error}</p>}
 
       <button
         type="submit"

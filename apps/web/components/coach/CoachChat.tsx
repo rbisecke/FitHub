@@ -294,7 +294,7 @@ export function CoachChat({ accessToken }: CoachChatProps) {
                 <ul className="mt-2 space-y-0.5">
                   {msg.citations.map((c, j) => (
                     <li
-                      key={j}
+                      key={c.title ?? `${c.source_type}-${j}`}
                       className="font-mono text-xs text-[var(--muted)]"
                     >
                       [{c.source_type}] {c.title}

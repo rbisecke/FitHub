@@ -51,7 +51,7 @@ export function AccountSection({ email }: Props) {
       >
         {signingOut ? "Signing out..." : "Sign out"}
       </button>
-      <p className="text-xs text-[#8b949e]">
+      <p className="text-xs text-[var(--muted)]">
         To delete your account, contact support.
       </p>
     </div>

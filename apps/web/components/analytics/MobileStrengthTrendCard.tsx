@@ -87,22 +87,33 @@ export function MobileStrengthTrendCard({
   // Loading state is derived from selectedId !== loadedForId — avoids synchronous setState in effect.
   useEffect(() => {
     if (!selectedId) return;
+    const controller = new AbortController();
+    let cancelled = false;
     fetch(`${BASE}/api/v1/analytics/movement-trend/${selectedId}?days=730`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
+      signal: controller.signal,
     })
       .then((r) => {
         if (!r.ok) throw new Error("fetch failed");
         return r.json() as Promise<E1RMPoint[]>;
       })
       .then((pts) => {
-        setTrendPoints(pts);
-        setLoadedForId(selectedId);
+        if (!cancelled) {
+          setTrendPoints(pts);
+          setLoadedForId(selectedId);
+        }
       })
-      .catch(() => {
-        setTrendPoints([]);
-        setLoadedForId(selectedId);
+      .catch((err) => {
+        if (!cancelled && (err as Error).name !== "AbortError") {
+          setTrendPoints([]);
+          setLoadedForId(selectedId);
+        }
       });
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [selectedId, token]);
 
   // Movement search — results are cleared via the derived displayResults below

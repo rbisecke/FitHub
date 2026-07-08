@@ -42,6 +42,7 @@ export function WodCheckPanel({ accessToken }: Props) {
         }}
         className="w-full flex items-center justify-between px-4 py-2.5 font-mono text-xs text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--card)] transition-colors"
         aria-expanded={open}
+        aria-label="Toggle WOD check"
       >
         <span>$ coach check-wod</span>
         <span className="text-[10px]">{open ? "▲" : "▼"}</span>

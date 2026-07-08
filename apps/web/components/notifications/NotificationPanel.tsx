@@ -84,7 +84,11 @@ export function NotificationPanel({
 
   async function markAllRead() {
     const unread = notifications.filter((n) => !n.read_at);
-    await Promise.all(unread.map((n) => markRead(n.id)));
+    try {
+      await Promise.all(unread.map((n) => markRead(n.id)));
+    } catch {
+      setFetchError(true);
+    }
   }
 
   const unreadCount = notifications.filter((n) => !n.read_at).length;

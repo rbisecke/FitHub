@@ -89,6 +89,7 @@ export function StrengthProgressSection({
   useEffect(() => {
     if (selectedIds.length === 0) return;
     const controller = new AbortController();
+    let cancelled = false;
     for (const id of selectedIds) {
       const name =
         personalRecords.find((pr) => pr.movement_id === id)?.movement_name ??
@@ -102,16 +103,20 @@ export function StrengthProgressSection({
           if (!r.ok) throw new Error("fetch failed");
           return r.json() as Promise<E1RMPoint[]>;
         })
-        .then((pts) =>
-          setSeries((prev) => ({ ...prev, [id]: { name, points: pts } })),
-        )
+        .then((pts) => {
+          if (!cancelled)
+            setSeries((prev) => ({ ...prev, [id]: { name, points: pts } }));
+        })
         .catch((err) => {
-          if ((err as Error).name !== "AbortError") {
+          if (!cancelled && (err as Error).name !== "AbortError") {
             setSeries((prev) => ({ ...prev, [id]: { name, points: [] } }));
           }
         });
     }
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIds, period, token]);
 
@@ -119,6 +124,7 @@ export function StrengthProgressSection({
   useEffect(() => {
     if (!searchQuery.trim()) return;
     const controller = new AbortController();
+    let cancelled = false;
     fetch(`${BASE}/api/v1/movements?q=${encodeURIComponent(searchQuery)}`, {
       headers: { Authorization: `Bearer ${token}` },
       signal: controller.signal,
@@ -127,9 +133,14 @@ export function StrengthProgressSection({
         if (!r.ok) return [] as Movement[];
         return r.json() as Promise<Movement[]>;
       })
-      .then((data) => setSearchResults(data))
+      .then((data) => {
+        if (!cancelled) setSearchResults(data);
+      })
       .catch(() => {});
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [searchQuery, token]);
 
   const handlePeriodChange = (value: string) => {

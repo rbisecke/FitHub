@@ -61,8 +61,8 @@ export function MobileBottomNav({ isAdmin }: Props) {
         >
           <path
             d="M0 12 L138 12 A12 12 0 0 1 149 18 A40 40 0 0 0 226 18 A12 12 0 0 1 237 12 L375 12 L375 88 L0 88 Z"
-            fill="#161b22"
-            stroke="#30363d"
+            fill="var(--surface)"
+            stroke="var(--border)"
             strokeWidth="1"
           />
         </svg>
