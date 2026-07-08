@@ -18,6 +18,7 @@ import psycopg
 import psycopg.rows
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
+from psycopg.errors import UniqueViolation
 
 import app.repositories.coach as coach_repo
 from app.ai.chat_history import rag_query_text
@@ -32,7 +33,7 @@ from app.ai.usage import write_llm_usage
 from app.dependencies.common import Auth, DBConn
 from app.engine.injury import CONTRAINDICATIONS, resolve_substitution, union_contraindications
 from app.engine.safety import SafetyTier, classify_safety
-from app.middleware.rate_limit import limiter
+from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.coach import (
     ActiveInjurySummary,
     ChatRequest,
@@ -161,7 +162,7 @@ _SUSPICIOUS_OUTPUT = re.compile(
 
 
 @router.post("/parse-log", response_model=ParseLogResponse)
-@limiter.limit("10/minute")
+@limiter.limit("10/minute", key_func=user_or_ip_key)
 async def parse_log(
     request: Request,
     body: ParseLogRequest,
@@ -211,7 +212,7 @@ async def get_history(
 
 
 @router.post("/chat", response_model=ChatResponse)
-@limiter.limit("10/minute")
+@limiter.limit("10/minute", key_func=user_or_ip_key)
 async def chat(
     request: Request,
     body: ChatRequest,
@@ -230,12 +231,15 @@ async def chat(
         if session_row is not None:
             session_id: uuid.UUID = body.session_id
         else:
-            session_id = await coach_repo.create_session(
-                db,
-                user_id=user.user_id,
-                title=body.question[:200],
-                session_id=body.session_id,
-            )
+            try:
+                session_id = await coach_repo.create_session(
+                    db,
+                    user_id=user.user_id,
+                    title=body.question[:200],
+                    session_id=body.session_id,
+                )
+            except UniqueViolation:
+                raise HTTPException(status_code=409, detail="Session ID already exists.") from None
     else:
         session_id = await coach_repo.create_session(
             db, user_id=user.user_id, title=body.question[:200]
@@ -331,7 +335,7 @@ async def chat(
             llm.client.chat.completions.create(
                 model=llm.model,
                 max_tokens=512,
-                messages=[{"role": "system", "content": system_prompt}] + messages,  # type: ignore[arg-type]
+                messages=[{"role": "system", "content": system_prompt}] + messages,
                 response_model=_ChatAnswer,
             ),
             context="coach_chat",
@@ -360,7 +364,7 @@ async def chat(
     )
 
     citations = [
-        Citation(title=str(c["title"]), source_type=str(c["source_type"]), score=float(c["score"]))  # type: ignore[arg-type]
+        Citation(title=str(c["title"]), source_type=str(c["source_type"]), score=float(c["score"]))
         for c in citations_raw
     ]
     return ChatResponse(answer=answer_text, citations=citations, stub=False, safety_tier=tier.value)
@@ -390,7 +394,7 @@ async def get_session_messages(
 
 
 @router.post("/chat/stream")
-@limiter.limit("10/minute")
+@limiter.limit("10/minute", key_func=user_or_ip_key)
 async def chat_stream(
     request: Request,
     body: ChatStreamRequest,
@@ -567,6 +571,20 @@ async def _do_stream(
                     }
                 )
                 return
+            else:
+                await write_llm_usage(
+                    db,
+                    user_id=user_id,
+                    session_id=session_id,
+                    endpoint="chat_stream",
+                    model=llm.model,
+                    input_tokens=0,
+                    output_tokens=0,
+                    rag_chunks_used=len(chunks),
+                    max_rrf_score=max_rrf_score,
+                    ttft_ms=ttft_ms,
+                    duration_ms=round((time.perf_counter() - t_start) * 1000),
+                )
 
     answer_text = sanitize_answer("".join(full_answer))
 

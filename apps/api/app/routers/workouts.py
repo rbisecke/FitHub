@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import re
 import uuid
+from datetime import date
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
-from pydantic import BaseModel, Field
 
 from app.dependencies.common import Auth, DBConn
 from app.models.team_session import TeamSession
 from app.models.workout import (
     CreateWorkoutRequest,
+    ParseNLRequest,
+    ParseNLResponse,
     PatchWorkoutRequest,
     Workout,
     WorkoutListResponse,
@@ -23,16 +25,6 @@ from app.repositories.workouts import (
     patch_workout,
 )
 
-
-class ParseNLRequest(BaseModel):
-    text: str = Field(max_length=5000)
-
-
-class ParseNLResponse(BaseModel):
-    title: str
-    notes: str
-
-
 router = APIRouter(prefix="/api/v1/workouts", tags=["workouts"])
 
 
@@ -44,8 +36,8 @@ async def list_workouts_route(
     limit: int = Query(default=20, ge=1, le=365),
     session_type: str | None = Query(default=None),
     partner_only: bool | None = Query(default=None),
-    date_from: str | None = Query(default=None),
-    date_to: str | None = Query(default=None),
+    date_from: date | None = Query(default=None),
+    date_to: date | None = Query(default=None),
 ) -> WorkoutListResponse:
     items = await list_workouts(
         conn,
@@ -54,8 +46,8 @@ async def list_workouts_route(
         limit=limit,
         session_type=session_type,
         partner_only=partner_only,
-        date_from=date_from,
-        date_to=date_to,
+        date_from=date_from.isoformat() if date_from is not None else None,
+        date_to=date_to.isoformat() if date_to is not None else None,
     )
     next_cursor = str(items[-1].id) if len(items) == limit else None
     return WorkoutListResponse(items=items, next_cursor=next_cursor)

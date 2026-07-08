@@ -39,7 +39,7 @@ export function PlanCard({ plan }: PlanCardProps) {
     plan.weeks,
   );
   const isActive = plan.status === "active";
-  const isMerged = plan.status === "merged" || plan.status === "completed";
+  const isMerged = plan.status === "archived";
   const weeksRemaining = plan.weeks - weeksElapsed;
   const gapText =
     weeksRemaining > 0 ? `${weeksRemaining}w remaining` : "Final week";

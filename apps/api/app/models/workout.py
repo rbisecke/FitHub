@@ -101,3 +101,12 @@ class PatchWorkoutRequest(BaseModel):
 class WorkoutListResponse(BaseModel):
     items: list[WorkoutSummary]
     next_cursor: str | None
+
+
+class ParseNLRequest(BaseModel):
+    text: str = Field(max_length=5000)
+
+
+class ParseNLResponse(BaseModel):
+    title: str
+    notes: str

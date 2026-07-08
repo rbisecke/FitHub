@@ -178,6 +178,7 @@ async def get_personal_records(
             WHERE w.user_id = %s
               AND r.movement_id = ANY(%s)
               AND r.estimated_1rm_kg IS NOT NULL
+              AND w.performed_at >= NOW() - INTERVAL '5 years'
             ORDER BY r.movement_id, w.performed_at ASC
             """,
             (user_id, movement_ids),
@@ -220,6 +221,7 @@ async def get_movement_trend(
               AND r.movement_id        = %s
               AND r.estimated_1rm_kg IS NOT NULL
             ORDER BY w.performed_at ASC
+            LIMIT 200
             """,
             (user_id, user_id, movement_id),
         )
@@ -334,8 +336,6 @@ async def get_readiness(
             mood_avg = float(row["mood_avg"]) if row["mood_avg"] is not None else None
             sleep_avg = float(row["sleep_avg"]) if row["sleep_avg"] is not None else None
 
-    factors_available = sum(1 for v in (mood_avg, sleep_avg) if v is not None)
-
     has_training_data = any(r["load_au"] > 0 for r in series)
 
     # Compute composite score: average available normalized factors
@@ -363,11 +363,12 @@ async def get_readiness(
     # sleep_quality: higher = better (1..7), same scale as motivation
     if sleep_avg is not None:
         available_scores.append((sleep_avg - 1.0) / 6.0)
-    if factors_available + len(available_scores) < 1:
+    factors_available = len(available_scores)
+    if not available_scores:
         score = 0.5
         label = "insufficient_data"
     else:
-        score = sum(available_scores) / len(available_scores) if available_scores else 0.5
+        score = sum(available_scores) / len(available_scores)
         if score >= 0.75:
             label = "optimal"
         elif score >= 0.55:
@@ -553,6 +554,7 @@ async def get_benchmark_attempts(
             WHERE w.user_id = %s
               AND w.benchmark_id IS NOT NULL
             ORDER BY b.name, w.performed_at ASC
+            LIMIT 500
             """,
             (user_id,),
         )

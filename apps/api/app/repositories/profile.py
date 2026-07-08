@@ -232,6 +232,10 @@ async def find_user_by_email(
     return dict(row) if row else None
 
 
+def _escape_like(s: str) -> str:
+    return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 async def search_users(
     conn: psycopg.AsyncConnection[Any],
     *,
@@ -240,6 +244,7 @@ async def search_users(
     limit: int = 10,
 ) -> list[dict[str, Any]]:
     """Search profiles by display_name (prefix) or email substring, excluding the caller."""
+    escaped = _escape_like(query)
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
@@ -248,13 +253,13 @@ async def search_users(
             JOIN   public.profiles p ON p.id = u.id
             WHERE  u.id != %s
               AND  (
-                      p.display_name ILIKE %s
-                   OR u.email ILIKE %s
+                      p.display_name ILIKE %s ESCAPE '\\'
+                   OR u.email ILIKE %s ESCAPE '\\'
               )
             ORDER BY p.display_name
             LIMIT %s
             """,
-            (exclude_user_id, f"%{query}%", f"%{query}%", limit),
+            (exclude_user_id, f"%{escaped}%", f"%{escaped}%", limit),
         )
         rows = await cur.fetchall()
     return [dict(r) for r in rows]

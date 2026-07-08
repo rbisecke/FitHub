@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -13,7 +14,7 @@ class AdaptationOut(BaseModel):
     user_id: str
     trigger_type: str
     trigger_data: dict[str, object]
-    status: str
+    status: Literal["proposed", "merged", "rejected"]
     rationale: str | None = None
     rejection_reason: str | None = None
     diff_json: object = None

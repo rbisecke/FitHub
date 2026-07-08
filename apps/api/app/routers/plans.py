@@ -6,16 +6,16 @@ import asyncio
 import json
 import uuid
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Literal, cast
 
 import psycopg
 import psycopg.rows
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.ai.kill_switch import require_llm_enabled
 from app.ai.stub import is_stubbed
 from app.dependencies.common import Auth, DBConn
-from app.middleware.rate_limit import limiter
+from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.plan import (
     CreatePlanRequest,
     MesocycleOut,
@@ -93,20 +93,26 @@ async def _get_plan_detail(
 
     return PlanDetail(
         id=plan["id"],
-        goal=str(plan["goal"]),
+        goal=cast(
+            Literal["general_fitness", "strength", "endurance", "competition_prep"], plan["goal"]
+        ),
         title=str(plan["title"]),
         branch_name=str(plan["branch_name"]),
         weeks=int(str(plan["weeks"])),
-        status=str(plan["status"]),
+        status=cast(Literal["active", "archived", "draft"], plan["status"]),
         start_date=plan["start_date"],
         end_date=plan["end_date"],
-        training_age=str(plan["training_age"]) if plan["training_age"] else None,
+        training_age=cast(
+            Literal["beginner", "intermediate", "advanced"] | None, plan["training_age"]
+        ),
         created_at=str(plan["created_at"]),
         mesocycles=[
             MesocycleOut(
                 id=m["id"],
                 name=str(m["name"]),
-                phase=str(m["phase"]),
+                phase=cast(
+                    Literal["accumulation", "intensification", "deload", "peak", "test"], m["phase"]
+                ),
                 week_start=int(str(m["week_start"])),
                 week_end=int(str(m["week_end"])),
                 focus=str(m["focus"]) if m["focus"] else None,
@@ -118,10 +124,13 @@ async def _get_plan_detail(
                 id=s["id"],
                 mesocycle_id=s["mesocycle_id"],
                 scheduled_date=s["scheduled_date"],
-                session_type=str(s["session_type"]),
+                session_type=cast(
+                    Literal["strength", "metcon", "skill", "mixed", "rest", "active_recovery"],
+                    s["session_type"],
+                ),
                 title=str(s["title"]),
                 notes=str(s["notes"]) if s["notes"] else None,
-                status=str(s["status"]),
+                status=cast(Literal["prescribed", "completed", "skipped", "adapted"], s["status"]),
                 items=[
                     PlannedItemOut(
                         id=it["id"],
@@ -171,6 +180,7 @@ async def _load_prescribed_sessions(
             GROUP BY ps.id, ps.scheduled_date, ps.session_type,
                      ps.title, ps.notes, ps.status
             ORDER BY ps.scheduled_date
+            LIMIT 50
             """,
             [plan_id, user_id],
         )
@@ -192,39 +202,42 @@ async def _apply_session_patch(
                 UPDATE planned_sessions SET
                     title = COALESCE(%s, title),
                     notes = COALESCE(%s, notes)
-                WHERE id = %s::uuid AND plan_id = %s::uuid
+                WHERE id = %s::uuid AND plan_id = %s::uuid AND user_id = %s::uuid
                 """,
-                [patch.new_title, patch.new_notes, patch.session_id, plan_id],
+                [patch.new_title, patch.new_notes, patch.session_id, plan_id, user_id],
             )
         if patch.modified_items:
             await cur.execute(
-                "DELETE FROM planned_items WHERE session_id = %s::uuid",
-                [patch.session_id],
+                "DELETE FROM planned_items WHERE session_id = %s::uuid AND user_id = %s::uuid",
+                [patch.session_id, user_id],
             )
-            for item in patch.modified_items:
-                await cur.execute(
-                    """
-                    INSERT INTO planned_items
-                        (session_id, user_id, movement_name, sets, reps,
-                         load_pct_1rm, load_kg, notes, item_order)
-                    VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    [
-                        patch.session_id,
-                        user_id,
-                        item.movement_name,
-                        item.sets,
-                        item.reps,
-                        item.load_pct_1rm,
-                        item.load_kg,
-                        item.notes,
-                        item.item_order,
-                    ],
+            item_rows = [
+                (
+                    patch.session_id,
+                    user_id,
+                    item.movement_name,
+                    item.sets,
+                    item.reps,
+                    item.load_pct_1rm,
+                    item.load_kg,
+                    item.notes,
+                    item.item_order,
                 )
+                for item in patch.modified_items
+            ]
+            await cur.executemany(
+                """
+                INSERT INTO planned_items
+                    (session_id, user_id, movement_name, sets, reps,
+                     load_pct_1rm, load_kg, notes, item_order)
+                VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                item_rows,
+            )
 
 
 @router.post("", status_code=202, response_model=PlanTaskResponse)
-@limiter.limit("3/hour")
+@limiter.limit("3/hour", key_func=user_or_ip_key)
 async def create_plan(
     request: Request,
     req: CreatePlanRequest,
@@ -283,28 +296,49 @@ async def get_task(
 async def list_plans(
     user: Auth,
     db: DBConn,
+    before_id: uuid.UUID | None = Query(default=None),
 ) -> list[PlanSummary]:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-        await cur.execute(
-            """
-            SELECT id, goal, title, branch_name, weeks, status,
-                   start_date, end_date,
-                   to_char(created_at AT TIME ZONE 'UTC',
-                           'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
-            FROM plans WHERE user_id = %s ORDER BY created_at DESC LIMIT 50
-            """,
-            [user.user_id],
-        )
+        if before_id is not None:
+            await cur.execute(
+                """
+                SELECT id, goal, title, branch_name, weeks, status,
+                       start_date, end_date,
+                       to_char(created_at AT TIME ZONE 'UTC',
+                               'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
+                FROM plans
+                WHERE user_id = %s
+                  AND (created_at, id) < (
+                      SELECT created_at, id FROM plans WHERE id = %s AND user_id = %s
+                  )
+                ORDER BY created_at DESC
+                LIMIT 50
+                """,
+                [user.user_id, before_id, user.user_id],
+            )
+        else:
+            await cur.execute(
+                """
+                SELECT id, goal, title, branch_name, weeks, status,
+                       start_date, end_date,
+                       to_char(created_at AT TIME ZONE 'UTC',
+                               'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
+                FROM plans WHERE user_id = %s ORDER BY created_at DESC LIMIT 50
+                """,
+                [user.user_id],
+            )
         rows = await cur.fetchall()
 
     return [
         PlanSummary(
             id=r["id"],
-            goal=str(r["goal"]),
+            goal=cast(
+                Literal["general_fitness", "strength", "endurance", "competition_prep"], r["goal"]
+            ),
             title=str(r["title"]),
             branch_name=str(r["branch_name"]),
             weeks=int(str(r["weeks"])),
-            status=str(r["status"]),
+            status=cast(Literal["active", "archived", "draft"], r["status"]),
             start_date=r["start_date"],
             end_date=r["end_date"],
             created_at=str(r["created_at"]),
@@ -354,7 +388,6 @@ async def today_session(
             WHERE ps.plan_id = %s AND p.user_id = %s AND ps.scheduled_date = %s
             GROUP BY ps.id, ps.mesocycle_id, ps.scheduled_date,
                      ps.session_type, ps.title, ps.notes, ps.status
-            ORDER BY (p.status = 'active') DESC
             LIMIT 1
             """,
             [plan_id, user.user_id, today],
@@ -369,7 +402,7 @@ async def today_session(
 
 
 @router.post("/{plan_id}/revise", response_model=PlanDetail)
-@limiter.limit("3/hour")
+@limiter.limit("3/hour", key_func=user_or_ip_key)
 async def revise_plan(
     plan_id: uuid.UUID,
     request: Request,

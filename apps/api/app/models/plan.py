@@ -28,11 +28,11 @@ class PlanBase(BaseModel):
     """Shared fields between PlanSummary and PlanDetail."""
 
     id: uuid.UUID
-    goal: str
+    goal: Literal["general_fitness", "strength", "endurance", "competition_prep"]
     title: str
     branch_name: str
     weeks: int
-    status: str
+    status: Literal["active", "archived", "draft"]
     start_date: date
     end_date: date
     created_at: str
@@ -57,24 +57,24 @@ class PlannedSessionOut(BaseModel):
     id: uuid.UUID
     mesocycle_id: uuid.UUID
     scheduled_date: date
-    session_type: str
+    session_type: Literal["strength", "metcon", "skill", "mixed", "rest", "active_recovery"]
     title: str
     notes: str | None
-    status: str
+    status: Literal["prescribed", "completed", "skipped", "adapted"]
     items: list[PlannedItemOut] = []
 
 
 class MesocycleOut(BaseModel):
     id: uuid.UUID
     name: str
-    phase: str
+    phase: Literal["accumulation", "intensification", "deload", "peak", "test"]
     week_start: int
     week_end: int
     focus: str | None
 
 
 class PlanDetail(PlanBase):
-    training_age: str | None
+    training_age: Literal["beginner", "intermediate", "advanced"] | None
     mesocycles: list[MesocycleOut]
     sessions: list[PlannedSessionOut]
 

@@ -107,7 +107,7 @@ async def compute_today_recovery(
     hrv_mean = _fv(hrv_b, "mean")
     hrv_sd = _fv(hrv_b, "sd")
     n_days_raw = hrv_b.get("n_days")
-    hrv_days = int(n_days_raw) if isinstance(n_days_raw, int) else 0  # type: ignore[arg-type]
+    hrv_days = int(n_days_raw) if isinstance(n_days_raw, int) else 0
     rhr_mean = _fv(rhr_b, "mean")
     rhr_sd = _fv(rhr_b, "sd")
 

@@ -7,41 +7,22 @@ import logging
 
 import psycopg
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
 
 from app.dependencies.common import Auth, DBConn
 from app.integrations.ingest_tokens import generate_ingest_token, verify_ingest_token
 from app.middleware.rate_limit import limiter
+from app.models.integrations import ConnectionStatus, ConnectResponse, SyncResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/integrations", tags=["integrations"])
 
 
-# ── Response models ────────────────────────────────────────────────────────────
-
-
-class ConnectResponse(BaseModel):
-    token: str
-    token_prefix: str
-    ingest_url: str
-
-
-class ConnectionStatus(BaseModel):
-    provider: str
-    sync_status: str
-    last_synced_at: str | None
-
-
-class SyncResponse(BaseModel):
-    rows_inserted: int
-    recovery_computed: bool
-
-
 # ── Dev-only: generate an ingest token ────────────────────────────────────────
 
 
 @router.post("/apple-health/connect", response_model=ConnectResponse)
+@limiter.limit("10/hour")
 async def connect_apple_health(
     request: Request,
     user: Auth,
