@@ -61,13 +61,14 @@ export function ProfileHeroCard({
           >
             <span
               className="font-heading text-[20px] leading-none"
-              style={{ color: "#0d1117" }}
+              style={{ color: "var(--bg)" }}
             >
               {initials}
             </span>
           </div>
           <button
             onClick={() => setEditOpen(true)}
+            aria-label="Edit profile"
             className="shrink-0 text-[var(--foreground)] text-[12px] font-semibold px-3 py-2 rounded-[9px] transition-colors"
             style={{
               background: "var(--surface-2)",

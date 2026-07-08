@@ -72,6 +72,7 @@ function RequestCard({ request, token, onUpdate }: CardProps) {
   const [pending, startTransition] = useTransition();
   const [hoverApprove, setHoverApprove] = useState(false);
   const [hoverReject, setHoverReject] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleString("en-US", {
@@ -84,6 +85,7 @@ function RequestCard({ request, token, onUpdate }: CardProps) {
   }
 
   function handleAction(action: "approved" | "rejected") {
+    setActionError(null);
     startTransition(async () => {
       try {
         const res = await fetch(`/api/v1/admin/access-requests/${request.id}`, {
@@ -97,9 +99,11 @@ function RequestCard({ request, token, onUpdate }: CardProps) {
         if (res.ok) {
           const updated: AdminAccessRequest = await res.json();
           onUpdate(updated);
+        } else {
+          setActionError(`Action failed (${res.status})`);
         }
       } catch {
-        // Silently fail — user can retry
+        setActionError("Network error. Please try again.");
       }
     });
   }
@@ -228,6 +232,18 @@ function RequestCard({ request, token, onUpdate }: CardProps) {
           </div>
         )}
       </div>
+      {actionError && (
+        <p
+          style={{
+            color: "var(--red)",
+            fontFamily: "monospace",
+            fontSize: 11,
+            marginTop: 6,
+          }}
+        >
+          {actionError}
+        </p>
+      )}
     </div>
   );
 }

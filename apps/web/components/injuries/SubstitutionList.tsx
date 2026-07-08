@@ -17,9 +17,9 @@ export function SubstitutionList({ substitutions, bodyRegion }: Props) {
         # safe alternatives for {bodyRegion} injury
       </p>
       <ul className="space-y-1">
-        {substitutions.map((sub, i) => (
+        {substitutions.map((sub) => (
           <li
-            key={i}
+            key={sub}
             className="flex items-start gap-2 text-sm text-[var(--text)]"
           >
             <span className="mt-0.5 font-mono text-xs text-[var(--green)]">

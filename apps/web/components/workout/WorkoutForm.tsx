@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
   useForm,
@@ -187,12 +188,17 @@ export function WorkoutForm({
       })),
     };
 
-    if (workoutId) {
-      await api.workouts.patch(accessToken, workoutId, body);
-      onSaved?.();
-    } else {
-      const workout = await api.workouts.create(accessToken, body);
-      router.push(`/history/${workout.id}`);
+    try {
+      if (workoutId) {
+        await api.workouts.patch(accessToken, workoutId, body);
+        onSaved?.();
+      } else {
+        const workout = await api.workouts.create(accessToken, body);
+        router.push(`/history/${workout.id}`);
+      }
+    } catch (e) {
+      toast.error("Failed to save workout. Please try again.");
+      throw e;
     }
   }
 
@@ -218,7 +224,9 @@ export function WorkoutForm({
           className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)]"
         />
         {errors.performed_at && (
-          <p className="text-xs text-red-400">{errors.performed_at.message}</p>
+          <p className="text-xs text-[var(--red)]">
+            {errors.performed_at.message}
+          </p>
         )}
       </div>
 
@@ -296,7 +304,9 @@ export function WorkoutForm({
             className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)]"
           />
           {errors.session_rpe && (
-            <p className="text-xs text-red-400">{errors.session_rpe.message}</p>
+            <p className="text-xs text-[var(--red)]">
+              {errors.session_rpe.message}
+            </p>
           )}
         </div>
 

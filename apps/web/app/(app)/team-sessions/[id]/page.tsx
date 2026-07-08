@@ -148,6 +148,7 @@ export default function TeamSessionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [editingScore, setEditingScore] = useState(false);
   const [scoreInput, setScoreInput] = useState("");
   const [savingScore, setSavingScore] = useState(false);
@@ -157,8 +158,10 @@ export default function TeamSessionDetailPage() {
   const [notesInput, setNotesInput] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
     const supabase = createClient();
     supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
       if (!data.session) {
         router.replace("/login");
         return;
@@ -166,19 +169,31 @@ export default function TeamSessionDetailPage() {
       setToken(data.session.access_token);
       setUserId(data.session.user.id);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   useEffect(() => {
     if (!token) return;
+    let cancelled = false;
     api.teamSessions
       .get(token, id)
       .then((ts) => {
+        if (cancelled) return;
         setSession(ts);
         setScoreInput(formatTeamScore(ts));
         setNotesInput(ts.notes ?? "");
       })
-      .catch(() => setError("Team session not found."))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!cancelled) setError("Team session not found.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [token, id]);
 
   const isCreator = session?.created_by === userId;
@@ -186,6 +201,7 @@ export default function TeamSessionDetailPage() {
   async function saveScore() {
     if (!token || !session) return;
     setSavingScore(true);
+    setSaveError(null);
     try {
       const updated = await api.teamSessions.patch(token, session.id, {
         team_score: scoreInput || null,
@@ -194,7 +210,7 @@ export default function TeamSessionDetailPage() {
       setScoreInput(formatTeamScore(updated));
       setEditingScore(false);
     } catch {
-      // ignore
+      setSaveError("Failed to save score. Please try again.");
     } finally {
       setSavingScore(false);
     }
@@ -202,6 +218,7 @@ export default function TeamSessionDetailPage() {
 
   async function saveNotes() {
     if (!token || !session) return;
+    setSaveError(null);
     try {
       const updated = await api.teamSessions.patch(token, session.id, {
         notes: notesInput || null,
@@ -209,7 +226,7 @@ export default function TeamSessionDetailPage() {
       setSession(updated);
       setEditingNotes(false);
     } catch {
-      // ignore
+      setSaveError("Failed to save notes. Please try again.");
     }
   }
 
@@ -394,6 +411,12 @@ export default function TeamSessionDetailPage() {
           )
         )}
       </div>
+
+      {saveError && (
+        <p role="alert" className="font-mono text-xs text-[var(--red)]">
+          {saveError}
+        </p>
+      )}
     </div>
   );
 }

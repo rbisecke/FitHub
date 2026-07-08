@@ -40,6 +40,7 @@ export function HistoryFilterSheet({
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const exitTimer2Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -54,10 +55,11 @@ export function HistoryFilterSheet({
       // Delay state updates to allow exit animation to complete
       exitTimerRef.current = setTimeout(() => {
         setVisible(false);
-        exitTimerRef.current = setTimeout(() => setMounted(false), 210);
+        exitTimer2Ref.current = setTimeout(() => setMounted(false), 210);
       }, 0);
       return () => {
         if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+        if (exitTimer2Ref.current) clearTimeout(exitTimer2Ref.current);
       };
     }
   }, [open]);
@@ -92,7 +94,7 @@ export function HistoryFilterSheet({
         role="dialog"
         aria-modal="true"
         aria-label="Filter workouts"
-        className="relative bg-[#161b22] border-t border-[#30363d] max-h-[85vh] overflow-y-auto"
+        className="relative bg-[var(--surface)] border-t border-[var(--border)] max-h-[85vh] overflow-y-auto"
         style={{
           borderRadius: "16px 16px 0 0",
           transform: visible ? "translateY(0)" : "translateY(100%)",
@@ -111,18 +113,20 @@ export function HistoryFilterSheet({
               width: 32,
               height: 4,
               borderRadius: 4,
-              background: "#30363d",
+              background: "var(--border)",
             }}
           />
         </div>
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pb-4">
-          <h2 className="text-[#e6edf3] text-base font-semibold">Filters</h2>
+          <h2 className="text-[var(--text)] text-base font-semibold">
+            Filters
+          </h2>
           <button
             onClick={() => onOpenChange(false)}
             aria-label="Close filters"
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#8b949e] hover:text-[#e6edf3] transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--muted)] hover:text-[var(--text)] transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -131,7 +135,7 @@ export function HistoryFilterSheet({
         <div className="px-5 space-y-6 pb-4">
           {/* Entry type */}
           <div className="space-y-2">
-            <p className="text-xs font-medium text-[#8b949e] uppercase tracking-wider">
+            <p className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
               Entry type
             </p>
             <div className="flex gap-2 flex-wrap">
@@ -147,8 +151,8 @@ export function HistoryFilterSheet({
                   onClick={() => setLocal({ ...local, tagsFilter: value })}
                   className={`px-3 py-3 rounded-full text-xs font-mono border transition-colors ${
                     local.tagsFilter === value
-                      ? "bg-[#21262d] border-[#58a6ff] text-[#e6edf3]"
-                      : "border-[#30363d] text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3]"
+                      ? "bg-[var(--surface)] border-[var(--accent)] text-[var(--text)]"
+                      : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]/40 hover:text-[var(--text)]"
                   }`}
                 >
                   {label}
@@ -159,7 +163,7 @@ export function HistoryFilterSheet({
 
           {/* Session type */}
           <div className="space-y-2">
-            <p className="text-xs font-medium text-[#8b949e] uppercase tracking-wider">
+            <p className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
               Session type
             </p>
             <div className="flex flex-wrap gap-2">
@@ -169,8 +173,8 @@ export function HistoryFilterSheet({
                   onClick={() => setLocal({ ...local, sessionType: value })}
                   className={`px-3 py-3 rounded-full text-xs font-mono border transition-colors ${
                     local.sessionType === value
-                      ? "bg-[#21262d] border-[#58a6ff] text-[#e6edf3]"
-                      : "border-[#30363d] text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3]"
+                      ? "bg-[var(--surface)] border-[var(--accent)] text-[var(--text)]"
+                      : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]/40 hover:text-[var(--text)]"
                   }`}
                 >
                   {label}
@@ -181,7 +185,7 @@ export function HistoryFilterSheet({
 
           {/* Partner */}
           <div className="space-y-2">
-            <p className="text-xs font-medium text-[#8b949e] uppercase tracking-wider">
+            <p className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
               Partner
             </p>
             <div className="flex gap-2">
@@ -191,8 +195,8 @@ export function HistoryFilterSheet({
                   onClick={() => setLocal({ ...local, partnerFilter: v })}
                   className={`px-3 py-3 rounded-full text-xs font-mono border capitalize transition-colors ${
                     local.partnerFilter === v
-                      ? "bg-[#21262d] border-[#58a6ff] text-[#e6edf3]"
-                      : "border-[#30363d] text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3]"
+                      ? "bg-[var(--surface)] border-[var(--accent)] text-[var(--text)]"
+                      : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]/40 hover:text-[var(--text)]"
                   }`}
                 >
                   {v}
@@ -203,30 +207,30 @@ export function HistoryFilterSheet({
 
           {/* Date range */}
           <div className="space-y-2">
-            <p className="text-xs font-medium text-[#8b949e] uppercase tracking-wider">
+            <p className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
               Date range
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-xs text-[#8b949e]">From</label>
+                <label className="text-xs text-[var(--muted)]">From</label>
                 <Input
                   type="date"
                   value={local.dateFrom ?? ""}
                   onChange={(e) =>
                     setLocal({ ...local, dateFrom: e.target.value || null })
                   }
-                  className="h-9 text-sm border-[#30363d] bg-[#0d1117] text-[#8b949e] [color-scheme:dark]"
+                  className="h-9 text-sm border-[var(--border)] bg-[var(--bg)] text-[var(--muted)] [color-scheme:dark]"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-[#8b949e]">To</label>
+                <label className="text-xs text-[var(--muted)]">To</label>
                 <Input
                   type="date"
                   value={local.dateTo ?? ""}
                   onChange={(e) =>
                     setLocal({ ...local, dateTo: e.target.value || null })
                   }
-                  className="h-9 text-sm border-[#30363d] bg-[#0d1117] text-[#8b949e] [color-scheme:dark]"
+                  className="h-9 text-sm border-[var(--border)] bg-[var(--bg)] text-[var(--muted)] [color-scheme:dark]"
                 />
               </div>
             </div>
@@ -236,13 +240,13 @@ export function HistoryFilterSheet({
         <div className="flex gap-3 px-5 pb-6 pt-2">
           <Button
             variant="outline"
-            className="flex-1 border-[#30363d] text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3]"
+            className="flex-1 border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]/40 hover:text-[var(--text)]"
             onClick={handleClear}
           >
             Clear
           </Button>
           <Button
-            className="flex-1 bg-[#58a6ff] text-[#0d1117] hover:bg-[#58a6ff]/90"
+            className="flex-1 bg-[var(--accent)] text-[var(--bg)] hover:bg-[var(--accent)]/90"
             onClick={handleApply}
           >
             Apply

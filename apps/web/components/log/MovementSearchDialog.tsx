@@ -39,17 +39,25 @@ export function MovementSearchDialog({
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!open) return;
+    let cancelled = false;
 
     debounceRef.current = setTimeout(() => {
       setLoading(true);
       api.movements
         .search(accessToken, { q: query || undefined, limit: 20 })
-        .then(setResults)
-        .catch(() => setResults([]))
-        .finally(() => setLoading(false));
+        .then((r) => {
+          if (!cancelled) setResults(r);
+        })
+        .catch(() => {
+          if (!cancelled) setResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
     }, 200);
 
     return () => {
+      cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [query, open, accessToken]);

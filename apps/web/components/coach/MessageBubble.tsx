@@ -72,9 +72,9 @@ export function MessageBubble({
   const isUser = msg.role === "user";
 
   const borderClass = msg.error
-    ? "border-l-2 border-[#ff7b72]"
+    ? "border-l-2 border-[var(--red)]"
     : msg.safetyTier === "stop"
-      ? "border-l-2 border-[#d29922]"
+      ? "border-l-2 border-[var(--amber)]"
       : isUser
         ? ""
         : "border border-[var(--border)]";
@@ -82,7 +82,7 @@ export function MessageBubble({
   const bgClass = isUser ? "bg-[var(--accent)]" : "bg-[var(--surface-2)]";
 
   const bubbleTextClass = isUser
-    ? "text-[#0d1117] font-medium"
+    ? "text-[var(--bg)] font-medium"
     : "text-[var(--foreground)]";
 
   const radiusClass = isUser
@@ -110,7 +110,7 @@ export function MessageBubble({
       >
         {msg.error ? (
           <div>
-            <p className="font-mono text-xs text-[#ff7b72]">
+            <p className="font-mono text-xs text-[var(--red)]">
               ✗ Coach is unavailable.
             </p>
             <p className="font-mono text-xs text-[var(--muted-foreground)] mt-0.5">
@@ -137,14 +137,14 @@ export function MessageBubble({
         )}
 
         {msg.safetyTier === "stop" && !msg.error && (
-          <span className="mt-1 inline-block rounded bg-[#d29922]/20 px-1.5 py-0.5 font-mono text-xs text-[#d29922]">
+          <span className="mt-1 inline-block rounded bg-[var(--amber)]/20 px-1.5 py-0.5 font-mono text-xs text-[var(--amber)]">
             ⚠ medical concern
           </span>
         )}
 
         {msg.stub && showStubBadge && (
           <span
-            className="mt-1 inline-block rounded bg-[#d29922]/20 px-1.5 py-0.5 font-mono text-xs text-[#d29922]"
+            className="mt-1 inline-block rounded bg-[var(--amber)]/20 px-1.5 py-0.5 font-mono text-xs text-[var(--amber)]"
             data-testid="stub-mode-badge"
           >
             STUB
@@ -155,7 +155,7 @@ export function MessageBubble({
           <ul className="mt-2 space-y-0.5 border-t border-[var(--border)] pt-1.5">
             {msg.citations.map((c, j) => (
               <li
-                key={j}
+                key={c.title ?? `${c.source_type ?? "cite"}-${j}`}
                 className="font-mono text-xs text-[var(--muted-foreground)]"
               >
                 [{c.source_type}] {c.title}

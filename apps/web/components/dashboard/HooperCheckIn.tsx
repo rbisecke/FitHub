@@ -187,6 +187,7 @@ export function HooperCheckIn({
         </span>
         <button
           onClick={() => setExpanded(false)}
+          aria-label="Close check-in"
           className="font-mono text-[10px] transition-opacity hover:opacity-70"
           style={{ color: "var(--muted)" }}
         >
@@ -241,7 +242,7 @@ export function HooperCheckIn({
 
       {/* Submit */}
       {submitError && (
-        <p className="text-sm text-red-400 mt-2">{submitError}</p>
+        <p className="text-sm text-[var(--red)] mt-2">{submitError}</p>
       )}
       <button
         onClick={handleSubmit}

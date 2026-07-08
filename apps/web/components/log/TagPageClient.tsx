@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -58,8 +58,7 @@ const EMPTY_SET: SetEntryValues = {
 
 function toISOLocal(dateStr: string): string {
   if (dateStr.includes("T")) return dateStr;
-  const [y, m, d] = dateStr.split("-").map(Number) as [number, number, number];
-  return new Date(y, m - 1, d).toISOString();
+  return `${dateStr}T00:00:00`;
 }
 
 function formatTime(seconds: number): string {
@@ -82,7 +81,11 @@ export function TagPageClient({
   const router = useRouter();
   const { weightUnit } = useUserPrefs();
   const unit = weightUnit === "lb" ? "lb" : "kg";
-  const today = useMemo(() => getTodayLocal(), []);
+  const [today, setToday] = useState(() => getTodayLocal());
+  useEffect(() => {
+    const id = setInterval(() => setToday(getTodayLocal()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(
     prefillMovement ?? null,
@@ -323,13 +326,16 @@ export function TagPageClient({
   return (
     <div className="mx-auto max-w-lg px-4 py-6">
       {/* Heading */}
-      <h1 className="text-xl font-semibold text-[#e6edf3]">
-        <span className="font-mono text-[#8b949e] text-sm mr-2" aria-hidden>
+      <h1 className="text-xl font-semibold text-[var(--text)]">
+        <span
+          className="font-mono text-[var(--muted)] text-sm mr-2"
+          aria-hidden
+        >
           $
         </span>
         git tag
       </h1>
-      <p className="mt-0.5 font-mono text-xs text-[#8b949e]">
+      <p className="mt-0.5 font-mono text-xs text-[var(--muted)]">
         Mark a milestone
       </p>
 
@@ -350,14 +356,14 @@ export function TagPageClient({
               }}
               onBlur={() => setDatePickerOpen(false)}
               autoFocus
-              className="font-mono text-xs text-[#8b949e] bg-transparent border border-[#30363d] rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#58a6ff]"
+              className="font-mono text-xs text-[var(--muted)] bg-transparent border border-[var(--border)] rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
               aria-label="Select date"
             />
           ) : (
             <button
               type="button"
               onClick={() => setDatePickerOpen(true)}
-              className="inline-flex items-center gap-1.5 font-mono text-xs text-[#8b949e] hover:text-[#e6edf3] transition-colors rounded-md px-2 py-1 border border-transparent hover:border-[#30363d]"
+              className="inline-flex items-center gap-1.5 font-mono text-xs text-[var(--muted)] hover:text-[var(--text)] transition-colors rounded-md px-2 py-1 border border-transparent hover:border-[var(--border)]"
               aria-label={`Date: ${formatDateChip(
                 selectedDate,
                 today,
@@ -387,17 +393,17 @@ export function TagPageClient({
         {/* Result entry — shown after movement selected */}
         {selectedMovement && (
           <>
-            <div className="border-t border-[#30363d]" aria-hidden />
+            <div className="border-t border-[var(--border)]" aria-hidden />
 
             <div className="space-y-3">
               {/* Movement heading + current best */}
               <div>
-                <p className="font-medium text-[#e6edf3]">
+                <p className="font-medium text-[var(--text)]">
                   {selectedMovement.name}
                 </p>
                 <div className="min-h-[1.25rem] mt-1">
                   {lastResult === undefined && (
-                    <span className="font-mono text-xs text-[#8b949e]">
+                    <span className="font-mono text-xs text-[var(--muted)]">
                       Loading…
                     </span>
                   )}
@@ -407,7 +413,7 @@ export function TagPageClient({
                       <button
                         type="button"
                         onClick={() => handleFill(lastResult)}
-                        className="font-mono text-xs text-[#8b949e] hover:text-[#e6edf3] transition-colors"
+                        className="font-mono text-xs text-[var(--muted)] hover:text-[var(--text)] transition-colors"
                         title="Tap to auto-fill"
                       >
                         Current best&nbsp;&nbsp;{currentBestDisplay}
@@ -429,22 +435,22 @@ export function TagPageClient({
               {/* Dynamic PR feedback */}
               <div role="status" aria-live="polite" className="min-h-[1.25rem]">
                 {prStatus === "new-pr" && (
-                  <p className="font-mono text-xs text-[#3fb950]">
+                  <p className="font-mono text-xs text-[var(--green)]">
                     ⬆&nbsp; New PR
                   </p>
                 )}
                 {prStatus === "matches" && (
-                  <p className="font-mono text-xs text-[#8b949e]">
+                  <p className="font-mono text-xs text-[var(--muted)]">
                     = Matches your current best
                   </p>
                 )}
                 {prStatus === "below" && currentBestDisplay && (
-                  <p className="font-mono text-xs text-[#d29922]">
+                  <p className="font-mono text-xs text-[var(--amber)]">
                     ⚠&nbsp; Below current best ({currentBestDisplay})
                   </p>
                 )}
                 {prStatus === "first" && (
-                  <p className="font-mono text-xs text-[#58a6ff]">
+                  <p className="font-mono text-xs text-[var(--accent)]">
                     ★&nbsp; First log for this movement
                   </p>
                 )}
@@ -457,7 +463,7 @@ export function TagPageClient({
                 <button
                   type="button"
                   onClick={() => setNoteOpen(true)}
-                  className="font-mono text-xs text-[#58a6ff] hover:text-[#58a6ff]/80 transition-colors"
+                  className="font-mono text-xs text-[var(--accent)] hover:text-[var(--accent)]/80 transition-colors"
                 >
                   + Add note
                 </button>
@@ -465,7 +471,7 @@ export function TagPageClient({
                 <div className="space-y-1">
                   <label
                     htmlFor="tag-note"
-                    className="font-mono text-xs text-[#8b949e]"
+                    className="font-mono text-xs text-[var(--muted)]"
                   >
                     Note
                   </label>
@@ -475,10 +481,10 @@ export function TagPageClient({
                     maxLength={280}
                     placeholder={`"competition", "tested cold", "post-injury"`}
                     {...register("notes")}
-                    className="w-full h-9 rounded-md border border-[#30363d] bg-[#0d1117] px-3 font-mono text-sm text-[#e6edf3] placeholder:text-[#8b949e] focus:outline-none focus:ring-1 focus:ring-[#58a6ff]"
+                    className="w-full h-9 rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 font-mono text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                   />
                   {noteValue && (
-                    <p className="font-mono text-xs text-[#8b949e] truncate">
+                    <p className="font-mono text-xs text-[var(--muted)] truncate">
                       ↳ {noteValue}
                     </p>
                   )}
@@ -499,14 +505,14 @@ export function TagPageClient({
           <Button
             type="submit"
             disabled={!isSubmitReady || isSubmitting}
-            className="w-full min-h-[48px] bg-[#58a6ff] text-[#0d1117] hover:bg-[#58a6ff]/90 font-mono text-sm disabled:opacity-40"
+            className="w-full min-h-[48px] bg-[var(--accent)] text-[var(--bg)] hover:bg-[var(--accent)]/90 font-mono text-sm disabled:opacity-40"
           >
             {isSubmitting ? "Tagging…" : buttonLabel}
           </Button>
         </div>
 
         {submitError && (
-          <p role="alert" className="text-xs text-[#ff7b72] font-mono">
+          <p role="alert" className="text-xs text-[var(--red)] font-mono">
             {submitError}
           </p>
         )}

@@ -17,11 +17,12 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  active: "text-[var(--red)] border-red-900 bg-red-950/30",
+  active: "text-[var(--red)] border-[var(--red)]/30 bg-[var(--red)]/10",
   cleared_with_restrictions:
-    "text-[var(--amber)] border-amber-900 bg-amber-950/30",
-  resolved: "text-[var(--green)] border-green-900 bg-green-950/30",
-  permanent: "text-[var(--purple)] border-purple-900 bg-purple-950/30",
+    "text-[var(--amber)] border-[var(--amber)]/30 bg-[var(--amber)]/10",
+  resolved: "text-[var(--green)] border-[var(--green)]/30 bg-[var(--green)]/10",
+  permanent:
+    "text-[var(--purple)] border-[var(--purple)]/30 bg-[var(--purple)]/10",
 };
 
 type UpdatableStatus = "cleared_with_restrictions" | "resolved" | "permanent";
@@ -104,7 +105,7 @@ export function InjuryList({ initialInjuries, accessToken }: Props) {
             </div>
 
             {injury.restriction_notes && (
-              <p className="mt-2 font-mono text-xs text-amber-400">
+              <p className="mt-2 font-mono text-xs text-[var(--amber)]">
                 ⚠ {injury.restriction_notes}
               </p>
             )}
@@ -133,7 +134,7 @@ export function InjuryList({ initialInjuries, accessToken }: Props) {
                           onClick={() =>
                             updateStatus(injury, "cleared_with_restrictions")
                           }
-                          className="rounded border border-amber-800 px-3 py-1 font-mono text-xs text-amber-400 hover:bg-amber-950/40 disabled:opacity-40"
+                          className="rounded border border-[var(--amber)]/40 px-3 py-1 font-mono text-xs text-[var(--amber)] hover:bg-[var(--amber)]/10 disabled:opacity-40"
                         >
                           {loading === injury.id
                             ? "updating…"

@@ -20,12 +20,16 @@ export function NotificationBell({ mode }: NotificationBellProps) {
 
   // Fetch token from Supabase client (self-contained, no prop threading)
   useEffect(() => {
+    let cancelled = false;
     const supabase = createClient();
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
+      if (!cancelled && data.session) {
         setAccessToken(data.session.access_token);
       }
     });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Fetch notifications + poll every 60 seconds once we have a token
@@ -36,7 +40,9 @@ export function NotificationBell({ mode }: NotificationBellProps) {
       api.notifications
         .list(accessToken!, false)
         .then(setNotifications)
-        .catch(() => {});
+        .catch((err) => {
+          console.error("Notification poll failed", err);
+        });
     }
 
     fetchNotifs();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect } from "react";
+import { useLayoutEffect, useState, useEffect } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   Sidebar,
@@ -12,6 +12,9 @@ import { SidebarBrand } from "./SidebarBrand";
 import { SidebarNav } from "./SidebarNav";
 import { SidebarStreakWidget } from "./SidebarStreakWidget";
 import { SidebarProfileFooter } from "./SidebarProfileFooter";
+import { createClient } from "@/lib/supabase/client";
+import { api } from "@/lib/api/client";
+import { streakCalc } from "@/lib/dashboard/streakCalc";
 
 function InitialCollapseGuard() {
   const { setOpen } = useSidebar();
@@ -34,6 +37,32 @@ interface Props {
 }
 
 export function DesktopSidebar({ user, isAdmin }: Props) {
+  const [streak, setStreak] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (cancelled || !data.session) return;
+      const token = data.session.access_token;
+      try {
+        const [workoutResp, profile] = await Promise.all([
+          api.workouts.list(token, { limit: 100 }),
+          api.profile.get(token),
+        ]);
+        if (cancelled) return;
+        const frequencyTarget = profile.frequency_target_days ?? 3;
+        const result = streakCalc(workoutResp.items, frequencyTarget);
+        setStreak(result.currentStreak);
+      } catch {
+        // streak display is non-critical
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <>
       <InitialCollapseGuard />
@@ -48,7 +77,7 @@ export function DesktopSidebar({ user, isAdmin }: Props) {
 
         <SidebarNav isAdmin={isAdmin} />
 
-        <SidebarStreakWidget streak={0} />
+        <SidebarStreakWidget streak={streak} />
 
         <SidebarProfileFooter user={user} />
       </Sidebar>

@@ -136,7 +136,11 @@ export function StrengthProgressSection({
       .then((data) => {
         if (!cancelled) setSearchResults(data);
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (!cancelled && (err as Error).name !== "AbortError") {
+          setSearchResults([]);
+        }
+      });
     return () => {
       cancelled = true;
       controller.abort();

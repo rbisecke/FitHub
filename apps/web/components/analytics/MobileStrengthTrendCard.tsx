@@ -119,15 +119,21 @@ export function MobileStrengthTrendCard({
   // Movement search — results are cleared via the derived displayResults below
   useEffect(() => {
     if (!searchQuery.trim()) return;
+    let cancelled = false;
     const controller = new AbortController();
     fetch(`${BASE}/api/v1/movements?q=${encodeURIComponent(searchQuery)}`, {
       headers: { Authorization: `Bearer ${token}` },
       signal: controller.signal,
     })
       .then((r) => r.json() as Promise<Movement[]>)
-      .then((data) => setSearchResults(data))
+      .then((data) => {
+        if (!cancelled) setSearchResults(data);
+      })
       .catch(() => {});
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [searchQuery, token]);
 
   const filteredPoints = useMemo(
