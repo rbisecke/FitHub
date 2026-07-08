@@ -210,13 +210,15 @@ async def test_list_workouts_filter_partner_only(alice_client: AsyncClient) -> N
         "/api/v1/workouts",
         json={"performed_at": "2024-09-01T08:00:00Z", "workout_format": "partner"},
     )
-    await alice_client.post(
+    r2 = await alice_client.post(
         "/api/v1/workouts",
-        json={"performed_at": "2024-09-02T08:00:00Z", "workout_format": "individual"},
+        json={"performed_at": "2024-09-02T08:00:00Z", "workout_format": "strength"},
     )
+    assert r2.status_code == 201
 
     r = await alice_client.get("/api/v1/workouts?partner_only=true")
     assert r.status_code == 200
     items = r.json()["items"]
     assert all(w["workout_format"] in ("partner", "team") for w in items)
     assert any(w["workout_format"] in ("partner", "team") for w in items)
+    assert not any(w["workout_format"] == "strength" for w in items)

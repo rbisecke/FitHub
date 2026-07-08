@@ -60,7 +60,7 @@ async def _compute_acwr(
                 GROUP  BY 1
             )
             SELECT
-                SUM(daily_load) FILTER (WHERE day >= now()::date - 7) * 4.0 AS acute,
+                SUM(daily_load) FILTER (WHERE day > now()::date - 7) * 4.0 AS acute,
                 SUM(daily_load)                                               AS chronic
             FROM daily
             """,
@@ -68,7 +68,7 @@ async def _compute_acwr(
         )
         row = await cur.fetchone()
 
-    if not row or not row["acute"] or not row["chronic"] or row["chronic"] == 0:
+    if not row or row["acute"] is None or row["chronic"] is None or row["chronic"] == 0:
         return None
     return float(row["acute"]) / float(row["chronic"])
 

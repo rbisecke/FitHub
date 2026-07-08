@@ -269,7 +269,7 @@ async def get_session_injuries(
             """
             SELECT body_region, requires_referral
             FROM injuries
-            WHERE user_id = %s AND active = true
+            WHERE user_id = %s AND active = true AND status NOT IN ('resolved', 'permanent')
             ORDER BY reported_at DESC
             """,
             [user_id],

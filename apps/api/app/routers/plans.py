@@ -30,6 +30,8 @@ from app.models.plan import (
 
 router = APIRouter(prefix="/api/v1/plans", tags=["plans"])
 
+_bg_tasks: set[asyncio.Task[None]] = set()
+
 
 async def _get_plan_detail(
     plan_id: str, user_id: str, db: psycopg.AsyncConnection[object]
@@ -245,7 +247,9 @@ async def create_plan(
         "weeks": req.weeks,
         "training_age": req.training_age,
     }
-    asyncio.create_task(run_plan_generation(task_id, str(user.user_id), req_data))
+    _task = asyncio.create_task(run_plan_generation(task_id, str(user.user_id), req_data))
+    _bg_tasks.add(_task)
+    _task.add_done_callback(_bg_tasks.discard)
 
     return PlanTaskResponse(task_id=task_id, status="pending")
 
@@ -365,8 +369,10 @@ async def today_session(
 
 
 @router.post("/{plan_id}/revise", response_model=PlanDetail)
+@limiter.limit("3/hour")
 async def revise_plan(
     plan_id: str,
+    request: Request,
     req: PlanRevisionRequest,
     user: Auth,
     db: DBConn,

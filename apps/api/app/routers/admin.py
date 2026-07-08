@@ -375,7 +375,7 @@ async def list_admin_users(
 
 @router.post("/api/v1/admin/users/{user_id}/disable", status_code=status.HTTP_204_NO_CONTENT)
 async def disable_user(
-    user_id: str,
+    user_id: uuid.UUID,
     _admin: Annotated[uuid.UUID, Depends(require_admin)],
 ) -> None:
     settings = get_settings()
@@ -396,7 +396,7 @@ async def disable_user(
 
 @router.post("/api/v1/admin/users/{user_id}/magic-link")
 async def generate_magic_link(
-    user_id: str,
+    user_id: uuid.UUID,
     _admin: Annotated[uuid.UUID, Depends(require_admin)],
 ) -> dict[str, str]:
     settings = get_settings()
@@ -419,7 +419,7 @@ async def generate_magic_link(
 
 @router.delete("/api/v1/admin/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
-    user_id: str,
+    user_id: uuid.UUID,
     _admin: Annotated[uuid.UUID, Depends(require_admin)],
     confirm: bool = Query(False),
 ) -> None:
