@@ -18,11 +18,11 @@ def upgrade() -> None:
     op.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON public.llm_usage TO service_role")
     # DB4-NEW-4: benchmarks was missing from 0063's GRANT sweep
     op.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON public.benchmarks TO service_role")
-    # DB4-NEW-3: prevent injuries.active drifting from injuries.status
+    # DB4-NEW-3: resolved injuries must not stay active; permanent injuries stay active by design
     op.execute("""
         ALTER TABLE public.injuries
         ADD CONSTRAINT injuries_active_status_sync
-        CHECK (NOT (status IN ('resolved', 'permanent') AND active = true))
+        CHECK (NOT (status = 'resolved' AND active = true))
     """)
 
 
