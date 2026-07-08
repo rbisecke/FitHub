@@ -55,7 +55,7 @@ async def _get_plan_detail(
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             "SELECT id, name, phase, week_start, week_end, focus"
-            " FROM mesocycles WHERE plan_id = %s ORDER BY week_start",
+            " FROM mesocycles WHERE plan_id = %s ORDER BY week_start LIMIT 60",
             [plan_id],
         )
         mesos = await cur.fetchall()
@@ -86,6 +86,7 @@ async def _get_plan_detail(
             GROUP BY ps.id, ps.mesocycle_id, ps.scheduled_date,
                      ps.session_type, ps.title, ps.notes, ps.status
             ORDER BY ps.scheduled_date
+            LIMIT 500
             """,
             [plan_id],
         )
