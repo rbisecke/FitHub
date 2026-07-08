@@ -64,7 +64,7 @@ class Movement(BaseModel):
     movement_pattern: MovementPattern | None
     limb_style: LimbStyle | None
     implement: str | None
-    default_result_types: list[str]
+    default_result_types: list[ResultType]
     default_result_type: ResultType | None
     is_official: bool
     created_by: uuid.UUID | None
@@ -85,7 +85,7 @@ class CreateMovementRequest(BaseModel):
     movement_pattern: MovementPattern | None = None
     limb_style: LimbStyle | None = None
     implement: str | None = Field(default=None, max_length=100)
-    default_result_types: list[str] = Field(default_factory=list, max_length=10)
+    default_result_types: list[ResultType] = Field(default_factory=list, max_length=10)
     default_result_type: ResultType | None = None
 
 

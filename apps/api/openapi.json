@@ -2174,7 +2174,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "$ref": "#/components/schemas/SessionType"
                 },
                 {
                   "type": "null"
@@ -2878,7 +2878,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "description": "Successful Response",
             "content": {
               "application/json": {
@@ -4158,6 +4158,12 @@
           },
           "trigger_type": {
             "type": "string",
+            "enum": [
+              "high_acwr",
+              "low_readiness",
+              "missed_session",
+              "rpe_creep"
+            ],
             "title": "Trigger Type"
           },
           "trigger_data": {
@@ -5074,7 +5080,7 @@
           },
           "default_result_types": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/ResultType"
             },
             "type": "array",
             "maxItems": 10,
@@ -5847,8 +5853,7 @@
           },
           "triggers": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/TriggerOut"
             },
             "type": "array",
             "title": "Triggers"
@@ -6753,7 +6758,7 @@
           },
           "default_result_types": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/ResultType"
             },
             "type": "array",
             "title": "Default Result Types"
@@ -7840,8 +7845,7 @@
             "title": "Movement Name"
           },
           "modality": {
-            "type": "string",
-            "title": "Modality"
+            "$ref": "#/components/schemas/Modality"
           },
           "display_order": {
             "type": "integer",
@@ -8293,6 +8297,13 @@
           },
           "label": {
             "type": "string",
+            "enum": [
+              "optimal",
+              "fresh",
+              "high_load",
+              "fatigued",
+              "insufficient_data"
+            ],
             "title": "Label"
           },
           "acwr": {
@@ -8309,17 +8320,6 @@
           "tsb": {
             "type": "number",
             "title": "Tsb"
-          },
-          "mood_avg": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Mood Avg"
           },
           "sleep_avg": {
             "anyOf": [
@@ -8407,7 +8407,6 @@
           "label",
           "acwr",
           "tsb",
-          "mood_avg",
           "sleep_avg",
           "factors_available"
         ],
@@ -9031,6 +9030,7 @@
         "properties": {
           "status": {
             "type": "string",
+            "const": "submitted",
             "title": "Status"
           }
         },
@@ -9509,13 +9509,12 @@
           "most_common_format": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/WorkoutFormat"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Most Common Format"
+            ]
           }
         },
         "type": "object",
@@ -9527,6 +9526,25 @@
           "most_common_format"
         ],
         "title": "TrainingPartner"
+      },
+      "TriggerOut": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "data"
+        ],
+        "title": "TriggerOut"
       },
       "UpdateInjuryStatusRequest": {
         "properties": {

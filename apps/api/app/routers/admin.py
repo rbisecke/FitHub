@@ -77,16 +77,17 @@ async def submit_access_request(
     body: AccessRequestCreate,
     conn: Annotated[DBConn, Depends(get_db)],
 ) -> SubmitAccessRequestResponse:
+    email = body.email.strip().lower()
     async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
         # Reject if the same email submitted within the last 24 hours
         await cur.execute(
             """
             SELECT id FROM access_requests
-            WHERE lower(email) = lower(%s)
+            WHERE lower(email) = %s
               AND created_at > now() - interval '24 hours'
             LIMIT 1
             """,
-            [body.email],
+            [email],
         )
         if await cur.fetchone():
             raise HTTPException(
@@ -100,7 +101,7 @@ async def submit_access_request(
             INSERT INTO access_requests (email, name, motivation)
             VALUES (%s, %s, %s)
             """,
-            [body.email, body.name, body.motivation],
+            [email, body.name, body.motivation],
         )
     except UniqueViolation:
         raise HTTPException(
@@ -336,16 +337,20 @@ async def _add_invited_email(conn: DBConn, email: str, invited_by: uuid.UUID) ->
 async def _supabase_send_invite(email: str) -> None:
     settings = get_settings()
     base = settings.supabase_url.rstrip("/")
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.post(
-            f"{base}/auth/v1/admin/invite",
-            headers={
-                "apikey": settings.supabase_service_role_key,
-                "Authorization": f"Bearer {settings.supabase_service_role_key}",
-                "Content-Type": "application/json",
-            },
-            json={"email": email},
-        )
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{base}/auth/v1/admin/invite",
+                headers={
+                    "apikey": settings.supabase_service_role_key,
+                    "Authorization": f"Bearer {settings.supabase_service_role_key}",
+                    "Content-Type": "application/json",
+                },
+                json={"email": email},
+            )
+    except httpx.HTTPError as exc:
+        logger.error("HTTP error sending invite: %s", exc)
+        raise HTTPException(status_code=502, detail="Upstream auth service error") from exc
     if resp.status_code not in (200, 201):
         logger.error("Supabase error for admin op: %s", resp.text)
         raise HTTPException(status_code=502, detail="Upstream auth service error")
@@ -391,15 +396,19 @@ async def disable_user(
 ) -> None:
     settings = get_settings()
     base = settings.supabase_url.rstrip("/")
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.put(
-            f"{base}/auth/v1/admin/users/{user_id}",
-            headers={
-                "apikey": settings.supabase_service_role_key,
-                "Authorization": f"Bearer {settings.supabase_service_role_key}",
-            },
-            json={"ban_duration": "876600h"},  # 100 years
-        )
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.put(
+                f"{base}/auth/v1/admin/users/{user_id}",
+                headers={
+                    "apikey": settings.supabase_service_role_key,
+                    "Authorization": f"Bearer {settings.supabase_service_role_key}",
+                },
+                json={"ban_duration": "876600h"},  # 100 years
+            )
+    except httpx.HTTPError as exc:
+        logger.error("HTTP error disabling user: %s", exc)
+        raise HTTPException(status_code=502, detail="Upstream auth service error") from exc
     if resp.status_code not in (200, 201):
         logger.error("Supabase error for admin op: %s", resp.text)
         raise HTTPException(status_code=502, detail="Upstream auth service error")
@@ -415,15 +424,19 @@ async def generate_magic_link(
 ) -> MagicLinkResponse:
     settings = get_settings()
     base = settings.supabase_url.rstrip("/")
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.post(
-            f"{base}/auth/v1/admin/users/{user_id}/generate_link",
-            headers={
-                "apikey": settings.supabase_service_role_key,
-                "Authorization": f"Bearer {settings.supabase_service_role_key}",
-            },
-            json={"type": "magiclink"},
-        )
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{base}/auth/v1/admin/users/{user_id}/generate_link",
+                headers={
+                    "apikey": settings.supabase_service_role_key,
+                    "Authorization": f"Bearer {settings.supabase_service_role_key}",
+                },
+                json={"type": "magiclink"},
+            )
+    except httpx.HTTPError as exc:
+        logger.error("HTTP error generating magic link: %s", exc)
+        raise HTTPException(status_code=502, detail="Upstream auth service error") from exc
     if resp.status_code not in (200, 201):
         logger.error("Supabase error for admin op: %s", resp.text)
         raise HTTPException(status_code=502, detail="Upstream auth service error")
@@ -441,14 +454,18 @@ async def delete_user(
         raise HTTPException(status_code=400, detail="Pass ?confirm=true to delete a user.")
     settings = get_settings()
     base = settings.supabase_url.rstrip("/")
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.delete(
-            f"{base}/auth/v1/admin/users/{user_id}",
-            headers={
-                "apikey": settings.supabase_service_role_key,
-                "Authorization": f"Bearer {settings.supabase_service_role_key}",
-            },
-        )
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.delete(
+                f"{base}/auth/v1/admin/users/{user_id}",
+                headers={
+                    "apikey": settings.supabase_service_role_key,
+                    "Authorization": f"Bearer {settings.supabase_service_role_key}",
+                },
+            )
+    except httpx.HTTPError as exc:
+        logger.error("HTTP error deleting user: %s", exc)
+        raise HTTPException(status_code=502, detail="Upstream auth service error") from exc
     if resp.status_code not in (200, 204):
         logger.error("Supabase error for admin op: %s", resp.text)
         raise HTTPException(status_code=502, detail="Upstream auth service error")
@@ -481,6 +498,7 @@ async def add_invited_email(
     admin_id: Annotated[uuid.UUID, Depends(require_admin)],
     conn: Annotated[DBConn, Depends(get_db)],
 ) -> InvitedEmail:
+    email = body.email.strip().lower()
     try:
         async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
             await cur.execute(
@@ -490,7 +508,7 @@ async def add_invited_email(
                 ON CONFLICT (email) DO NOTHING
                 RETURNING id, email, invited_at, used_at
                 """,
-                [body.email, str(admin_id)],
+                [email, str(admin_id)],
             )
             row = await cur.fetchone()
     except UniqueViolation:
