@@ -1322,8 +1322,11 @@ export interface components {
       trigger_data: {
         [key: string]: unknown;
       };
-      /** Status */
-      status: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "proposed" | "merged" | "rejected";
       /** Rationale */
       rationale?: string | null;
       /** Rejection Reason */
@@ -1579,8 +1582,11 @@ export interface components {
     ConnectionStatus: {
       /** Provider */
       provider: string;
-      /** Sync Status */
-      sync_status: string;
+      /**
+       * Sync Status
+       * @enum {string}
+       */
+      sync_status: "connected" | "syncing" | "idle" | "error" | "disconnected";
       /** Last Synced At */
       last_synced_at: string | null;
     };
@@ -2003,6 +2009,11 @@ export interface components {
       /** Acwr Zone */
       acwr_zone: string;
     };
+    /** MagicLinkResponse */
+    MagicLinkResponse: {
+      /** Link */
+      link: string;
+    };
     /** MeResponse */
     MeResponse: {
       /** User Id */
@@ -2017,8 +2028,11 @@ export interface components {
       id: string;
       /** Name */
       name: string;
-      /** Phase */
-      phase: string;
+      /**
+       * Phase
+       * @enum {string}
+       */
+      phase: "accumulation" | "intensification" | "deload" | "peak" | "test";
       /** Week Start */
       week_start: number;
       /** Week End */
@@ -2449,16 +2463,22 @@ export interface components {
        * Format: uuid
        */
       id: string;
-      /** Goal */
-      goal: string;
+      /**
+       * Goal
+       * @enum {string}
+       */
+      goal: "general_fitness" | "strength" | "endurance" | "competition_prep";
       /** Title */
       title: string;
       /** Branch Name */
       branch_name: string;
       /** Weeks */
       weeks: number;
-      /** Status */
-      status: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "active" | "archived" | "draft";
       /**
        * Start Date
        * Format: date
@@ -2472,7 +2492,7 @@ export interface components {
       /** Created At */
       created_at: string;
       /** Training Age */
-      training_age: string | null;
+      training_age: ("beginner" | "intermediate" | "advanced") | null;
       /** Mesocycles */
       mesocycles: components["schemas"]["MesocycleOut"][];
       /** Sessions */
@@ -2490,16 +2510,22 @@ export interface components {
        * Format: uuid
        */
       id: string;
-      /** Goal */
-      goal: string;
+      /**
+       * Goal
+       * @enum {string}
+       */
+      goal: "general_fitness" | "strength" | "endurance" | "competition_prep";
       /** Title */
       title: string;
       /** Branch Name */
       branch_name: string;
       /** Weeks */
       weeks: number;
-      /** Status */
-      status: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "active" | "archived" | "draft";
       /**
        * Start Date
        * Format: date
@@ -2563,14 +2589,26 @@ export interface components {
        * Format: date
        */
       scheduled_date: string;
-      /** Session Type */
-      session_type: string;
+      /**
+       * Session Type
+       * @enum {string}
+       */
+      session_type:
+        | "strength"
+        | "metcon"
+        | "skill"
+        | "mixed"
+        | "rest"
+        | "active_recovery";
       /** Title */
       title: string;
       /** Notes */
       notes: string | null;
-      /** Status */
-      status: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "prescribed" | "completed" | "skipped" | "adapted";
       /**
        * Items
        * @default []
@@ -2798,6 +2836,11 @@ export interface components {
     SetPinnedMovementsRequest: {
       /** Movement Ids */
       movement_ids?: string[];
+    };
+    /** SubmitAccessRequestResponse */
+    SubmitAccessRequestResponse: {
+      /** Status */
+      status: string;
     };
     /** SyncResponse */
     SyncResponse: {
@@ -3265,9 +3308,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": {
-            [key: string]: string;
-          };
+          "application/json": components["schemas"]["SubmitAccessRequestResponse"];
         };
       };
       /** @description Validation Error */
@@ -3433,9 +3474,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": {
-            [key: string]: string;
-          };
+          "application/json": components["schemas"]["MagicLinkResponse"];
         };
       };
       /** @description Validation Error */
@@ -4808,7 +4847,9 @@ export interface operations {
   };
   list_plans_api_v1_plans_get: {
     parameters: {
-      query?: never;
+      query?: {
+        before_id?: string | null;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -4822,6 +4863,15 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PlanSummary"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
@@ -5650,7 +5700,7 @@ export interface operations {
     };
     responses: {
       /** @description Successful Response */
-      200: {
+      201: {
         headers: {
           [name: string]: unknown;
         };
