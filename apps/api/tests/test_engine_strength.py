@@ -28,7 +28,8 @@ def test_fewer_than_3_points_returns_nulls() -> None:
 
 
 def test_exactly_3_points_upward_trend() -> None:
-    today = date(2024, 4, 1)
+    # today must be before the regression's projected target date so days_out > 0
+    today = date(2024, 3, 10)
     points = [
         (date(2024, 1, 1), 100.0),
         (date(2024, 2, 1), 105.0),
@@ -81,7 +82,8 @@ def test_not_stale_when_last_set_within_8_weeks() -> None:
 
 
 def test_next_pr_target_is_next_2_5_kg_multiple() -> None:
-    today = date(2024, 4, 1)
+    # today must be before the regression's projected target date so days_out > 0
+    today = date(2024, 3, 10)
     # best = 101.0 kg; next multiple of 2.5 above that is 102.5
     points = [
         (date(2024, 1, 1), 97.5),

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from app.dependencies.common import Auth, DBConn
 from app.integrations.ingest_tokens import generate_ingest_token, verify_ingest_token
+from app.middleware.rate_limit import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +124,7 @@ async def list_integrations(
 
 
 @router.post("/apple-health/sync", response_model=SyncResponse)
+@limiter.limit("60/hour")
 async def apple_health_sync(
     request: Request,
     db: DBConn,

@@ -670,7 +670,9 @@ def union_contraindications(
     for body_region, requires_referral in injuries:
         if requires_referral:
             # Referral injuries block every movement across all regions.
-            movements: list[str] = [m for ms in CONTRAINDICATIONS.values() for m in ms]
+            movements: list[str] = list(
+                dict.fromkeys(m for ms in CONTRAINDICATIONS.values() for m in ms)
+            )
         else:
             movements = CONTRAINDICATIONS.get(body_region, [])  # type: ignore[arg-type]
         for movement in movements:

@@ -93,8 +93,7 @@ def project_e1rm(
 
     # Days from t0 when the regression line reaches next_target
     x_target = (next_target - intercept) / slope
-    last_x = xs[-1]
-    days_out = x_target - last_x
+    days_out = x_target - today_x
 
     if 0 < days_out <= 365:
         weeks_out = max(1, round(days_out / 7))

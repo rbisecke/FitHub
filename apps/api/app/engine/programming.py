@@ -107,7 +107,7 @@ def validate_plan(plan: dict[str, object], training_age: str) -> list[PlanValida
                 pattern = str(item.get("movement_pattern", "other"))
                 sets = item.get("sets")
                 volume_by_pattern[pattern] = volume_by_pattern.get(pattern, 0) + (
-                    int(sets) if isinstance(sets, int) else 1
+                    int(sets) if isinstance(sets, int | float) and sets is not None else 0
                 )
 
         for pattern, sets in volume_by_pattern.items():

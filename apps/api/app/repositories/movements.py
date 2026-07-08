@@ -166,7 +166,7 @@ async def get_personal_record(
               AND  r.movement_id  = %s
               AND  r.is_pr        = TRUE
               {extra}
-            ORDER  BY w.performed_at DESC
+            ORDER  BY w.performed_at DESC, r.estimated_1rm_kg DESC NULLS LAST
             LIMIT  1
             """,
             params,
