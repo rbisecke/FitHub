@@ -1,13 +1,13 @@
 """Add missing service_role GRANTs and fix pi_owns_session search_path.
 
-Revision ID: 0063_service_role_grants_and_search_path
+Revision ID: 0063_grants_search_path
 Revises: 0062_grants_and_fk
 Create Date: 2026-07-07
 """
 
 from alembic import op
 
-revision = "0063_service_role_grants_and_search_path"
+revision = "0063_grants_search_path"
 down_revision = "0062_grants_and_fk"
 branch_labels = None
 depends_on = None

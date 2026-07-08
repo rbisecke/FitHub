@@ -1,14 +1,14 @@
 """Force row level security on remaining user-data tables.
 
 Revision ID: 0064_force_rls
-Revises: 0063_service_role_grants_and_search_path
+Revises: 0063_grants_search_path
 Create Date: 2026-07-07
 """
 
 from alembic import op
 
 revision = "0064_force_rls"
-down_revision = "0063_service_role_grants_and_search_path"
+down_revision = "0063_grants_search_path"
 branch_labels = None
 depends_on = None
 
