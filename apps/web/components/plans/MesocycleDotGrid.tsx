@@ -53,8 +53,7 @@ interface Props {
 
 export function MesocycleDotGrid({ sessions, startDate, weeks }: Props) {
   const today = new Date();
-  const planStart = new Date(startDate);
-  planStart.setHours(0, 0, 0, 0);
+  const planStart = new Date(startDate + "T00:00:00");
 
   const sessionByDate = new Map<string, PlannedSessionOut>();
   for (const s of sessions) {
@@ -105,7 +104,12 @@ export function MesocycleDotGrid({ sessions, startDate, weeks }: Props) {
                 {Array.from({ length: 7 }, (_, dayIdx) => {
                   const date = new Date(weekStart);
                   date.setDate(weekStart.getDate() + dayIdx);
-                  const dateKey = date.toISOString().slice(0, 10);
+                  const dateKey = `${date.getFullYear()}-${String(
+                    date.getMonth() + 1,
+                  ).padStart(2, "0")}-${String(date.getDate()).padStart(
+                    2,
+                    "0",
+                  )}`;
                   const session = sessionByDate.get(dateKey);
                   const { bg, ring, dashed, faded } = getDotStyle(
                     session,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 import type { FrequencyTarget } from "@/lib/api";
@@ -15,6 +15,12 @@ interface Props {
 export function FrequencyTargetControl({ initial, token }: Props) {
   const [value, setValue] = useState<FrequencyTarget>(initial);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   function handleSelect(v: FrequencyTarget) {
     setValue(v);
