@@ -540,6 +540,15 @@ async def admin_health(
         )
         llm_errors = await cur.fetchall()
 
+        await cur.execute(
+            """
+            SELECT COUNT(*) AS cnt FROM coach_messages
+            WHERE safety_tier = 'stop'
+              AND created_at > now() - interval '7 days'
+            """
+        )
+        safety_row = await cur.fetchone() or {}
+
     from importlib.metadata import version as pkg_version
 
     try:
@@ -571,7 +580,7 @@ async def admin_health(
             )
             for r in llm_errors
         ],
-        safety_trigger_count_7d=0,
+        safety_trigger_count_7d=int(safety_row.get("cnt") or 0),
     )
 
 

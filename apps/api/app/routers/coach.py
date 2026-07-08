@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import logging
 import os
 import re
@@ -190,7 +191,7 @@ async def parse_log(
 
 @router.get("/history", response_model=list[HistoryMessage])
 async def get_history(
-    session_id: str,
+    session_id: uuid.UUID,
     user: Auth,
     db: DBConn,
     limit: int = Query(default=20, ge=1, le=100),
@@ -200,7 +201,7 @@ async def get_history(
             """SELECT cm.role, cm.content, cm.created_at
                FROM public.coach_messages cm
                JOIN public.coach_sessions cs ON cs.id = cm.session_id
-               WHERE cm.session_id = %s::uuid AND cs.user_id = %s
+               WHERE cm.session_id = %s AND cs.user_id = %s
                AND cm.role IN ('user', 'assistant')
                ORDER BY cm.created_at ASC LIMIT %s""",
             [session_id, user.user_id, limit],
@@ -300,7 +301,7 @@ async def chat(
         + context
         + "\n</context>\n\n"
         + "Question: <user_input>"
-        + body.question
+        + html.escape(body.question)
         + "</user_input>"
     )
     messages: list[Any] = list(history) + [{"role": "user", "content": user_content}]
@@ -486,7 +487,7 @@ async def _do_stream(
         + context
         + "\n</context>\n\n"
         + "Question: <user_input>"
-        + question
+        + html.escape(question)
         + "</user_input>"
     )
     messages: list[dict[str, str]] = list(history) + [{"role": "user", "content": user_content}]

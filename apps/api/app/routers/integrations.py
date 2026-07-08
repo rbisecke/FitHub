@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 
 import psycopg
@@ -160,7 +161,17 @@ async def apple_health_sync(
     if user_id is None:
         raise HTTPException(status_code=401, detail="Invalid ingest token")
 
-    payload = await request.json()
+    _MAX_BODY = 5 * 1024 * 1024  # 5 MB
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > _MAX_BODY:
+        raise HTTPException(status_code=413, detail="Payload too large")
+    body_bytes = await request.body()
+    if len(body_bytes) > _MAX_BODY:
+        raise HTTPException(status_code=413, detail="Payload too large")
+    try:
+        payload = json.loads(body_bytes)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON") from exc
 
     from app.integrations.apple_health import ingest_apple_health
 
