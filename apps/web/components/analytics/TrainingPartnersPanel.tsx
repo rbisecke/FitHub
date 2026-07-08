@@ -29,9 +29,9 @@ export function TrainingPartnersPanel({ partners }: Props) {
         </p>
       ) : (
         <ul className="space-y-2">
-          {partners.slice(0, 3).map((p) => (
+          {partners.slice(0, 3).map((p, idx) => (
             <li
-              key={p.user_id ?? p.guest_name}
+              key={p.user_id ?? `guest-${idx}`}
               className="flex items-center justify-between text-sm"
             >
               <span className="text-[--text]">{p.display_name}</span>

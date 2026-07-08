@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { api } from "@/lib/api/client";
+import { api, ApiError } from "@/lib/api/client";
 import type { InjuryOut } from "@/lib/api";
 import { ReferralCard } from "./ReferralCard";
 import { SubstitutionList } from "./SubstitutionList";
@@ -90,7 +90,11 @@ export function InjuryReportForm({ accessToken }: Props) {
       });
       setResult(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to submit");
+      setError(
+        err instanceof ApiError
+          ? "Something went wrong. Please try again."
+          : "Failed to report injury",
+      );
     } finally {
       setLoading(false);
     }

@@ -58,7 +58,8 @@ const EMPTY_SET: SetEntryValues = {
 
 function toISOLocal(dateStr: string): string {
   if (dateStr.includes("T")) return dateStr;
-  return `${dateStr}T00:00:00Z`;
+  const [y, m, d] = dateStr.split("-").map(Number) as [number, number, number];
+  return new Date(y, m - 1, d).toISOString();
 }
 
 function formatTime(seconds: number): string {
