@@ -25,8 +25,8 @@ import type { RecentMovement } from "@/lib/tag";
 
 function toISOLocal(dateStr: string): string {
   if (dateStr.includes("T")) return dateStr;
-  const [y, m, d] = dateStr.split("-").map(Number) as [number, number, number];
-  return new Date(y, m - 1, d).toISOString();
+  // Append local midnight without UTC conversion so date is preserved in UTC+ zones
+  return `${dateStr}T00:00:00`;
 }
 
 interface LogPageClientProps {

@@ -105,9 +105,11 @@ export function StrengthProgressSection({
         .then((pts) =>
           setSeries((prev) => ({ ...prev, [id]: { name, points: pts } })),
         )
-        .catch(() =>
-          setSeries((prev) => ({ ...prev, [id]: { name, points: [] } })),
-        );
+        .catch((err) => {
+          if ((err as Error).name !== "AbortError") {
+            setSeries((prev) => ({ ...prev, [id]: { name, points: [] } }));
+          }
+        });
     }
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps

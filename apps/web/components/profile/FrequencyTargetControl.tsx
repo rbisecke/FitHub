@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 import type { FrequencyTarget } from "@/lib/api";
 
-const OPTIONS: FrequencyTarget[] = [3, 4, 5, 6];
+const OPTIONS: FrequencyTarget[] = [1, 2, 3, 4, 5, 6, 7];
 
 interface Props {
   initial: FrequencyTarget;

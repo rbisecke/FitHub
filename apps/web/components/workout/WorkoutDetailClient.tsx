@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import Link from "next/link";
 import { api } from "@/lib/api/client";
 import { WorkoutForm } from "./WorkoutForm";
@@ -99,8 +100,11 @@ export function WorkoutDetailClient({
     setDeleting(true);
     try {
       await api.workouts.del(accessToken, workout.id);
+      setShowDeleteDialog(false);
       router.push("/history");
     } catch {
+      toast.error("Failed to delete workout");
+    } finally {
       setDeleting(false);
     }
   }

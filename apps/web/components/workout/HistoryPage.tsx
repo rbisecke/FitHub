@@ -103,7 +103,7 @@ export function HistoryPage({
 
   const prefersReduced = useReducedMotion();
   const serverFilterActive = isServerFilterActive(filters);
-  const filtersActive = isFilterActive(filters) || !!movementFilter;
+  const filtersActive = isFilterActive(filters);
 
   // Ref to cancel stale re-fetch requests when filters change rapidly
   const fetchVersionRef = useRef(0);
