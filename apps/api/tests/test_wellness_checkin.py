@@ -34,7 +34,7 @@ async def test_checkin_invalid_range(alice_client: AsyncClient) -> None:
 async def test_checkin_and_retrieve_today(alice_client: AsyncClient) -> None:
     body = {"sleep": 2, "stress": 4, "fatigue": 5, "soreness": 3}
     r = await alice_client.post("/api/v1/wellness/checkin", json=body)
-    assert r.status_code == 200
+    assert r.status_code == 201
     data = r.json()
     assert data["sleep"] == 2
     assert data["stress"] == 4
@@ -69,7 +69,7 @@ async def test_checkin_upserts_same_day(alice_client: AsyncClient) -> None:
         "/api/v1/wellness/checkin",
         json={"sleep": 5, "stress": 5, "fatigue": 5, "soreness": 5},
     )
-    assert r2.status_code == 200
+    assert r2.status_code == 201
     assert r2.json()["hooper_index"] == 20
 
     r3 = await alice_client.get("/api/v1/wellness/checkin/today")

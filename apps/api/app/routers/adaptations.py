@@ -9,7 +9,7 @@ import psycopg.rows
 from fastapi import APIRouter, HTTPException, Request
 
 from app.dependencies.common import Auth, DBConn
-from app.middleware.rate_limit import limiter
+from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.adaptation import (
     AdaptationOut,
     AdjustAdaptationRequest,
@@ -49,9 +49,9 @@ def _row_to_out(r: dict[str, object]) -> AdaptationOut:
         rejection_reason=str(r["rejection_reason"]) if r.get("rejection_reason") else None,
         diff_json=r["diff_json"],
         stub=bool(r["stub"]),
-        proposed_at=r["proposed_at"],  # type: ignore[arg-type]
-        merged_at=r["merged_at"],  # type: ignore[arg-type]
-        rejected_at=r["rejected_at"],  # type: ignore[arg-type]
+        proposed_at=r["proposed_at"],
+        merged_at=r["merged_at"],
+        rejected_at=r["rejected_at"],
     )
 
 
@@ -59,7 +59,7 @@ def _row_to_out(r: dict[str, object]) -> AdaptationOut:
 
 
 @router.post("/plans/{plan_id}/adaptations/detect", response_model=DetectTriggersResponse)
-@limiter.limit("5/hour")
+@limiter.limit("5/hour", key_func=user_or_ip_key)
 async def detect_plan_adaptations(
     plan_id: str,
     request: Request,
@@ -79,37 +79,44 @@ async def detect_plan_adaptations(
 
     triggers = await detect_triggers(str(user.user_id), plan_id, db)
 
-    proposed: list[AdaptationOut] = []
+    # Generate all adaptation results before opening the transaction so LLM
+    # calls don't hold a DB transaction open.
+    adaptation_results: list[tuple[dict[str, object], dict[str, object]]] = []
     for trigger in triggers:
         result = await generate_adaptation(
             {"trigger_type": trigger["type"], "trigger_data": trigger["data"]},
             [],
         )
-        async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-            await cur.execute(
-                f"""
-                INSERT INTO adaptations
-                    (plan_id, user_id, trigger_type, trigger_data, rationale, diff_json, stub)
-                VALUES (%s::uuid, %s, %s, %s::jsonb, %s, %s::jsonb, %s)
-                RETURNING {_SELECT_COLS}
-                """,
-                [
-                    plan_id,
-                    user.user_id,
-                    str(trigger["type"]),
-                    json.dumps(trigger["data"]),
-                    str(result.get("rationale", "")),
-                    json.dumps(result.get("diff", []) or []),
-                    bool(result.get("stub", False)),
-                ],
-            )
-            row = await cur.fetchone()
-        if row:
-            out = _row_to_out(row)
-            # override trigger_data with the parsed dict from the trigger itself
-            if isinstance(trigger.get("data"), dict):
-                out = out.model_copy(update={"trigger_data": trigger["data"]})
-            proposed.append(out)
+        adaptation_results.append((trigger, result))
+
+    proposed: list[AdaptationOut] = []
+    async with db.transaction():
+        for trigger, result in adaptation_results:
+            async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+                await cur.execute(
+                    f"""
+                    INSERT INTO adaptations
+                        (plan_id, user_id, trigger_type, trigger_data, rationale, diff_json, stub)
+                    VALUES (%s::uuid, %s, %s, %s::jsonb, %s, %s::jsonb, %s)
+                    RETURNING {_SELECT_COLS}
+                    """,
+                    [
+                        plan_id,
+                        user.user_id,
+                        str(trigger["type"]),
+                        json.dumps(trigger["data"]),
+                        str(result.get("rationale", "")),
+                        json.dumps(result.get("diff", []) or []),
+                        bool(result.get("stub", False)),
+                    ],
+                )
+                row = await cur.fetchone()
+            if row:
+                out = _row_to_out(row)
+                # override trigger_data with the parsed dict from the trigger itself
+                if isinstance(trigger.get("data"), dict):
+                    out = out.model_copy(update={"trigger_data": trigger["data"]})
+                proposed.append(out)
 
     return DetectTriggersResponse(
         plan_id=plan_id,
@@ -209,7 +216,7 @@ async def reject_adaptation(
 
 
 @router.post("/adaptations/{adaptation_id}/adjust", response_model=AdaptationOut)
-@limiter.limit("10/hour")
+@limiter.limit("10/hour", key_func=user_or_ip_key)
 async def adjust_adaptation(
     adaptation_id: str,
     request: Request,

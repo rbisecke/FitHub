@@ -52,7 +52,12 @@ def _acwr_zone(acwr: float | None) -> str:
 
 
 def _fmt_time(seconds: int) -> str:
-    return f"{seconds // 60}:{seconds % 60:02d}"
+    if seconds >= 3600:
+        h, rem = divmod(seconds, 3600)
+        m, s = divmod(rem, 60)
+        return f"{h}:{m:02d}:{s:02d}"
+    m, s = divmod(seconds, 60)
+    return f"{m}:{s:02d}"
 
 
 def _fmt_improvement(seconds: int) -> str:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import timedelta
 
 import psycopg
 import psycopg.rows
@@ -55,7 +56,7 @@ async def _compute_acwr(
                        SUM(perceived_load_au) AS daily_load
                 FROM   workouts
                 WHERE  user_id = %s
-                  AND  performed_at >= now() - INTERVAL '28 days'
+                  AND  performed_at::date >= CURRENT_DATE - INTERVAL '27 days'
                   AND  perceived_load_au IS NOT NULL
                 GROUP  BY 1
             )
@@ -92,11 +93,17 @@ async def _count_low_readiness_streak(
         rows = await cur.fetchall()
 
     streak = 0
-    for row in rows:
-        if row["recovery_score"] is not None and float(row["recovery_score"]) < threshold:
+    if rows:
+        expected = rows[0]["date"]
+        for row in rows:
+            row_date = row["date"]
+            score = row["recovery_score"]
+            if row_date != expected:
+                break  # gap in consecutive dates — streak broken
+            if score is None or float(score) >= threshold:
+                break  # not low readiness — streak broken
             streak += 1
-        else:
-            break
+            expected = row_date - timedelta(days=1)
     return streak
 
 

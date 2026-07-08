@@ -28,11 +28,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "type": "object",
-                  "title": "Response Submit Access Request Api V1 Access Requests Post"
+                  "$ref": "#/components/schemas/SubmitAccessRequestResponse"
                 }
               }
             }
@@ -298,11 +294,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "title": "Response Generate Magic Link Api V1 Admin Users  User Id  Magic Link Post"
+                  "$ref": "#/components/schemas/MagicLinkResponse"
                 }
               }
             }
@@ -2219,7 +2211,8 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "string",
+                  "format": "date"
                 },
                 {
                   "type": "null"
@@ -2235,7 +2228,8 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "string",
+                  "format": "date"
                 },
                 {
                   "type": "null"
@@ -2552,49 +2546,26 @@
       }
     },
     "/api/v1/plans": {
-      "get": {
-        "tags": [
-          "plans"
-        ],
-        "summary": "List Plans",
-        "operationId": "list_plans_api_v1_plans_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/PlanSummary"
-                  },
-                  "type": "array",
-                  "title": "Response List Plans Api V1 Plans Get"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      },
       "post": {
         "tags": [
           "plans"
         ],
         "summary": "Create Plan",
         "operationId": "create_plan_api_v1_plans_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreatePlanRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "202": {
@@ -2617,12 +2588,64 @@
               }
             }
           }
-        },
+        }
+      },
+      "get": {
+        "tags": [
+          "plans"
+        ],
+        "summary": "List Plans",
+        "operationId": "list_plans_api_v1_plans_get",
         "security": [
           {
             "HTTPBearer": []
           }
-        ]
+        ],
+        "parameters": [
+          {
+            "name": "before_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlanSummary"
+                  },
+                  "title": "Response List Plans Api V1 Plans Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/plans/tasks/{task_id}": {
@@ -3881,7 +3904,7 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Successful Response",
             "content": {
               "application/json": {
@@ -4144,6 +4167,11 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "proposed",
+              "merged",
+              "rejected"
+            ],
             "title": "Status"
           },
           "rationale": {
@@ -4851,6 +4879,13 @@
           },
           "sync_status": {
             "type": "string",
+            "enum": [
+              "connected",
+              "syncing",
+              "idle",
+              "error",
+              "disconnected"
+            ],
             "title": "Sync Status"
           },
           "last_synced_at": {
@@ -6357,6 +6392,19 @@
         ],
         "title": "LoadModelResponse"
       },
+      "MagicLinkResponse": {
+        "properties": {
+          "link": {
+            "type": "string",
+            "title": "Link"
+          }
+        },
+        "type": "object",
+        "required": [
+          "link"
+        ],
+        "title": "MagicLinkResponse"
+      },
       "MeResponse": {
         "properties": {
           "user_id": {
@@ -6383,6 +6431,13 @@
           },
           "phase": {
             "type": "string",
+            "enum": [
+              "accumulation",
+              "intensification",
+              "deload",
+              "peak",
+              "test"
+            ],
             "title": "Phase"
           },
           "week_start": {
@@ -7807,6 +7862,12 @@
           },
           "goal": {
             "type": "string",
+            "enum": [
+              "general_fitness",
+              "strength",
+              "endurance",
+              "competition_prep"
+            ],
             "title": "Goal"
           },
           "title": {
@@ -7823,6 +7884,11 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "active",
+              "archived",
+              "draft"
+            ],
             "title": "Status"
           },
           "start_date": {
@@ -7842,7 +7908,12 @@
           "training_age": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "beginner",
+                  "intermediate",
+                  "advanced"
+                ]
               },
               {
                 "type": "null"
@@ -7906,6 +7977,12 @@
           },
           "goal": {
             "type": "string",
+            "enum": [
+              "general_fitness",
+              "strength",
+              "endurance",
+              "competition_prep"
+            ],
             "title": "Goal"
           },
           "title": {
@@ -7922,6 +7999,11 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "active",
+              "archived",
+              "draft"
+            ],
             "title": "Status"
           },
           "start_date": {
@@ -8097,6 +8179,14 @@
           },
           "session_type": {
             "type": "string",
+            "enum": [
+              "strength",
+              "metcon",
+              "skill",
+              "mixed",
+              "rest",
+              "active_recovery"
+            ],
             "title": "Session Type"
           },
           "title": {
@@ -8116,6 +8206,12 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "prescribed",
+              "completed",
+              "skipped",
+              "adapted"
+            ],
             "title": "Status"
           },
           "items": {
@@ -8895,6 +8991,19 @@
         },
         "type": "object",
         "title": "SetPinnedMovementsRequest"
+      },
+      "SubmitAccessRequestResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "SubmitAccessRequestResponse"
       },
       "SyncResponse": {
         "properties": {

@@ -64,3 +64,8 @@ class PinnedMovement(BaseModel):
 
 class SetPinnedMovementsRequest(BaseModel):
     movement_ids: list[uuid.UUID] = Field(default_factory=list, max_length=6)
+
+
+class UserSearchResult(BaseModel):
+    user_id: uuid.UUID
+    display_name: str | None

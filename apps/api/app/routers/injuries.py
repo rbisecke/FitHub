@@ -37,13 +37,13 @@ def _row_to_injury_out(
         mechanism=str(r["mechanism"]) if r["mechanism"] else None,
         notes=str(r["notes"]) if r["notes"] else None,
         active=bool(r["active"]),
-        status=str(r.get("status") or "active"),  # type: ignore[arg-type]
+        status=str(r.get("status") or "active"),
         requires_referral=bool(r["requires_referral"]),
         substitutions=substitutions if substitutions is not None else [],
         contraindicated=get_contraindicated_movements(body_region),
-        reported_at=r["reported_at"],  # type: ignore[arg-type]
-        resolved_at=r["resolved_at"],  # type: ignore[arg-type]
-        cleared_at=r.get("cleared_at"),  # type: ignore[arg-type]
+        reported_at=r["reported_at"],
+        resolved_at=r["resolved_at"],
+        cleared_at=r.get("cleared_at"),
         restriction_notes=str(r["restriction_notes"]) if r.get("restriction_notes") else None,
     )
 

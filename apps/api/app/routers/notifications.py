@@ -47,11 +47,10 @@ class AddPartnerRequest(BaseModel):
 async def add_training_partner(
     user: Auth, conn: DBConn, body: AddPartnerRequest
 ) -> TrainingPartner:
-    partner = await profile_repo.find_user_by_email(
-        conn, email=body.email, exclude_user_id=user.user_id
-    )
+    email = body.email.strip().lower()
+    partner = await profile_repo.find_user_by_email(conn, email=email, exclude_user_id=user.user_id)
     if partner is None:
-        raise HTTPException(status_code=404, detail="No account found for that email.")
+        raise HTTPException(status_code=404, detail="Not found.")
 
     result = await repo.add_training_partner(
         conn,

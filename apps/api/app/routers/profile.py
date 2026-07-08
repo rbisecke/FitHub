@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import uuid
-
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
 
 from app.dependencies.common import Auth, DBConn
 from app.models.profile import (
@@ -12,15 +9,11 @@ from app.models.profile import (
     ProfileStats,
     SetPinnedMovementsRequest,
     UserProfile,
+    UserSearchResult,
 )
 from app.repositories import profile as repo
 
 router = APIRouter(prefix="/api/v1/profile", tags=["profile"])
-
-
-class UserSearchResult(BaseModel):
-    user_id: uuid.UUID
-    display_name: str | None
 
 
 @router.get("/search", response_model=list[UserSearchResult])

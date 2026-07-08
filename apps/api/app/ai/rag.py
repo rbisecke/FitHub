@@ -18,11 +18,11 @@ _EMBED_MODEL = os.environ.get("EMBED_MODEL", "BAAI/bge-small-en-v1.5")
 
 @lru_cache(maxsize=1)
 def _embedder() -> SentenceTransformer:
-    return SentenceTransformer(_EMBED_MODEL)
+    return SentenceTransformer(_EMBED_MODEL)  # type: ignore[no-any-return]
 
 
 def _encode_sync(query: str) -> list[float]:
-    return _embedder().encode(query).tolist()  # type: ignore[return-value]
+    return _embedder().encode(query).tolist()
 
 
 async def hybrid_retrieve(
@@ -66,7 +66,7 @@ async def hybrid_retrieve(
     WHERE v.id IS NOT NULL OR f.id IS NOT NULL
     ORDER BY score DESC LIMIT %s
     """
-    async with db.cursor() as cur:  # type: ignore[attr-defined]
+    async with db.cursor() as cur:
         await cur.execute(sql, [q_vec, _EMBED_MODEL, q_vec, query, _EMBED_MODEL, top_k])
         if cur.description is None:
             return [], 0.0

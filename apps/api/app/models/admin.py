@@ -133,3 +133,11 @@ class ReindexJob(BaseModel):
     job_id: str
     status: str
     message: str
+
+
+class SubmitAccessRequestResponse(BaseModel):
+    status: str
+
+
+class MagicLinkResponse(BaseModel):
+    link: str

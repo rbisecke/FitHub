@@ -10,12 +10,12 @@ from typing import Annotated
 
 import psycopg
 import psycopg.rows
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.ai.kill_switch import require_llm_enabled
 from app.ai.stub import is_stubbed
 from app.dependencies.common import Auth, DBConn
-from app.middleware.rate_limit import limiter
+from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.plan import (
     CreatePlanRequest,
     MesocycleOut,
@@ -171,6 +171,7 @@ async def _load_prescribed_sessions(
             GROUP BY ps.id, ps.scheduled_date, ps.session_type,
                      ps.title, ps.notes, ps.status
             ORDER BY ps.scheduled_date
+            LIMIT 50
             """,
             [plan_id, user_id],
         )
@@ -192,39 +193,42 @@ async def _apply_session_patch(
                 UPDATE planned_sessions SET
                     title = COALESCE(%s, title),
                     notes = COALESCE(%s, notes)
-                WHERE id = %s::uuid AND plan_id = %s::uuid
+                WHERE id = %s::uuid AND plan_id = %s::uuid AND user_id = %s::uuid
                 """,
-                [patch.new_title, patch.new_notes, patch.session_id, plan_id],
+                [patch.new_title, patch.new_notes, patch.session_id, plan_id, user_id],
             )
         if patch.modified_items:
             await cur.execute(
-                "DELETE FROM planned_items WHERE session_id = %s::uuid",
-                [patch.session_id],
+                "DELETE FROM planned_items WHERE session_id = %s::uuid AND user_id = %s::uuid",
+                [patch.session_id, user_id],
             )
-            for item in patch.modified_items:
-                await cur.execute(
-                    """
-                    INSERT INTO planned_items
-                        (session_id, user_id, movement_name, sets, reps,
-                         load_pct_1rm, load_kg, notes, item_order)
-                    VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    [
-                        patch.session_id,
-                        user_id,
-                        item.movement_name,
-                        item.sets,
-                        item.reps,
-                        item.load_pct_1rm,
-                        item.load_kg,
-                        item.notes,
-                        item.item_order,
-                    ],
+            item_rows = [
+                (
+                    patch.session_id,
+                    user_id,
+                    item.movement_name,
+                    item.sets,
+                    item.reps,
+                    item.load_pct_1rm,
+                    item.load_kg,
+                    item.notes,
+                    item.item_order,
                 )
+                for item in patch.modified_items
+            ]
+            await cur.executemany(
+                """
+                INSERT INTO planned_items
+                    (session_id, user_id, movement_name, sets, reps,
+                     load_pct_1rm, load_kg, notes, item_order)
+                VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                item_rows,
+            )
 
 
 @router.post("", status_code=202, response_model=PlanTaskResponse)
-@limiter.limit("3/hour")
+@limiter.limit("3/hour", key_func=user_or_ip_key)
 async def create_plan(
     request: Request,
     req: CreatePlanRequest,
@@ -283,18 +287,37 @@ async def get_task(
 async def list_plans(
     user: Auth,
     db: DBConn,
+    before_id: uuid.UUID | None = Query(default=None),
 ) -> list[PlanSummary]:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-        await cur.execute(
-            """
-            SELECT id, goal, title, branch_name, weeks, status,
-                   start_date, end_date,
-                   to_char(created_at AT TIME ZONE 'UTC',
-                           'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
-            FROM plans WHERE user_id = %s ORDER BY created_at DESC LIMIT 50
-            """,
-            [user.user_id],
-        )
+        if before_id is not None:
+            await cur.execute(
+                """
+                SELECT id, goal, title, branch_name, weeks, status,
+                       start_date, end_date,
+                       to_char(created_at AT TIME ZONE 'UTC',
+                               'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
+                FROM plans
+                WHERE user_id = %s
+                  AND (created_at, id) < (
+                      SELECT created_at, id FROM plans WHERE id = %s AND user_id = %s
+                  )
+                ORDER BY created_at DESC
+                LIMIT 50
+                """,
+                [user.user_id, before_id, user.user_id],
+            )
+        else:
+            await cur.execute(
+                """
+                SELECT id, goal, title, branch_name, weeks, status,
+                       start_date, end_date,
+                       to_char(created_at AT TIME ZONE 'UTC',
+                               'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
+                FROM plans WHERE user_id = %s ORDER BY created_at DESC LIMIT 50
+                """,
+                [user.user_id],
+            )
         rows = await cur.fetchall()
 
     return [
@@ -354,7 +377,6 @@ async def today_session(
             WHERE ps.plan_id = %s AND p.user_id = %s AND ps.scheduled_date = %s
             GROUP BY ps.id, ps.mesocycle_id, ps.scheduled_date,
                      ps.session_type, ps.title, ps.notes, ps.status
-            ORDER BY (p.status = 'active') DESC
             LIMIT 1
             """,
             [plan_id, user.user_id, today],
@@ -369,7 +391,7 @@ async def today_session(
 
 
 @router.post("/{plan_id}/revise", response_model=PlanDetail)
-@limiter.limit("3/hour")
+@limiter.limit("3/hour", key_func=user_or_ip_key)
 async def revise_plan(
     plan_id: uuid.UUID,
     request: Request,

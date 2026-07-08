@@ -6,35 +6,11 @@ from datetime import UTC, date, datetime
 
 import psycopg.rows
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
 
 from app.dependencies.common import Auth, DBConn
+from app.models.wellness import CheckInRequest, CheckInResponse, TodayCheckInResponse
 
 router = APIRouter(prefix="/api/v1/wellness", tags=["wellness"])
-
-
-# ── Request / response models ─────────────────────────────────────────────────
-
-
-class CheckInRequest(BaseModel):
-    sleep: int = Field(..., ge=1, le=7)
-    stress: int = Field(..., ge=1, le=7)
-    fatigue: int = Field(..., ge=1, le=7)
-    soreness: int = Field(..., ge=1, le=7)
-
-
-class CheckInResponse(BaseModel):
-    date: date
-    sleep: int
-    stress: int
-    fatigue: int
-    soreness: int
-    hooper_index: int
-
-
-class TodayCheckInResponse(BaseModel):
-    submitted: bool
-    checkin: CheckInResponse | None
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -48,7 +24,7 @@ def _hooper_index(sleep: int, stress: int, fatigue: int, soreness: int) -> int:
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 
-@router.post("/checkin", response_model=CheckInResponse, status_code=200)
+@router.post("/checkin", response_model=CheckInResponse, status_code=201)
 async def submit_checkin(
     body: CheckInRequest,
     user: Auth,
@@ -98,9 +74,12 @@ async def submit_checkin(
             [user.user_id, mtype, value, now_ts],
         )
 
-    # subjective_wellness (0–10): invert fatigue + stress (lower is better)
-    wellness_raw = ((8 - body.fatigue) + (8 - body.stress)) / 2.0
-    wellness_scaled = (wellness_raw / 7.0) * 10.0
+    # subjective_wellness (0–10): average of normalized sleep, inverted fatigue, inverted stress
+    # All three fields use a 1–7 scale (6 steps), so divisor is 6.
+    wellness_raw = (
+        (body.sleep - 1) / 6.0 + (1.0 - (body.fatigue - 1) / 6.0) + (1.0 - (body.stress - 1) / 6.0)
+    ) / 3.0
+    wellness_scaled = wellness_raw * 10.0
     await _upsert_sample("subjective_wellness", round(wellness_scaled, 2))
 
     # soreness (0–10): invert soreness score (lower is better)

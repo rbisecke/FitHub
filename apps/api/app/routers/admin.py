@@ -30,10 +30,12 @@ from app.models.admin import (
     InvitedEmail,
     KBEntry,
     LLMError,
+    MagicLinkResponse,
     MetricsSummary,
     RecentError,
     ReindexBody,
     ReindexJob,
+    SubmitAccessRequestResponse,
     UserCostRow,
 )
 
@@ -64,13 +66,17 @@ def _cost_expr(table: str = "lu") -> str:
 # ── Public: submit access request ─────────────────────────────────────────────
 
 
-@router.post("/api/v1/access-requests", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/api/v1/access-requests",
+    status_code=status.HTTP_201_CREATED,
+    response_model=SubmitAccessRequestResponse,
+)
 @limiter.limit("3/hour")
 async def submit_access_request(
     request: Request,
     body: AccessRequestCreate,
     conn: Annotated[DBConn, Depends(get_db)],
-) -> dict[str, str]:
+) -> SubmitAccessRequestResponse:
     async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
         # Reject if the same email submitted within the last 24 hours
         await cur.execute(
@@ -102,7 +108,7 @@ async def submit_access_request(
             detail="A pending request from this email already exists.",
         ) from None
 
-    return {"status": "submitted"}
+    return SubmitAccessRequestResponse(status="submitted")
 
 
 # ── Admin: metrics summary ────────────────────────────────────────────────────
@@ -394,11 +400,14 @@ async def disable_user(
         raise HTTPException(status_code=502, detail="Upstream auth service error")
 
 
-@router.post("/api/v1/admin/users/{user_id}/magic-link")
+@router.post(
+    "/api/v1/admin/users/{user_id}/magic-link",
+    response_model=MagicLinkResponse,
+)
 async def generate_magic_link(
     user_id: uuid.UUID,
     _admin: Annotated[uuid.UUID, Depends(require_admin)],
-) -> dict[str, str]:
+) -> MagicLinkResponse:
     settings = get_settings()
     base = settings.supabase_url.rstrip("/")
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -414,7 +423,7 @@ async def generate_magic_link(
         logger.error("Supabase error for admin op: %s", resp.text)
         raise HTTPException(status_code=502, detail="Upstream auth service error")
     data = resp.json()
-    return {"link": data.get("action_link", "")}
+    return MagicLinkResponse(link=data.get("action_link", ""))
 
 
 @router.delete("/api/v1/admin/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

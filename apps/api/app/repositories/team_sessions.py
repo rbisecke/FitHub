@@ -445,6 +445,7 @@ async def list_training_partners(
             LEFT JOIN public.profiles p ON p.id = tsp.user_id
             GROUP BY tsp.user_id, tsp.guest_name, p.display_name
             ORDER BY session_count DESC, display_name
+            LIMIT 100
             """,
             [user_id, user_id],
         )
