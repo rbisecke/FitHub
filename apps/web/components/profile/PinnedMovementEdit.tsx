@@ -34,6 +34,7 @@ export function PinnedMovementEdit({
     [...pinned].sort((a, b) => a.display_order - b.display_order),
   );
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Reset local state whenever the dialog opens fresh
   const handleOpenChange = (next: boolean) => {
@@ -92,6 +93,7 @@ export function PinnedMovementEdit({
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
       const result = await api.profile.setPinnedMovements(
         accessToken,
@@ -100,7 +102,7 @@ export function PinnedMovementEdit({
       onSaved(result);
       onOpenChange(false);
     } catch {
-      // Keep dialog open on error
+      setSaveError("Save failed. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -188,6 +190,9 @@ export function PinnedMovementEdit({
           </div>
 
           {/* Actions */}
+          {saveError && (
+            <p className="text-sm text-red-400 mt-1">{saveError}</p>
+          )}
           <div className="flex gap-2 pt-1">
             <Button
               variant="outline"

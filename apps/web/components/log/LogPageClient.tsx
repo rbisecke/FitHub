@@ -25,7 +25,8 @@ import type { RecentMovement } from "@/lib/tag";
 
 function toISOLocal(dateStr: string): string {
   if (dateStr.includes("T")) return dateStr;
-  return `${dateStr}T00:00:00Z`;
+  const [y, m, d] = dateStr.split("-").map(Number) as [number, number, number];
+  return new Date(y, m - 1, d).toISOString();
 }
 
 interface LogPageClientProps {
@@ -116,12 +117,12 @@ export function LogPageClient({
       const result = await api.coach.parseLog(accessToken, nlText);
       const entry = result.parsed;
       if (entry) {
-        if (entry.title) setValue("performed_at", today);
+        if (entry.title) setValue("title", entry.title);
         const prefill = entry.results.map((r, i) => ({
           movement_id: undefined as string | undefined,
           movement_name: r.movement_name,
           modality: undefined as string | undefined,
-          result_type: "weight" as const,
+          result_type: r.result_type,
           sets: [
             {
               set_index: 0,

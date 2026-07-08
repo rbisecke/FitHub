@@ -294,17 +294,17 @@ export function WorkoutDetailClient({
                       )}
                     </span>
                     <div className="flex items-center gap-3 text-[--muted] font-mono text-xs">
-                      {r.load_kg && (
+                      {r.load_kg != null && (
                         <span>{formatWeight(Number(r.load_kg), unit)}</span>
                       )}
-                      {r.reps && <span>× {r.reps}</span>}
-                      {r.estimated_1rm_kg && (
+                      {r.reps != null && <span>× {r.reps}</span>}
+                      {r.estimated_1rm_kg != null && (
                         <span className="text-[--muted-strong]">
                           e1RM {formatWeight(Number(r.estimated_1rm_kg), unit)}
                         </span>
                       )}
-                      {r.time_s && <span>{formatTime(r.time_s)}</span>}
-                      {r.distance_m && (
+                      {r.time_s != null && <span>{formatTime(r.time_s)}</span>}
+                      {r.distance_m != null && (
                         <span>
                           {fmtDistance(Number(r.distance_m), distanceUnit)}
                         </span>

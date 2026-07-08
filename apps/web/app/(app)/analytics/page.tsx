@@ -55,7 +55,7 @@ export default async function AnalyticsPage() {
           atl_now: 0,
           tsb_now: 0,
           acwr_now: null,
-          acwr_zone: "calibrating" as const,
+          acwr_zone: "insufficient_data" as const,
         };
   const personalRecords =
     personalRecordsRes.status === "fulfilled" ? personalRecordsRes.value : [];
@@ -253,7 +253,7 @@ export default async function AnalyticsPage() {
                                 ? "caution"
                                 : load.acwr_zone === "overreaching"
                                   ? "high risk"
-                                  : "calibrating"}
+                                  : "insufficient data"}
                         </div>
                       </div>
                     )}

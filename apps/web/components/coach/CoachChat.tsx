@@ -7,6 +7,10 @@ import { api } from "@/lib/api/client";
 import type { Citation } from "@/lib/api";
 import { STARTER_PROMPTS } from "@/lib/coach/starterPrompts";
 
+function toRole(s: string): "user" | "assistant" {
+  return s === "user" ? "user" : "assistant";
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -87,7 +91,7 @@ export function CoachChat({ accessToken }: CoachChatProps) {
         setMessages(
           turns.map((t) => ({
             id: crypto.randomUUID(),
-            role: t.role as "user" | "assistant",
+            role: toRole(t.role),
             content: t.content,
           })),
         );

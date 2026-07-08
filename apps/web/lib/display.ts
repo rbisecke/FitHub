@@ -94,11 +94,11 @@ export function formatWeightDelta(deltaKg: number, unit: "kg" | "lb"): string {
 }
 
 type AcwrZone =
+  | "insufficient_data"
   | "sweet_spot"
   | "undertraining"
   | "caution"
-  | "overreaching"
-  | "calibrating";
+  | "overreaching";
 
 export function formatAcwrZone(zone: AcwrZone | string): string {
   switch (zone) {
@@ -110,6 +110,8 @@ export function formatAcwrZone(zone: AcwrZone | string): string {
       return "caution";
     case "overreaching":
       return "high risk";
+    case "insufficient_data":
+      return "calibrating";
     default:
       return "calibrating";
   }

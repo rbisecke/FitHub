@@ -26,6 +26,10 @@ function makeId() {
   return Math.random().toString(36).slice(2);
 }
 
+function toRole(s: string): "user" | "assistant" {
+  return s === "user" ? "user" : "assistant";
+}
+
 function userInitial(email: string): string {
   return email.slice(0, 2).toUpperCase();
 }
@@ -49,6 +53,10 @@ export function ChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const liveRegionRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<ChatInputHandle>(null);
+  const onLoadedRef = useRef(onMessagesLoaded);
+  useEffect(() => {
+    onLoadedRef.current = onMessagesLoaded;
+  });
 
   const announce = useCallback((text: string) => {
     if (liveRegionRef.current) {
@@ -59,11 +67,12 @@ export function ChatPanel({
     }
   }, []);
 
-  // Rehydrate messages when sessionId changes
+  // Rehydrate messages when sessionId changes. onMessagesLoaded accessed via
+  // ref so it's not in the dep array — avoids reconnection on every render.
   useEffect(() => {
     if (!sessionId) {
       // ChatPanel remounts via key={sessionId ?? "new"}, so state is already reset
-      onMessagesLoaded?.();
+      onLoadedRef.current?.();
       return;
     }
 
@@ -75,7 +84,7 @@ export function ChatPanel({
         setMessages(
           resp.messages.map((m) => ({
             id: makeId(),
-            role: m.role as "user" | "assistant",
+            role: toRole(m.role),
             content: m.content,
             createdAt: m.created_at,
           })),
@@ -85,12 +94,12 @@ export function ChatPanel({
       .finally(() => {
         if (cancelled) return;
         setHistoryLoading(false);
-        onMessagesLoaded?.();
+        onLoadedRef.current?.();
       });
     return () => {
       cancelled = true;
     };
-  }, [sessionId, token, onMessagesLoaded]);
+  }, [sessionId, token]);
 
   // Scroll to bottom on new messages
   useEffect(() => {

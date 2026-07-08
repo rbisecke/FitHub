@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api } from "@/lib/api/client";
+import type { InjuryOut } from "@/lib/api";
 import { ReferralCard } from "./ReferralCard";
 import { SubstitutionList } from "./SubstitutionList";
 
@@ -62,13 +63,6 @@ const MECHANISMS = [
   { value: "unknown", label: "Unknown" },
 ] as const;
 
-interface Result {
-  body_region: string;
-  requires_referral: boolean;
-  substitutions: string[];
-  contraindicated: string[];
-}
-
 interface Props {
   accessToken: string;
 }
@@ -79,7 +73,7 @@ export function InjuryReportForm({ accessToken }: Props) {
   const [mechanism, setMechanism] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<Result | null>(null);
+  const [result, setResult] = useState<InjuryOut | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {

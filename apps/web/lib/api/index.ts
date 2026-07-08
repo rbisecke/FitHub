@@ -30,16 +30,11 @@ export type ContributionPoint = components["schemas"]["ContributionPoint"];
 export type ContributionsResponse =
   components["schemas"]["ContributionsResponse"];
 
-// Training balance — endpoint not yet in generated types; defined locally
-export interface TrainingBalanceBreakdown {
-  category: string;
-  volume_pct: number;
-  load_au: number;
-}
-export interface TrainingBalanceResponse {
-  breakdown: TrainingBalanceBreakdown[];
-  period_days: number;
-}
+// Training balance — now from generated types
+export type TrainingBalanceBreakdown =
+  components["schemas"]["TrainingBalanceCategory"];
+export type TrainingBalanceResponse =
+  components["schemas"]["TrainingBalanceResponse"];
 
 // Workout parsing — from generated OpenAPI schema
 export type ParseNLResponse = components["schemas"]["ParseNLResponse"];
@@ -60,37 +55,29 @@ export type CoachSession = components["schemas"]["CoachSession"];
 export type SessionMessagesResponse =
   components["schemas"]["SessionMessagesResponse"];
 
-// Profile types — endpoint not yet in generated types; defined locally
+// Profile types
 export type WeightUnit = "kg" | "lb";
 export type DistanceUnit = "km" | "mi";
 export type GraphColourMode = "intensity" | "volume";
 export type FrequencyTarget = 3 | 4 | 5 | 6;
 
-export interface UserProfile {
-  display_name: string | null;
-  email: string;
-  avatar_url: string | null;
-  timezone: string;
-  first_workout_date: string | null;
-  frequency_target_days: number;
-  graph_colour_mode: GraphColourMode;
-  weight_unit: WeightUnit;
-  checkin_enabled: boolean;
-  onboarding_completed: boolean;
-  bio: string | null;
-  location: string | null;
-  box_affiliation: string | null;
-  distance_unit: DistanceUnit;
-  training_level: string | null;
-  training_since: string | null;
+export type UserProfile = components["schemas"]["UserProfile"];
+
+export function toWeightUnit(s: string | null | undefined): WeightUnit {
+  return s === "lb" ? "lb" : "kg";
+}
+export function toDistanceUnit(s: string | null | undefined): DistanceUnit {
+  return s === "mi" ? "mi" : "km";
+}
+export function toGraphColourMode(
+  s: string | null | undefined,
+): GraphColourMode {
+  return s === "volume" ? "volume" : "intensity";
 }
 
-export interface ProfileStats {
-  total_workouts: number;
-  total_prs: number;
-  best_streak_weeks: number;
-  movements_tracked: number;
-}
+export type ProfileStats = components["schemas"]["ProfileStats"];
+
+export type InjuryOut = components["schemas"]["InjuryOut"];
 
 export type PinnedMovement = components["schemas"]["PinnedMovement"];
 export type SetPinnedMovementsRequest =

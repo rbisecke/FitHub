@@ -87,6 +87,7 @@ export function HooperCheckIn({
     soreness: 4,
   });
   const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const total = values.sleep + values.stress + values.fatigue + values.soreness;
 
@@ -157,12 +158,13 @@ export function HooperCheckIn({
 
   async function handleSubmit() {
     setSaving(true);
+    setSubmitError(null);
     try {
       const res = await api.wellness.checkin(token, values);
       setSubmittedData(res);
       setSubmitted(true);
     } catch {
-      // silent fail — user can retry
+      setSubmitError("Failed to save check-in. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -234,6 +236,9 @@ export function HooperCheckIn({
       </div>
 
       {/* Submit */}
+      {submitError && (
+        <p className="text-sm text-red-400 mt-2">{submitError}</p>
+      )}
       <button
         onClick={handleSubmit}
         disabled={saving}
