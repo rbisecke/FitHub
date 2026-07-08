@@ -86,7 +86,7 @@ export function Step2Frequency({ defaultValue = 4, onNext }: Props) {
 
       <button
         onClick={() => onNext(selected)}
-        className="min-h-[48px] w-full rounded-[13px] bg-[var(--accent)] py-[15px] text-[15px] font-extrabold text-[#0A0D12] transition-opacity hover:opacity-90 active:scale-[0.98]"
+        className="min-h-[48px] w-full rounded-[13px] bg-[var(--accent)] py-[15px] text-[15px] font-extrabold text-[var(--bg)] transition-opacity hover:opacity-90 active:scale-[0.98]"
       >
         Continue
       </button>

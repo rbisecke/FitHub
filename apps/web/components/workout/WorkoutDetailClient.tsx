@@ -68,18 +68,23 @@ export function WorkoutDetailClient({
   const [prMap, setPrMap] = useState<Record<string, number>>({});
 
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
     api.analytics
-      .personalRecords(accessToken)
+      .personalRecords(accessToken, { signal: controller.signal })
       .then((prs: PersonalRecord[]) => {
         if (cancelled) return;
         const map: Record<string, number> = {};
         for (const pr of prs) map[pr.movement_id] = pr.best_1rm_kg;
         setPrMap(map);
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (cancelled || controller.signal.aborted) return;
+        console.warn("PR fetch failed", err);
+      });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [accessToken]);
 

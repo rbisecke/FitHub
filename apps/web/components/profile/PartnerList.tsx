@@ -74,9 +74,9 @@ export function PartnerList({ initial, token }: Props) {
         </div>
       )}
 
-      {partners.map((p, idx) => (
+      {partners.map((p) => (
         <div
-          key={p.user_id ?? `guest-${idx}`}
+          key={p.user_id ?? p.guest_name ?? p.display_name}
           className="flex items-center justify-between py-2.5"
         >
           <span className="text-sm text-[var(--text)]">{p.display_name}</span>

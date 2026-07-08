@@ -10,9 +10,11 @@ export function DateSeparator({ date }: { date: string }) {
 
   return (
     <div className="flex items-center gap-3 mb-3">
-      <div className="flex-1 border-t border-[#30363d]" />
-      <span className="text-xs font-mono text-[#8b949e] shrink-0">{label}</span>
-      <div className="flex-1 border-t border-[#30363d]" />
+      <div className="flex-1 border-t border-[var(--border)]" />
+      <span className="text-xs font-mono text-[var(--muted)] shrink-0">
+        {label}
+      </span>
+      <div className="flex-1 border-t border-[var(--border)]" />
     </div>
   );
 }

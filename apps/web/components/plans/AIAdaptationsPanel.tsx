@@ -18,9 +18,10 @@ export function AIAdaptationsPanel({ planId, accessToken }: Props) {
   const [dismissing, setDismissing] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
     client.adaptations
-      .list(planId)
+      .list(planId, { signal: controller.signal })
       .then((data) => {
         if (!cancelled)
           setAdaptations(data.filter((a) => a.status === "proposed"));
@@ -33,6 +34,7 @@ export function AIAdaptationsPanel({ planId, accessToken }: Props) {
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [client, planId]);
 

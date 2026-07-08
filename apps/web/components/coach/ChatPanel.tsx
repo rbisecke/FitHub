@@ -84,9 +84,10 @@ export function ChatPanel({
       return;
     }
 
+    const controller = new AbortController();
     let cancelled = false;
     api.coach.sessions
-      .messages(token, sessionId)
+      .messages(token, sessionId, { signal: controller.signal })
       .then((resp) => {
         if (cancelled) return;
         setMessages(
@@ -98,7 +99,10 @@ export function ChatPanel({
           })),
         );
       })
-      .catch(() => {})
+      .catch((_err) => {
+        if (cancelled || controller.signal.aborted) return;
+        toast.error("Failed to load conversation history");
+      })
       .finally(() => {
         if (cancelled) return;
         setHistoryLoading(false);
@@ -106,6 +110,7 @@ export function ChatPanel({
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [sessionId, token]);
 

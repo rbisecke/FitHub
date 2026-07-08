@@ -15,7 +15,7 @@ export function EmptyCategoryState({ category }: Props) {
       </p>
       <Link
         href="/log/new"
-        className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[#0A0D12] px-3 py-1.5 rounded-lg transition-colors border border-[var(--accent)]"
+        className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--bg)] px-3 py-1.5 rounded-lg transition-colors border border-[var(--accent)]"
       >
         Log a {category.toLowerCase()} result →
       </Link>

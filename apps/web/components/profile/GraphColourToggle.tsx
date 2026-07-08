@@ -41,7 +41,7 @@ export function GraphColourToggle({ initial, token }: Props) {
 
   return (
     <div className="flex items-center justify-between py-3 gap-4">
-      <p className="text-sm text-[#e6edf3] shrink-0">Graph colour</p>
+      <p className="text-sm text-[var(--text)] shrink-0">Graph colour</p>
       <RadioGroup
         value={value}
         onValueChange={handleChange}
@@ -52,9 +52,9 @@ export function GraphColourToggle({ initial, token }: Props) {
           <RadioGroupItem
             value="intensity"
             aria-label="Intensity"
-            className="border-[#30363d] text-[#58a6ff]"
+            className="border-[var(--border)] text-[var(--accent)]"
           />
-          <span className="text-sm text-[#e6edf3] cursor-pointer font-sans select-none">
+          <span className="text-sm text-[var(--text)] cursor-pointer font-sans select-none">
             Intensity
           </span>
         </div>
@@ -62,9 +62,9 @@ export function GraphColourToggle({ initial, token }: Props) {
           <RadioGroupItem
             value="volume"
             aria-label="Volume"
-            className="border-[#30363d] text-[#58a6ff]"
+            className="border-[var(--border)] text-[var(--accent)]"
           />
-          <span className="text-sm text-[#e6edf3] cursor-pointer font-sans select-none">
+          <span className="text-sm text-[var(--text)] cursor-pointer font-sans select-none">
             Volume
           </span>
         </div>

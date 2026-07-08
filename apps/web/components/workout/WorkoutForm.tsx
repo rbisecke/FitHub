@@ -499,7 +499,7 @@ export function WorkoutForm({
       <Button
         type="submit"
         disabled={isSubmitting}
-        className="w-full bg-[var(--accent)] text-[#0d1117] hover:brightness-110"
+        className="w-full bg-[var(--accent)] text-[var(--bg)] hover:brightness-110"
       >
         {isSubmitting ? "Logging…" : "Commit workout"}
       </Button>

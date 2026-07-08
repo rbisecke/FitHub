@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { api } from "@/lib/api/client";
 import type { CoachSession } from "@/lib/api";
@@ -45,23 +46,28 @@ export function CoachShell({
       .then((data) => {
         if (mountedRef.current) setSessions(data);
       })
-      .catch(() => {});
+      .catch(() => toast.error("Failed to refresh sessions"));
   }, [token]);
 
-  // Initial load — cancelled guard prevents stale setState after unmount
+  // Initial load — AbortController + cancelled guard prevent stale setState after unmount
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
     api.coach.sessions
-      .list(token, { limit: 20 })
+      .list(token, { limit: 20 }, { signal: controller.signal })
       .then((data) => {
         if (!cancelled) setSessions(data);
       })
-      .catch(() => {})
+      .catch((err) => {
+        if (cancelled || controller.signal.aborted) return;
+        console.warn("Sessions load failed", err);
+      })
       .finally(() => {
         if (!cancelled) setSessionsLoading(false);
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [token]);
 

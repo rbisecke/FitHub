@@ -166,7 +166,7 @@ export function CreatePlanForm({ accessToken }: Props) {
             </button>
             <button
               onClick={() => setStep(3)}
-              className="rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[#0d1117] hover:brightness-110"
+              className="rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[var(--bg)] hover:brightness-110"
             >
               next
             </button>
@@ -215,7 +215,7 @@ export function CreatePlanForm({ accessToken }: Props) {
             <button
               onClick={handleSubmit}
               disabled={!trainingAge || loading}
-              className="rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[#0d1117] hover:brightness-110 disabled:opacity-40"
+              className="rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[var(--bg)] hover:brightness-110 disabled:opacity-40"
             >
               {loading ? "generating…" : "generate plan"}
             </button>

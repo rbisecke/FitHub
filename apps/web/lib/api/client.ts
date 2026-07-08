@@ -96,6 +96,7 @@ export const api = {
         dateFrom?: string;
         dateTo?: string;
       },
+      options?: { signal?: AbortSignal },
     ) => {
       const qs = new URLSearchParams();
       if (params?.beforeId) qs.set("before_id", params.beforeId);
@@ -105,15 +106,23 @@ export const api = {
         qs.set("partner_only", String(params.partnerOnly));
       if (params?.dateFrom) qs.set("date_from", params.dateFrom);
       if (params?.dateTo) qs.set("date_to", params.dateTo);
-      return apiFetch<WorkoutListResponse>(`/api/v1/workouts?${qs}`, token);
+      return apiFetch<WorkoutListResponse>(
+        `/api/v1/workouts?${qs}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      );
     },
     create: (token: string, body: CreateWorkoutBody) =>
       apiFetch<Workout>("/api/v1/workouts", token, {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    get: (token: string, id: string) =>
-      apiFetch<Workout>(`/api/v1/workouts/${id}`, token),
+    get: (token: string, id: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<Workout>(
+        `/api/v1/workouts/${id}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     patch: (token: string, id: string, body: Partial<CreateWorkoutBody>) =>
       apiFetch<Workout>(`/api/v1/workouts/${id}`, token, {
         method: "PATCH",
@@ -175,17 +184,26 @@ export const api = {
         token,
       );
     },
-    personalRecordsBatch: (token: string, movementIds: string[]) =>
+    personalRecordsBatch: (
+      token: string,
+      movementIds: string[],
+      options?: { signal?: AbortSignal },
+    ) =>
       apiFetch<PersonalRecordResult[]>(
         `/api/v1/movements/personal-records?ids=${movementIds.join(",")}`,
         token,
+        options?.signal ? { signal: options.signal } : undefined,
       ),
   },
   analytics: {
     load: (token: string, days = 90) =>
       apiFetch<LoadModelResponse>(`/api/v1/analytics/load?days=${days}`, token),
-    personalRecords: (token: string) =>
-      apiFetch<PersonalRecord[]>("/api/v1/analytics/personal-records", token),
+    personalRecords: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<PersonalRecord[]>(
+        "/api/v1/analytics/personal-records",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     movementTrend: (token: string, movementId: string) =>
       apiFetch<E1RMPoint[]>(
         `/api/v1/analytics/movement-trend/${movementId}`,
@@ -387,16 +405,31 @@ export const api = {
         { signal },
       ),
     sessions: {
-      list: (token: string, params?: { beforeId?: string; limit?: number }) => {
+      list: (
+        token: string,
+        params?: { beforeId?: string; limit?: number },
+        options?: { signal?: AbortSignal },
+      ) => {
         const qs = new URLSearchParams();
         if (params?.beforeId) qs.set("before_id", params.beforeId);
         if (params?.limit) qs.set("limit", String(params.limit));
-        return apiFetch<CoachSession[]>(`/api/v1/coach/sessions?${qs}`, token);
-      },
-      messages: (token: string, sessionId: string, limit = 50) =>
-        apiFetch<SessionMessagesResponse>(
-          `/api/v1/coach/sessions/${sessionId}/messages?limit=${limit}`,
+        return apiFetch<CoachSession[]>(
+          `/api/v1/coach/sessions?${qs}`,
           token,
+          options?.signal ? { signal: options.signal } : undefined,
+        );
+      },
+      messages: (
+        token: string,
+        sessionId: string,
+        options?: { limit?: number; signal?: AbortSignal },
+      ) =>
+        apiFetch<SessionMessagesResponse>(
+          `/api/v1/coach/sessions/${sessionId}/messages?limit=${
+            options?.limit ?? 50
+          }`,
+          token,
+          options?.signal ? { signal: options.signal } : undefined,
         ),
     },
     modifyWorkout: (token: string, sessionId: string) =>
@@ -421,10 +454,15 @@ export const api = {
       }),
     pollTask: (token: string, taskId: string) =>
       apiFetch<PlanTaskResponse>(`/api/v1/plans/tasks/${taskId}`, token),
-    today: (token: string, planId: string) =>
+    today: (
+      token: string,
+      planId: string,
+      options?: { signal?: AbortSignal },
+    ) =>
       apiFetch<PlannedSessionOut | null>(
         `/api/v1/plans/${planId}/today`,
         token,
+        options?.signal ? { signal: options.signal } : undefined,
       ),
     revise: (token: string, planId: string, feedback: string) =>
       apiFetch<PlanDetail>(`/api/v1/plans/${planId}/revise`, token, {
@@ -433,8 +471,12 @@ export const api = {
       }),
   },
   adaptations: {
-    list: (token: string, planId: string) =>
-      apiFetch<AdaptationOut[]>(`/api/v1/plans/${planId}/adaptations`, token),
+    list: (token: string, planId: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<AdaptationOut[]>(
+        `/api/v1/plans/${planId}/adaptations`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     detect: (token: string, planId: string) =>
       apiFetch<DetectTriggersResponse>(
         `/api/v1/plans/${planId}/adaptations/detect`,
@@ -575,11 +617,14 @@ export const api = {
 export function createApiClient(token: string) {
   return {
     workouts: {
-      list: (params?: Parameters<typeof api.workouts.list>[1]) =>
-        api.workouts.list(token, params),
+      list: (
+        params?: Parameters<typeof api.workouts.list>[1],
+        options?: { signal?: AbortSignal },
+      ) => api.workouts.list(token, params, options),
       create: (body: Parameters<typeof api.workouts.create>[1]) =>
         api.workouts.create(token, body),
-      get: (id: string) => api.workouts.get(token, id),
+      get: (id: string, options?: { signal?: AbortSignal }) =>
+        api.workouts.get(token, id, options),
       patch: (id: string, body: Parameters<typeof api.workouts.patch>[2]) =>
         api.workouts.patch(token, id, body),
       del: (id: string) => api.workouts.del(token, id),
@@ -598,12 +643,15 @@ export function createApiClient(token: string) {
         movementId: string,
         params?: Parameters<typeof api.movements.personalRecord>[2],
       ) => api.movements.personalRecord(token, movementId, params),
-      personalRecordsBatch: (movementIds: string[]) =>
-        api.movements.personalRecordsBatch(token, movementIds),
+      personalRecordsBatch: (
+        movementIds: string[],
+        options?: { signal?: AbortSignal },
+      ) => api.movements.personalRecordsBatch(token, movementIds, options),
     },
     analytics: {
       load: (days?: number) => api.analytics.load(token, days),
-      personalRecords: () => api.analytics.personalRecords(token),
+      personalRecords: (options?: { signal?: AbortSignal }) =>
+        api.analytics.personalRecords(token, options),
       movementTrend: (movementId: string) =>
         api.analytics.movementTrend(token, movementId),
       movementHistory: (movementId: string) =>
@@ -622,12 +670,14 @@ export function createApiClient(token: string) {
       create: (body: Parameters<typeof api.plans.create>[1]) =>
         api.plans.create(token, body),
       pollTask: (taskId: string) => api.plans.pollTask(token, taskId),
-      today: (planId: string) => api.plans.today(token, planId),
+      today: (planId: string, options?: { signal?: AbortSignal }) =>
+        api.plans.today(token, planId, options),
       revise: (planId: string, feedback: string) =>
         api.plans.revise(token, planId, feedback),
     },
     adaptations: {
-      list: (planId: string) => api.adaptations.list(token, planId),
+      list: (planId: string, options?: { signal?: AbortSignal }) =>
+        api.adaptations.list(token, planId, options),
       detect: (planId: string) => api.adaptations.detect(token, planId),
       merge: (id: string) => api.adaptations.merge(token, id),
       reject: (id: string, rejectionReason?: string) =>
@@ -662,10 +712,14 @@ export function createApiClient(token: string) {
       history: (sessionId: string, limit?: number) =>
         api.coach.history(token, sessionId, limit),
       sessions: {
-        list: (params?: Parameters<typeof api.coach.sessions.list>[1]) =>
-          api.coach.sessions.list(token, params),
-        messages: (sessionId: string, limit?: number) =>
-          api.coach.sessions.messages(token, sessionId, limit),
+        list: (
+          params?: Parameters<typeof api.coach.sessions.list>[1],
+          options?: { signal?: AbortSignal },
+        ) => api.coach.sessions.list(token, params, options),
+        messages: (
+          sessionId: string,
+          options?: { limit?: number; signal?: AbortSignal },
+        ) => api.coach.sessions.messages(token, sessionId, options),
       },
       modifyWorkout: (sessionId: string) =>
         api.coach.modifyWorkout(token, sessionId),

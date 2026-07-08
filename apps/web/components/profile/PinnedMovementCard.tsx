@@ -49,16 +49,16 @@ export function PinnedMovementCard({
   );
   const chipClass =
     MODALITY_CHIP[movement.modality] ??
-    "bg-[#8b949e]/10 text-[#8b949e] border-[#8b949e]/30";
+    "bg-[var(--muted)]/10 text-[var(--muted)] border-[var(--muted)]/30";
 
   return (
-    <div className="bg-[#161b22] border border-[#30363d] rounded-lg p-4 space-y-1 min-h-[88px]">
-      <p className="font-sans text-sm font-medium text-[#e6edf3] leading-tight line-clamp-2">
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 space-y-1 min-h-[88px]">
+      <p className="font-sans text-sm font-medium text-[var(--text)] leading-tight line-clamp-2">
         {movement.movement_name}
       </p>
       <p
         className={`font-mono text-lg leading-tight ${
-          prDisplay === "—" ? "text-[#8b949e]" : "text-[#e6edf3]"
+          prDisplay === "—" ? "text-[var(--muted)]" : "text-[var(--text)]"
         }`}
       >
         {prDisplay}

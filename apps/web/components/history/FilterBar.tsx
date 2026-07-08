@@ -123,7 +123,7 @@ export function FilterBar({
           <SlidersHorizontal className="h-[11px] w-[11px]" />
           Filters
           {advCount > 0 && (
-            <span className="inline-flex items-center justify-center bg-[var(--amber)] text-[#0A0D12] text-[9px] font-black min-w-[14px] h-[14px] rounded-full px-0.5">
+            <span className="inline-flex items-center justify-center bg-[var(--amber)] text-[var(--bg)] text-[9px] font-black min-w-[14px] h-[14px] rounded-full px-0.5">
               {advCount}
             </span>
           )}
@@ -139,7 +139,7 @@ export function FilterBar({
           <SlidersHorizontal className="h-[13px] w-[13px]" />
           Filters
           {advCount > 0 && (
-            <span className="inline-flex items-center justify-center bg-[var(--amber)] text-[#0A0D12] text-[10px] font-black min-w-[16px] h-[16px] rounded-full px-1">
+            <span className="inline-flex items-center justify-center bg-[var(--amber)] text-[var(--bg)] text-[10px] font-black min-w-[16px] h-[16px] rounded-full px-1">
               {advCount}
             </span>
           )}
@@ -243,7 +243,7 @@ export function FilterBar({
                   }
                   className={`px-3 py-1.5 text-[12px] font-semibold capitalize transition-colors ${
                     filters.partnerFilter === v
-                      ? "bg-[var(--accent)] text-[#0A0D12]"
+                      ? "bg-[var(--accent)] text-[var(--bg)]"
                       : "bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                   }`}
                 >

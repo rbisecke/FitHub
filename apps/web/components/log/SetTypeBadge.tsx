@@ -14,7 +14,7 @@ const LABELS: Record<SetType, string> = {
 };
 
 const COLOURS: Record<SetType, string> = {
-  warmup: "text-[#8b949e]",
+  warmup: "text-[var(--muted)]",
   working: "text-[#3fb950]",
   drop: "text-[#d29922]",
 };
@@ -31,7 +31,7 @@ export function SetTypeBadge({ value, onChange }: SetTypeBadgeProps) {
       type="button"
       aria-label={`Set type: ${value}`}
       onClick={() => onChange(CYCLE[value])}
-      className={`font-mono text-sm min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-[#161b22] transition-colors ${COLOURS[value]}`}
+      className={`font-mono text-sm min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-[var(--surface)] transition-colors ${COLOURS[value]}`}
     >
       {LABELS[value]}
     </button>

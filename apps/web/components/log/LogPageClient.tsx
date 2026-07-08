@@ -23,6 +23,14 @@ import { TemplatePicker } from "./TemplatePicker";
 import { PageHeader } from "@/components/ui/page-header";
 import type { RecentMovement } from "@/lib/tag";
 
+function getLocalDateStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+    2,
+    "0",
+  )}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function toISOLocal(dateStr: string): string {
   if (dateStr.includes("T")) return dateStr;
   // Append local midnight without UTC conversion so date is preserved in UTC+ zones
@@ -44,14 +52,9 @@ export function LogPageClient({
 }: LogPageClientProps) {
   const router = useRouter();
   const timer = useRestTimer();
-  const [today, setToday] = useState(() =>
-    new Date().toISOString().slice(0, 10),
-  );
+  const [today, setToday] = useState(() => getLocalDateStr());
   useEffect(() => {
-    const id = setInterval(
-      () => setToday(new Date().toISOString().slice(0, 10)),
-      60_000,
-    );
+    const id = setInterval(() => setToday(getLocalDateStr()), 60_000);
     return () => clearInterval(id);
   }, []);
 
@@ -597,7 +600,7 @@ export function LogPageClient({
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full min-h-[48px] rounded-xl bg-[var(--accent)] font-bold text-[#0A0D12] hover:bg-[var(--accent)]/90 disabled:opacity-60"
+              className="w-full min-h-[48px] rounded-xl bg-[var(--accent)] font-bold text-[var(--bg)] hover:bg-[var(--accent)]/90 disabled:opacity-60"
             >
               {isSubmitting ? "Committing…" : "$ git add ."}
             </Button>

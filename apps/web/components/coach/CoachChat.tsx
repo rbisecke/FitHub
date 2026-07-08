@@ -380,7 +380,7 @@ export function CoachChat({ accessToken }: CoachChatProps) {
         <button
           type="submit"
           disabled={isDisabled || !input.trim()}
-          className="rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[#0d1117] hover:opacity-90 disabled:opacity-40"
+          className="rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[var(--bg)] hover:opacity-90 disabled:opacity-40"
         >
           send
         </button>

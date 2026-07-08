@@ -88,7 +88,9 @@ function buildChartData(
   if (pr.current_e1rm_kg != null && filtered.length > 0) {
     const lastPt = filtered[filtered.length - 1]!;
     const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
+    const todayStr = `${today.getFullYear()}-${String(
+      today.getMonth() + 1,
+    ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
     // Anchor the projection from the last actual data point so the lines connect
     const anchor = map.get(lastPt.day);
@@ -120,7 +122,9 @@ function buildChartData(
 
     const futureDate = new Date(today);
     futureDate.setDate(futureDate.getDate() + weeksOut * 7);
-    const futureStr = futureDate.toISOString().slice(0, 10);
+    const futureStr = `${futureDate.getFullYear()}-${String(
+      futureDate.getMonth() + 1,
+    ).padStart(2, "0")}-${String(futureDate.getDate()).padStart(2, "0")}`;
     map.set(futureStr, {
       day: futureStr,
       proj: +futureValue.toFixed(1),
@@ -487,7 +491,8 @@ export function MovementDetailShell({
                     style={{
                       fontSize: 11,
                       color: "var(--muted)",
-                      borderBottom: "1px solid rgba(48,54,61,0.5)",
+                      borderBottom:
+                        "1px solid color-mix(in srgb, var(--border) 50%, transparent)",
                       borderLeft: row.is_pr
                         ? "2px solid var(--gold)"
                         : "2px solid transparent",
@@ -501,7 +506,8 @@ export function MovementDetailShell({
                     style={{
                       fontSize: 11,
                       color: "var(--text)",
-                      borderBottom: "1px solid rgba(48,54,61,0.5)",
+                      borderBottom:
+                        "1px solid color-mix(in srgb, var(--border) 50%, transparent)",
                     }}
                   >
                     {row.load_kg != null
@@ -513,7 +519,8 @@ export function MovementDetailShell({
                     style={{
                       fontSize: 11,
                       color: "var(--text)",
-                      borderBottom: "1px solid rgba(48,54,61,0.5)",
+                      borderBottom:
+                        "1px solid color-mix(in srgb, var(--border) 50%, transparent)",
                     }}
                   >
                     {row.reps != null ? `×${row.reps}` : "—"}
@@ -524,7 +531,8 @@ export function MovementDetailShell({
                       fontSize: 11,
                       color: row.is_pr ? "var(--gold)" : "var(--text)",
                       fontWeight: row.is_pr ? 600 : undefined,
-                      borderBottom: "1px solid rgba(48,54,61,0.5)",
+                      borderBottom:
+                        "1px solid color-mix(in srgb, var(--border) 50%, transparent)",
                     }}
                   >
                     {formatWeight(row.estimated_1rm_kg, unit)}
@@ -542,7 +550,8 @@ export function MovementDetailShell({
                     style={{
                       fontSize: 10.5,
                       color: "var(--muted)",
-                      borderBottom: "1px solid rgba(48,54,61,0.5)",
+                      borderBottom:
+                        "1px solid color-mix(in srgb, var(--border) 50%, transparent)",
                     }}
                   >
                     {row.notes ?? ""}

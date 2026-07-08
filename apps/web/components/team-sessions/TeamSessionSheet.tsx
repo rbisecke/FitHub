@@ -89,8 +89,8 @@ function RoleBadge({
               borderLeftWidth: 2,
             }
           : {
-              color: "#8b949e",
-              borderColor: "#30363d",
+              color: "var(--muted)",
+              borderColor: "var(--border)",
               background: "transparent",
             }
       }
@@ -264,19 +264,19 @@ export function TeamSessionSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="bg-[#161b22] border-t border-[#30363d] max-h-[92vh] overflow-y-auto"
+        className="bg-[var(--surface)] border-t border-[var(--border)] max-h-[92vh] overflow-y-auto"
         showCloseButton={false}
       >
         {/* Grab handle */}
         <div className="flex justify-center pt-3 pb-1" aria-hidden>
-          <div className="w-8 h-[4px] rounded-full bg-[#30363d]" />
+          <div className="w-8 h-[4px] rounded-full bg-[var(--border)]" />
         </div>
 
         <SheetHeader className="px-5 pt-2 pb-4">
-          <SheetTitle className="font-mono text-[13px] text-[#8b949e] font-normal text-left">
+          <SheetTitle className="font-mono text-[13px] text-[var(--muted)] font-normal text-left">
             $ git merge
           </SheetTitle>
-          <p className="font-semibold text-[15px] text-[#e6edf3] text-left mt-0.5">
+          <p className="font-semibold text-[15px] text-[var(--text)] text-left mt-0.5">
             Log a team session
           </p>
         </SheetHeader>
@@ -284,20 +284,20 @@ export function TeamSessionSheet({
         <div className="px-5 space-y-5 pb-6">
           {/* Session name */}
           <div className="space-y-1.5">
-            <label className="text-xs font-mono text-[#8b949e]">
+            <label className="text-xs font-mono text-[var(--muted)]">
               session name
             </label>
             <Input
               value={sessionName}
               onChange={(e) => setSessionName(e.target.value)}
               placeholder="e.g. Wednesday WOD"
-              className="bg-[#0d1117] border-[#30363d] text-[#e6edf3] placeholder:text-[#8b949e] h-9 text-sm"
+              className="bg-[var(--bg)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)] h-9 text-sm"
             />
           </div>
 
           {/* Scoring type */}
           <div className="space-y-2">
-            <label className="text-xs font-mono text-[#8b949e]">
+            <label className="text-xs font-mono text-[var(--muted)]">
               scoring type
             </label>
             <div className="flex flex-wrap gap-2">
@@ -314,12 +314,12 @@ export function TeamSessionSheet({
                       ? {
                           background: "rgba(88,166,255,0.15)",
                           borderColor: "rgba(88,166,255,0.4)",
-                          color: "#58a6ff",
+                          color: "var(--accent)",
                         }
                       : {
                           background: "transparent",
-                          borderColor: "#30363d",
-                          color: "#8b949e",
+                          borderColor: "var(--border)",
+                          color: "var(--muted)",
                         }
                   }
                 >
@@ -331,7 +331,7 @@ export function TeamSessionSheet({
 
           {/* Contributors */}
           <div className="space-y-2">
-            <label className="text-xs font-mono text-[#8b949e]">
+            <label className="text-xs font-mono text-[var(--muted)]">
               contributors
             </label>
 
@@ -341,18 +341,18 @@ export function TeamSessionSheet({
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Search by name or email…"
-                className="bg-[#0d1117] border-[#30363d] text-[#e6edf3] placeholder:text-[#8b949e] h-9 text-sm"
+                className="bg-[var(--bg)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)] h-9 text-sm"
               />
               {searchResults.length > 0 && (
-                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-[#1c2128] border border-[#30363d] rounded-lg overflow-hidden shadow-lg">
+                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden shadow-lg">
                   {searchResults.map((u) => (
                     <button
                       key={String(u.user_id)}
                       type="button"
                       onClick={() => addContributor(u)}
-                      className="w-full text-left px-3 py-2 text-sm text-[#e6edf3] hover:bg-[#30363d] flex items-center gap-2 transition-colors"
+                      className="w-full text-left px-3 py-2 text-sm text-[var(--text)] hover:bg-[var(--border)] flex items-center gap-2 transition-colors"
                     >
-                      <span className="w-6 h-6 rounded-full bg-[#58a6ff] flex items-center justify-center text-[10px] font-bold text-[#0d1117] shrink-0">
+                      <span className="w-6 h-6 rounded-full bg-[var(--accent)] flex items-center justify-center text-[10px] font-bold text-[var(--bg)] shrink-0">
                         {(u.display_name ?? "?").charAt(0).toUpperCase()}
                       </span>
                       <span className="min-w-0">
@@ -378,7 +378,7 @@ export function TeamSessionSheet({
                   }
                 }}
                 placeholder="Add guest name…"
-                className="bg-[#0d1117] border-[#30363d] text-[#e6edf3] placeholder:text-[#8b949e] h-9 text-sm flex-1"
+                className="bg-[var(--bg)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)] h-9 text-sm flex-1"
               />
               <Button
                 type="button"
@@ -386,7 +386,7 @@ export function TeamSessionSheet({
                 size="sm"
                 onClick={addGuest}
                 disabled={!guestName.trim()}
-                className="border-[#30363d] text-[#8b949e] hover:text-[#e6edf3] hover:border-[#58a6ff]/40 shrink-0"
+                className="border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] hover:border-[var(--accent)]/40 shrink-0"
               >
                 + Guest
               </Button>
@@ -406,13 +406,13 @@ export function TeamSessionSheet({
                       key={c.user_id ?? c.guest_name ?? idx}
                       className="flex items-center gap-2 flex-wrap"
                     >
-                      <span className="w-6 h-6 rounded-full bg-[#30363d] flex items-center justify-center text-[10px] font-bold text-[#e6edf3] shrink-0">
+                      <span className="w-6 h-6 rounded-full bg-[var(--border)] flex items-center justify-center text-[10px] font-bold text-[var(--text)] shrink-0">
                         {c.display_name.charAt(0).toUpperCase()}
                       </span>
-                      <span className="text-sm text-[#e6edf3] flex-1 min-w-0 truncate">
+                      <span className="text-sm text-[var(--text)] flex-1 min-w-0 truncate">
                         {c.display_name}
                         {!c.user_id && (
-                          <span className="ml-1 text-[10px] text-[#8b949e] font-mono">
+                          <span className="ml-1 text-[10px] text-[var(--muted)] font-mono">
                             guest
                           </span>
                         )}
@@ -433,7 +433,7 @@ export function TeamSessionSheet({
                         type="button"
                         onClick={() => removeContributor(idx)}
                         aria-label={`Remove ${c.display_name}`}
-                        className="text-[#8b949e] hover:text-[#ff7b72] text-xs ml-1 transition-colors"
+                        className="text-[var(--muted)] hover:text-[var(--red)] text-xs ml-1 transition-colors"
                         style={{ color: colors.text }}
                       >
                         ✕
@@ -447,7 +447,7 @@ export function TeamSessionSheet({
 
           {/* Team score */}
           <div className="space-y-1.5">
-            <label className="text-xs font-mono text-[#8b949e]">
+            <label className="text-xs font-mono text-[var(--muted)]">
               {scoreLabel}
             </label>
             <Input
@@ -460,11 +460,13 @@ export function TeamSessionSheet({
                   ? "mm:ss"
                   : "optional"
               }
-              className="bg-[#0d1117] border-[#30363d] text-[#e6edf3] placeholder:text-[#8b949e] h-9 text-sm font-mono"
+              className="bg-[var(--bg)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)] h-9 text-sm font-mono"
             />
           </div>
 
-          {error && <p className="text-xs text-[#ff7b72] font-mono">{error}</p>}
+          {error && (
+            <p className="text-xs text-[var(--red)] font-mono">{error}</p>
+          )}
 
           {/* Submit */}
           <button
@@ -475,7 +477,7 @@ export function TeamSessionSheet({
             style={{
               background: "rgba(88,166,255,0.15)",
               border: "1px solid rgba(88,166,255,0.4)",
-              color: "#58a6ff",
+              color: "var(--accent)",
             }}
           >
             {submitting ? "Merging…" : "$ git merge"}

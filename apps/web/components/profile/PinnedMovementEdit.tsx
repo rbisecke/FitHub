@@ -147,7 +147,7 @@ export function PinnedMovementEdit({
             {localPinned.map((p, i) => (
               <div
                 key={p.movement_id}
-                className="flex items-center gap-2 rounded-md border border-[#30363d] bg-[var(--bg)] px-3 py-2"
+                className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
               >
                 {/* Up/Down controls */}
                 <div className="flex flex-col gap-0.5">

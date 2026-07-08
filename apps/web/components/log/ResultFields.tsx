@@ -20,7 +20,7 @@ export type ResultTypeValue =
   | "watts";
 
 const INPUT_CLS =
-  "h-9 bg-[#0d1117] border-[#30363d] text-[#e6edf3] font-mono text-sm placeholder:text-[#8b949e]";
+  "h-9 bg-[var(--bg)] border-[var(--border)] text-[var(--text)] font-mono text-sm placeholder:text-[var(--muted)]";
 
 interface ResultFieldsProps {
   index: number;
@@ -78,7 +78,7 @@ export function ResultFields({
             }}
             className={`${INPUT_CLS} pr-6`}
           />
-          <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-[#8b949e]">
+          <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-[var(--muted)]">
             m
           </span>
         </div>
@@ -108,7 +108,7 @@ export function ResultFields({
           />
         </div>
         {paceLabel && (
-          <p className="font-mono text-xs text-[#8b949e]">{paceLabel}</p>
+          <p className="font-mono text-xs text-[var(--muted)]">{paceLabel}</p>
         )}
       </div>
     );
@@ -128,7 +128,7 @@ export function ResultFields({
             {...r("load_kg")}
             className={`${INPUT_CLS} pr-8`}
           />
-          <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-[#8b949e]">
+          <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-[var(--muted)]">
             {weightUnit}
           </span>
         </div>
@@ -191,7 +191,7 @@ export function ResultFields({
           {...r("distance_m")}
           className={`${INPUT_CLS} pr-6`}
         />
-        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-[#8b949e]">
+        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-[var(--muted)]">
           m
         </span>
       </div>
@@ -222,7 +222,7 @@ export function ResultFields({
           {...r("rounds")}
           className={`${INPUT_CLS} w-20`}
         />
-        <span className="font-mono text-xs text-[#8b949e]">+</span>
+        <span className="font-mono text-xs text-[var(--muted)]">+</span>
         <Input
           type="number"
           min={0}
@@ -231,7 +231,7 @@ export function ResultFields({
           {...r("partial_reps")}
           className={`${INPUT_CLS} w-20`}
         />
-        <span className="font-mono text-xs text-[#8b949e]">reps</span>
+        <span className="font-mono text-xs text-[var(--muted)]">reps</span>
       </div>
     );
   }
@@ -247,7 +247,7 @@ export function ResultFields({
           {...r("watts")}
           className={`${INPUT_CLS} pr-6`}
         />
-        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-[#8b949e]">
+        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-[var(--muted)]">
           W
         </span>
       </div>
@@ -265,7 +265,7 @@ export function ResultFields({
           {...r("height_cm")}
           className={`${INPUT_CLS} pr-8`}
         />
-        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-[#8b949e]">
+        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-[var(--muted)]">
           cm
         </span>
       </div>

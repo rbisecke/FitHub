@@ -119,14 +119,17 @@ export function WorkoutCard({
     const controller = new AbortController();
     setDetailLoading(true);
     api.workouts
-      .get(accessToken, workout.id)
+      .get(accessToken, workout.id, { signal: controller.signal })
       .then((w) => {
         if (!controller.signal.aborted) {
           fetchedRef.current = true;
           setDetail(w);
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        console.warn("Workout detail load failed", err);
+      })
       .finally(() => {
         if (!controller.signal.aborted) setDetailLoading(false);
       });
@@ -247,7 +250,7 @@ export function WorkoutCard({
                 <span className="sr-only">Workout ID: </span>
                 {workout.short_hash}
               </span>
-              <span className="font-medium text-[#e6edf3]">
+              <span className="font-medium text-[var(--text)]">
                 {workout.title ?? "Untitled workout"}
               </span>
             </div>
@@ -316,7 +319,7 @@ export function WorkoutCard({
           </div>
 
           {/* Row 2: date — omit the dot+absolute when relativeDate returns same string */}
-          <div className="mt-1 font-mono text-xs text-[#8b949e]">
+          <div className="mt-1 font-mono text-xs text-[var(--muted)]">
             {relativeDateLabel !== absoluteDateLabel ? (
               <>
                 <span>{relativeDateLabel}</span>
@@ -332,7 +335,7 @@ export function WorkoutCard({
 
           {/* Row 3: movement summary (count fallback until API adds movement_names[]) */}
           {workout.result_count > 0 && (
-            <p className="mt-0.5 text-xs text-[#8b949e]">
+            <p className="mt-0.5 text-xs text-[var(--muted)]">
               {workout.result_count === 1
                 ? "1 result"
                 : `${workout.result_count} results`}
@@ -352,7 +355,7 @@ export function WorkoutCard({
               transition={expandTransition}
               style={{ overflow: "hidden" }}
             >
-              <div className="border-t border-[#30363d] px-4 py-4 space-y-4">
+              <div className="border-t border-[var(--border)] px-4 py-4 space-y-4">
                 {detailLoading ? (
                   <ExpandedSkeleton />
                 ) : detail ? (
@@ -377,12 +380,12 @@ export function WorkoutCard({
 function ExpandedSkeleton() {
   return (
     <div className="space-y-3">
-      <Skeleton className="h-4 w-3/4 bg-[#21262d]" />
-      <Skeleton className="h-4 w-1/2 bg-[#21262d]" />
-      <Skeleton className="h-4 w-2/3 bg-[#21262d]" />
+      <Skeleton className="h-4 w-3/4 bg-[var(--surface-2)]" />
+      <Skeleton className="h-4 w-1/2 bg-[var(--surface-2)]" />
+      <Skeleton className="h-4 w-2/3 bg-[var(--surface-2)]" />
       <div className="pt-1 grid grid-cols-2 gap-4">
-        <Skeleton className="h-16 bg-[#21262d]" />
-        <Skeleton className="h-16 bg-[#21262d]" />
+        <Skeleton className="h-16 bg-[var(--surface-2)]" />
+        <Skeleton className="h-16 bg-[var(--surface-2)]" />
       </div>
     </div>
   );
@@ -423,34 +426,34 @@ function ExpandedContent({
 
   return (
     <div className="space-y-4">
-      <p className="text-xs font-mono text-[#8b949e]">{fullDateLabel}</p>
+      <p className="text-xs font-mono text-[var(--muted)]">{fullDateLabel}</p>
 
       {/* Two-column layout on desktop */}
       <div className="md:grid md:grid-cols-2 md:gap-6 space-y-4 md:space-y-0">
         {/* Results */}
         <div>
-          <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-wider mb-2">
+          <h3 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider mb-2">
             Results
           </h3>
           {results.length === 0 ? (
-            <p className="text-xs font-mono text-[#8b949e] italic">
+            <p className="text-xs font-mono text-[var(--muted)] italic">
               No results logged.
             </p>
           ) : (
             <div className="space-y-3">
               {results.map((r, i) => (
                 <div key={r.id} className="flex items-start gap-2 text-xs">
-                  <span className="font-mono text-[#8b949e] w-4 shrink-0 mt-0.5">
+                  <span className="font-mono text-[var(--muted)] w-4 shrink-0 mt-0.5">
                     {i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       {r.movement_name && (
-                        <span className="text-[#e6edf3]">
+                        <span className="text-[var(--text)]">
                           {r.movement_name}
                         </span>
                       )}
-                      <span className="font-mono text-[#8b949e]">
+                      <span className="font-mono text-[var(--muted)]">
                         {r.load_kg && formatWeight(Number(r.load_kg), unit)}
                         {r.reps && ` × ${r.reps}`}
                         {r.time_s && formatTime(r.time_s)}
@@ -458,7 +461,7 @@ function ExpandedContent({
                           fmtDistance(Number(r.distance_m), distanceUnit)}
                       </span>
                       {r.estimated_1rm_kg && (
-                        <span className="font-mono text-[#8b949e]">
+                        <span className="font-mono text-[var(--muted)]">
                           e1RM {formatWeight(Number(r.estimated_1rm_kg), unit)}
                         </span>
                       )}
@@ -477,7 +480,7 @@ function ExpandedContent({
                       r.variant_annotation) && (
                       <div className="flex flex-wrap gap-1 mt-0.5">
                         {r.implement && (
-                          <span className="font-mono text-[10px] px-1 py-0.5 rounded border border-[#30363d] bg-[#161b22] text-[#8b949e]">
+                          <span className="font-mono text-[10px] px-1 py-0.5 rounded border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]">
                             {r.implement}
                           </span>
                         )}
@@ -495,7 +498,7 @@ function ExpandedContent({
                           r.variant_annotation.split(",").map((chip) => (
                             <span
                               key={chip}
-                              className="font-mono text-[10px] px-1 py-0.5 rounded border border-[#30363d] bg-[#161b22] text-[#8b949e]"
+                              className="font-mono text-[10px] px-1 py-0.5 rounded border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]"
                             >
                               {chip}
                             </span>
@@ -503,7 +506,7 @@ function ExpandedContent({
                       </div>
                     )}
                     {r.notes && (
-                      <p className="text-xs italic text-[#8b949e] mt-0.5">
+                      <p className="text-xs italic text-[var(--muted)] mt-0.5">
                         {r.notes}
                       </p>
                     )}
@@ -529,13 +532,13 @@ function ExpandedContent({
 
         {/* Session meta */}
         <div>
-          <h3 className="text-xs font-medium text-[#8b949e] uppercase tracking-wider mb-2">
+          <h3 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider mb-2">
             Session
           </h3>
           <div className="space-y-1.5 text-xs">
             {workout.session_type && (
               <div className="flex items-center gap-2">
-                <span className="text-[#8b949e] w-20 shrink-0">Type</span>
+                <span className="text-[var(--muted)] w-20 shrink-0">Type</span>
                 <span
                   className={`border rounded px-1.5 py-0.5 ${
                     SESSION_COLOURS[workout.session_type] ??
@@ -548,35 +551,39 @@ function ExpandedContent({
             )}
             {workout.workout_format && !isPartner && (
               <div className="flex items-center gap-2">
-                <span className="text-[#8b949e] w-20 shrink-0">Format</span>
-                <span className="text-[#e6edf3]">
+                <span className="text-[var(--muted)] w-20 shrink-0">
+                  Format
+                </span>
+                <span className="text-[var(--text)]">
                   {formatLabel(workout.workout_format)}
                 </span>
               </div>
             )}
             {workout.duration_s != null && (
               <div className="flex items-center gap-2">
-                <span className="text-[#8b949e] w-20 shrink-0">Duration</span>
-                <span className="font-mono text-[#e6edf3]">
+                <span className="text-[var(--muted)] w-20 shrink-0">
+                  Duration
+                </span>
+                <span className="font-mono text-[var(--text)]">
                   {Math.round(workout.duration_s / 60)} min
                 </span>
               </div>
             )}
             {workout.session_rpe != null && (
               <div className="flex items-center gap-2">
-                <span className="text-[#8b949e] w-20 shrink-0">
+                <span className="text-[var(--muted)] w-20 shrink-0">
                   Effort (RPE)
                 </span>
-                <span className="font-mono text-[#e6edf3]">
+                <span className="font-mono text-[var(--text)]">
                   {Number(workout.session_rpe)} / 10
                 </span>
               </div>
             )}
             {loadAu && (
               <div className="flex items-center gap-2">
-                <span className="text-[#8b949e] w-20 shrink-0">Load</span>
+                <span className="text-[var(--muted)] w-20 shrink-0">Load</span>
                 <span
-                  className="font-mono text-[#e6edf3]"
+                  className="font-mono text-[var(--text)]"
                   title="Training load (sRPE × duration minutes)"
                 >
                   {loadAu} AU
@@ -589,7 +596,7 @@ function ExpandedContent({
 
       {/* Notes */}
       {workout.notes && (
-        <p className="text-xs text-[#8b949e] italic border-l-2 border-[#30363d] pl-3">
+        <p className="text-xs text-[var(--muted)] italic border-l-2 border-[var(--border)] pl-3">
           {workout.notes}
         </p>
       )}

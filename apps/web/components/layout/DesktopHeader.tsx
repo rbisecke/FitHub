@@ -50,7 +50,7 @@ export function DesktopHeader({ handle, streak = 0, branch = "main" }: Props) {
 
         {/* User avatar */}
         <div className="w-8 h-8 rounded-full bg-[var(--blue)] flex items-center justify-center flex-shrink-0 select-none">
-          <span className="font-heading text-[13px] text-[#0A0D12] font-bold">
+          <span className="font-heading text-[13px] text-[var(--bg)] font-bold">
             {initial}
           </span>
         </div>

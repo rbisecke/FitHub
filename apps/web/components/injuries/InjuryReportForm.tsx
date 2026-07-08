@@ -153,7 +153,7 @@ export function InjuryReportForm({ accessToken }: Props) {
                     onClick={() => setBodyRegion(region as BodyRegion)}
                     className={`rounded px-3 py-1.5 font-mono text-xs transition-colors ${
                       bodyRegion === region
-                        ? "bg-[var(--accent)] text-[#0d1117]"
+                        ? "bg-[var(--accent)] text-[var(--bg)]"
                         : "border border-[var(--border)] text-[var(--muted)] hover:border-[var(--muted)]"
                     }`}
                   >
@@ -226,7 +226,7 @@ export function InjuryReportForm({ accessToken }: Props) {
       <button
         type="submit"
         disabled={!bodyRegion || loading}
-        className="rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[#0d1117] hover:brightness-110 disabled:opacity-40"
+        className="rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[var(--bg)] hover:brightness-110 disabled:opacity-40"
       >
         {loading ? "submitting…" : "submit report"}
       </button>

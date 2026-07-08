@@ -5,14 +5,23 @@ import { formatWeight, formatWeightDelta } from "@/lib/display";
 
 // Category accent colors
 const CAT_COLOR: Record<PRCategory, string> = {
-  strength: "#58a6ff",
-  gymnastics: "#bc8cff",
-  metcon: "#FF7A45",
-  endurance: "#4ADE80",
+  strength: "var(--accent)",
+  gymnastics: "var(--purple)",
+  metcon: "var(--amber)",
+  endurance: "var(--green)",
 };
 
+function parseLocalDate(iso: string): Date {
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number) as [
+    number,
+    number,
+    number,
+  ];
+  return new Date(y, m - 1, d);
+}
+
 function relativeDate(isoDate: string): string {
-  const d = new Date(isoDate);
+  const d = parseLocalDate(isoDate);
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffDays = Math.floor(diffMs / 86400000);
@@ -25,7 +34,7 @@ function relativeDate(isoDate: string): string {
 }
 
 function weeksAgoLabel(isoDate: string): string {
-  const d = new Date(isoDate);
+  const d = parseLocalDate(isoDate);
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
   const weeks = Math.floor(diffDays / 7);
@@ -253,7 +262,7 @@ export function PRCard({
         {/* TODAY ribbon */}
         {isToday && (
           <div
-            className="absolute top-[13px] right-[-32px] rotate-45 text-[#0A0D12] text-[9px] font-extrabold tracking-[1.5px] py-[3px] px-9"
+            className="absolute top-[13px] right-[-32px] rotate-45 text-[var(--bg)] text-[9px] font-extrabold tracking-[1.5px] py-[3px] px-9"
             style={{ background: "var(--accent)" }}
             aria-label="Set today"
           >
