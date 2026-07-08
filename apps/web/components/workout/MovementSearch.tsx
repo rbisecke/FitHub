@@ -22,13 +22,13 @@ import { useIsMobile } from "@/lib/hooks/useIsMobile";
 // ── Modality display config ────────────────────────────────────────────────────
 
 const MODALITY_COLOUR: Record<string, string> = {
-  strength: "text-[#58a6ff]",
-  gymnastics: "text-[#bc8cff]",
-  mono_structural: "text-[#3fb950]",
-  weightlifting: "text-[#d29922]",
-  plyometric: "text-[#ff7b72]",
-  carry: "text-[#d29922]",
-  strongman: "text-[#ff7b72]",
+  strength: "text-[var(--accent)]",
+  gymnastics: "text-[var(--purple)]",
+  mono_structural: "text-[var(--green)]",
+  weightlifting: "text-[var(--amber)]",
+  plyometric: "text-[var(--red)]",
+  carry: "text-[var(--amber)]",
+  strongman: "text-[var(--red)]",
 };
 
 const MODALITY_ORDER = [
@@ -121,10 +121,10 @@ export function MovementSearch({
   const showLimitHint = displayResults.length >= 20 && query.length > 0;
 
   const triggerClass =
-    "inline-flex w-full min-h-[44px] items-center justify-start rounded-lg border border-[#30363d] bg-[#161b22] px-3 text-left text-sm text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3] transition-colors";
+    "inline-flex w-full min-h-[44px] items-center justify-start rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-left text-sm text-[var(--muted)] hover:border-[var(--accent)]/40 hover:text-[var(--text)] transition-colors";
 
   const pickerContent = (
-    <Command shouldFilter={false} className="bg-[#161b22]">
+    <Command shouldFilter={false} className="bg-[var(--surface)]">
       <CommandInput
         placeholder={
           modalityFilter
@@ -133,7 +133,7 @@ export function MovementSearch({
         }
         value={query}
         onValueChange={setQuery}
-        className="text-[#e6edf3] placeholder:text-[#8b949e]"
+        className="text-[var(--text)] placeholder:text-[var(--muted)]"
       />
       <ModalityFilterPills
         active={modalityFilter}
@@ -141,7 +141,7 @@ export function MovementSearch({
       />
       <CommandList>
         {groupedResults.length === 0 && !query && !modalityFilter && (
-          <p className="py-6 text-center text-xs text-[#8b949e]">
+          <p className="py-6 text-center text-xs text-[var(--muted)]">
             Type to search, or pick a modality above.
           </p>
         )}
@@ -158,12 +158,12 @@ export function MovementSearch({
                 key={m.id}
                 value={m.name}
                 onSelect={() => handleSelect(m)}
-                className="flex items-center justify-between px-3 py-2 text-[#e6edf3] data-[selected=true]:bg-[#21262d]"
+                className="flex items-center justify-between px-3 py-2 text-[var(--text)] data-[selected=true]:bg-[var(--surface)]"
               >
                 <span className="truncate">{m.name}</span>
                 <span
                   className={`ml-2 shrink-0 font-mono text-xs ${
-                    MODALITY_COLOUR[m.modality] ?? "text-[#8b949e]"
+                    MODALITY_COLOUR[m.modality] ?? "text-[var(--muted)]"
                   }`}
                 >
                   {m.modality.replace(/_/g, "-")}
@@ -173,12 +173,12 @@ export function MovementSearch({
           </CommandGroup>
         ))}
         {groupedResults.length === 0 && query.length > 0 && (
-          <CommandEmpty className="py-4 text-center text-sm text-[#8b949e]">
+          <CommandEmpty className="py-4 text-center text-sm text-[var(--muted)]">
             No movements found.
           </CommandEmpty>
         )}
         {showLimitHint && (
-          <p className="border-t border-[#30363d] py-2 text-center text-xs text-[#8b949e]">
+          <p className="border-t border-[var(--border)] py-2 text-center text-xs text-[var(--muted)]">
             Showing first 20 · type to narrow
           </p>
         )}
@@ -195,11 +195,11 @@ export function MovementSearch({
         <SheetContent
           side="bottom"
           showCloseButton={false}
-          className="h-[82vh] bg-[#161b22] border-t border-[#30363d] p-0"
+          className="h-[82vh] bg-[var(--surface)] border-t border-[var(--border)] p-0"
         >
           {/* Drag handle */}
           <div className="flex justify-center pt-3 pb-1">
-            <div className="h-1 w-10 rounded-full bg-[#30363d]" />
+            <div className="h-1 w-10 rounded-full bg-[var(--border)]" />
           </div>
           {pickerContent}
         </SheetContent>
@@ -212,7 +212,7 @@ export function MovementSearch({
       <PopoverTrigger className={triggerClass} aria-label="Search movements">
         {displayName}
       </PopoverTrigger>
-      <PopoverContent className="w-[min(90vw,420px)] p-0 bg-[#161b22] border-[#30363d]">
+      <PopoverContent className="w-[min(90vw,420px)] p-0 bg-[var(--surface)] border-[var(--border)]">
         {pickerContent}
       </PopoverContent>
     </Popover>
@@ -235,13 +235,13 @@ const PILLS: Array<{ value: string | null; label: string; ariaLabel: string }> =
   ];
 
 const MODALITY_ACCENT: Record<string, string> = {
-  strength: "#58a6ff",
-  weightlifting: "#d29922",
-  gymnastics: "#bc8cff",
-  mono_structural: "#3fb950",
-  plyometric: "#ff7b72",
-  carry: "#d29922",
-  strongman: "#ff7b72",
+  strength: "var(--accent)",
+  weightlifting: "var(--amber)",
+  gymnastics: "var(--purple)",
+  mono_structural: "var(--green)",
+  plyometric: "var(--red)",
+  carry: "var(--amber)",
+  strongman: "var(--red)",
 };
 
 function ModalityFilterPills({
@@ -252,7 +252,7 @@ function ModalityFilterPills({
   onChange: (modality: string | null) => void;
 }) {
   return (
-    <div className="flex gap-1 overflow-x-auto border-b border-[#30363d] px-2 py-1.5 scrollbar-none">
+    <div className="flex gap-1 overflow-x-auto border-b border-[var(--border)] px-2 py-1.5 scrollbar-none">
       {PILLS.map(({ value, label, ariaLabel }) => {
         const isActive = active === value;
         const accent = value ? MODALITY_ACCENT[value] : null;
@@ -275,9 +275,9 @@ function ModalityFilterPills({
             className={[
               "shrink-0 rounded-full border px-2.5 py-0.5 font-mono text-xs transition-colors",
               isActive && !accent
-                ? "border-[#58a6ff] bg-[#58a6ff]/10 text-[#58a6ff]"
+                ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
                 : !isActive
-                  ? "border-[#30363d] text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3]"
+                  ? "border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]/40 hover:text-[var(--text)]"
                   : "",
             ].join(" ")}
           >

@@ -82,9 +82,15 @@ export function streakCalc(
   // workouts must be sorted descending by performed_at
   const daysByWeek = new Map<string, Set<string>>();
   for (const w of workouts) {
-    const date = new Date(w.performed_at);
+    const dateStr = w.performed_at.slice(0, 10);
+    const [yr, mo, dy] = dateStr.split("-").map(Number) as [
+      number,
+      number,
+      number,
+    ];
+    const date = new Date(yr, mo - 1, dy);
     const weekKey = getISOWeekKey(date);
-    const dayKey = date.toLocaleDateString("en-CA"); // YYYY-MM-DD
+    const dayKey = dateStr;
     if (!daysByWeek.has(weekKey)) daysByWeek.set(weekKey, new Set());
     daysByWeek.get(weekKey)!.add(dayKey);
   }

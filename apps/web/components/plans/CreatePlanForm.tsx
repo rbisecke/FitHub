@@ -51,7 +51,10 @@ export function CreatePlanForm({ accessToken }: Props) {
     try {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() + 1);
-      const startDateStr = startDate.toISOString().split("T")[0] ?? "";
+      const y = startDate.getFullYear();
+      const m = String(startDate.getMonth() + 1).padStart(2, "0");
+      const d = String(startDate.getDate()).padStart(2, "0");
+      const startDateStr = `${y}-${m}-${d}`;
 
       const task = await api.plans.create(accessToken, {
         goal: safeGoal,

@@ -65,8 +65,10 @@ export function PartnerList({ initial, token }: Props) {
     <div className="space-y-1">
       {partners.length === 0 && !adding && (
         <div className="py-3">
-          <p className="text-sm text-[#8b949e]">No training partners yet.</p>
-          <p className="text-xs text-[#8b949e] mt-0.5">
+          <p className="text-sm text-[var(--muted)]">
+            No training partners yet.
+          </p>
+          <p className="text-xs text-[var(--muted)] mt-0.5">
             Add a partner to see their activity alongside yours.
           </p>
         </div>
@@ -77,9 +79,9 @@ export function PartnerList({ initial, token }: Props) {
           key={p.user_id ?? `guest-${idx}`}
           className="flex items-center justify-between py-2.5"
         >
-          <span className="text-sm text-[#e6edf3]">{p.display_name}</span>
+          <span className="text-sm text-[var(--text)]">{p.display_name}</span>
           {p.session_count > 0 && (
-            <span className="font-mono text-xs text-[#8b949e]">
+            <span className="font-mono text-xs text-[var(--muted)]">
               {p.session_count} {p.session_count === 1 ? "session" : "sessions"}
             </span>
           )}
@@ -100,13 +102,13 @@ export function PartnerList({ initial, token }: Props) {
               placeholder="partner@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 min-w-0 bg-[#161b22] border-[#30363d] text-[#e6edf3] placeholder:text-[#8b949e] font-mono text-sm min-h-[44px]"
+              className="flex-1 min-w-0 bg-[var(--surface)] border-[var(--border)] text-[var(--text)] placeholder:text-[var(--muted)] font-mono text-sm min-h-[44px]"
               aria-label="Partner email address"
             />
             <Button
               type="submit"
               disabled={submitting || !email.trim()}
-              className="min-h-[44px] bg-[#58a6ff] text-[#0d1117] hover:bg-[#58a6ff]/80 font-sans"
+              className="min-h-[44px] bg-[var(--accent)] text-[var(--bg)] hover:brightness-110 font-sans"
             >
               {submitting ? "Adding…" : "Add"}
             </Button>
@@ -114,12 +116,12 @@ export function PartnerList({ initial, token }: Props) {
               type="button"
               variant="outline"
               onClick={closeForm}
-              className="min-h-[44px] border-[#30363d] text-[#8b949e] hover:text-[#e6edf3] font-sans"
+              className="min-h-[44px] border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] font-sans"
             >
               Cancel
             </Button>
           </div>
-          {error && <p className="text-xs text-[#d29922]">{error}</p>}
+          {error && <p className="text-xs text-[var(--amber)]">{error}</p>}
         </form>
       ) : (
         <Button
@@ -127,7 +129,7 @@ export function PartnerList({ initial, token }: Props) {
           variant="outline"
           size="sm"
           onClick={openForm}
-          className="mt-1 border-[#30363d] text-[#58a6ff] hover:bg-[#161b22] hover:text-[#58a6ff] font-mono min-h-[44px]"
+          className="mt-1 border-[var(--border)] text-[var(--accent)] hover:bg-[var(--surface)] hover:text-[var(--accent)] font-mono min-h-[44px]"
         >
           + Add partner
         </Button>

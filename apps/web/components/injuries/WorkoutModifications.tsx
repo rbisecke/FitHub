@@ -27,9 +27,9 @@ export function WorkoutModifications({
       {anyReferralRequired && (
         <div
           data-testid="modifications-referral-alert"
-          className="rounded border border-red-800 bg-red-950/40 px-3 py-2"
+          className="rounded border border-[var(--red)]/30 bg-[var(--red)]/10 px-3 py-2"
         >
-          <p className="font-mono text-xs text-red-400">
+          <p className="font-mono text-xs text-[var(--red)]">
             ⚠ MEDICAL ALERT — {referralRegions.join(", ")} requires physio
             clearance before training
           </p>
@@ -49,7 +49,7 @@ export function WorkoutModifications({
                 className="rounded border border-[var(--border)] bg-[var(--bg)] p-3"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <span className="font-mono text-xs font-semibold text-red-400 line-through">
+                  <span className="font-mono text-xs font-semibold text-[var(--red)] line-through">
                     {mod.original_movement.replace(/_/g, " ")}
                   </span>
                   <span className="font-mono text-[10px] text-[var(--muted)]">

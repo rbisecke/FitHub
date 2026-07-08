@@ -71,17 +71,22 @@ export function MovementGrid({
 
   useEffect(() => {
     if (recent.length === 0) return;
+    let cancelled = false;
     api.movements
       .personalRecordsBatch(
         accessToken,
         recent.map((m) => m.movement_id),
       )
       .then((results) => {
-        setPrMap(new Map(results.map((r) => [r.movement_id, r])));
+        if (!cancelled)
+          setPrMap(new Map(results.map((r) => [r.movement_id, r])));
       })
       .catch(() => {
         // PR display is non-critical; silently skip on error
       });
+    return () => {
+      cancelled = true;
+    };
   }, [accessToken, recent]);
 
   const filtered = recent.filter((m) => {

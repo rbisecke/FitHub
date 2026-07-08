@@ -112,9 +112,9 @@ export function PinnedMovementEdit({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="bg-[#161b22] border-[#30363d] text-[#e6edf3] max-w-sm">
+      <DialogContent className="bg-[var(--surface)] border-[var(--border)] text-[var(--text)] max-w-sm">
         <DialogHeader>
-          <DialogTitle className="font-mono text-sm text-[#8b949e]">
+          <DialogTitle className="font-mono text-sm text-[var(--muted)]">
             $ git stash -- pinned
           </DialogTitle>
         </DialogHeader>
@@ -123,7 +123,7 @@ export function PinnedMovementEdit({
           {/* Search */}
           <div>
             {atMax ? (
-              <p className="text-xs text-[#8b949e] py-2">
+              <p className="text-xs text-[var(--muted)] py-2">
                 Max {MAX_PINS} movements pinned.
               </p>
             ) : (
@@ -136,18 +136,18 @@ export function PinnedMovementEdit({
 
           {/* List */}
           <div className="space-y-1">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-[#8b949e]">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">
               Pinned ({localPinned.length}/{MAX_PINS})
             </p>
             {localPinned.length === 0 && (
-              <p className="text-sm text-[#8b949e] py-2">
+              <p className="text-sm text-[var(--muted)] py-2">
                 No movements pinned.
               </p>
             )}
             {localPinned.map((p, i) => (
               <div
                 key={p.movement_id}
-                className="flex items-center gap-2 rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2"
+                className="flex items-center gap-2 rounded-md border border-[#30363d] bg-[var(--bg)] px-3 py-2"
               >
                 {/* Up/Down controls */}
                 <div className="flex flex-col gap-0.5">
@@ -156,7 +156,7 @@ export function PinnedMovementEdit({
                     onClick={() => handleMoveUp(i)}
                     disabled={i === 0}
                     aria-label={`Move ${p.movement_name} up`}
-                    className="min-h-[22px] min-w-[22px] text-[#8b949e] hover:text-[#e6edf3] disabled:opacity-30 disabled:cursor-not-allowed text-xs leading-none"
+                    className="min-h-[22px] min-w-[22px] text-[var(--muted)] hover:text-[var(--text)] disabled:opacity-30 disabled:cursor-not-allowed text-xs leading-none"
                   >
                     ▲
                   </button>
@@ -165,14 +165,14 @@ export function PinnedMovementEdit({
                     onClick={() => handleMoveDown(i)}
                     disabled={i === localPinned.length - 1}
                     aria-label={`Move ${p.movement_name} down`}
-                    className="min-h-[22px] min-w-[22px] text-[#8b949e] hover:text-[#e6edf3] disabled:opacity-30 disabled:cursor-not-allowed text-xs leading-none"
+                    className="min-h-[22px] min-w-[22px] text-[var(--muted)] hover:text-[var(--text)] disabled:opacity-30 disabled:cursor-not-allowed text-xs leading-none"
                   >
                     ▼
                   </button>
                 </div>
 
                 {/* Name */}
-                <span className="flex-1 text-sm text-[#e6edf3] truncate">
+                <span className="flex-1 text-sm text-[var(--text)] truncate">
                   {p.movement_name}
                 </span>
 
@@ -181,7 +181,7 @@ export function PinnedMovementEdit({
                   type="button"
                   onClick={() => handleRemove(p.movement_id)}
                   aria-label={`Remove ${p.movement_name}`}
-                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-[#8b949e] hover:text-[#ff7b72] transition-colors"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-[var(--muted)] hover:text-[var(--red)] transition-colors"
                 >
                   ×
                 </button>
@@ -191,19 +191,19 @@ export function PinnedMovementEdit({
 
           {/* Actions */}
           {saveError && (
-            <p className="text-sm text-red-400 mt-1">{saveError}</p>
+            <p className="text-sm text-[var(--red)] mt-1">{saveError}</p>
           )}
           <div className="flex gap-2 pt-1">
             <Button
               variant="outline"
-              className="flex-1 border-[#30363d] bg-transparent text-[#8b949e] hover:bg-[#21262d] hover:text-[#e6edf3]"
+              className="flex-1 border-[var(--border)] bg-transparent text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
               onClick={() => onOpenChange(false)}
               disabled={saving}
             >
               Cancel
             </Button>
             <Button
-              className="flex-1 bg-[#238636] hover:bg-[#2ea043] text-white border-0"
+              className="flex-1 bg-[var(--green)] hover:brightness-110 text-white border-0"
               onClick={handleSave}
               disabled={saving}
             >

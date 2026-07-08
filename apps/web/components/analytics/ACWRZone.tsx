@@ -8,19 +8,23 @@ interface Props {
 const ZONE_CONFIG: Record<string, { label: string; className: string }> = {
   sweet_spot: {
     label: "Optimal load",
-    className: "bg-emerald-900/40 text-emerald-300 border border-emerald-700",
+    className:
+      "bg-[var(--green)]/10 text-[var(--green)] border border-[var(--green)]/30",
   },
   undertraining: {
     label: "Room to increase",
-    className: "bg-amber-900/40 text-amber-300 border border-amber-700",
+    className:
+      "bg-[var(--amber)]/10 text-[var(--amber)] border border-[var(--amber)]/30",
   },
   caution: {
     label: "High load — watch recovery",
-    className: "bg-orange-900/40 text-orange-300 border border-orange-700",
+    className:
+      "bg-[var(--amber)]/10 text-[var(--amber)] border border-[var(--amber)]/30",
   },
   overreaching: {
     label: "Reduce intensity",
-    className: "bg-red-900/40 text-red-300 border border-red-700",
+    className:
+      "bg-[var(--red)]/10 text-[var(--red)] border border-[var(--red)]/30",
   },
   insufficient_data: {
     label: "Not enough data yet",

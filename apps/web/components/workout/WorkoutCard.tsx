@@ -116,13 +116,15 @@ export function WorkoutCard({
 
   useEffect(() => {
     if (!isExpanded || fetchedRef.current) return;
-    fetchedRef.current = true;
     const controller = new AbortController();
     setDetailLoading(true);
     api.workouts
       .get(accessToken, workout.id)
       .then((w) => {
-        if (!controller.signal.aborted) setDetail(w);
+        if (!controller.signal.aborted) {
+          fetchedRef.current = true;
+          setDetail(w);
+        }
       })
       .catch(() => {})
       .finally(() => {
@@ -133,13 +135,20 @@ export function WorkoutCard({
 
   // Lazy fetch team session when card is first expanded
   useEffect(() => {
-    if (isExpanded && !teamSessionChecked.current) {
-      teamSessionChecked.current = true;
-      api.teamSessions
-        .getWorkoutTeamSession(accessToken, workout.id)
-        .then((ts) => setTeamSession(ts))
-        .catch(() => setTeamSession(false));
-    }
+    if (!isExpanded || teamSessionChecked.current) return;
+    teamSessionChecked.current = true;
+    let cancelled = false;
+    api.teamSessions
+      .getWorkoutTeamSession(accessToken, workout.id)
+      .then((ts) => {
+        if (!cancelled) setTeamSession(ts);
+      })
+      .catch(() => {
+        if (!cancelled) setTeamSession(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [isExpanded, accessToken, workout.id]);
 
   const expandTransition = prefersReduced
@@ -598,7 +607,10 @@ function ExpandedContent({
                 const name = p.display_name ?? p.guest_name ?? "?";
                 const initial = name.charAt(0).toUpperCase();
                 return (
-                  <div key={p.id ?? i} className="flex items-center gap-1.5">
+                  <div
+                    key={p.id ?? p.guest_name ?? String(i)}
+                    className="flex items-center gap-1.5"
+                  >
                     <div
                       className="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold flex-shrink-0"
                       style={{
@@ -658,7 +670,7 @@ function ExpandedContent({
       )}
 
       {/* Footer: git show + action buttons */}
-      <div className="flex items-center justify-between pt-2 border-t border-[#30363d]">
+      <div className="flex items-center justify-between pt-2 border-t border-[var(--border)]">
         <span className="font-data text-xs text-[var(--muted-foreground)]">
           git show {summary.short_hash}
         </span>
@@ -668,7 +680,7 @@ function ExpandedContent({
             <button
               type="button"
               onClick={() => setSheetOpen(true)}
-              className="flex items-center gap-1 text-[11px] font-mono border border-[#30363d] text-[#8b949e] hover:border-[rgba(88,166,255,0.4)] hover:text-[#58a6ff] px-[10px] py-1.5 rounded-[7px] transition-colors"
+              className="flex items-center gap-1 text-[11px] font-mono border border-[var(--border)] text-[var(--muted)] hover:border-[rgba(88,166,255,0.4)] hover:text-[var(--accent)] px-[10px] py-1.5 rounded-[7px] transition-colors"
               data-testid="mark-team-session-btn"
             >
               ⊕ team session
@@ -825,11 +837,11 @@ function TagCard({
       </div>
 
       {/* Desktop: original layout */}
-      <div className="hidden md:block rounded-lg border border-[#30363d] px-4 py-3 transition-colors hover:border-[#58a6ff]/20">
+      <div className="hidden md:block rounded-lg border border-[var(--border)] px-4 py-3 transition-colors hover:border-[var(--accent)]/20">
         {detailLoading ? (
-          <div className="flex items-center gap-2 font-mono text-xs text-[#8b949e]">
+          <div className="flex items-center gap-2 font-mono text-xs text-[var(--muted)]">
             <span>🏷</span>
-            <span className="text-[#8b949e]">Loading…</span>
+            <span className="text-[var(--muted)]">Loading…</span>
           </div>
         ) : (
           <>
@@ -837,14 +849,14 @@ function TagCard({
               <div className="flex items-center gap-2 font-mono text-sm min-w-0">
                 <span aria-hidden>🏷</span>
                 {movementName && (
-                  <span className="text-[#e6edf3] truncate">
+                  <span className="text-[var(--text)] truncate">
                     {movementName}
                   </span>
                 )}
                 {resultValue && (
                   <>
-                    <span className="text-[#8b949e]">·</span>
-                    <span className="text-[#e6edf3]">{resultValue}</span>
+                    <span className="text-[var(--muted)]">·</span>
+                    <span className="text-[var(--text)]">{resultValue}</span>
                   </>
                 )}
                 {workout.has_pr && (
@@ -856,12 +868,12 @@ function TagCard({
                   </span>
                 )}
               </div>
-              <span className="shrink-0 font-mono text-xs text-[#8b949e]">
+              <span className="shrink-0 font-mono text-xs text-[var(--muted)]">
                 {dateLabel}
               </span>
             </div>
             {detail?.notes && (
-              <p className="mt-1 font-mono text-xs text-[#8b949e] pl-6">
+              <p className="mt-1 font-mono text-xs text-[var(--muted)] pl-6">
                 {detail.notes}
               </p>
             )}

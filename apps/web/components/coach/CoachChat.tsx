@@ -74,6 +74,7 @@ export function CoachChat({ accessToken }: CoachChatProps) {
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [showPill, setShowPill] = useState(false);
+  const [historyError, setHistoryError] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -96,7 +97,11 @@ export function CoachChat({ accessToken }: CoachChatProps) {
           })),
         );
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setHistoryError(true);
+        }
+      })
       .finally(() => {
         if (controller.signal.aborted) return;
         setHistoryLoading(false);
@@ -213,6 +218,13 @@ export function CoachChat({ accessToken }: CoachChatProps) {
         ref={scrollContainerRef}
         className="relative flex-1 min-h-0 overflow-y-auto"
       >
+        {/* History load error */}
+        {historyError && (
+          <p className="font-mono text-xs text-[var(--red)] mb-2">
+            Failed to load conversation history.
+          </p>
+        )}
+
         {/* Empty state with starter prompts */}
         {messages.length === 0 && !historyLoading && (
           <div className="flex flex-col gap-3">
@@ -276,14 +288,14 @@ export function CoachChat({ accessToken }: CoachChatProps) {
               )}
 
               {msg.safetyTier === "stop" && (
-                <span className="mt-1 inline-block rounded bg-amber-900 px-1.5 py-0.5 font-mono text-xs text-amber-300">
+                <span className="mt-1 inline-block rounded bg-[var(--amber)]/20 px-1.5 py-0.5 font-mono text-xs text-[var(--amber)]">
                   ⚠ medical concern
                 </span>
               )}
 
               {msg.stub && showStubBadge && (
                 <span
-                  className="mt-1 inline-block rounded bg-yellow-600 px-1.5 py-0.5 font-mono text-xs text-yellow-50"
+                  className="mt-1 inline-block rounded bg-[var(--amber)]/20 px-1.5 py-0.5 font-mono text-xs text-[var(--amber)]"
                   data-testid="stub-mode-badge"
                 >
                   STUB
@@ -334,7 +346,7 @@ export function CoachChat({ accessToken }: CoachChatProps) {
               setShowPill(false);
             }}
             className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full
-                       bg-[var(--accent)] px-3 py-1 font-mono text-xs text-[#0d1117] shadow-lg"
+                       bg-[var(--accent)] px-3 py-1 font-mono text-xs text-[var(--bg)] shadow-lg"
           >
             ↓ new message
           </button>

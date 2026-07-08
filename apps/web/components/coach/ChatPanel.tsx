@@ -415,7 +415,7 @@ export function ChatPanel({
               messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
               setShowScrollPill(false);
             }}
-            className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--blue)] px-3 py-1 font-mono text-xs text-[#0A0D12] shadow-lg"
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--blue)] px-3 py-1 font-mono text-xs text-[var(--bg)] shadow-lg"
           >
             ↓ new message
           </button>

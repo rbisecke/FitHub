@@ -21,7 +21,7 @@ export function StreakWidget({ streak }: StreakWidgetProps) {
   }, [currentStreak]);
 
   const borderClass = atRisk ? "border-[--amber]" : "border-[--border]";
-  const bgClass = atRisk ? "bg-amber-950/20" : "bg-[--surface]";
+  const bgClass = atRisk ? "bg-[var(--amber)]/5" : "bg-[--surface]";
   const numberColor = atRisk ? "text-[--amber]" : "text-[--text]";
 
   return (

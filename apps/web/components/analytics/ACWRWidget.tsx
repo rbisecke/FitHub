@@ -11,10 +11,10 @@ interface Props {
 }
 
 const ZONE_LABEL: Record<string, { text: string; color: string }> = {
-  sweet_spot: { text: "Optimal", color: "text-emerald-400" },
-  undertraining: { text: "Room to increase", color: "text-amber-400" },
-  caution: { text: "High load", color: "text-orange-400" },
-  overreaching: { text: "Reduce intensity", color: "text-red-400" },
+  sweet_spot: { text: "Optimal", color: "text-[var(--green)]" },
+  undertraining: { text: "Room to increase", color: "text-[var(--amber)]" },
+  caution: { text: "High load", color: "text-[var(--amber)]" },
+  overreaching: { text: "Reduce intensity", color: "text-[var(--red)]" },
   insufficient_data: { text: "Not enough data", color: "text-[var(--muted)]" },
 };
 

@@ -218,8 +218,8 @@ export function HistoryPage({
       {/* Loading state during filter re-fetch */}
       {refetching && (
         <div className="mt-2">
-          {Array.from({ length: 3 }, (_, i) => (
-            <WorkoutCardSkeleton key={i} />
+          {(["sk-1", "sk-2", "sk-3"] as const).map((k) => (
+            <WorkoutCardSkeleton key={k} />
           ))}
         </div>
       )}
@@ -313,8 +313,8 @@ export function HistoryPage({
           {/* Skeleton cards during load-more */}
           {loadingMore && (
             <div className="mt-2">
-              {Array.from({ length: 3 }, (_, i) => (
-                <WorkoutCardSkeleton key={i} />
+              {(["sk-1", "sk-2", "sk-3"] as const).map((k) => (
+                <WorkoutCardSkeleton key={k} />
               ))}
             </div>
           )}

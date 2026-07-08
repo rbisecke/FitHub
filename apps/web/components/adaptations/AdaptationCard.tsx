@@ -14,7 +14,7 @@ const TRIGGER_LABELS: Record<string, string> = {
 };
 
 const FOCUS_RING =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]";
 
 interface Props {
   adaptation: AdaptationOut;
@@ -27,6 +27,7 @@ export function AdaptationCard({ adaptation, accessToken, onRevised }: Props) {
   const [loading, setLoading] = useState<"merge" | "reject" | "adjust" | null>(
     null,
   );
+  const [actionError, setActionError] = useState<string | null>(null);
   const [showRevisionForm, setShowRevisionForm] = useState(false);
   const [feedback, setFeedback] = useState("");
 
@@ -34,9 +35,12 @@ export function AdaptationCard({ adaptation, accessToken, onRevised }: Props) {
 
   async function handleMerge() {
     setLoading("merge");
+    setActionError(null);
     try {
       const updated = await api.adaptations.merge(accessToken, adaptation.id);
       setStatus(updated.status);
+    } catch {
+      setActionError("Failed to merge. Please try again.");
     } finally {
       setLoading(null);
     }
@@ -44,9 +48,12 @@ export function AdaptationCard({ adaptation, accessToken, onRevised }: Props) {
 
   async function handleReject() {
     setLoading("reject");
+    setActionError(null);
     try {
       const updated = await api.adaptations.reject(accessToken, adaptation.id);
       setStatus(updated.status);
+    } catch {
+      setActionError("Failed to close PR. Please try again.");
     } finally {
       setLoading(null);
     }
@@ -55,6 +62,7 @@ export function AdaptationCard({ adaptation, accessToken, onRevised }: Props) {
   async function handleAdjust() {
     if (feedback.trim().length < 5) return;
     setLoading("adjust");
+    setActionError(null);
     try {
       const newAdaptation = await api.adaptations.adjust(
         accessToken,
@@ -65,6 +73,8 @@ export function AdaptationCard({ adaptation, accessToken, onRevised }: Props) {
       setShowRevisionForm(false);
       setFeedback("");
       onRevised?.(newAdaptation);
+    } catch {
+      setActionError("Failed to request revision. Please try again.");
     } finally {
       setLoading(null);
     }
@@ -82,9 +92,9 @@ export function AdaptationCard({ adaptation, accessToken, onRevised }: Props) {
   const charCount = feedback.length;
   const counterColor =
     charCount >= 950
-      ? "text-red-400"
+      ? "text-[var(--red)]"
       : charCount >= 800
-        ? "text-amber-400"
+        ? "text-[var(--amber)]"
         : "text-[var(--muted)]";
 
   return (
@@ -92,7 +102,7 @@ export function AdaptationCard({ adaptation, accessToken, onRevised }: Props) {
       data-testid="adaptation-card"
       className={`rounded-lg border px-4 py-4 transition-colors ${
         isMerged
-          ? "border-green-800 bg-green-950/30"
+          ? "border-[var(--green)]/30 bg-[var(--green)]/10"
           : isRejected
             ? "border-[var(--border)] bg-[var(--surface)] opacity-60"
             : "border-[var(--border)] bg-[var(--surface)]"
@@ -106,7 +116,7 @@ export function AdaptationCard({ adaptation, accessToken, onRevised }: Props) {
           </span>
           {adaptation.stub && (
             <span
-              className="rounded bg-yellow-900 px-1.5 py-0.5 font-mono text-xs text-yellow-300"
+              className="rounded bg-[var(--amber)]/20 px-1.5 py-0.5 font-mono text-xs text-[var(--amber)]"
               title="AI-generated placeholder — not yet committed to your plan"
             >
               DRAFT
@@ -133,7 +143,7 @@ export function AdaptationCard({ adaptation, accessToken, onRevised }: Props) {
           <button
             onClick={handleMerge}
             disabled={loading !== null}
-            className={`rounded bg-green-800 px-5 py-2 font-mono text-xs text-white hover:bg-green-700 disabled:opacity-40 ${FOCUS_RING}`}
+            className={`rounded bg-[var(--green)] px-5 py-2 font-mono text-xs text-white hover:brightness-110 disabled:opacity-40 ${FOCUS_RING}`}
           >
             {loading === "merge" ? "merging…" : "merge"}
           </button>
@@ -147,7 +157,7 @@ export function AdaptationCard({ adaptation, accessToken, onRevised }: Props) {
           <button
             onClick={handleReject}
             disabled={loading !== null}
-            className={`rounded px-3 py-2 font-mono text-xs text-red-500/60 hover:text-red-400 disabled:opacity-40 ${FOCUS_RING}`}
+            className={`rounded px-3 py-2 font-mono text-xs text-[var(--red)]/60 hover:text-[var(--red)] disabled:opacity-40 ${FOCUS_RING}`}
           >
             {loading === "reject" ? "closing…" : "close PR"}
           </button>
@@ -175,7 +185,7 @@ export function AdaptationCard({ adaptation, accessToken, onRevised }: Props) {
             }
             rows={4}
             maxLength={1000}
-            className={`w-full resize-y rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-[var(--surface)]`}
+            className={`w-full resize-y rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none focus:ring-2 focus:ring-[var(--green)] focus:ring-offset-2 focus:ring-offset-[var(--surface)]`}
           />
           <div className="mt-1 flex items-center justify-end">
             <span className={`font-mono text-xs ${counterColor}`}>
@@ -189,7 +199,7 @@ export function AdaptationCard({ adaptation, accessToken, onRevised }: Props) {
               className={`rounded px-4 py-2 font-mono text-xs transition-colors disabled:cursor-not-allowed ${FOCUS_RING} ${
                 loading === "adjust" || feedback.trim().length < 5
                   ? "bg-[var(--surface)] text-[var(--muted)]"
-                  : "bg-green-800 text-white hover:bg-green-700"
+                  : "bg-[var(--green)] text-white hover:brightness-110"
               }`}
             >
               {loading === "adjust" ? "revising…" : "$ commit revision"}
@@ -205,8 +215,17 @@ export function AdaptationCard({ adaptation, accessToken, onRevised }: Props) {
         </div>
       )}
 
+      {/* Action error feedback */}
+      {actionError && (
+        <p className="mt-2 font-mono text-xs text-[var(--red)]">
+          {actionError}
+        </p>
+      )}
+
       {/* Done states */}
-      {isMerged && <p className="font-mono text-xs text-green-400">✓ merged</p>}
+      {isMerged && (
+        <p className="font-mono text-xs text-[var(--green)]">✓ merged</p>
+      )}
       {isRejected && (
         <p className="font-mono text-xs text-[var(--muted)]">
           {adaptation.rejection_reason ? "↺ superseded" : "✗ closed"}
