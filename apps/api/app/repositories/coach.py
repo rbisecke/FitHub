@@ -305,7 +305,7 @@ async def fetch_today_session(
             JOIN plans p ON p.id = ps.plan_id
             LEFT JOIN planned_items pi ON pi.session_id = ps.id
             WHERE p.user_id = %s AND ps.scheduled_date = %s
-            GROUP BY ps.id, ps.session_type, ps.title
+            GROUP BY ps.id, ps.session_type, ps.title, p.status
             ORDER BY (p.status = 'active') DESC, ps.scheduled_date
             LIMIT 1
             """,
