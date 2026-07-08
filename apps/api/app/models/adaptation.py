@@ -12,7 +12,7 @@ class AdaptationOut(BaseModel):
     id: str
     plan_id: str
     user_id: str
-    trigger_type: str
+    trigger_type: Literal["high_acwr", "low_readiness", "missed_session", "rpe_creep"]
     trigger_data: dict[str, object]
     status: Literal["proposed", "merged", "rejected"]
     rationale: str | None = None
@@ -24,9 +24,14 @@ class AdaptationOut(BaseModel):
     rejected_at: datetime | None = None
 
 
+class TriggerOut(BaseModel):
+    type: str
+    data: dict[str, object]
+
+
 class DetectTriggersResponse(BaseModel):
     plan_id: str
-    triggers: list[dict[str, object]]
+    triggers: list[TriggerOut]
     proposed_adaptations: list[AdaptationOut]
 
 

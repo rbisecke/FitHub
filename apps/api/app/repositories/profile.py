@@ -282,6 +282,7 @@ async def list_pinned_movements(
             JOIN public.movements m ON m.id = pm.movement_id
             WHERE pm.user_id = %s
             ORDER BY pm.display_order
+            LIMIT 20
             """,
             (user_id,),
         )

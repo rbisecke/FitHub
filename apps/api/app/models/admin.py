@@ -136,7 +136,7 @@ class ReindexJob(BaseModel):
 
 
 class SubmitAccessRequestResponse(BaseModel):
-    status: str
+    status: Literal["submitted"]
 
 
 class MagicLinkResponse(BaseModel):

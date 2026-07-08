@@ -93,10 +93,9 @@ class TrainingBalanceResponse(BaseModel):
 
 class ReadinessResponse(BaseModel):
     score: float
-    label: str
+    label: Literal["optimal", "fresh", "high_load", "fatigued", "insufficient_data"]
     acwr: float | None
     tsb: float
-    mood_avg: float | None
     sleep_avg: float | None
     factors_available: int
     # Wearable-derived fields (populated from derived_metrics when available)
