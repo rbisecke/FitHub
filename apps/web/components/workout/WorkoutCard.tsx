@@ -79,10 +79,8 @@ export interface WorkoutCardProps {
   onMovementFilter?: (m: { id: string; name: string }) => void;
 }
 
-// Without B7 (is_tag column), tag entries are detected by absence of session_type + single result.
-// This is a fragile fallback — update when B7 ships.
 function isTagEntry(w: WorkoutSummary): boolean {
-  return !w.session_type && w.result_count === 1;
+  return w.is_tag;
 }
 
 export function WorkoutCard({
@@ -760,7 +758,7 @@ function TagCard({
   const unit = weightUnit === "lb" ? "lb" : "kg";
   const [localDetail, setLocalDetail] = useState<Workout | null>(detail);
   const [loading, setLoading] = useState(detailLoading);
-  const fetchedRef = useRef(false);
+  const fetchedRef = useRef(detail !== null);
 
   useEffect(() => {
     if (!isExpanded) return;

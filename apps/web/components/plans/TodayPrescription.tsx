@@ -54,16 +54,23 @@ export function TodayPrescription({
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
+    let cancelled = false;
     client.plans
       .today(planId)
       .then((data) => {
+        if (cancelled) return;
         if (data && typeof data === "object" && "id" in data) {
           setSession(data as PlannedSessionOut);
         } else {
           setSession(null);
         }
       })
-      .catch(() => setSession(null));
+      .catch(() => {
+        if (!cancelled) setSession(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [client, planId]);
 
   useEffect(() => {
