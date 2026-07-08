@@ -1363,10 +1363,7 @@ export interface components {
     };
     /** AddPartnerRequest */
     AddPartnerRequest: {
-      /**
-       * Email
-       * Format: email
-       */
+      /** Email */
       email: string;
     };
     /** AdjustAdaptationRequest */
