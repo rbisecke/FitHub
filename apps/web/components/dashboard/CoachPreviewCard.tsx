@@ -40,7 +40,7 @@ export function CoachPreviewCard() {
       {/* Full-width solid button */}
       <Link
         href="/coach"
-        className="block w-full bg-[var(--foreground)] text-[#0A0D12] font-bold text-[13px] text-center py-2.5 rounded-[10px] hover:brightness-95 transition-all"
+        className="block w-full bg-[var(--foreground)] text-[var(--bg)] font-bold text-[13px] text-center py-2.5 rounded-[10px] hover:brightness-95 transition-all"
       >
         Open chat →
       </Link>

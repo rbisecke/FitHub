@@ -44,13 +44,15 @@ export function FrequencyTargetControl({ initial, token }: Props) {
   return (
     <div className="flex items-center justify-between py-3">
       <div className="min-w-0">
-        <p className="text-sm text-[#e6edf3]">Frequency target</p>
-        <p className="text-xs text-[#8b949e]">Days per week you aim to train</p>
+        <p className="text-sm text-[var(--text)]">Frequency target</p>
+        <p className="text-xs text-[var(--muted)]">
+          Days per week you aim to train
+        </p>
       </div>
       <div
         role="radiogroup"
         aria-label="Frequency target"
-        className="flex rounded-md border border-[#30363d] overflow-hidden shrink-0"
+        className="flex rounded-md border border-[var(--border)] overflow-hidden shrink-0"
       >
         {OPTIONS.map((opt) => (
           <button
@@ -61,8 +63,8 @@ export function FrequencyTargetControl({ initial, token }: Props) {
             className={[
               "min-w-[44px] min-h-[44px] flex items-center justify-center font-mono text-sm transition-colors",
               value === opt
-                ? "bg-[#161b22] text-[#58a6ff] ring-1 ring-inset ring-[#58a6ff]"
-                : "bg-transparent text-[#8b949e] hover:text-[#e6edf3]",
+                ? "bg-[var(--surface)] text-[var(--accent)] ring-1 ring-inset ring-[var(--accent)]"
+                : "bg-transparent text-[var(--muted)] hover:text-[var(--text)]",
             ].join(" ")}
           >
             {opt}

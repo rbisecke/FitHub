@@ -68,7 +68,7 @@ export function PrevSessionBadge({
             <button
               type="button"
               onClick={() => onFill(lastResult)}
-              className="font-mono text-xs text-[#8b949e] hover:text-[#e6edf3] transition-colors"
+              className="font-mono text-xs text-[var(--muted)] hover:text-[var(--text)] transition-colors"
               title="Tap to auto-fill"
             >
               prev: {value} · {relativeDate(lastResult.performed_at)}

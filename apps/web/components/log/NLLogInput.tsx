@@ -62,7 +62,7 @@ export function NLLogInput({ accessToken }: NLLogInputProps) {
       <button
         onClick={handleParsing}
         disabled={loading || !text.trim()}
-        className="self-start rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[#0d1117] hover:brightness-110 disabled:opacity-40"
+        className="self-start rounded bg-[var(--accent)] px-4 py-2 font-mono text-sm text-[var(--bg)] hover:brightness-110 disabled:opacity-40"
       >
         {loading ? "parsing..." : "pre-fill from text"}
       </button>
@@ -79,7 +79,7 @@ export function NLLogInput({ accessToken }: NLLogInputProps) {
             <div className="flex items-center gap-2">
               {result.stub && showStubBadge && (
                 <span
-                  className="rounded bg-yellow-600 px-1.5 py-0.5 font-mono text-xs text-yellow-50"
+                  className="rounded bg-[var(--amber)]/20 px-1.5 py-0.5 font-mono text-xs text-[var(--amber)]"
                   data-testid="stub-mode-badge"
                 >
                   STUB

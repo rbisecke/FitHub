@@ -43,10 +43,10 @@ export function SessionDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="h-[70vh] bg-[#0d1117] border-t border-[#30363d] p-0"
+        className="h-[70vh] bg-[var(--bg)] border-t border-[var(--border)] p-0"
       >
-        <SheetHeader className="px-4 py-3 border-b border-[#30363d]">
-          <SheetTitle className="font-mono text-sm text-[#e6edf3]">
+        <SheetHeader className="px-4 py-3 border-b border-[var(--border)]">
+          <SheetTitle className="font-mono text-sm text-[var(--text)]">
             $ git coach --sessions
           </SheetTitle>
         </SheetHeader>

@@ -22,7 +22,7 @@ export function TemplatePicker({
 
   return (
     <div className="space-y-2">
-      <p className="text-sm text-[#8b949e]">
+      <p className="text-sm text-[var(--muted)]">
         {vertical ? "Recent sessions" : "Or start from a recent session"}
       </p>
       <div
@@ -45,16 +45,16 @@ export function TemplatePicker({
               onClick={() => onSelect(w)}
               className={`${
                 vertical ? "w-full" : "min-w-[140px] flex-shrink-0 snap-start"
-              } rounded-lg border border-[#30363d] bg-[#161b22] p-3 text-left hover:border-[#58a6ff]/60 hover:bg-[#161b22]/80 transition-colors`}
+              } rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-left hover:border-[var(--accent)]/60 hover:bg-[var(--surface)]/80 transition-colors`}
             >
-              <p className="font-mono text-xs text-[#8b949e]">
+              <p className="font-mono text-xs text-[var(--muted)]">
                 {formatTemplateDate(w.performed_at)}
               </p>
-              <p className="mt-1 text-sm text-[#e6edf3] line-clamp-2 capitalize">
+              <p className="mt-1 text-sm text-[var(--text)] line-clamp-2 capitalize">
                 {label}
               </p>
               {w.result_count > 0 && (
-                <p className="mt-1 font-mono text-xs text-[#8b949e]">
+                <p className="mt-1 font-mono text-xs text-[var(--muted)]">
                   {w.result_count} movement{w.result_count !== 1 ? "s" : ""}
                 </p>
               )}

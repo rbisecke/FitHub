@@ -49,7 +49,7 @@ export function WorkoutModifications({
                 className="rounded border border-[var(--border)] bg-[var(--bg)] p-3"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <span className="font-mono text-xs font-semibold text-red-400 line-through">
+                  <span className="font-mono text-xs font-semibold text-[var(--red)] line-through">
                     {mod.original_movement.replace(/_/g, " ")}
                   </span>
                   <span className="font-mono text-[10px] text-[var(--muted)]">

@@ -35,13 +35,13 @@ export function SessionListItem({
       className={cn(
         "w-full text-left px-3 py-2.5 rounded-md font-mono text-xs transition-colors border-l-2",
         isActive
-          ? "border-[#58a6ff] bg-[#161b22] text-[#e6edf3]"
-          : "border-transparent text-[#8b949e] hover:bg-[#161b22]/50 hover:text-[#e6edf3]",
+          ? "border-[var(--accent)] bg-[var(--surface)] text-[var(--text)]"
+          : "border-transparent text-[var(--muted)] hover:bg-[var(--surface)]/50 hover:text-[var(--text)]",
       )}
       onClick={() => onSelect(id)}
     >
       <span className="block truncate">{title || "untitled session"}</span>
-      <span className="block text-[#8b949e] text-[10px] mt-0.5">
+      <span className="block text-[var(--muted)] text-[10px] mt-0.5">
         {formatRelativeDate(createdAt)}
       </span>
     </button>

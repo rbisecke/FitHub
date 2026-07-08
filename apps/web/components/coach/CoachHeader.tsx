@@ -11,7 +11,7 @@ export function CoachHeader() {
           height="20"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#0d1117"
+          stroke="var(--bg)"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"

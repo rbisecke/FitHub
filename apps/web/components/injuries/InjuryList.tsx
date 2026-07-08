@@ -146,7 +146,7 @@ export function InjuryList({ initialInjuries, accessToken }: Props) {
                           data-testid="permanent-btn"
                           disabled={loading === injury.id}
                           onClick={() => updateStatus(injury, "permanent")}
-                          className="rounded border border-purple-900 px-3 py-1 font-mono text-xs text-[var(--purple)] hover:bg-purple-950/40 disabled:opacity-40"
+                          className="rounded border border-[var(--purple)]/30 px-3 py-1 font-mono text-xs text-[var(--purple)] hover:bg-[var(--purple)]/10 disabled:opacity-40"
                         >
                           {loading === injury.id
                             ? "updating…"
@@ -157,7 +157,7 @@ export function InjuryList({ initialInjuries, accessToken }: Props) {
                         data-testid="resolve-btn"
                         disabled={loading === injury.id}
                         onClick={() => updateStatus(injury, "resolved")}
-                        className="rounded border border-green-800 px-3 py-1 font-mono text-xs text-green-400 hover:bg-green-950/40 disabled:opacity-40"
+                        className="rounded border border-[var(--green)]/30 px-3 py-1 font-mono text-xs text-[var(--green)] hover:bg-[var(--green)]/10 disabled:opacity-40"
                       >
                         {loading === injury.id
                           ? "updating…"

@@ -360,7 +360,9 @@ export function MovementRow({
           />
           {variantAnnotation.split(",").includes("tempo") && (
             <div className="flex items-center gap-2">
-              <label className="text-xs text-[#8b949e] shrink-0">Tempo</label>
+              <label className="text-xs text-[var(--muted)] shrink-0">
+                Tempo
+              </label>
               <input
                 type="text"
                 value={tempo}
@@ -377,7 +379,7 @@ export function MovementRow({
                 className="w-24 rounded border border-[var(--border)] bg-[var(--card)] px-2 py-1 font-mono text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40"
               />
               {tempo && (
-                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-[#58a6ff]/40 bg-[#58a6ff]/10 text-[#58a6ff]">
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)]">
                   {tempo}
                 </span>
               )}
@@ -419,7 +421,7 @@ export function MovementRow({
       {/* Implement picker — shown after movement selection */}
       {selectedName && (
         <div className="space-y-1.5">
-          <p className="text-xs text-[#8b949e]">
+          <p className="text-xs text-[var(--muted)]">
             Implement · optional, applies to all sets
           </p>
           <div className="flex flex-wrap gap-1">
@@ -434,8 +436,8 @@ export function MovementRow({
                   }
                   className={`text-xs px-2 py-0.5 rounded border font-mono cursor-pointer ${
                     isSelected
-                      ? "bg-[#58a6ff]/20 border-[#58a6ff] text-[#58a6ff]"
-                      : "bg-transparent border-[#30363d] text-[#8b949e]"
+                      ? "bg-[var(--accent)]/20 border-[var(--accent)] text-[var(--accent)]"
+                      : "bg-transparent border-[var(--border)] text-[var(--muted)]"
                   }`}
                 >
                   {item.label}
@@ -450,7 +452,7 @@ export function MovementRow({
       {selectedName &&
         (limbStyle === "unilateral" || limbStyle === "alternating") && (
           <div className="space-y-1.5">
-            <p className="text-xs text-[#8b949e]">Side</p>
+            <p className="text-xs text-[var(--muted)]">Side</p>
             <div className="flex gap-1">
               {(["left", "right", "both"] as const).map((s) => (
                 <button
@@ -460,7 +462,7 @@ export function MovementRow({
                   className={`text-xs px-2 py-0.5 rounded border font-mono cursor-pointer capitalize ${
                     side === s
                       ? "bg-[rgba(255,200,61,0.2)] border-[rgba(255,200,61,0.6)] text-[var(--gold)]"
-                      : "bg-transparent border-[#30363d] text-[#8b949e]"
+                      : "bg-transparent border-[var(--border)] text-[var(--muted)]"
                   }`}
                 >
                   {s}
