@@ -33,7 +33,7 @@ export function SetTabs({
           className={[
             "h-8 min-w-[36px] px-3 rounded-lg font-data text-[13px] transition-colors",
             tab.index === activeIndex
-              ? "bg-[var(--accent)] text-[#0A0D12] font-bold"
+              ? "bg-[var(--accent)] text-[var(--bg)] font-bold"
               : "bg-[var(--surface-2)] border border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--accent)]/40 hover:text-[var(--foreground)]",
           ].join(" ")}
         >

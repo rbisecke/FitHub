@@ -54,9 +54,10 @@ export function TodayPrescription({
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
     client.plans
-      .today(planId)
+      .today(planId, { signal: controller.signal })
       .then((data) => {
         if (cancelled) return;
         if (data && typeof data === "object" && "id" in data) {
@@ -70,13 +71,15 @@ export function TodayPrescription({
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [client, planId]);
 
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
     client.analytics
-      .personalRecords()
+      .personalRecords({ signal: controller.signal })
       .then((data) => {
         if (!cancelled) setPrs(data);
       })
@@ -85,6 +88,7 @@ export function TodayPrescription({
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [client]);
 

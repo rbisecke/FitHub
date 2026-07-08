@@ -1,14 +1,23 @@
 import Link from "next/link";
 import type { PlanSummary } from "@/lib/api/plans";
 
+function parseLocalDate(iso: string): Date {
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number) as [
+    number,
+    number,
+    number,
+  ];
+  return new Date(y, m - 1, d);
+}
+
 function computeProgress(
   startDate: string,
   endDate: string,
   weeks: number,
 ): { progress: number; weeksElapsed: number } {
   const today = Date.now();
-  const start = new Date(startDate).getTime();
-  const end = new Date(endDate).getTime();
+  const start = parseLocalDate(startDate).getTime();
+  const end = parseLocalDate(endDate).getTime();
   const total = end - start;
   if (total <= 0) return { progress: 0, weeksElapsed: 0 };
   const elapsed = Math.max(0, today - start);
@@ -21,7 +30,7 @@ function computeProgress(
 }
 
 function relativeStart(startDate: string): string {
-  const start = new Date(startDate).getTime();
+  const start = parseLocalDate(startDate).getTime();
   const days = Math.round((Date.now() - start) / (24 * 60 * 60 * 1000));
   if (days < 7) return `started ${days}d ago`;
   const weeks = Math.round(days / 7);

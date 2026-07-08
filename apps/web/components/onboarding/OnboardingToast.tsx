@@ -20,15 +20,15 @@ export function OnboardingToast() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-20 left-4 right-4 z-50 flex items-center justify-between gap-3 rounded-md border border-[#30363d] bg-[#161b22] px-4 py-3 shadow-lg md:bottom-6 md:left-auto md:right-6 md:w-96"
+      className="fixed bottom-20 left-4 right-4 z-50 flex items-center justify-between gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-lg md:bottom-6 md:left-auto md:right-6 md:w-96"
     >
-      <p className="text-sm text-[#e6edf3]">
+      <p className="text-sm text-[var(--text)]">
         Complete your setup to get the most out of FitHub.
       </p>
       <div className="flex shrink-0 items-center gap-3">
         <Link
           href="/onboarding/1"
-          className="text-xs font-medium text-[#58a6ff] transition-colors hover:text-[#79b8ff]"
+          className="text-xs font-medium text-[var(--accent)] transition-colors hover:text-[#79b8ff]"
           onClick={() => router.refresh()}
         >
           Set up
@@ -36,7 +36,7 @@ export function OnboardingToast() {
         <button
           onClick={() => setVisible(false)}
           aria-label="Dismiss"
-          className="text-xs text-[#8b949e] transition-colors hover:text-[#e6edf3]"
+          className="text-xs text-[var(--muted)] transition-colors hover:text-[var(--text)]"
         >
           ✕
         </button>

@@ -81,7 +81,7 @@ export function MovementVariantChips({
 
   return (
     <div className="space-y-1">
-      <p className="text-xs text-[#8b949e]">Modifiers</p>
+      <p className="text-xs text-[var(--muted)]">Modifiers</p>
       <div className="flex flex-wrap gap-1">
         {visibleChips.map((chip) => {
           const isSelected = selected.has(chip.key);
@@ -93,7 +93,7 @@ export function MovementVariantChips({
               className={`text-xs px-2 py-0.5 rounded border font-mono cursor-pointer ${
                 isSelected
                   ? "bg-[#58a6ff]/20 border-[#58a6ff] text-[#58a6ff]"
-                  : "bg-transparent border-[#30363d] text-[#8b949e]"
+                  : "bg-transparent border-[var(--border)] text-[var(--muted)]"
               }`}
             >
               {chip.label}

@@ -15,9 +15,10 @@ export function AdaptationBanner({ accessToken, planId }: Props) {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
     client.adaptations
-      .list(planId)
+      .list(planId, { signal: controller.signal })
       .then((adaptations: AdaptationOut[]) => {
         if (cancelled) return;
         const proposed = adaptations.filter((a) => a.status === "proposed");
@@ -28,6 +29,7 @@ export function AdaptationBanner({ accessToken, planId }: Props) {
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [client, planId]);
 
@@ -42,7 +44,7 @@ export function AdaptationBanner({ accessToken, planId }: Props) {
       <span className="font-data text-[11px] text-[var(--muted)]">
         $ git diff --plan ·
       </span>
-      <span className="font-data text-[11px] font-bold rounded px-[6px] py-[2px] bg-[var(--amber)] text-[#0d1117]">
+      <span className="font-data text-[11px] font-bold rounded px-[6px] py-[2px] bg-[var(--amber)] text-[var(--bg)]">
         {count}
       </span>
       <span className="font-data text-[12px] text-[var(--amber)]">

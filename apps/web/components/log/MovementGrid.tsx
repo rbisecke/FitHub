@@ -71,11 +71,13 @@ export function MovementGrid({
 
   useEffect(() => {
     if (recent.length === 0) return;
+    const controller = new AbortController();
     let cancelled = false;
     api.movements
       .personalRecordsBatch(
         accessToken,
         recent.map((m) => m.movement_id),
+        { signal: controller.signal },
       )
       .then((results) => {
         if (!cancelled)
@@ -86,6 +88,7 @@ export function MovementGrid({
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [accessToken, recent]);
 

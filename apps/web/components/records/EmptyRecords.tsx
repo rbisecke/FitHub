@@ -15,7 +15,7 @@ export function EmptyRecords() {
       </p>
       <Link
         href="/log/tag"
-        className="inline-flex items-center gap-2 bg-[var(--accent)] text-[#0A0D12] font-mono font-bold text-[13px] px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
+        className="inline-flex items-center gap-2 bg-[var(--accent)] text-[var(--bg)] font-mono font-bold text-[13px] px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
       >
         $ git tag
       </Link>

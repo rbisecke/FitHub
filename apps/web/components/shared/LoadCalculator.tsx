@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { formatWeight } from "@/lib/display";
 
 interface Props {
@@ -46,6 +46,14 @@ export function LoadCalculator({
   const [pct, setPct] = useState(initialPct);
   const [collapsed, setCollapsed] = useState(true);
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    },
+    [],
+  );
 
   const hasCurrent = currentKg != null;
   const basisKg = basis === "current" && hasCurrent ? currentKg : bestKg;
@@ -70,7 +78,8 @@ export function LoadCalculator({
         isImperial ? `${targetLb.toFixed(0)} lb` : `${targetKg.toFixed(1)} kg`,
       );
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 1500);
     } catch {
       // Clipboard unavailable (insecure context) — silently ignore
     }

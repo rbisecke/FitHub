@@ -178,16 +178,20 @@ export default function IntegrationsPage() {
   );
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       const sb = createClient();
       const {
         data: { session },
       } = await sb.auth.getSession();
-      if (!session) return;
+      if (cancelled || !session) return;
       const t = session.access_token;
       setToken(t);
       await loadStatus(t);
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [loadStatus]);
 
   async function handleConnect() {

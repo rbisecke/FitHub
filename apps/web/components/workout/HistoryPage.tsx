@@ -122,6 +122,7 @@ export function HistoryPage({
 
     if (!serverChanged) return;
 
+    const controller = new AbortController();
     const version = ++fetchVersionRef.current;
     setRefetching(true);
     setNextCursor(null);
@@ -129,21 +130,27 @@ export function HistoryPage({
 
     const params = toServerParams(filters);
     api.workouts
-      .list(accessToken, { limit: 20, ...params })
+      .list(
+        accessToken,
+        { limit: 20, ...params },
+        { signal: controller.signal },
+      )
       .then(({ items: newItems, next_cursor }) => {
         if (fetchVersionRef.current !== version) return;
         setItems(newItems);
         setNextCursor(next_cursor);
         setAllLoaded(!next_cursor);
       })
-      .catch(() => {
-        if (fetchVersionRef.current !== version) return;
+      .catch((_err) => {
+        if (fetchVersionRef.current !== version || controller.signal.aborted)
+          return;
         toast.error("Failed to reload filtered workouts");
       })
       .finally(() => {
         if (fetchVersionRef.current !== version) return;
         setRefetching(false);
       });
+    return () => controller.abort();
   }, [filters, accessToken]);
 
   const displayedItems = useMemo(

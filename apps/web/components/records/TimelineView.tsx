@@ -10,10 +10,10 @@ interface Props {
 }
 
 const CAT_COLOR: Record<PRCategory, string> = {
-  strength: "#58a6ff",
-  gymnastics: "#bc8cff",
-  metcon: "#FF7A45",
-  endurance: "#4ADE80",
+  strength: "var(--accent)",
+  gymnastics: "var(--purple)",
+  metcon: "var(--amber)",
+  endurance: "var(--green)",
 };
 
 interface TimelineEntry {
@@ -22,8 +22,17 @@ interface TimelineEntry {
   achievedAt: string;
 }
 
+function parseLocalDate(iso: string): Date {
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number) as [
+    number,
+    number,
+    number,
+  ];
+  return new Date(y, m - 1, d);
+}
+
 function relativeDate(isoDate: string): string {
-  const d = new Date(isoDate);
+  const d = parseLocalDate(isoDate);
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffDays = Math.floor(diffMs / 86400000);
@@ -36,7 +45,7 @@ function relativeDate(isoDate: string): string {
 }
 
 function formatAbsoluteDate(isoDate: string): string {
-  const d = new Date(isoDate);
+  const d = parseLocalDate(isoDate);
   return d.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",

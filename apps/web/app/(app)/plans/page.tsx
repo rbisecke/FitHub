@@ -19,7 +19,7 @@ export default async function PlansPage() {
   const action = (
     <Link
       href="/plans/new"
-      className="hidden md:flex items-center gap-2 bg-[var(--accent)] text-[#0A0D12] font-bold text-[13px] px-4 py-[11px] rounded-[10px] hover:brightness-110 transition-all"
+      className="hidden md:flex items-center gap-2 bg-[var(--accent)] text-[var(--bg)] font-bold text-[13px] px-4 py-[11px] rounded-[10px] hover:brightness-110 transition-all"
     >
       <svg
         width="15"

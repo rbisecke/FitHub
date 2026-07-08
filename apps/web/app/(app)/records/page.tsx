@@ -33,8 +33,13 @@ export default async function RecordsPage({
   const now = new Date();
   const recentPRIds = prs
     .filter((pr) => {
-      const d = new Date(pr.achieved_at);
-      return now.getTime() - d.getTime() < 24 * 60 * 60 * 1000;
+      const [y, m, d] = pr.achieved_at.slice(0, 10).split("-").map(Number) as [
+        number,
+        number,
+        number,
+      ];
+      const prDate = new Date(y, m - 1, d);
+      return now.getTime() - prDate.getTime() < 24 * 60 * 60 * 1000;
     })
     .map((pr) => pr.movement_id);
 

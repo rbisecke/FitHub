@@ -55,7 +55,7 @@ export function MobileFAB() {
             <Link
               href="/log/tag"
               onClick={() => setOpen(false)}
-              className="flex items-center justify-center w-32 h-10 rounded-lg border border-[#30363d] bg-[#161b22] font-mono text-xs text-[#8b949e] hover:border-[#58a6ff]/40 hover:text-[#e6edf3] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#58a6ff]"
+              className="flex items-center justify-center w-32 h-10 rounded-lg border border-[var(--border)] bg-[var(--surface)] font-mono text-xs text-[var(--muted)] hover:border-[var(--accent)]/40 hover:text-[var(--text)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
               $ tag
             </Link>
@@ -63,7 +63,7 @@ export function MobileFAB() {
             <Link
               href="/log/new"
               onClick={() => setOpen(false)}
-              className="flex items-center justify-center w-32 h-10 rounded-lg bg-[#58a6ff] font-mono text-xs text-[#0d1117] hover:bg-[#58a6ff]/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#58a6ff]"
+              className="flex items-center justify-center w-32 h-10 rounded-lg bg-[var(--accent)] font-mono text-xs text-[var(--bg)] hover:bg-[var(--accent)]/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
               $ commit
             </Link>

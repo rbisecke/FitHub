@@ -107,7 +107,7 @@ export function NLLogInput({ accessToken }: NLLogInputProps) {
             <ul className="mt-3 space-y-1">
               {result.parsed.results.map((r, i) => (
                 <li
-                  key={r.movement_name ?? i}
+                  key={r.movement_name ?? `result-${r.result_type ?? ""}-${i}`}
                   className="font-mono text-xs text-[var(--text)]"
                 >
                   {r.movement_name}
