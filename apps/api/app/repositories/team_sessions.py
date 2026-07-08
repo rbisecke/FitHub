@@ -248,13 +248,21 @@ async def list_team_sessions(
                            WHERE user_id = %s
                         ))
                   AND  (ts.performed_at, ts.id) < (
-                           SELECT performed_at, id FROM public.team_sessions WHERE id = %s
+                           SELECT performed_at, id FROM public.team_sessions
+                           WHERE id = %s
+                             AND (
+                                 created_by = %s
+                                 OR id IN (
+                                     SELECT team_session_id FROM public.team_session_participants
+                                     WHERE user_id = %s
+                                 )
+                             )
                        )
                 GROUP  BY ts.id
                 ORDER  BY ts.performed_at DESC, ts.id DESC
                 LIMIT  %s
                 """,
-                [user_id, user_id, str(before_id), limit],
+                [user_id, user_id, str(before_id), user_id, user_id, limit],
             )
         else:
             await cur.execute(

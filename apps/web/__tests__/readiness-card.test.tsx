@@ -11,7 +11,6 @@ function makeReadiness(
     label: "optimal",
     acwr: 1.1,
     tsb: 5,
-    mood_avg: null,
     sleep_avg: null,
     factors_available: 2,
     recovery_score: null,

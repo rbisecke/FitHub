@@ -87,6 +87,7 @@ async def list_integrations(
             FROM data_connections
             WHERE user_id = %s
             ORDER BY provider
+            LIMIT 20
             """,
             [user.user_id],
         )
@@ -127,6 +128,7 @@ async def apple_health_sync(
             FROM data_connections
             WHERE provider = 'apple_health'
               AND config->>'ingest_token_prefix' = %s
+            LIMIT 10
             """,
             [token_prefix],
         )
@@ -144,8 +146,11 @@ async def apple_health_sync(
 
     _MAX_BODY = 5 * 1024 * 1024  # 5 MB
     content_length = request.headers.get("content-length")
-    if content_length and int(content_length) > _MAX_BODY:
-        raise HTTPException(status_code=413, detail="Payload too large")
+    try:
+        if content_length and int(content_length) > _MAX_BODY:
+            raise HTTPException(status_code=413, detail="Payload too large")
+    except ValueError:
+        pass  # body size check below is authoritative
     body_bytes = await request.body()
     if len(body_bytes) > _MAX_BODY:
         raise HTTPException(status_code=413, detail="Payload too large")

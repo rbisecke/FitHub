@@ -35,14 +35,14 @@ async def get_load_series(
                     SUM(perceived_load_au)::float AS load_au
                 FROM public.workouts
                 WHERE user_id = %s
-                  AND performed_at >= NOW() - (%s + %s) * INTERVAL '1 day'
+                  AND performed_at::date >= CURRENT_DATE - (%s + %s)
                   AND perceived_load_au IS NOT NULL
                 GROUP BY 1
             ),
             series AS (
                 SELECT generate_series(
-                    (NOW() - (%s + %s) * INTERVAL '1 day')::date,
-                    NOW()::date,
+                    CURRENT_DATE - (%s + %s),
+                    CURRENT_DATE,
                     '1 day'::interval
                 )::date AS day
             ),
@@ -152,6 +152,7 @@ async def get_personal_records(
                 prev_best_1rm_kg
             FROM ranked
             ORDER BY movement_id, estimated_1rm_kg DESC
+            LIMIT 500
             """,
             (user_id,),
         )
@@ -169,17 +170,26 @@ async def get_personal_records(
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT
-                r.movement_id::text,
-                w.performed_at::date      AS day,
-                r.estimated_1rm_kg::float AS estimated_1rm_kg
-            FROM results r
-            JOIN workouts w ON r.workout_id = w.id
-            WHERE w.user_id = %s
-              AND r.movement_id = ANY(%s)
-              AND r.estimated_1rm_kg IS NOT NULL
-              AND w.performed_at >= NOW() - INTERVAL '5 years'
-            ORDER BY r.movement_id, w.performed_at ASC
+            SELECT movement_id::text, day, estimated_1rm_kg
+            FROM (
+                SELECT
+                    r.movement_id,
+                    w.performed_at::date      AS day,
+                    r.estimated_1rm_kg::float AS estimated_1rm_kg,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY r.movement_id
+                        ORDER BY w.performed_at ASC
+                    ) AS rn
+                FROM results r
+                JOIN workouts w ON r.workout_id = w.id
+                WHERE w.user_id = %s
+                  AND r.movement_id = ANY(%s)
+                  AND r.estimated_1rm_kg IS NOT NULL
+                  AND w.performed_at >= NOW() - INTERVAL '5 years'
+            ) sub
+            WHERE rn <= 100
+            ORDER BY movement_id, day ASC
+            LIMIT 2000
             """,
             (user_id, movement_ids),
         )
@@ -286,7 +296,7 @@ async def get_volume_trend(
                 COUNT(*)::int AS workout_count
             FROM workouts
             WHERE user_id = %s
-              AND performed_at >= NOW() - %s * INTERVAL '1 week'
+              AND performed_at::date >= CURRENT_DATE - (%s * 7)
             GROUP BY week_start, session_type
             ORDER BY week_start, session_type
             """,
@@ -449,7 +459,6 @@ async def get_readiness(
         "label": label,
         "acwr": acwr,
         "tsb": tsb,
-        "mood_avg": None,
         "sleep_avg": sleep_avg,
         "factors_available": factors_available,
         "recovery_score": recovery_score,
@@ -481,7 +490,7 @@ async def get_training_balance(
                 JOIN workouts  w ON r.workout_id  = w.id
                 JOIN movements m ON r.movement_id = m.id
                 WHERE w.user_id              = %s
-                  AND w.performed_at         >= NOW() - %s * INTERVAL '1 day'
+                  AND w.performed_at::date    >= CURRENT_DATE - %s
                   AND m.primary_muscle_group IS NOT NULL
                 GROUP BY m.primary_muscle_group
             ),
@@ -519,7 +528,7 @@ async def get_contributions(
                 COALESCE(SUM(perceived_load_au), 0)::float AS load_au
             FROM workouts
             WHERE user_id = %s
-              AND performed_at >= NOW() - %s * INTERVAL '1 day'
+              AND performed_at::date >= CURRENT_DATE - %s
             GROUP BY 1
             ORDER BY 1
             """,

@@ -13,6 +13,7 @@ from app.models.workout import (
     ParseNLRequest,
     ParseNLResponse,
     PatchWorkoutRequest,
+    SessionType,
     Workout,
     WorkoutListResponse,
 )
@@ -34,7 +35,7 @@ async def list_workouts_route(
     conn: DBConn,
     before_id: uuid.UUID | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=365),
-    session_type: str | None = Query(default=None),
+    session_type: SessionType | None = Query(default=None),
     partner_only: bool | None = Query(default=None),
     date_from: date | None = Query(default=None),
     date_to: date | None = Query(default=None),

@@ -1316,8 +1316,15 @@ export interface components {
       plan_id: string;
       /** User Id */
       user_id: string;
-      /** Trigger Type */
-      trigger_type: string;
+      /**
+       * Trigger Type
+       * @enum {string}
+       */
+      trigger_type:
+        | "high_acwr"
+        | "low_readiness"
+        | "missed_session"
+        | "rpe_creep";
       /** Trigger Data */
       trigger_data: {
         [key: string]: unknown;
@@ -1632,7 +1639,7 @@ export interface components {
       /** Implement */
       implement?: string | null;
       /** Default Result Types */
-      default_result_types?: string[];
+      default_result_types?: components["schemas"]["ResultType"][];
       default_result_type?: components["schemas"]["ResultType"] | null;
     };
     /** CreateParticipantRequest */
@@ -1822,9 +1829,7 @@ export interface components {
       /** Plan Id */
       plan_id: string;
       /** Triggers */
-      triggers: {
-        [key: string]: unknown;
-      }[];
+      triggers: components["schemas"]["TriggerOut"][];
       /** Proposed Adaptations */
       proposed_adaptations: components["schemas"]["AdaptationOut"][];
     };
@@ -2139,7 +2144,7 @@ export interface components {
       /** Implement */
       implement: string | null;
       /** Default Result Types */
-      default_result_types: string[];
+      default_result_types: components["schemas"]["ResultType"][];
       default_result_type: components["schemas"]["ResultType"] | null;
       /** Is Official */
       is_official: boolean;
@@ -2458,8 +2463,7 @@ export interface components {
       movement_id: string;
       /** Movement Name */
       movement_name: string;
-      /** Modality */
-      modality: string;
+      modality: components["schemas"]["Modality"];
       /** Display Order */
       display_order: number;
       /** Personal Record */
@@ -2644,14 +2648,20 @@ export interface components {
     ReadinessResponse: {
       /** Score */
       score: number;
-      /** Label */
-      label: string;
+      /**
+       * Label
+       * @enum {string}
+       */
+      label:
+        | "optimal"
+        | "fresh"
+        | "high_load"
+        | "fatigued"
+        | "insufficient_data";
       /** Acwr */
       acwr: number | null;
       /** Tsb */
       tsb: number;
-      /** Mood Avg */
-      mood_avg: number | null;
       /** Sleep Avg */
       sleep_avg: number | null;
       /** Factors Available */
@@ -2856,8 +2866,11 @@ export interface components {
     };
     /** SubmitAccessRequestResponse */
     SubmitAccessRequestResponse: {
-      /** Status */
-      status: string;
+      /**
+       * Status
+       * @constant
+       */
+      status: "submitted";
     };
     /** SyncResponse */
     SyncResponse: {
@@ -3014,8 +3027,16 @@ export interface components {
       display_name: string;
       /** Session Count */
       session_count: number;
-      /** Most Common Format */
-      most_common_format: string | null;
+      most_common_format: components["schemas"]["WorkoutFormat"] | null;
+    };
+    /** TriggerOut */
+    TriggerOut: {
+      /** Type */
+      type: string;
+      /** Data */
+      data: {
+        [key: string]: unknown;
+      };
     };
     /** UpdateInjuryStatusRequest */
     UpdateInjuryStatusRequest: {
@@ -4156,9 +4177,7 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content: {
-          "application/json": unknown;
-        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
@@ -4646,7 +4665,7 @@ export interface operations {
       query?: {
         before_id?: string | null;
         limit?: number;
-        session_type?: string | null;
+        session_type?: components["schemas"]["SessionType"] | null;
         partner_only?: boolean | null;
         date_from?: string | null;
         date_to?: string | null;
@@ -5073,7 +5092,7 @@ export interface operations {
     requestBody?: never;
     responses: {
       /** @description Successful Response */
-      200: {
+      201: {
         headers: {
           [name: string]: unknown;
         };

@@ -205,6 +205,7 @@ async def get_personal_records_batch(
               AND  r.movement_id  = ANY(%s)
               AND  r.is_pr        = TRUE
             ORDER  BY r.movement_id, r.estimated_1rm_kg DESC NULLS LAST
+            LIMIT 20
             """,
             [user_id, list(movement_ids)],
         )

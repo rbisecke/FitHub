@@ -193,6 +193,7 @@ async def create_workout(
             LEFT JOIN public.movements m ON m.id = r.movement_id
             WHERE  r.workout_id = %s AND r.user_id = %s
             ORDER  BY r.order_index, r.id
+            LIMIT  500
             """,
             [workout_id, user_id],
         )
@@ -322,6 +323,7 @@ async def get_workout(
             LEFT JOIN public.movements m ON m.id = r.movement_id
             WHERE  r.workout_id = %s AND r.user_id = %s
             ORDER  BY r.order_index, r.id
+            LIMIT  500
             """,
             [workout_id, user_id],
         )
@@ -395,6 +397,7 @@ async def patch_workout(
             LEFT JOIN public.movements m ON m.id = r.movement_id
             WHERE  r.workout_id = %s AND r.user_id = %s
             ORDER  BY r.order_index, r.id
+            LIMIT  500
             """,
             [workout_id, user_id],
         )

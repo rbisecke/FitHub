@@ -6,6 +6,8 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
+from app.models.movement import Modality
+
 
 class UserProfile(BaseModel):
     display_name: str | None
@@ -57,7 +59,7 @@ class PatchProfileRequest(BaseModel):
 class PinnedMovement(BaseModel):
     movement_id: uuid.UUID
     movement_name: str
-    modality: str
+    modality: Modality
     display_order: int
     personal_record: dict[str, Any] | None = None
 

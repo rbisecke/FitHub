@@ -9,7 +9,7 @@ from typing import Literal, cast
 
 import psycopg
 import psycopg.rows
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, status
 
 from app.dependencies.common import Auth, DBConn
 from app.middleware.rate_limit import limiter, user_or_ip_key
@@ -18,6 +18,7 @@ from app.models.adaptation import (
     AdjustAdaptationRequest,
     DetectTriggersResponse,
     RejectAdaptationRequest,
+    TriggerOut,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["adaptations"])
@@ -45,7 +46,9 @@ def _row_to_out(r: dict[str, object]) -> AdaptationOut:
         id=str(r["id"]),
         plan_id=str(r["plan_id"]),
         user_id=str(r["user_id"]),
-        trigger_type=str(r["trigger_type"]),
+        trigger_type=cast(
+            Literal["high_acwr", "low_readiness", "missed_session", "rpe_creep"], r["trigger_type"]
+        ),
         trigger_data=dict(r["trigger_data"]) if r["trigger_data"] else {},  # type: ignore[call-overload]
         status=cast(Literal["proposed", "merged", "rejected"], r["status"]),
         rationale=str(r["rationale"]) if r["rationale"] else None,
@@ -61,7 +64,11 @@ def _row_to_out(r: dict[str, object]) -> AdaptationOut:
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 
-@router.post("/plans/{plan_id}/adaptations/detect", response_model=DetectTriggersResponse)
+@router.post(
+    "/plans/{plan_id}/adaptations/detect",
+    response_model=DetectTriggersResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 @limiter.limit("5/hour", key_func=user_or_ip_key)
 async def detect_plan_adaptations(
     plan_id: uuid.UUID,
@@ -80,12 +87,16 @@ async def detect_plan_adaptations(
     from app.ai.adaptation import generate_adaptation
     from app.engine.adaptation_triggers import detect_triggers
 
-    triggers = await detect_triggers(str(user.user_id), str(plan_id), db)
+    raw_triggers = await detect_triggers(str(user.user_id), str(plan_id), db)
+    trigger_outs = [
+        TriggerOut(type=str(t["type"]), data=cast(dict[str, object], t["data"]))
+        for t in raw_triggers
+    ]
 
     # Generate all adaptation results before opening the transaction so LLM
     # calls don't hold a DB transaction open.
     adaptation_results: list[tuple[dict[str, object], dict[str, object]]] = []
-    for trigger in triggers:
+    for trigger in raw_triggers:
         result = await generate_adaptation(
             {"trigger_type": trigger["type"], "trigger_data": trigger["data"]},
             [],
@@ -123,7 +134,7 @@ async def detect_plan_adaptations(
 
     return DetectTriggersResponse(
         plan_id=str(plan_id),
-        triggers=triggers,
+        triggers=trigger_outs,
         proposed_adaptations=proposed,
     )
 

@@ -6,6 +6,8 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.models.workout import WorkoutFormat
+
 
 class ScoringType(StrEnum):
     for_time = "for_time"
@@ -133,7 +135,7 @@ class TrainingPartner(BaseModel):
     guest_name: str | None
     display_name: str
     session_count: int
-    most_common_format: str | None
+    most_common_format: WorkoutFormat | None
 
 
 class Notification(BaseModel):

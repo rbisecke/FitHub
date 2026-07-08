@@ -34,32 +34,7 @@ async def submit_checkin(
     today = date.today()
     hooper = _hooper_index(body.sleep, body.stress, body.fatigue, body.soreness)
 
-    # Upsert into daily_checkins
-    await db.execute(
-        """
-        INSERT INTO daily_checkins
-            (user_id, date, sleep_quality, stress, fatigue, soreness)
-        VALUES (%s, %s, %s, %s, %s, %s)
-        ON CONFLICT (user_id, date)
-        DO UPDATE SET
-            sleep_quality = EXCLUDED.sleep_quality,
-            stress        = EXCLUDED.stress,
-            fatigue       = EXCLUDED.fatigue,
-            soreness      = EXCLUDED.soreness
-        """,
-        [
-            user.user_id,
-            today,
-            body.sleep,
-            body.stress,
-            body.fatigue,
-            body.soreness,
-        ],
-    )
-
-    # Also write to metric_samples so the recovery engine can use these values.
-    # soreness → 'soreness' type; average of sleep/fatigue/stress → 'subjective_wellness'
-    # Invert 1–7 scale to 10-point: (8 - value) / 7 * 10
+    # Pre-compute metric values before opening the transaction
     now_ts = datetime.now(UTC)
 
     async def _upsert_sample(mtype: str, value: float) -> None:
@@ -80,11 +55,37 @@ async def submit_checkin(
         (body.sleep - 1) / 6.0 + (1.0 - (body.fatigue - 1) / 6.0) + (1.0 - (body.stress - 1) / 6.0)
     ) / 3.0
     wellness_scaled = wellness_raw * 10.0
-    await _upsert_sample("subjective_wellness", round(wellness_scaled, 2))
 
     # soreness (0–10): invert soreness score (lower is better)
     soreness_scaled = ((body.soreness - 1) / 6.0) * 10.0
-    await _upsert_sample("soreness", round(soreness_scaled, 2))
+
+    async with db.transaction():
+        # Upsert into daily_checkins
+        await db.execute(
+            """
+            INSERT INTO daily_checkins
+                (user_id, date, sleep_quality, stress, fatigue, soreness)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (user_id, date)
+            DO UPDATE SET
+                sleep_quality = EXCLUDED.sleep_quality,
+                stress        = EXCLUDED.stress,
+                fatigue       = EXCLUDED.fatigue,
+                soreness      = EXCLUDED.soreness
+            """,
+            [
+                user.user_id,
+                today,
+                body.sleep,
+                body.stress,
+                body.fatigue,
+                body.soreness,
+            ],
+        )
+
+        # Write derived metric samples so the recovery engine can use these values
+        await _upsert_sample("subjective_wellness", round(wellness_scaled, 2))
+        await _upsert_sample("soreness", round(soreness_scaled, 2))
 
     return CheckInResponse(
         date=today,

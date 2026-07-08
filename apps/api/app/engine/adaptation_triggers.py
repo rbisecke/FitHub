@@ -87,8 +87,9 @@ async def _count_low_readiness_streak(
             FROM derived_metrics
             WHERE user_id = %s AND date >= current_date - %s
             ORDER BY date DESC
+            LIMIT %s
             """,
-            [user_id, days],
+            [user_id, days, days],
         )
         rows = await cur.fetchall()
 
