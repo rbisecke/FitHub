@@ -38,13 +38,21 @@ export function CoachShell({
       .catch(() => {});
   }, [token]);
 
-  // Initial load — setState only inside async callbacks to satisfy lint rule
+  // Initial load — cancelled guard prevents stale setState after unmount
   useEffect(() => {
+    let cancelled = false;
     api.coach.sessions
       .list(token, { limit: 20 })
-      .then((data) => setSessions(data))
+      .then((data) => {
+        if (!cancelled) setSessions(data);
+      })
       .catch(() => {})
-      .finally(() => setSessionsLoading(false));
+      .finally(() => {
+        if (!cancelled) setSessionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [token]);
 
   function handleSelectSession(id: string) {

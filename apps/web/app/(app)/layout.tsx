@@ -6,6 +6,7 @@ import { AppInit } from "@/components/layout/AppInit";
 import { UserPrefsProvider } from "@/lib/contexts/UserPrefsContext";
 import { api } from "@/lib/api/client";
 import type { WeightUnit, DistanceUnit, GraphColourMode } from "@/lib/api";
+import { toWeightUnit, toDistanceUnit, toGraphColourMode } from "@/lib/api";
 import { toHandle } from "@/lib/display";
 
 export default async function AppLayout({
@@ -43,9 +44,9 @@ export default async function AppLayout({
   try {
     if (token) {
       const profile = await api.profile.get(token);
-      weightUnit = profile.weight_unit;
-      distanceUnit = profile.distance_unit;
-      graphColourMode = profile.graph_colour_mode;
+      weightUnit = toWeightUnit(profile.weight_unit);
+      distanceUnit = toDistanceUnit(profile.distance_unit);
+      graphColourMode = toGraphColourMode(profile.graph_colour_mode);
       if (!profile.onboarding_completed) {
         shouldRedirectToOnboarding = true;
       }

@@ -48,6 +48,7 @@ export function TodayPrescription({
   const [modifications, setModifications] =
     useState<ModifyWorkoutResponse | null>(null);
   const [modLoading, setModLoading] = useState(false);
+  const [modError, setModError] = useState<string | null>(null);
   const [sheetTarget, setSheetTarget] = useState<SheetTarget | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const prefersReducedMotion = useReducedMotion();
@@ -229,6 +230,7 @@ export function TodayPrescription({
             )}
           </ul>
         )}
+        {modError && <p className="text-sm text-red-400 mt-2">{modError}</p>}
         <div className="mt-3 flex items-center gap-3">
           <Link
             href={`/plans/${planId}`}
@@ -242,10 +244,13 @@ export function TodayPrescription({
               disabled={modLoading}
               onClick={async () => {
                 setModLoading(true);
+                setModError(null);
                 try {
                   await new Promise((r) => setTimeout(r, 1500));
                   const result = await client.coach.modifyWorkout(session.id);
                   setModifications(result);
+                } catch {
+                  setModError("Could not modify workout. Please try again.");
                 } finally {
                   setModLoading(false);
                 }

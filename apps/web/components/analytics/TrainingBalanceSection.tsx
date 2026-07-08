@@ -14,17 +14,10 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
-
-interface BalanceBreakdown {
-  category: string;
-  volume_pct: number;
-  load_au: number;
-}
-
-interface TrainingBalanceData {
-  breakdown: BalanceBreakdown[];
-  period_days: number;
-}
+import type {
+  TrainingBalanceResponse,
+  TrainingBalanceBreakdown,
+} from "@/lib/api";
 
 const PERIOD_OPTIONS: PeriodOption[] = [
   { label: "Last 4 weeks", value: "28" },
@@ -42,7 +35,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   conditioning: "var(--cyan)",
 };
 
-function getInsightCopy(breakdown: BalanceBreakdown[]): string {
+function getInsightCopy(breakdown: TrainingBalanceBreakdown[]): string {
   const map = Object.fromEntries(
     breakdown.map((b) => [b.category, b.volume_pct]),
   );
@@ -60,7 +53,7 @@ function getInsightCopy(breakdown: BalanceBreakdown[]): string {
 }
 
 interface Props {
-  data: TrainingBalanceData | null;
+  data: TrainingBalanceResponse | null;
   className?: string;
 }
 

@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { api } from "@/lib/api/client";
+import { api, ApiError } from "@/lib/api/client";
 import type { TrainingPartner } from "@/lib/api";
 
 interface Props {
@@ -48,9 +48,8 @@ export function PartnerList({ initial, token }: Props) {
       setPartners((prev) => [partner, ...prev]);
       toast.success("Training partner added.", { duration: 2000 });
       closeForm();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "";
-      if (msg.includes("404")) {
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) {
         setError(
           "No account found for that email. They may need an invitation.",
         );
@@ -73,9 +72,9 @@ export function PartnerList({ initial, token }: Props) {
         </div>
       )}
 
-      {partners.map((p) => (
+      {partners.map((p, idx) => (
         <div
-          key={p.user_id}
+          key={p.user_id ?? `guest-${idx}`}
           className="flex items-center justify-between py-2.5"
         >
           <span className="text-sm text-[#e6edf3]">{p.display_name}</span>

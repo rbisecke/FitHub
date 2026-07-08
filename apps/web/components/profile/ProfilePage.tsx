@@ -8,6 +8,7 @@ import type {
   FrequencyTarget,
   PinnedMovement,
 } from "@/lib/api";
+import { toWeightUnit, toDistanceUnit, toGraphColourMode } from "@/lib/api";
 import { PageHeader } from "@/components/ui/page-header";
 import { ProfileHeroCard } from "./ProfileHeroCard";
 import { PartnerList } from "./PartnerList";
@@ -68,11 +69,17 @@ export function ProfilePage({
 
         <SettingsSection label="Display">
           <GraphColourToggle
-            initial={profile.graph_colour_mode}
+            initial={toGraphColourMode(profile.graph_colour_mode)}
             token={token}
           />
-          <WeightUnitToggle initial={profile.weight_unit} token={token} />
-          <DistanceUnitToggle initial={profile.distance_unit} token={token} />
+          <WeightUnitToggle
+            initial={toWeightUnit(profile.weight_unit)}
+            token={token}
+          />
+          <DistanceUnitToggle
+            initial={toDistanceUnit(profile.distance_unit)}
+            token={token}
+          />
           <div className="flex items-center justify-between py-3">
             <p className="text-sm text-[var(--foreground)]">Theme</p>
             <span className="text-sm text-[var(--muted-foreground)]">

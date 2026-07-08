@@ -3,26 +3,10 @@
 import { cn } from "@/lib/utils";
 import { LineChart, Line, YAxis, ResponsiveContainer } from "recharts";
 import Link from "next/link";
-
-interface BenchmarkAttempt {
-  date: string;
-  result_display: string;
-  result_seconds: number;
-}
-
-interface BenchmarkEntry {
-  name: string;
-  attempts: BenchmarkAttempt[];
-  pr_display: string;
-  improvement_display: string;
-}
-
-export interface BenchmarkResponseData {
-  benchmarks: BenchmarkEntry[];
-}
+import type { BenchmarkResponse, BenchmarkAttempt } from "@/lib/api";
 
 interface Props {
-  data: BenchmarkResponseData | null;
+  data: BenchmarkResponse | null;
   className?: string;
 }
 

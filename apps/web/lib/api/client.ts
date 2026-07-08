@@ -52,6 +52,16 @@ import type {
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 function headers(token: string): HeadersInit {
   return {
     Authorization: `Bearer ${token}`,
@@ -69,7 +79,7 @@ async function apiFetch<T>(
     ...init,
     headers: headers(token),
   });
-  if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+  if (!res.ok) throw new ApiError(res.status, `API ${res.status}: ${path}`);
   if (res.status === 204) return undefined as T;
   return res.json();
 }

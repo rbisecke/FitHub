@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import type { UserProfile, WeightUnit, DistanceUnit } from "@/lib/api";
+import { toWeightUnit, toDistanceUnit } from "@/lib/api";
 import { OnboardingProgress } from "./OnboardingProgress";
 import { Step1Welcome } from "./Step1Welcome";
 import { Step2Frequency } from "./Step2Frequency";
@@ -104,8 +105,8 @@ export function OnboardingWizard({ step, token, profile }: Props) {
       )}
       {step === 3 && (
         <Step3Units
-          defaultWeightUnit={profile.weight_unit}
-          defaultDistanceUnit={profile.distance_unit}
+          defaultWeightUnit={toWeightUnit(profile.weight_unit)}
+          defaultDistanceUnit={toDistanceUnit(profile.distance_unit)}
           onNext={finishStep3}
         />
       )}
