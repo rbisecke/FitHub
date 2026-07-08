@@ -286,7 +286,7 @@ async def chat(
     injury_context_block = ""
     if injury_notes:
         parts = [
-            f"<injury_note body_region='{i.body_region}'>{html.escape(i.notes)}</injury_note>"
+            f"<injury_note body_region='{i.body_region}'>{html.escape(i.notes or '')}</injury_note>"
             for i in injury_notes
         ]
         _instruction = (
@@ -478,7 +478,7 @@ async def _do_stream(
     injury_context_block = ""
     if injury_notes:
         parts = [
-            f"<injury_note body_region='{i.body_region}'>{html.escape(i.notes)}</injury_note>"
+            f"<injury_note body_region='{i.body_region}'>{html.escape(i.notes or '')}</injury_note>"
             for i in injury_notes
         ]
         _instruction = (

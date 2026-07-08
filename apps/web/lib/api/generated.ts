@@ -1491,7 +1491,7 @@ export interface components {
        */
       stub: boolean;
       /** Safety Tier */
-      safety_tier?: string | null;
+      safety_tier?: ("coach" | "modify" | "stop") | null;
     };
     /** ChatStreamRequest */
     ChatStreamRequest: {
@@ -1863,8 +1863,11 @@ export interface components {
     };
     /** HistoryMessage */
     HistoryMessage: {
-      /** Role */
-      role: string;
+      /**
+       * Role
+       * @enum {string}
+       */
+      role: "user" | "assistant";
       /** Content */
       content: string;
       /**
@@ -2006,8 +2009,16 @@ export interface components {
       atl_now: number;
       /** Tsb Now */
       tsb_now: number;
-      /** Acwr Zone */
-      acwr_zone: string;
+      /**
+       * Acwr Zone
+       * @enum {string}
+       */
+      acwr_zone:
+        | "insufficient_data"
+        | "undertraining"
+        | "sweet_spot"
+        | "caution"
+        | "overreaching";
     };
     /** MagicLinkResponse */
     MagicLinkResponse: {
@@ -2543,8 +2554,11 @@ export interface components {
     PlanTaskResponse: {
       /** Task Id */
       task_id: string;
-      /** Status */
-      status: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "pending" | "running" | "complete" | "failed";
       /** Plan Id */
       plan_id?: string | null;
       /** Error */
@@ -2647,9 +2661,9 @@ export interface components {
       /** Coverage */
       coverage?: number | null;
       /** Confidence Tier */
-      confidence_tier?: string | null;
+      confidence_tier?: ("calibrating_14d" | "low_14_28" | "standard") | null;
       /** Hrv Type */
-      hrv_type?: string | null;
+      hrv_type?: ("hrv_sdnn" | "hrv_rmssd") | null;
       /** Strain Score */
       strain_score?: number | null;
     };
@@ -2678,8 +2692,11 @@ export interface components {
     ReindexJob: {
       /** Job Id */
       job_id: string;
-      /** Status */
-      status: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "queued" | "unknown";
       /** Message */
       message: string;
     };
@@ -3064,7 +3081,15 @@ export interface components {
        */
       distance_unit: "km" | "mi";
       /** Training Level */
-      training_level?: string | null;
+      training_level?:
+        | (
+            | "recreational"
+            | "intermediate"
+            | "competitive"
+            | "masters"
+            | "elite"
+          )
+        | null;
       /** Training Since */
       training_since?: string | null;
     };
@@ -3103,8 +3128,7 @@ export interface components {
        * Format: date
        */
       week_start: string;
-      /** Session Type */
-      session_type: string | null;
+      session_type: components["schemas"]["SessionType"] | null;
       /** Total Load */
       total_load: number;
       /** Workout Count */
@@ -5236,7 +5260,7 @@ export interface operations {
     };
     responses: {
       /** @description Successful Response */
-      200: {
+      201: {
         headers: {
           [name: string]: unknown;
         };
