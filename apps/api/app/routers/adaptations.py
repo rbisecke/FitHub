@@ -163,8 +163,10 @@ async def list_adaptations(
 
 
 @router.post("/adaptations/{adaptation_id}/merge", response_model=AdaptationOut)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def merge_adaptation(
     adaptation_id: uuid.UUID,
+    request: Request,
     user: Auth,
     db: DBConn,
 ) -> AdaptationOut:
@@ -195,8 +197,10 @@ async def merge_adaptation(
 
 
 @router.post("/adaptations/{adaptation_id}/reject", response_model=AdaptationOut)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def reject_adaptation(
     adaptation_id: uuid.UUID,
+    request: Request,
     user: Auth,
     db: DBConn,
     body: RejectAdaptationRequest | None = None,

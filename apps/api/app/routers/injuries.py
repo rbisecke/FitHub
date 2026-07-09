@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Literal, cast
 
 import psycopg.rows
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 
 from app.dependencies.common import Auth, DBConn
 from app.engine.injury import (
@@ -15,6 +15,7 @@ from app.engine.injury import (
     has_red_flags,
     resolve_substitution,
 )
+from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.injury import BodyRegion, InjuryOut, ReportInjuryRequest, UpdateInjuryStatusRequest
 
 router = APIRouter(prefix="/api/v1/injuries", tags=["injuries"])
@@ -54,7 +55,9 @@ def _row_to_injury_out(
 
 
 @router.post("", response_model=InjuryOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def report_injury(
+    request: Request,
     req: ReportInjuryRequest,
     user: Auth,
     db: DBConn,
@@ -116,7 +119,9 @@ async def list_injuries(
 
 
 @router.patch("/{injury_id}/status", response_model=InjuryOut)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def update_injury_status(
+    request: Request,
     injury_id: str,
     req: UpdateInjuryStatusRequest,
     user: Auth,

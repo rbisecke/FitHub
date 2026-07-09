@@ -135,8 +135,7 @@ async def readiness(
     user: Auth,
     conn: DBConn,
 ) -> ReadinessResponse:
-    data = await get_readiness(conn, user.user_id)
-    return ReadinessResponse(**data)
+    return await get_readiness(conn, user.user_id)
 
 
 @router.get("/benchmarks", response_model=BenchmarkResponse)

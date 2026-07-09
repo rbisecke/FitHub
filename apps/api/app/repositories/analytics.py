@@ -3,13 +3,14 @@ from __future__ import annotations
 import uuid
 from collections import defaultdict
 from datetime import date, timedelta
-from typing import Any
+from typing import Any, Literal, cast
 
 import psycopg
 from psycopg.rows import dict_row
 
 from app.engine.metrics import compute_strain_score
 from app.engine.strength import project_e1rm
+from app.models.analytics import ReadinessResponse
 
 
 async def get_load_series(
@@ -308,13 +309,12 @@ async def get_volume_trend(
 async def get_readiness(
     conn: psycopg.AsyncConnection[Any],
     user_id: uuid.UUID,
-) -> dict[str, Any]:
+) -> ReadinessResponse:
     """Compute readiness: derive ATL/CTL/ACWR from workouts, fetch checkins.
 
     Also merges today's wearable-derived fields from derived_metrics and
     metric_samples, and computes strain_score from active energy vs the
-    28-day baseline.  The returned dict contains all fields required by
-    ReadinessResponse.
+    28-day baseline.
     """
     series = await get_load_series(conn, user_id, days=14)
     last: dict[str, Any] = (
@@ -369,7 +369,9 @@ async def get_readiness(
     factors_available = len(available_scores)
     if not available_scores:
         score = 0.5
-        label = "insufficient_data"
+        label: Literal["optimal", "fresh", "high_load", "fatigued", "insufficient_data"] = (
+            "insufficient_data"
+        )
     else:
         score = sum(available_scores) / len(available_scores)
         if score >= 0.75:
@@ -454,19 +456,21 @@ async def get_readiness(
     avg_kcal = baseline_row["avg_kcal"] if baseline_row else None
     n_days = baseline_row["n_days"] if baseline_row else 0
 
-    return {
-        "score": score,
-        "label": label,
-        "acwr": acwr,
-        "tsb": tsb,
-        "sleep_avg": sleep_avg,
-        "factors_available": factors_available,
-        "recovery_score": recovery_score,
-        "coverage": coverage,
-        "confidence_tier": confidence_tier,
-        "hrv_type": hrv_type,
-        "strain_score": compute_strain_score(active_today, avg_kcal, n_days),
-    }
+    return ReadinessResponse(
+        score=score,
+        label=label,
+        acwr=acwr,
+        tsb=tsb,
+        sleep_avg=sleep_avg,
+        factors_available=factors_available,
+        recovery_score=recovery_score,
+        coverage=coverage,
+        confidence_tier=cast(
+            Literal["calibrating_14d", "low_14_28", "standard"] | None, confidence_tier
+        ),
+        hrv_type=cast(Literal["hrv_sdnn", "hrv_rmssd"] | None, hrv_type),
+        strain_score=compute_strain_score(active_today, avg_kcal, n_days),
+    )
 
 
 async def get_training_balance(

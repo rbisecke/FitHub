@@ -125,6 +125,7 @@ async def list_sessions(
 async def write_message(
     db: psycopg.AsyncConnection[Any],
     session_id: uuid.UUID,
+    user_id: uuid.UUID,
     role: str,
     content: str,
     *,
@@ -148,8 +149,8 @@ async def write_message(
         ],
     )
     await db.execute(
-        "UPDATE public.coach_sessions SET updated_at = now() WHERE id = %s",
-        [session_id],
+        "UPDATE public.coach_sessions SET updated_at = now() WHERE id = %s AND user_id = %s",
+        [session_id, user_id],
     )
 
 

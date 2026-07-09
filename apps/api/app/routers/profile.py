@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from app.dependencies.common import Auth, DBConn
+from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.profile import (
     PatchProfileRequest,
     PinnedMovement,
@@ -46,7 +47,13 @@ async def get_profile_stats(user: Auth, conn: DBConn) -> ProfileStats:
 
 
 @router.patch("", response_model=UserProfile)
-async def patch_profile(user: Auth, conn: DBConn, body: PatchProfileRequest) -> UserProfile:
+@limiter.limit("30/minute", key_func=user_or_ip_key)
+async def patch_profile(
+    request: Request,
+    user: Auth,
+    conn: DBConn,
+    body: PatchProfileRequest,
+) -> UserProfile:
     profile = await repo.patch_profile(
         conn,
         user_id=user.user_id,
@@ -65,7 +72,11 @@ async def get_pinned_movements(user: Auth, conn: DBConn) -> list[PinnedMovement]
 
 
 @router.put("/pinned-movements", response_model=list[PinnedMovement])
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def put_pinned_movements(
-    user: Auth, conn: DBConn, body: SetPinnedMovementsRequest
+    request: Request,
+    user: Auth,
+    conn: DBConn,
+    body: SetPinnedMovementsRequest,
 ) -> list[PinnedMovement]:
     return await repo.set_pinned_movements(conn, user_id=user.user_id, body=body)
