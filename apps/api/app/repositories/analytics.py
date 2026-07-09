@@ -306,32 +306,14 @@ async def get_volume_trend(
         return await cur.fetchall()
 
 
-async def get_readiness(
+async def _fetch_sleep_avg(
     conn: psycopg.AsyncConnection[Any],
     user_id: uuid.UUID,
-) -> ReadinessResponse:
-    """Compute readiness: derive ATL/CTL/ACWR from workouts, fetch checkins.
-
-    Also merges today's wearable-derived fields from derived_metrics and
-    metric_samples, and computes strain_score from active energy vs the
-    28-day baseline.
-    """
-    series = await get_load_series(conn, user_id, days=14)
-    last: dict[str, Any] = (
-        series[-1] if series else {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "acwr": None}
-    )
-
-    acwr: float | None = last["acwr"]
-    tsb: float = last["tsb"]
-
-    # Fetch last 3 days of daily_checkins — sleep_quality only (motivation not collected)
-    sleep_avg: float | None = None
-
+) -> float | None:
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT
-                AVG(sleep_quality) AS sleep_avg
+            SELECT AVG(sleep_quality) AS sleep_avg
             FROM public.daily_checkins
             WHERE user_id = %s
               AND date >= CURRENT_DATE - INTERVAL '3 days'
@@ -339,13 +321,21 @@ async def get_readiness(
             (user_id,),
         )
         row = await cur.fetchone()
-        if row:
-            sleep_avg = float(row["sleep_avg"]) if row["sleep_avg"] is not None else None
+    if row and row["sleep_avg"] is not None:
+        return float(row["sleep_avg"])
+    return None
 
-    has_training_data = any(r["load_au"] > 0 for r in series)
 
-    # Compute composite score: average available normalized factors
-    # ACWR sweet spot (0.8-1.3) maps to good score
+def _score_readiness(
+    acwr: float | None,
+    tsb: float,
+    sleep_avg: float | None,
+    has_training_data: bool,
+) -> tuple[
+    float,
+    Literal["optimal", "fresh", "high_load", "fatigued", "insufficient_data"],
+    int,
+]:
     acwr_score: float | None = None
     if acwr is not None and has_training_data:
         if 0.8 <= acwr <= 1.3:
@@ -357,44 +347,39 @@ async def get_readiness(
         else:
             acwr_score = 0.2
 
-    # TSB score: only meaningful when training data exists
     tsb_score: float | None = None
     if has_training_data:
         tsb_score = min(1.0, max(0.0, (tsb + 20) / 40))
 
-    available_scores = [s for s in [acwr_score, tsb_score] if s is not None]
-    # sleep_quality: higher = better (1..7), normalize to [0,1]
+    available = [s for s in [acwr_score, tsb_score] if s is not None]
     if sleep_avg is not None:
-        available_scores.append((sleep_avg - 1.0) / 6.0)
-    factors_available = len(available_scores)
-    if not available_scores:
-        score = 0.5
-        label: Literal["optimal", "fresh", "high_load", "fatigued", "insufficient_data"] = (
-            "insufficient_data"
-        )
+        available.append((sleep_avg - 1.0) / 6.0)
+
+    if not available:
+        return 0.5, "insufficient_data", 0
+
+    score = sum(available) / len(available)
+    label: Literal["optimal", "fresh", "high_load", "fatigued", "insufficient_data"]
+    if score >= 0.75:
+        label = "optimal"
+    elif score >= 0.55:
+        label = "fresh" if tsb > 0 else "high_load"
+    elif score >= 0.35:
+        label = "fatigued"
     else:
-        score = sum(available_scores) / len(available_scores)
-        if score >= 0.75:
-            label = "optimal"
-        elif score >= 0.55:
-            label = "fresh" if tsb > 0 else "high_load"
-        elif score >= 0.35:
-            label = "fatigued"
-        else:
-            label = "high_load"
+        label = "high_load"
+    return score, label, len(available)
 
-    # Merge today's wearable-derived metrics from derived_metrics when available
-    today = date.today()
-    recovery_score: float | None = None
-    coverage: float | None = None
-    confidence_tier: str | None = None
-    hrv_type: str | None = None
 
+async def _fetch_wearable_snapshot(
+    conn: psycopg.AsyncConnection[Any],
+    user_id: uuid.UUID,
+    today: date,
+) -> tuple[float | None, float | None, str | None, str | None]:
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT recovery_score::float, coverage::float,
-                   confidence_tier, baseline_days
+            SELECT recovery_score::float, coverage::float, confidence_tier
             FROM derived_metrics
             WHERE user_id = %s AND date = %s
             """,
@@ -402,26 +387,34 @@ async def get_readiness(
         )
         dm = await cur.fetchone()
 
-    if dm:
-        recovery_score = dm["recovery_score"]
-        coverage = dm["coverage"]
-        confidence_tier = dm["confidence_tier"]
+    if not dm:
+        return None, None, None, None
 
-        # Infer hrv_type from which metric_samples type has data today
-        async with conn.cursor(row_factory=dict_row) as cur:
-            await cur.execute(
-                """
-                SELECT type FROM metric_samples
-                WHERE user_id = %s AND type IN ('hrv_sdnn', 'hrv_rmssd')
-                  AND started_at::date = %s
-                ORDER BY source_priority ASC LIMIT 1
-                """,
-                [user_id, today],
-            )
-            hrv_row = await cur.fetchone()
-        hrv_type = hrv_row["type"] if hrv_row else None
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT type FROM metric_samples
+            WHERE user_id = %s AND type IN ('hrv_sdnn', 'hrv_rmssd')
+              AND started_at::date = %s
+            ORDER BY source_priority ASC LIMIT 1
+            """,
+            [user_id, today],
+        )
+        hrv_row = await cur.fetchone()
 
-    # Compute strain score from active energy vs 28-day baseline
+    return (
+        dm["recovery_score"],
+        dm["coverage"],
+        dm["confidence_tier"],
+        hrv_row["type"] if hrv_row else None,
+    )
+
+
+async def _fetch_strain_inputs(
+    conn: psycopg.AsyncConnection[Any],
+    user_id: uuid.UUID,
+    today: date,
+) -> tuple[float | None, float | None, int]:
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
@@ -433,16 +426,14 @@ async def get_readiness(
             """,
             [user_id, today],
         )
-        energy_today_row = await cur.fetchone()
-
-    active_today = energy_today_row["today_kcal"] if energy_today_row else None
+        energy_row = await cur.fetchone()
 
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
             SELECT
-                AVG(value)::float                         AS avg_kcal,
-                COUNT(DISTINCT started_at::date)::int     AS n_days
+                AVG(value)::float                     AS avg_kcal,
+                COUNT(DISTINCT started_at::date)::int AS n_days
             FROM metric_samples
             WHERE user_id = %s
               AND type = 'active_energy_kcal'
@@ -453,8 +444,32 @@ async def get_readiness(
         )
         baseline_row = await cur.fetchone()
 
+    active_today = energy_row["today_kcal"] if energy_row else None
     avg_kcal = baseline_row["avg_kcal"] if baseline_row else None
-    n_days = baseline_row["n_days"] if baseline_row else 0
+    n_days = int(baseline_row["n_days"]) if baseline_row and baseline_row["n_days"] else 0
+    return active_today, avg_kcal, n_days
+
+
+async def get_readiness(
+    conn: psycopg.AsyncConnection[Any],
+    user_id: uuid.UUID,
+) -> ReadinessResponse:
+    """Orchestrate readiness: load series, sleep, wearables, strain."""
+    series = await get_load_series(conn, user_id, days=14)
+    last: dict[str, Any] = (
+        series[-1] if series else {"atl": 0.0, "ctl": 0.0, "tsb": 0.0, "acwr": None}
+    )
+    acwr: float | None = last["acwr"]
+    tsb: float = last["tsb"]
+    has_training_data = any(r["load_au"] > 0 for r in series)
+
+    today = date.today()
+    sleep_avg = await _fetch_sleep_avg(conn, user_id)
+    score, label, factors_available = _score_readiness(acwr, tsb, sleep_avg, has_training_data)
+    recovery_score, coverage, confidence_tier, hrv_type = await _fetch_wearable_snapshot(
+        conn, user_id, today
+    )
+    active_today, avg_kcal, n_days = await _fetch_strain_inputs(conn, user_id, today)
 
     return ReadinessResponse(
         score=score,
