@@ -285,7 +285,7 @@ export default function IntegrationsPage() {
             className="rounded-lg px-4 py-2 font-mono text-[13px] font-semibold transition-opacity disabled:opacity-50 hover:opacity-80"
             style={{
               background: "var(--accent)",
-              color: "#0d1117",
+              color: "var(--bg)",
             }}
           >
             {flow.kind === "connecting" ? "Connecting…" : "Connect"}

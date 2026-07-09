@@ -39,7 +39,7 @@ const ROLE_COLORS: Record<string, string> = {
   rx: "#4ADE80",
   scaled: "#FFC83D",
   coach: "#8b5cf6",
-  athlete: "#58a6ff",
+  athlete: "var(--accent)",
 };
 
 function formatTime(seconds: number): string {
@@ -279,7 +279,7 @@ export function WorkoutCard({
                     cx="4.5"
                     cy="5"
                     r="3.5"
-                    stroke="#8b949e"
+                    stroke="var(--muted)"
                     strokeWidth="1.3"
                     fill="none"
                   />
@@ -287,7 +287,7 @@ export function WorkoutCard({
                     cx="9.5"
                     cy="5"
                     r="3.5"
-                    stroke="#8b949e"
+                    stroke="var(--muted)"
                     strokeWidth="1.3"
                     fill="none"
                   />
@@ -615,7 +615,8 @@ function ExpandedContent({
           <div className="flex flex-wrap gap-3 mb-2">
             {(teamSession.participants?.slice(0, 3) ?? []).map(
               (p: TeamSessionParticipant, i: number) => {
-                const roleColor = ROLE_COLORS[p.role ?? "athlete"] ?? "#58a6ff";
+                const roleColor =
+                  ROLE_COLORS[p.role ?? "athlete"] ?? "var(--accent)";
                 const name = p.display_name ?? p.guest_name ?? "?";
                 const initial = name.charAt(0).toUpperCase();
                 return (

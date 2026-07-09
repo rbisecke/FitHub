@@ -11,7 +11,7 @@ const ROLE_COLORS: Record<string, string> = {
   rx: "#4ADE80",
   scaled: "#FFC83D",
   coach: "#8b5cf6",
-  athlete: "#58a6ff",
+  athlete: "var(--accent)",
 };
 
 function formatTeamScore(ts: TeamSession): string {
@@ -65,7 +65,8 @@ function ParticipantRow({
   currentUserId: string;
   onLeave: (participantId: string) => void;
 }) {
-  const roleColor = ROLE_COLORS[participant.role ?? "athlete"] ?? "#58a6ff";
+  const roleColor =
+    ROLE_COLORS[participant.role ?? "athlete"] ?? "var(--accent)";
   const name = participant.display_name ?? participant.guest_name ?? "Unknown";
   const initials = name.charAt(0).toUpperCase();
   const [confirmLeave, setConfirmLeave] = useState(false);

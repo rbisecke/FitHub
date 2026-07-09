@@ -713,7 +713,7 @@ export function LoginForm({ initialError }: { initialError?: string }) {
                     justifyContent: "center",
                     gap: 8,
                     background: "var(--accent)",
-                    color: "#0d1117",
+                    color: "var(--bg)",
                     border: "none",
                     fontWeight: 700,
                     fontSize: 13.5,
@@ -730,7 +730,7 @@ export function LoginForm({ initialError }: { initialError?: string }) {
                   {magicState === "loading" ? (
                     <Spinner
                       borderColor="rgba(13,17,23,.3)"
-                      topColor="#0d1117"
+                      topColor="var(--bg)"
                     />
                   ) : (
                     "Send magic link"
