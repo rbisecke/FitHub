@@ -26,12 +26,12 @@ export default function NotFound() {
             <p>Suggestions:</p>
             <ul className="list-none space-y-1 pl-2">
               <li>
-                <span className="text-green-500">hint:</span> Check the URL for
-                typos
+                <span className="text-[var(--green)]">hint:</span> Check the URL
+                for typos
               </li>
               <li>
-                <span className="text-green-500">hint:</span> Return to a known
-                branch
+                <span className="text-[var(--green)]">hint:</span> Return to a
+                known branch
               </li>
             </ul>
           </div>
