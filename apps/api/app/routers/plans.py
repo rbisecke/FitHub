@@ -39,7 +39,7 @@ async def _get_plan_detail(
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
-            SELECT id, goal, title, branch_name, weeks, status,
+            SELECT id, archetype, title, branch_name, weeks, status,
                    start_date, end_date, training_age,
                    to_char(created_at AT TIME ZONE 'UTC',
                            'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
@@ -94,8 +94,17 @@ async def _get_plan_detail(
 
     return PlanDetail(
         id=plan["id"],
-        goal=cast(
-            Literal["general_fitness", "strength", "endurance", "competition_prep"], plan["goal"]
+        archetype=cast(
+            Literal[
+                "general-crossfit",
+                "strength-bias",
+                "travel-minimal",
+                "aerobic-base",
+                "bodyweight-calisthenics",
+                "skill-acquisition",
+                "one-rm-peak",
+            ],
+            plan["archetype"],
         ),
         title=str(plan["title"]),
         branch_name=str(plan["branch_name"]),
@@ -255,11 +264,12 @@ async def create_plan(
     from app.ai.plan_generator import run_plan_generation  # noqa: PLC0415
 
     req_data: dict[str, object] = {
-        "goal": req.goal,
+        "archetype": req.archetype,
         "title": req.title,
         "start_date": req.start_date.isoformat(),
         "weeks": req.weeks,
         "training_age": req.training_age,
+        "days_per_week": req.days_per_week,
     }
     _task = asyncio.create_task(run_plan_generation(task_id, str(user.user_id), req_data))
     _bg_tasks.add(_task)
@@ -303,7 +313,7 @@ async def list_plans(
         if before_id is not None:
             await cur.execute(
                 """
-                SELECT id, goal, title, branch_name, weeks, status,
+                SELECT id, archetype, title, branch_name, weeks, status,
                        start_date, end_date,
                        to_char(created_at AT TIME ZONE 'UTC',
                                'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
@@ -320,7 +330,7 @@ async def list_plans(
         else:
             await cur.execute(
                 """
-                SELECT id, goal, title, branch_name, weeks, status,
+                SELECT id, archetype, title, branch_name, weeks, status,
                        start_date, end_date,
                        to_char(created_at AT TIME ZONE 'UTC',
                                'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
@@ -333,8 +343,17 @@ async def list_plans(
     return [
         PlanSummary(
             id=r["id"],
-            goal=cast(
-                Literal["general_fitness", "strength", "endurance", "competition_prep"], r["goal"]
+            archetype=cast(
+                Literal[
+                    "general-crossfit",
+                    "strength-bias",
+                    "travel-minimal",
+                    "aerobic-base",
+                    "bodyweight-calisthenics",
+                    "skill-acquisition",
+                    "one-rm-peak",
+                ],
+                r["archetype"],
             ),
             title=str(r["title"]),
             branch_name=str(r["branch_name"]),

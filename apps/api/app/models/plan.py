@@ -8,13 +8,24 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+_ARCHETYPE = Literal[
+    "general-crossfit",
+    "strength-bias",
+    "travel-minimal",
+    "aerobic-base",
+    "bodyweight-calisthenics",
+    "skill-acquisition",
+    "one-rm-peak",
+]
+
 
 class CreatePlanRequest(BaseModel):
-    goal: Literal["general_fitness", "strength", "endurance", "competition_prep"]
+    archetype: _ARCHETYPE
     title: str = Field(max_length=200)
     start_date: date
     weeks: int = Field(ge=4, le=24)
     training_age: Literal["beginner", "intermediate", "advanced"]
+    days_per_week: int = Field(ge=3, le=7)
 
 
 class PlanTaskResponse(BaseModel):
@@ -28,7 +39,7 @@ class PlanBase(BaseModel):
     """Shared fields between PlanSummary and PlanDetail."""
 
     id: uuid.UUID
-    goal: Literal["general_fitness", "strength", "endurance", "competition_prep"]
+    archetype: _ARCHETYPE
     title: str
     branch_name: str
     weeks: int
