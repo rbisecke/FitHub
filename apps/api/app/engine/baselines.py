@@ -41,28 +41,22 @@ async def get_baseline(
     return row["mean"], row["sd"], row["n_days"]
 
 
-async def compute_today_recovery(
+_SIGNAL_TYPES = [
+    "hrv_sdnn",
+    "hrv_rmssd",
+    "rhr",
+    "sleep_score",
+    "subjective_wellness",
+    "soreness",
+]
+
+
+async def _fetch_today_signals(
     user_id: str,
     db: psycopg.AsyncConnection[object],
-) -> dict[str, object]:
-    """Compute today's recovery score and upsert into derived_metrics.
-
-    Uses 2 SQL queries instead of 7: one to fetch all signal values in bulk,
-    one to fetch both baselines together.
-    """
-    from app.engine.metrics import SignalInput, compute_recovery
-
-    today = date.today()
-    cutoff = today - timedelta(days=28)
-
-    signal_types = [
-        "hrv_sdnn",
-        "hrv_rmssd",
-        "rhr",
-        "sleep_score",
-        "subjective_wellness",
-        "soreness",
-    ]
+    today: date,
+) -> dict[str, float]:
+    """Fetch today's metric_samples values for all recovery signal types."""
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
@@ -71,22 +65,26 @@ async def compute_today_recovery(
             WHERE user_id = %s AND type = ANY(%s) AND started_at::date = %s
             ORDER BY type, source_priority ASC, started_at DESC
             """,
-            [user_id, signal_types, today],
+            [user_id, _SIGNAL_TYPES, today],
         )
-        signal_rows = await cur.fetchall()
-    signals: dict[str, float] = {r["type"]: r["value"] for r in signal_rows}
+        rows = await cur.fetchall()
+    return {r["type"]: r["value"] for r in rows}
 
-    hrv_sdnn = signals.get("hrv_sdnn")
-    hrv_rmssd = signals.get("hrv_rmssd")
-    hrv = hrv_sdnn if hrv_sdnn is not None else hrv_rmssd
-    hrv_type = "hrv_sdnn" if hrv_sdnn is not None else "hrv_rmssd"
 
+async def _fetch_hrv_rhr_baselines(
+    user_id: str,
+    db: psycopg.AsyncConnection[object],
+    hrv_type: str,
+    cutoff: date,
+    today: date,
+) -> dict[str, dict[str, object]]:
+    """Return 28-day mean/sd/n_days for the active HRV metric and RHR."""
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
             SELECT type,
-                   AVG(value)::float AS mean,
-                   STDDEV_SAMP(value)::float AS sd,
+                   AVG(value)::float            AS mean,
+                   STDDEV_SAMP(value)::float    AS sd,
                    COUNT(DISTINCT started_at::date)::int AS n_days
             FROM metric_samples
             WHERE user_id = %s AND type = ANY(%s)
@@ -95,8 +93,26 @@ async def compute_today_recovery(
             """,
             [user_id, [hrv_type, "rhr"], cutoff, today],
         )
-        baseline_rows = await cur.fetchall()
-    baselines: dict[str, dict[str, object]] = {r["type"]: r for r in baseline_rows}
+        rows = await cur.fetchall()
+    return {r["type"]: r for r in rows}
+
+
+async def compute_today_recovery(
+    user_id: str,
+    db: psycopg.AsyncConnection[object],
+) -> dict[str, object]:
+    """Compute today's recovery score and upsert into derived_metrics."""
+    from app.engine.metrics import SignalInput, compute_recovery
+
+    today = date.today()
+    cutoff = today - timedelta(days=28)
+    signals = await _fetch_today_signals(user_id, db, today)
+
+    hrv_sdnn = signals.get("hrv_sdnn")
+    hrv = hrv_sdnn if hrv_sdnn is not None else signals.get("hrv_rmssd")
+    hrv_type = "hrv_sdnn" if hrv_sdnn is not None else "hrv_rmssd"
+
+    baselines = await _fetch_hrv_rhr_baselines(user_id, db, hrv_type, cutoff, today)
 
     def _fv(d: dict[str, object], key: str) -> float | None:
         v = d.get(key)
@@ -104,20 +120,16 @@ async def compute_today_recovery(
 
     hrv_b = baselines.get(hrv_type) or {}
     rhr_b = baselines.get("rhr") or {}
-    hrv_mean = _fv(hrv_b, "mean")
-    hrv_sd = _fv(hrv_b, "sd")
     n_days_raw = hrv_b.get("n_days")
     hrv_days = int(n_days_raw) if isinstance(n_days_raw, int) else 0
-    rhr_mean = _fv(rhr_b, "mean")
-    rhr_sd = _fv(rhr_b, "sd")
 
     sig = SignalInput(
         hrv_rmssd_ms=hrv,
-        hrv_baseline_ms=hrv_mean,
-        hrv_sd_ms=hrv_sd,
+        hrv_baseline_ms=_fv(hrv_b, "mean"),
+        hrv_sd_ms=_fv(hrv_b, "sd"),
         rhr_bpm=signals.get("rhr"),
-        rhr_baseline_bpm=rhr_mean,
-        rhr_sd_bpm=rhr_sd,
+        rhr_baseline_bpm=_fv(rhr_b, "mean"),
+        rhr_sd_bpm=_fv(rhr_b, "sd"),
         sleep_score=signals.get("sleep_score"),
         subjective_wellness=signals.get("subjective_wellness"),
         soreness=signals.get("soreness"),
@@ -138,7 +150,6 @@ async def compute_today_recovery(
         """,
         [user_id, today, dm.recovery_score, dm.coverage, dm.confidence_tier, hrv_days],
     )
-
     return {
         "recovery_score": dm.recovery_score,
         "coverage": dm.coverage,

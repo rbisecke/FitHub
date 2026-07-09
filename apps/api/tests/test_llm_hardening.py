@@ -161,12 +161,12 @@ def test_coach_user_content_uses_xml_delimiters() -> None:
 
 
 def test_coach_xml_format_string() -> None:
-    """The user_content construction in coach.py must wrap context and question."""
+    """_build_user_content in coach.py must wrap context and question in XML tags."""
     import inspect
 
     import app.routers.coach as coach_module
 
-    source = inspect.getsource(coach_module.chat)
+    source = inspect.getsource(coach_module._build_user_content)
     assert "<context>" in source
     assert "</context>" in source
     assert "<user_input>" in source
