@@ -8,7 +8,7 @@ import pytest
 
 from app.ai.skill_prerequisites import SKILL_PREREQUISITES, build_user_history_skill
 
-# ── Constant tests ─────────────────────────────────────────────────────────────
+# ── Constants ─────────────────────────────────────────────────────────────────
 
 ALL_14_SKILLS = {
     # Tier 1
@@ -28,6 +28,9 @@ ALL_14_SKILLS = {
     "split-jerk",
     "turkish-get-up",
 }
+
+
+# ── SKILL_PREREQUISITES dict tests ────────────────────────────────────────────
 
 
 def test_all_14_movements_present() -> None:
@@ -78,13 +81,14 @@ def _make_mock_conn(movement_names: set[str]) -> MagicMock:
 
 
 @pytest.mark.asyncio
-async def test_build_user_history_skill_returns_string_like_dict() -> None:
-    """build_user_history_skill must return a dict (not crash with stub conn)."""
+async def test_build_user_history_skill_returns_dict() -> None:
+    """build_user_history_skill must return a dict and not raise with a stub conn."""
     conn = _make_mock_conn(set())
-
     stub_history: dict[str, object] = {"recent_sessions": [], "movement_frequency": {}}
+
     with patch(
-        "app.ai.skill_prerequisites.build_user_history", new=AsyncMock(return_value=stub_history)
+        "app.ai.skill_prerequisites.build_user_history",
+        new=AsyncMock(return_value=stub_history),
     ):
         result = await build_user_history_skill("user-123", conn, "bar-muscle-up")
 
@@ -94,15 +98,16 @@ async def test_build_user_history_skill_returns_string_like_dict() -> None:
 
 @pytest.mark.asyncio
 async def test_entry_point_is_first_unconfirmed() -> None:
-    """Entry point is the first prerequisite not yet present in logged movements."""
+    """Entry point is the first prerequisite not yet in the athlete's logged movements."""
     # bar-muscle-up chain: Strict Pull-Up, Chest-to-Bar Pull-Up, Kipping Pull-Up,
     # Kipping Chest-to-Bar Pull-Up, Bar Muscle-Up
     logged = {"Strict Pull-Up", "Chest-to-Bar Pull-Up"}
     conn = _make_mock_conn(logged)
-
     stub_history: dict[str, object] = {"recent_sessions": [], "movement_frequency": {}}
+
     with patch(
-        "app.ai.skill_prerequisites.build_user_history", new=AsyncMock(return_value=stub_history)
+        "app.ai.skill_prerequisites.build_user_history",
+        new=AsyncMock(return_value=stub_history),
     ):
         result = await build_user_history_skill("user-456", conn, "bar-muscle-up")
 
@@ -114,13 +119,14 @@ async def test_entry_point_is_first_unconfirmed() -> None:
 
 @pytest.mark.asyncio
 async def test_entry_point_is_last_when_all_confirmed() -> None:
-    """When all prerequisites are confirmed, entry point is the target skill itself."""
+    """When all chain entries are confirmed, entry point is the target skill itself."""
     chain = SKILL_PREREQUISITES["double-under"]
-    conn = _make_mock_conn(set(chain))  # all chain entries logged
-
+    conn = _make_mock_conn(set(chain))
     stub_history: dict[str, object] = {"recent_sessions": [], "movement_frequency": {}}
+
     with patch(
-        "app.ai.skill_prerequisites.build_user_history", new=AsyncMock(return_value=stub_history)
+        "app.ai.skill_prerequisites.build_user_history",
+        new=AsyncMock(return_value=stub_history),
     ):
         result = await build_user_history_skill("user-789", conn, "double-under")
 
@@ -134,10 +140,11 @@ async def test_entry_point_is_last_when_all_confirmed() -> None:
 async def test_entry_point_is_first_when_nothing_confirmed() -> None:
     """With no history, entry point defaults to the first element in the chain."""
     conn = _make_mock_conn(set())
-
     stub_history: dict[str, object] = {"recent_sessions": [], "movement_frequency": {}}
+
     with patch(
-        "app.ai.skill_prerequisites.build_user_history", new=AsyncMock(return_value=stub_history)
+        "app.ai.skill_prerequisites.build_user_history",
+        new=AsyncMock(return_value=stub_history),
     ):
         result = await build_user_history_skill("user-000", conn, "pistol-squat")
 
@@ -151,10 +158,11 @@ async def test_entry_point_is_first_when_nothing_confirmed() -> None:
 async def test_unknown_skill_returns_base_history_unchanged() -> None:
     """An unrecognised target_skill slug returns base history with no skill_context key."""
     conn = _make_mock_conn(set())
-
     stub_history: dict[str, object] = {"recent_sessions": [], "movement_frequency": {}}
+
     with patch(
-        "app.ai.skill_prerequisites.build_user_history", new=AsyncMock(return_value=stub_history)
+        "app.ai.skill_prerequisites.build_user_history",
+        new=AsyncMock(return_value=stub_history),
     ):
         result = await build_user_history_skill("user-111", conn, "not-a-real-skill")
 
@@ -165,10 +173,11 @@ async def test_unknown_skill_returns_base_history_unchanged() -> None:
 async def test_prerequisite_chain_attached_to_result() -> None:
     """skill_context carries the full prerequisite chain from SKILL_PREREQUISITES."""
     conn = _make_mock_conn(set())
-
     stub_history: dict[str, object] = {"recent_sessions": [], "movement_frequency": {}}
+
     with patch(
-        "app.ai.skill_prerequisites.build_user_history", new=AsyncMock(return_value=stub_history)
+        "app.ai.skill_prerequisites.build_user_history",
+        new=AsyncMock(return_value=stub_history),
     ):
         result = await build_user_history_skill("user-222", conn, "snatch")
 

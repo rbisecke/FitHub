@@ -137,12 +137,12 @@ async def build_user_history_skill(
 
     chain = SKILL_PREREQUISITES.get(target_skill)
     if not chain:
-        # Unknown skill slug — return base history unchanged
+        # Unknown skill slug — return base history unchanged.
         log.warning("build_user_history_skill: unknown target_skill=%r", target_skill)
         return history
 
     # Pull distinct movement names logged by this user in the last 90 days.
-    # Parameterized query; user_id never appears in the output string.
+    # user_id is passed as a parameter, never interpolated into the SQL string.
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
