@@ -64,18 +64,22 @@ export function MovementSearch({
   const [modalityFilter, setModalityFilter] = useState<string | null>(null);
 
   const search = useCallback(
-    async (q: string, modality: string | null) => {
+    async (q: string, modality: string | null, signal?: AbortSignal) => {
       try {
         // Use higher limit when browsing a modality with no query
         const limit = q.length === 0 ? 50 : 20;
-        const data = await api.movements.search(accessToken, {
-          ...(q ? { q } : {}),
-          ...(modality ? { modality } : {}),
-          limit,
-        });
+        const data = await api.movements.search(
+          accessToken,
+          {
+            ...(q ? { q } : {}),
+            ...(modality ? { modality } : {}),
+            limit,
+          },
+          { signal },
+        );
         setResults(data);
-      } catch {
-        setResults([]);
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") setResults([]);
       }
     },
     [accessToken],
@@ -85,8 +89,15 @@ export function MovementSearch({
     if (!open) return;
     // No query + no filter: no network call; stale results are hidden via displayResults below
     if (!query && !modalityFilter) return;
-    const t = setTimeout(() => search(query, modalityFilter), 300);
-    return () => clearTimeout(t);
+    const controller = new AbortController();
+    const t = setTimeout(
+      () => void search(query, modalityFilter, controller.signal),
+      300,
+    );
+    return () => {
+      controller.abort();
+      clearTimeout(t);
+    };
   }, [open, query, modalityFilter, search]);
 
   function handleOpenChange(nextOpen: boolean) {

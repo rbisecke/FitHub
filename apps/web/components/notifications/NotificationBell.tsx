@@ -35,19 +35,29 @@ export function NotificationBell({ mode }: NotificationBellProps) {
   // Fetch notifications + poll every 60 seconds once we have a token
   useEffect(() => {
     if (!accessToken) return;
+    const controller = new AbortController();
+    let cancelled = false;
 
     function fetchNotifs() {
       api.notifications
-        .list(accessToken!, false)
-        .then(setNotifications)
+        .list(accessToken!, false, { signal: controller.signal })
+        .then((notifs) => {
+          if (!cancelled) setNotifications(notifs);
+        })
         .catch((err) => {
-          console.error("Notification poll failed", err);
+          if (!cancelled && (err as Error).name !== "AbortError") {
+            console.error("Notification poll failed", err);
+          }
         });
     }
 
     fetchNotifs();
     const interval = setInterval(fetchNotifs, 60_000);
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      controller.abort();
+      clearInterval(interval);
+    };
   }, [accessToken]);
 
   // Close desktop dropdown on outside click

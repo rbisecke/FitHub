@@ -154,8 +154,10 @@ export default function IntegrationsPage() {
   const [token, setToken] = useState<string>("");
 
   const loadStatus = useCallback(
-    async (t: string) => {
-      const connections = await api.integrations.list(t).catch(() => []);
+    async (t: string, signal?: AbortSignal) => {
+      const connections = await api.integrations
+        .list(t, { signal })
+        .catch(() => []);
       const ah = connections.find((c) => c.provider === "apple_health");
       if (ah?.last_synced_at) {
         const prefix =
@@ -178,6 +180,7 @@ export default function IntegrationsPage() {
   );
 
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
     (async () => {
       const sb = createClient();
@@ -187,10 +190,11 @@ export default function IntegrationsPage() {
       if (cancelled || !session) return;
       const t = session.access_token;
       setToken(t);
-      await loadStatus(t);
+      await loadStatus(t, controller.signal);
     })();
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [loadStatus]);
 

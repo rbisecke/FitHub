@@ -3,8 +3,15 @@
 import type { WorkoutSummary } from "@/lib/api";
 
 function formatTemplateDate(isoStr: string): string {
-  const d = new Date(isoStr);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const [y, m, day] = isoStr.slice(0, 10).split("-").map(Number) as [
+    number,
+    number,
+    number,
+  ];
+  return new Date(y, m - 1, day).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 interface TemplatePickerProps {

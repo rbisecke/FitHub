@@ -39,17 +39,23 @@ export function MovementSearchDialog({
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!open) return;
+    const controller = new AbortController();
     let cancelled = false;
 
     debounceRef.current = setTimeout(() => {
       setLoading(true);
       api.movements
-        .search(accessToken, { q: query || undefined, limit: 20 })
+        .search(
+          accessToken,
+          { q: query || undefined, limit: 20 },
+          { signal: controller.signal },
+        )
         .then((r) => {
           if (!cancelled) setResults(r);
         })
-        .catch(() => {
-          if (!cancelled) setResults([]);
+        .catch((err) => {
+          if (!cancelled && (err as Error).name !== "AbortError")
+            setResults([]);
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
@@ -58,6 +64,7 @@ export function MovementSearchDialog({
 
     return () => {
       cancelled = true;
+      controller.abort();
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [query, open, accessToken]);

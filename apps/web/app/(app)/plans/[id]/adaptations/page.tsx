@@ -19,6 +19,7 @@ export default function AdaptationsPage({ params }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
 
     async function init() {
@@ -37,11 +38,14 @@ export default function AdaptationsPage({ params }: Props) {
 
       setAccessToken(session.access_token);
       try {
-        const all = await api.adaptations.list(session.access_token, id);
+        const all = await api.adaptations.list(session.access_token, id, {
+          signal: controller.signal,
+        });
         if (!cancelled)
           setAdaptations(all.filter((a) => a.status === "proposed"));
-      } catch {
-        if (!cancelled) router.replace("/404");
+      } catch (err) {
+        if (!cancelled && (err as Error).name !== "AbortError")
+          router.replace("/404");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -50,6 +54,7 @@ export default function AdaptationsPage({ params }: Props) {
     init();
     return () => {
       cancelled = true;
+      controller.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

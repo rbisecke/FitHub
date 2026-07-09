@@ -40,6 +40,7 @@ export function DesktopSidebar({ user, isAdmin }: Props) {
   const [streak, setStreak] = useState(0);
 
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
     const supabase = createClient();
     supabase.auth.getSession().then(async ({ data }) => {
@@ -47,8 +48,12 @@ export function DesktopSidebar({ user, isAdmin }: Props) {
       const token = data.session.access_token;
       try {
         const [workoutResp, profile] = await Promise.all([
-          api.workouts.list(token, { limit: 100 }),
-          api.profile.get(token),
+          api.workouts.list(
+            token,
+            { limit: 100 },
+            { signal: controller.signal },
+          ),
+          api.profile.get(token, { signal: controller.signal }),
         ]);
         if (cancelled) return;
         const frequencyTarget = profile.frequency_target_days ?? 3;
@@ -60,6 +65,7 @@ export function DesktopSidebar({ user, isAdmin }: Props) {
     });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, []);
 
