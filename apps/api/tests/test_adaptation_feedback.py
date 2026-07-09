@@ -16,7 +16,7 @@ CREATE_PLAN_BODY = {
     "start_date": "2026-07-01",
     "weeks": 8,
     "training_age": "intermediate",
-    "days_per_week": 3,
+    "days_per_week": 4,
 }
 
 

@@ -18,7 +18,7 @@ CREATE_BODY = {
     "start_date": "2026-07-01",
     "weeks": 4,
     "training_age": "intermediate",
-    "days_per_week": 3,
+    "days_per_week": 4,
 }
 
 FEEDBACK = "My knees have been bothering me — please reduce squat volume."

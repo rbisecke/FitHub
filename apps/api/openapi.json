@@ -5200,11 +5200,55 @@
             ],
             "title": "Training Age"
           },
+          "equipment": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Equipment"
+          },
           "days_per_week": {
             "type": "integer",
-            "maximum": 7.0,
-            "minimum": 3.0,
+            "maximum": 6.0,
+            "minimum": 2.0,
             "title": "Days Per Week"
+          },
+          "target_movement_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Movement Id"
+          },
+          "max_duration_weeks": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 24.0,
+                "minimum": 4.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Duration Weeks"
+          },
+          "current_1rm_kg": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current 1Rm Kg"
           }
         },
         "type": "object",
@@ -6465,6 +6509,7 @@
             "enum": [
               "accumulation",
               "intensification",
+              "realization",
               "deload",
               "peak",
               "test"
@@ -7980,7 +8025,6 @@
           "start_date",
           "end_date",
           "created_at",
-          "training_age",
           "mesocycles",
           "sessions"
         ],
@@ -8055,6 +8099,22 @@
           "created_at": {
             "type": "string",
             "title": "Created At"
+          },
+          "training_age": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "beginner",
+                  "intermediate",
+                  "advanced"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Age"
           }
         },
         "type": "object",
