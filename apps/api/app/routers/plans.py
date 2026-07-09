@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import uuid
 from datetime import date
 from typing import Annotated, Literal, cast
@@ -28,9 +29,55 @@ from app.models.plan import (
     SessionPatch,
 )
 
+log = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/v1/plans", tags=["plans"])
 
 _bg_tasks: set[asyncio.Task[None]] = set()
+
+
+async def _prefetch_1rm(
+    movement_id: uuid.UUID,
+    user_id: str,
+    db: psycopg.AsyncConnection[object],
+) -> float | None:
+    """Return the best estimated 1RM (kg) for this user + movement using the Epley formula.
+
+    Queries the 20 most recent weight results for the movement, computes
+    estimated 1RM = load * (1 + reps/30) for each set, and returns the max.
+    Returns None if there are no eligible results.
+
+    Security: WHERE clause always includes user_id to prevent IDOR.
+    """
+    try:
+        async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT load_kg, reps
+                FROM public.results
+                WHERE user_id = %s AND movement_id = %s
+                  AND result_type = 'weight'
+                  AND load_kg IS NOT NULL AND reps IS NOT NULL
+                ORDER BY performed_at DESC
+                LIMIT 20
+                """,
+                [user_id, movement_id],
+            )
+            rows = await cur.fetchall()
+    except psycopg.Error:
+        log.exception("db error in _prefetch_1rm user_id=%s movement_id=%s", user_id, movement_id)
+        return None
+
+    if not rows:
+        return None
+
+    # Epley formula: e1RM = load * (1 + reps/30); take max across recent sets
+    estimates = [
+        float(r["load_kg"]) * (1 + int(str(r["reps"])) / 30)
+        for r in rows
+        if str(r["reps"]).isdigit()
+    ]
+    return round(max(estimates), 1) if estimates else None
 
 
 async def _get_plan_detail(
@@ -255,11 +302,20 @@ async def create_plan(
     db: DBConn,
     _kill: Annotated[None, Depends(require_llm_enabled)],
 ) -> PlanTaskResponse:
-    task_id = str(uuid.uuid4())
-    await db.execute(
-        "INSERT INTO plan_tasks (id, user_id, status) VALUES (%s::uuid, %s, 'pending')",
-        [task_id, user.user_id],
-    )
+    # Pre-fetch 1RM from results table when archetype needs it but caller didn't supply one
+    current_1rm: float | None = req.current_1rm_kg
+    if req.target_movement_id is not None and current_1rm is None:
+        current_1rm = await _prefetch_1rm(req.target_movement_id, str(user.user_id), db)
+
+    try:
+        task_id = str(uuid.uuid4())
+        await db.execute(
+            "INSERT INTO plan_tasks (id, user_id, status) VALUES (%s::uuid, %s, 'pending')",
+            [task_id, user.user_id],
+        )
+    except psycopg.Error as exc:
+        log.exception("db error creating plan_task for user_id=%s", user.user_id)
+        raise HTTPException(status_code=500, detail="Internal error. Please try again.") from exc
 
     from app.ai.plan_generator import run_plan_generation  # noqa: PLC0415
 
@@ -269,7 +325,11 @@ async def create_plan(
         "start_date": req.start_date.isoformat(),
         "weeks": req.weeks,
         "training_age": req.training_age,
+        "equipment": list(req.equipment),
         "days_per_week": req.days_per_week,
+        "target_movement_id": str(req.target_movement_id) if req.target_movement_id else None,
+        "max_duration_weeks": req.max_duration_weeks,
+        "current_1rm_kg": current_1rm,
     }
     _task = asyncio.create_task(run_plan_generation(task_id, str(user.user_id), req_data))
     _bg_tasks.add(_task)
