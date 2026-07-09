@@ -55,20 +55,20 @@ export function NotificationPanel({
   const [markError, setMarkError] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     api.notifications
-      .list(accessToken, false)
+      .list(accessToken, false, { signal: controller.signal })
       .then((notifs) => {
-        if (!cancelled) setNotifications(notifs);
+        setNotifications(notifs);
       })
-      .catch(() => {
-        if (!cancelled) setFetchError(true);
+      .catch((err) => {
+        if ((err as Error).name !== "AbortError") setFetchError(true);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [accessToken]);
 

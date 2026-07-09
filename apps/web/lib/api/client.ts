@@ -327,10 +327,15 @@ export const api = {
       ),
   },
   notifications: {
-    list: (token: string, includeRead = false) =>
+    list: (
+      token: string,
+      includeRead = false,
+      options?: { signal?: AbortSignal },
+    ) =>
       apiFetch<Notification[]>(
         `/api/v1/notifications?include_read=${includeRead}`,
         token,
+        { signal: options?.signal },
       ),
     markRead: (token: string, id: string) =>
       apiFetch<Notification>(`/api/v1/notifications/${id}/read`, token, {
@@ -728,8 +733,8 @@ export function createApiClient(token: string) {
     trainingPartners: () => api.trainingPartners(token),
     addTrainingPartner: (email: string) => api.addTrainingPartner(token, email),
     notifications: {
-      list: (includeRead?: boolean) =>
-        api.notifications.list(token, includeRead),
+      list: (includeRead?: boolean, options?: { signal?: AbortSignal }) =>
+        api.notifications.list(token, includeRead, options),
       markRead: (id: string) => api.notifications.markRead(token, id),
     },
     profiles: {
