@@ -83,11 +83,12 @@ async function createPlanAndWait(token: string): Promise<string> {
       "X-Test-User-Id": "e2e-plans",
     },
     body: JSON.stringify({
-      goal: "general_fitness",
+      archetype: "general-crossfit",
       title: "E2E Test Plan",
       start_date: "2026-07-01",
       weeks,
       training_age: "intermediate",
+      days_per_week: 4,
     }),
   });
   expect(createRes.status).toBe(202);
@@ -147,7 +148,7 @@ test("plan API creates plan and returns detail", async ({ page }) => {
   });
   expect(detailRes.status).toBe(200);
   const plan = (await detailRes.json()) as Record<string, unknown>;
-  expect(plan["goal"]).toBe("general_fitness");
+  expect(plan["archetype"]).toBe("general-crossfit");
   expect(Array.isArray(plan["mesocycles"])).toBe(true);
   expect(Array.isArray(plan["sessions"])).toBe(true);
 });

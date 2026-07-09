@@ -332,11 +332,12 @@ test.describe.serial("modify-workout API", () => {
         "X-Test-User-Id": "e2e-injuries",
       },
       body: JSON.stringify({
-        goal: "strength",
+        archetype: "strength-bias",
         title: "Injury E2E Plan",
         start_date: new Date().toISOString().slice(0, 10),
         weeks: 4,
         training_age: "intermediate",
+        days_per_week: 4,
       }),
     });
     expect(planRes.ok).toBe(true);
@@ -416,11 +417,12 @@ test.describe.serial("modify-workout API", () => {
         "X-Test-User-Id": "e2e-injuries-hamstring",
       },
       body: JSON.stringify({
-        goal: "strength",
+        archetype: "strength-bias",
         title: "Hamstring E2E Plan",
         start_date: new Date().toISOString().slice(0, 10),
         weeks: 4,
         training_age: "intermediate",
+        days_per_week: 4,
       }),
     });
     expect(planRes.ok).toBe(true);

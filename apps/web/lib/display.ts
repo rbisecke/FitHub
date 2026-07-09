@@ -134,6 +134,10 @@ export function formatGoal(goal: string): string {
   return goal.replace(/_/g, " ");
 }
 
+export function formatArchetype(archetype: string): string {
+  return archetype.replace(/-/g, " ");
+}
+
 export function toHandle(
   displayName: string | null | undefined,
   email?: string,

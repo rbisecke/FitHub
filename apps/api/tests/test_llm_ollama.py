@@ -73,7 +73,7 @@ async def test_generate_plan_passes_kb_validation(ollama_env: None) -> None:
     from app.ai.plan_generator import generate_plan
 
     req = {
-        "goal": "general_fitness",
+        "archetype": "general-crossfit",
         "title": "4-Week Base Plan",
         "weeks": 4,
         "training_age": "intermediate",
@@ -93,7 +93,7 @@ async def test_generate_plan_session_types_valid(ollama_env: None) -> None:
 
     valid_types = {"strength", "metcon", "skill", "cardio", "mixed", "active_recovery", "rest"}
     req = {
-        "goal": "strength",
+        "archetype": "strength-bias",
         "title": "Strength Focus",
         "weeks": 4,
         "training_age": "beginner",

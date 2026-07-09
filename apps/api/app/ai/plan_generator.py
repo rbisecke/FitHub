@@ -331,7 +331,7 @@ async def generate_plan(
     from app.ai.errors import call_llm
 
     req_dict = req if isinstance(req, dict) else vars(req)
-    goal = req_dict.get("goal", "general_fitness")
+    archetype = req_dict.get("archetype", "general-crossfit")
     weeks = req_dict.get("weeks", 8)
     training_age = req_dict.get("training_age", "intermediate")
     days_per_week = req_dict.get("days_per_week", 3)
@@ -362,7 +362,7 @@ async def generate_plan(
                 {
                     "role": "user",
                     "content": (
-                        f"Goal:{goal} Weeks:{weeks} Age:{training_age} "
+                        f"Archetype:{archetype} Weeks:{weeks} Age:{training_age} "
                         f"Days/week:{days_per_week}\n"
                         f"Training history: {history_summary}\n"
                         "Generate training plan."
@@ -535,7 +535,7 @@ async def _create_plan_records(
     db: psycopg.AsyncConnection[object],
 ) -> str:
     """Persist plan + mesocycles + sessions + items inside a transaction; return plan_id."""
-    goal = str(req_data["goal"])
+    archetype = str(req_data["archetype"])
     title = str(req_data["title"])
     start_date_raw = req_data["start_date"]
     weeks = int(str(req_data["weeks"]))
@@ -549,8 +549,7 @@ async def _create_plan_records(
         start_date = date.today()
 
     end_date = start_date + timedelta(weeks=weeks)
-    slug = goal.replace("_", "-")
-    branch_name = f"plan/{slug}-{start_date.strftime('%Y-%m')}"
+    branch_name = f"plan/{archetype}-{start_date.strftime('%Y-%m')}"
 
     mesocycles_raw: list[object] = draft.get("mesocycles", [])  # type: ignore[assignment]
     weeks_raw: list[object] = draft.get("weeks", [])  # type: ignore[assignment]
@@ -574,12 +573,12 @@ async def _create_plan_records(
         async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
             await cur.execute(
                 """
-                INSERT INTO plans (user_id, goal, title, start_date, end_date,
+                INSERT INTO plans (user_id, archetype, title, start_date, end_date,
                                    branch_name, weeks, training_age)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id::text
                 """,
-                [user_id, goal, title, start_date, end_date, branch_name, weeks, training_age],
+                [user_id, archetype, title, start_date, end_date, branch_name, weeks, training_age],
             )
             plan_row = await cur.fetchone()
         plan_id: str = plan_row["id"]  # type: ignore[index]
