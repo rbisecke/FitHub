@@ -193,7 +193,7 @@ export default async function DashboardPage() {
           <Link href="/profile">
             <div
               className="w-8 h-8 rounded-full bg-[var(--blue)] flex items-center justify-center font-bold text-[13px]"
-              style={{ color: "#0d1117" }}
+              style={{ color: "var(--bg)" }}
             >
               {firstName.charAt(0).toUpperCase()}
             </div>

@@ -34,7 +34,7 @@ const ROLE_COLORS: Record<
     bg: "rgba(139,92,246,0.15)",
   },
   athlete: {
-    text: "#58a6ff",
+    text: "var(--accent)",
     border: "rgba(88,166,255,0.3)",
     bg: "rgba(88,166,255,0.15)",
   },
@@ -71,7 +71,7 @@ function RoleBadge({
   onSelect: () => void;
 }) {
   const colors = ROLE_COLORS[role] ?? {
-    text: "#58a6ff",
+    text: "var(--accent)",
     border: "rgba(88,166,255,0.3)",
     bg: "rgba(88,166,255,0.15)",
   };
