@@ -1,13 +1,13 @@
 """Add equipment_required column and GIN index to movements.
 
-Revision ID: 0068_movements_equipment_required
+Revision ID: 0068_equipment_req
 Revises: 0067_planned_sessions_index
 Create Date: 2026-07-09
 """
 
 from alembic import op
 
-revision = "0068_movements_equipment_required"
+revision = "0068_equipment_req"
 down_revision = "0067_planned_sessions_index"
 branch_labels = None
 depends_on = None
