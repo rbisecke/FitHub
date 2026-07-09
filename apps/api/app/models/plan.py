@@ -22,16 +22,6 @@ _ARCHETYPE = Literal[
     "one-rm-peak",
 ]
 
-_ARCHETYPE = Literal[
-    "general-crossfit",
-    "strength-bias",
-    "travel-minimal",
-    "aerobic-base",
-    "bodyweight-calisthenics",
-    "skill-acquisition",
-    "one-rm-peak",
-]
-
 
 class CreatePlanRequest(BaseModel):
     archetype: _ARCHETYPE
