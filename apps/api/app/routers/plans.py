@@ -269,6 +269,7 @@ async def create_plan(
         "start_date": req.start_date.isoformat(),
         "weeks": req.weeks,
         "training_age": req.training_age,
+        "days_per_week": req.days_per_week,
     }
     _task = asyncio.create_task(run_plan_generation(task_id, str(user.user_id), req_data))
     _bg_tasks.add(_task)

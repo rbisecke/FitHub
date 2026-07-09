@@ -5162,15 +5162,18 @@
       },
       "CreatePlanRequest": {
         "properties": {
-          "goal": {
+          "archetype": {
             "type": "string",
             "enum": [
-              "general_fitness",
-              "strength",
-              "endurance",
-              "competition_prep"
+              "general-crossfit",
+              "strength-bias",
+              "travel-minimal",
+              "aerobic-base",
+              "bodyweight-calisthenics",
+              "skill-acquisition",
+              "one-rm-peak"
             ],
-            "title": "Goal"
+            "title": "Archetype"
           },
           "title": {
             "type": "string",
@@ -5196,15 +5199,22 @@
               "advanced"
             ],
             "title": "Training Age"
+          },
+          "days_per_week": {
+            "type": "integer",
+            "maximum": 7.0,
+            "minimum": 3.0,
+            "title": "Days Per Week"
           }
         },
         "type": "object",
         "required": [
-          "goal",
+          "archetype",
           "title",
           "start_date",
           "weeks",
-          "training_age"
+          "training_age",
+          "days_per_week"
         ],
         "title": "CreatePlanRequest"
       },
@@ -7880,15 +7890,18 @@
             "format": "uuid",
             "title": "Id"
           },
-          "goal": {
+          "archetype": {
             "type": "string",
             "enum": [
-              "general_fitness",
-              "strength",
-              "endurance",
-              "competition_prep"
+              "general-crossfit",
+              "strength-bias",
+              "travel-minimal",
+              "aerobic-base",
+              "bodyweight-calisthenics",
+              "skill-acquisition",
+              "one-rm-peak"
             ],
-            "title": "Goal"
+            "title": "Archetype"
           },
           "title": {
             "type": "string",
@@ -7959,7 +7972,7 @@
         "type": "object",
         "required": [
           "id",
-          "goal",
+          "archetype",
           "title",
           "branch_name",
           "weeks",
@@ -7995,15 +8008,18 @@
             "format": "uuid",
             "title": "Id"
           },
-          "goal": {
+          "archetype": {
             "type": "string",
             "enum": [
-              "general_fitness",
-              "strength",
-              "endurance",
-              "competition_prep"
+              "general-crossfit",
+              "strength-bias",
+              "travel-minimal",
+              "aerobic-base",
+              "bodyweight-calisthenics",
+              "skill-acquisition",
+              "one-rm-peak"
             ],
-            "title": "Goal"
+            "title": "Archetype"
           },
           "title": {
             "type": "string",
@@ -8044,7 +8060,7 @@
         "type": "object",
         "required": [
           "id",
-          "goal",
+          "archetype",
           "title",
           "branch_name",
           "weeks",
