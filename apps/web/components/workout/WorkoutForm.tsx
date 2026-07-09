@@ -134,6 +134,10 @@ export function WorkoutForm({
 }) {
   const router = useRouter();
   const [showDetails, setShowDetails] = useState(false);
+  const _now = new Date();
+  const _todayLocal = `${_now.getFullYear()}-${String(
+    _now.getMonth() + 1,
+  ).padStart(2, "0")}-${String(_now.getDate()).padStart(2, "0")}`;
   const {
     register,
     control,
@@ -143,8 +147,7 @@ export function WorkoutForm({
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema) as Resolver<FormValues>,
     defaultValues: {
-      performed_at:
-        initialValues?.performed_at ?? new Date().toISOString().slice(0, 10),
+      performed_at: initialValues?.performed_at ?? _todayLocal,
       results: initialValues?.results ?? [],
       ...initialValues,
     },
