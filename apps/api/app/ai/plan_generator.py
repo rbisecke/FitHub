@@ -502,7 +502,7 @@ async def assemble_plan(
     The @stubbed decorator returns STUB_PLAN immediately when STUB_LLM=true.
     """
     # Normalise to CreatePlanRequest
-    req_obj = CreatePlanRequest(**req) if isinstance(req, dict) else req
+    req_obj = CreatePlanRequest(**req) if isinstance(req, dict) else req  # type: ignore[arg-type]
 
     # Step 1: equipment-filtered movements
     if db is not None:
@@ -698,7 +698,7 @@ async def _create_plan_records(
     start_date_raw = req_data["start_date"]
     weeks = int(str(req_data["weeks"]))
     training_age = str(req_data.get("training_age", "intermediate"))
-    equipment = list(req_data.get("equipment") or [])
+    equipment = list(req_data.get("equipment") or [])  # type: ignore[call-overload]
     days_per_week = int(str(req_data.get("days_per_week", 3)))
     target_movement_id = req_data.get("target_movement_id")
     max_duration_weeks = req_data.get("max_duration_weeks")
@@ -759,8 +759,8 @@ async def _create_plan_records(
                     equipment_pg,
                     days_per_week,
                     str(target_movement_id) if target_movement_id is not None else None,
-                    int(max_duration_weeks) if max_duration_weeks is not None else None,
-                    float(current_1rm_kg) if current_1rm_kg is not None else None,
+                    int(max_duration_weeks) if max_duration_weeks is not None else None,  # type: ignore[call-overload]
+                    float(current_1rm_kg) if current_1rm_kg is not None else None,  # type: ignore[arg-type]
                 ],
             )
             plan_row = await cur.fetchone()
