@@ -197,19 +197,26 @@ async def create_team_session(
                 """,
                 participants_to_insert,
             )
-        for p in req.participants:
-            if p.user_id and p.user_id != user_id:
-                notif_type = "team_session_linked" if p.workout_id else "workout_link_pending"
-                await _create_notification(
-                    cur,
-                    user_id=p.user_id,
-                    notif_type=notif_type,
-                    payload={
+        notif_rows = [
+            (
+                p.user_id,
+                "team_session_linked" if p.workout_id else "workout_link_pending",
+                json.dumps(
+                    {
                         "team_session_id": str(session_id),
                         "session_name": req.name,
                         "actor_user_id": str(user_id),
-                    },
-                )
+                    }
+                ),
+            )
+            for p in req.participants
+            if p.user_id and p.user_id != user_id
+        ]
+        if notif_rows:
+            await cur.executemany(
+                "INSERT INTO public.notifications (user_id, type, payload) VALUES (%s, %s, %s)",
+                notif_rows,
+            )
 
     result = await _fetch_team_session(conn, team_session_id=session_id)
     if result is None:
