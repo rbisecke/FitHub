@@ -1656,10 +1656,17 @@ export interface components {
     /** CreatePlanRequest */
     CreatePlanRequest: {
       /**
-       * Goal
+       * Archetype
        * @enum {string}
        */
-      goal: "general_fitness" | "strength" | "endurance" | "competition_prep";
+      archetype:
+        | "general-crossfit"
+        | "strength-bias"
+        | "travel-minimal"
+        | "aerobic-base"
+        | "bodyweight-calisthenics"
+        | "skill-acquisition"
+        | "one-rm-peak";
       /** Title */
       title: string;
       /**
@@ -1674,6 +1681,8 @@ export interface components {
        * @enum {string}
        */
       training_age: "beginner" | "intermediate" | "advanced";
+      /** Days Per Week */
+      days_per_week: number;
     };
     /** CreateResultRequest */
     CreateResultRequest: {
@@ -2479,10 +2488,17 @@ export interface components {
        */
       id: string;
       /**
-       * Goal
+       * Archetype
        * @enum {string}
        */
-      goal: "general_fitness" | "strength" | "endurance" | "competition_prep";
+      archetype:
+        | "general-crossfit"
+        | "strength-bias"
+        | "travel-minimal"
+        | "aerobic-base"
+        | "bodyweight-calisthenics"
+        | "skill-acquisition"
+        | "one-rm-peak";
       /** Title */
       title: string;
       /** Branch Name */
@@ -2526,10 +2542,17 @@ export interface components {
        */
       id: string;
       /**
-       * Goal
+       * Archetype
        * @enum {string}
        */
-      goal: "general_fitness" | "strength" | "endurance" | "competition_prep";
+      archetype:
+        | "general-crossfit"
+        | "strength-bias"
+        | "travel-minimal"
+        | "aerobic-base"
+        | "bodyweight-calisthenics"
+        | "skill-acquisition"
+        | "one-rm-peak";
       /** Title */
       title: string;
       /** Branch Name */

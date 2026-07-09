@@ -85,11 +85,12 @@ async function createPlanAndWait(token: string): Promise<string> {
       "X-Test-User-Id": "e2e-adaptations",
     },
     body: JSON.stringify({
-      goal: "general_fitness",
+      archetype: "general-crossfit",
       title: "Adaptation E2E Plan",
       start_date: "2026-07-01",
       weeks,
       training_age: "intermediate",
+      days_per_week: 4,
     }),
   });
   if (!createRes.ok)
