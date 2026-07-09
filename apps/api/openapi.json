@@ -1897,6 +1897,72 @@
         }
       }
     },
+    "/api/v1/movements/{movement_id}/substitutes": {
+      "get": {
+        "tags": [
+          "movements"
+        ],
+        "summary": "Get Movement Substitutes",
+        "description": "Return up to 20 movements with the same movement_pattern that fit the equipment list.",
+        "operationId": "get_movement_substitutes_api_v1_movements__movement_id__substitutes_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "movement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Movement Id"
+            }
+          },
+          {
+            "name": "equipment",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [],
+              "title": "Equipment"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MovementSubstituteOut"
+                  },
+                  "title": "Response Get Movement Substitutes Api V1 Movements  Movement Id  Substitutes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/profile/search": {
       "get": {
         "tags": [
@@ -7063,6 +7129,38 @@
           "movement_name"
         ],
         "title": "MovementResult"
+      },
+      "MovementSubstituteOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "movement_pattern": {
+            "type": "string",
+            "title": "Movement Pattern"
+          },
+          "equipment_required": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Equipment Required"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "movement_pattern",
+          "equipment_required"
+        ],
+        "title": "MovementSubstituteOut"
       },
       "Notification": {
         "properties": {
