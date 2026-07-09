@@ -721,6 +721,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/movements/{movement_id}/substitutes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Movement Substitutes
+     * @description Return up to 20 movements with the same movement_pattern that fit the equipment list.
+     */
+    get: operations["get_movement_substitutes_api_v1_movements__movement_id__substitutes_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/profile/search": {
     parameters: {
       query?: never;
@@ -2374,6 +2394,20 @@ export interface components {
       scaled: boolean;
       /** Notes */
       notes?: string | null;
+    };
+    /** MovementSubstituteOut */
+    MovementSubstituteOut: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      /** Movement Pattern */
+      movement_pattern: string;
+      /** Equipment Required */
+      equipment_required: string[];
     };
     /** Notification */
     Notification: {
@@ -4688,6 +4722,39 @@ export interface operations {
           "application/json":
             | components["schemas"]["PersonalRecordResult"]
             | null;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_movement_substitutes_api_v1_movements__movement_id__substitutes_get: {
+    parameters: {
+      query?: {
+        equipment?: string[];
+      };
+      header?: never;
+      path: {
+        movement_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MovementSubstituteOut"][];
         };
       };
       /** @description Validation Error */

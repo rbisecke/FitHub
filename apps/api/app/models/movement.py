@@ -111,3 +111,10 @@ class PersonalRecordResult(BaseModel):
     distance_m: Decimal | None = None
     estimated_1rm_kg: Decimal | None = None
     achieved_at: date
+
+
+class MovementSubstituteOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    movement_pattern: str
+    equipment_required: list[str]
