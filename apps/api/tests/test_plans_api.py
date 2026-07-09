@@ -13,7 +13,7 @@ CREATE_BODY = {
     "start_date": "2026-07-01",
     "weeks": 8,
     "training_age": "intermediate",
-    "days_per_week": 3,
+    "days_per_week": 4,
 }
 
 
@@ -36,7 +36,7 @@ async def test_create_plan_requires_auth(anon_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_plan_invalid_goal(alice_client: AsyncClient) -> None:
+async def test_create_plan_invalid_archetype(alice_client: AsyncClient) -> None:
     r = await alice_client.post(
         "/api/v1/plans",
         json={**CREATE_BODY, "archetype": "win_olympics"},
