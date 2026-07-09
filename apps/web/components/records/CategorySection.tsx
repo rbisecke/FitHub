@@ -17,8 +17,8 @@ interface Props {
 }
 
 const DOT_COLOR: Record<PRCategory, string> = {
-  strength: "#58a6ff",
-  gymnastics: "#bc8cff",
+  strength: "var(--accent)",
+  gymnastics: "var(--purple)",
   metcon: "#FF7A45",
   endurance: "#4ADE80",
 };
