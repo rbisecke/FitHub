@@ -77,64 +77,53 @@ async def _flag_prs(
     )
 
 
-async def _insert_result(
-    cur: psycopg.AsyncCursor[dict[str, Any]],
-    *,
-    user_id: uuid.UUID,
-    workout_id: uuid.UUID,
-    req: CreateResultRequest,
-) -> Result:
-    await cur.execute(
-        """
-        INSERT INTO public.results
-            (user_id, workout_id, movement_id, result_type,
-             load_kg, reps, time_s, distance_m, calories, height_cm,
-             rounds, partial_reps, watts, pace_s, pace_distance_m,
-             set_index, order_index, is_pr, notes, variant_annotation,
-             implement, tempo, side,
-             rpe, rpe_target, rir, rest_s,
-             mean_velocity_ms, peak_velocity_ms, estimated_1rm_kg)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING *
-        """,
-        [
-            user_id,
-            workout_id,
-            req.movement_id,
-            req.result_type,
-            req.load_kg,
-            req.reps,
-            req.time_s,
-            req.distance_m,
-            req.calories,
-            req.height_cm,
-            req.rounds,
-            req.partial_reps,
-            req.watts,
-            req.pace_s,
-            req.pace_distance_m,
-            req.set_index,
-            req.order_index,
-            req.is_pr,
-            req.notes,
-            req.variant_annotation,
-            req.implement,
-            req.tempo,
-            req.side,
-            req.rpe,
-            req.rpe_target,
-            req.rir,
-            req.rest_s,
-            req.mean_velocity_ms,
-            req.peak_velocity_ms,
-            _epley_1rm(req.load_kg, req.reps),
-        ],
-    )
-    row = await cur.fetchone()
-    if row is None:
-        raise RuntimeError("INSERT INTO results returned no row")
-    return Result(**row)
+_INSERT_RESULT_SQL = """
+    INSERT INTO public.results
+        (user_id, workout_id, movement_id, result_type,
+         load_kg, reps, time_s, distance_m, calories, height_cm,
+         rounds, partial_reps, watts, pace_s, pace_distance_m,
+         set_index, order_index, is_pr, notes, variant_annotation,
+         implement, tempo, side,
+         rpe, rpe_target, rir, rest_s,
+         mean_velocity_ms, peak_velocity_ms, estimated_1rm_kg)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+"""
+
+
+def _result_row(user_id: uuid.UUID, workout_id: uuid.UUID, r: CreateResultRequest) -> list[object]:
+    return [
+        user_id,
+        workout_id,
+        r.movement_id,
+        r.result_type,
+        r.load_kg,
+        r.reps,
+        r.time_s,
+        r.distance_m,
+        r.calories,
+        r.height_cm,
+        r.rounds,
+        r.partial_reps,
+        r.watts,
+        r.pace_s,
+        r.pace_distance_m,
+        r.set_index,
+        r.order_index,
+        r.is_pr,
+        r.notes,
+        r.variant_annotation,
+        r.implement,
+        r.tempo,
+        r.side,
+        r.rpe,
+        r.rpe_target,
+        r.rir,
+        r.rest_s,
+        r.mean_velocity_ms,
+        r.peak_velocity_ms,
+        _epley_1rm(r.load_kg, r.reps),
+    ]
 
 
 async def create_workout(
@@ -180,8 +169,11 @@ async def create_workout(
         if workout_row is None:
             raise RuntimeError("Workout INSERT returned no row")
 
-        for r in req.results:
-            await _insert_result(cur, user_id=user_id, workout_id=workout_id, req=r)
+        if req.results:
+            await cur.executemany(
+                _INSERT_RESULT_SQL,
+                [_result_row(user_id, workout_id, r) for r in req.results],
+            )
 
         await _flag_prs(cur, user_id=user_id, workout_id=workout_id)
 
