@@ -107,17 +107,11 @@ async def get_load_series(
     return [r for r in result if r["day"] >= cutoff]
 
 
-async def get_personal_records(
+async def _fetch_best_e1rms(
     conn: psycopg.AsyncConnection[Any],
     user_id: uuid.UUID,
 ) -> list[dict[str, Any]]:
-    """Fetch all-time best e1RM per movement plus strength intelligence fields.
-
-    The strength intelligence fields (current_e1rm_kg, next_pr_kg,
-    next_pr_weeks, is_stale) are computed via OLS regression over the full
-    e1RM history for each movement. They require at least 3 data points;
-    fewer returns nulls for those fields.
-    """
+    """Return all-time best e1RM row per movement with delta vs previous best."""
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
@@ -142,15 +136,10 @@ async def get_personal_records(
                   AND r.estimated_1rm_kg IS NOT NULL
             )
             SELECT DISTINCT ON (movement_id)
-                movement_id::text,
-                movement_name,
+                movement_id::text, movement_name,
                 estimated_1rm_kg AS best_1rm_kg,
-                achieved_at,
-                workout_id::text,
-                load_kg,
-                reps,
-                time_s,
-                prev_best_1rm_kg
+                achieved_at, workout_id::text,
+                load_kg, reps, time_s, prev_best_1rm_kg
             FROM ranked
             ORDER BY movement_id, estimated_1rm_kg DESC
             LIMIT 500
@@ -158,29 +147,30 @@ async def get_personal_records(
             (user_id,),
         )
         rows = await cur.fetchall()
-
-    if not rows:
-        return []
-
     for row in rows:
         prev = row.get("prev_best_1rm_kg")
         row["delta_kg"] = (row["best_1rm_kg"] - prev) if prev is not None else None
+    return rows
 
-    # Batch-fetch all e1RM trend points for all movements in a single query
+
+async def _enrich_with_projections(
+    conn: psycopg.AsyncConnection[Any],
+    user_id: uuid.UUID,
+    rows: list[dict[str, Any]],
+) -> None:
+    """Add OLS-projected strength fields to each row in place."""
     movement_ids = [uuid.UUID(r["movement_id"]) for r in rows]
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
             SELECT movement_id::text, day, estimated_1rm_kg
             FROM (
-                SELECT
-                    r.movement_id,
-                    w.performed_at::date      AS day,
-                    r.estimated_1rm_kg::float AS estimated_1rm_kg,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY r.movement_id
-                        ORDER BY w.performed_at ASC
-                    ) AS rn
+                SELECT r.movement_id,
+                       w.performed_at::date      AS day,
+                       r.estimated_1rm_kg::float AS estimated_1rm_kg,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY r.movement_id ORDER BY w.performed_at ASC
+                       ) AS rn
                 FROM results r
                 JOIN workouts w ON r.workout_id = w.id
                 WHERE w.user_id = %s
@@ -195,21 +185,27 @@ async def get_personal_records(
             (user_id, movement_ids),
         )
         trend_rows = await cur.fetchall()
-
-    # Group trend points by movement_id
     trends: dict[str, list[tuple[date, float]]] = defaultdict(list)
     for tr in trend_rows:
         trends[tr["movement_id"]].append((tr["day"], tr["estimated_1rm_kg"]))
-
     today = date.today()
     for row in rows:
-        points = trends.get(row["movement_id"], [])
-        proj = project_e1rm(points, today)
+        proj = project_e1rm(trends.get(row["movement_id"], []), today)
         row["current_e1rm_kg"] = proj.current_e1rm_kg
         row["next_pr_kg"] = proj.next_pr_kg
         row["next_pr_weeks"] = proj.next_pr_weeks
         row["is_stale"] = proj.is_stale
 
+
+async def get_personal_records(
+    conn: psycopg.AsyncConnection[Any],
+    user_id: uuid.UUID,
+) -> list[dict[str, Any]]:
+    """Fetch all-time best e1RM per movement plus OLS-projected strength fields."""
+    rows = await _fetch_best_e1rms(conn, user_id)
+    if not rows:
+        return []
+    await _enrich_with_projections(conn, user_id, rows)
     return rows
 
 
