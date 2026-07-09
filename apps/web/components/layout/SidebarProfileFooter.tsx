@@ -29,9 +29,13 @@ export function SidebarProfileFooter({ user }: Props) {
   const displayEmail = user.email ?? "";
 
   async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push("/login");
+    } catch {
+      router.push("/login");
+    }
   }
 
   return (
