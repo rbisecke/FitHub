@@ -48,6 +48,7 @@ import type {
   UpdateInjuryStatusRequest,
   ModifyWorkoutResponse,
   CheckWodResponse,
+  MovementSubstituteOut,
 } from "./plans";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -199,6 +200,20 @@ export const api = {
         token,
         options?.signal ? { signal: options.signal } : undefined,
       ),
+    getSubstitutes: (
+      token: string,
+      movementId: string,
+      equipment: string[],
+      options?: { signal?: AbortSignal },
+    ) => {
+      const qs = new URLSearchParams();
+      for (const item of equipment) qs.append("equipment", item);
+      return apiFetch<MovementSubstituteOut[]>(
+        `/api/v1/movements/${movementId}/substitutes?${qs}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      );
+    },
   },
   analytics: {
     load: (token: string, days = 90) =>
@@ -493,6 +508,22 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ feedback }),
       }),
+    getNextSession: async (
+      token: string,
+      planId: string,
+      options?: { signal?: AbortSignal },
+    ): Promise<PlannedSessionOut | null> => {
+      try {
+        return await apiFetch<PlannedSessionOut>(
+          `/api/v1/plans/${planId}/next-session`,
+          token,
+          options?.signal ? { signal: options.signal } : undefined,
+        );
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      }
+    },
   },
   adaptations: {
     list: (token: string, planId: string, options?: { signal?: AbortSignal }) =>
@@ -675,6 +706,11 @@ export function createApiClient(token: string) {
         movementIds: string[],
         options?: { signal?: AbortSignal },
       ) => api.movements.personalRecordsBatch(token, movementIds, options),
+      getSubstitutes: (
+        movementId: string,
+        equipment: string[],
+        options?: { signal?: AbortSignal },
+      ) => api.movements.getSubstitutes(token, movementId, equipment, options),
     },
     analytics: {
       load: (days?: number) => api.analytics.load(token, days),
@@ -702,6 +738,8 @@ export function createApiClient(token: string) {
         api.plans.today(token, planId, options),
       revise: (planId: string, feedback: string) =>
         api.plans.revise(token, planId, feedback),
+      getNextSession: (planId: string, options?: { signal?: AbortSignal }) =>
+        api.plans.getNextSession(token, planId, options),
     },
     adaptations: {
       list: (planId: string, options?: { signal?: AbortSignal }) =>
