@@ -1681,8 +1681,16 @@ export interface components {
        * @enum {string}
        */
       training_age: "beginner" | "intermediate" | "advanced";
+      /** Equipment */
+      equipment?: string[];
       /** Days Per Week */
       days_per_week: number;
+      /** Target Movement Id */
+      target_movement_id?: string | null;
+      /** Max Duration Weeks */
+      max_duration_weeks?: number | null;
+      /** Current 1Rm Kg */
+      current_1rm_kg?: number | null;
     };
     /** CreateResultRequest */
     CreateResultRequest: {
@@ -2057,7 +2065,13 @@ export interface components {
        * Phase
        * @enum {string}
        */
-      phase: "accumulation" | "intensification" | "deload" | "peak" | "test";
+      phase:
+        | "accumulation"
+        | "intensification"
+        | "realization"
+        | "deload"
+        | "peak"
+        | "test";
       /** Week Start */
       week_start: number;
       /** Week End */
@@ -2523,7 +2537,7 @@ export interface components {
       /** Created At */
       created_at: string;
       /** Training Age */
-      training_age: ("beginner" | "intermediate" | "advanced") | null;
+      training_age?: ("beginner" | "intermediate" | "advanced") | null;
       /** Mesocycles */
       mesocycles: components["schemas"]["MesocycleOut"][];
       /** Sessions */
@@ -2576,6 +2590,8 @@ export interface components {
       end_date: string;
       /** Created At */
       created_at: string;
+      /** Training Age */
+      training_age?: ("beginner" | "intermediate" | "advanced") | null;
     };
     /** PlanTaskResponse */
     PlanTaskResponse: {

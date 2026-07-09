@@ -121,7 +121,15 @@ async def _get_plan_detail(
                 id=m["id"],
                 name=str(m["name"]),
                 phase=cast(
-                    Literal["accumulation", "intensification", "deload", "peak", "test"], m["phase"]
+                    Literal[
+                        "accumulation",
+                        "intensification",
+                        "realization",
+                        "deload",
+                        "peak",
+                        "test",
+                    ],
+                    m["phase"],
                 ),
                 week_start=int(str(m["week_start"])),
                 week_end=int(str(m["week_end"])),
