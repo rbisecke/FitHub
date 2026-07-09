@@ -140,12 +140,17 @@ export const api = {
     search: (
       token: string,
       params: { q?: string; modality?: string; limit?: number },
+      options?: { signal?: AbortSignal },
     ) => {
       const qs = new URLSearchParams();
       if (params.q) qs.set("query", params.q);
       if (params.modality) qs.set("modality", params.modality);
       if (params.limit != null) qs.set("limit", String(params.limit));
-      return apiFetch<Movement[]>(`/api/v1/movements?${qs}`, token);
+      return apiFetch<Movement[]>(
+        `/api/v1/movements?${qs}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      );
     },
     create: (token: string, body: CreateMovementBody) =>
       apiFetch<Movement>("/api/v1/movements", token, {
@@ -266,8 +271,12 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    get: (token: string, id: string) =>
-      apiFetch<TeamSession>(`/api/v1/team-sessions/${id}`, token),
+    get: (token: string, id: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<TeamSession>(
+        `/api/v1/team-sessions/${id}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     patch: (
       token: string,
       id: string,
@@ -320,10 +329,15 @@ export const api = {
         token,
         { method: "DELETE" },
       ),
-    getWorkoutTeamSession: (token: string, workoutId: string) =>
+    getWorkoutTeamSession: (
+      token: string,
+      workoutId: string,
+      options?: { signal?: AbortSignal },
+    ) =>
       apiFetch<TeamSession>(
         `/api/v1/workouts/${workoutId}/team-session`,
         token,
+        options?.signal ? { signal: options.signal } : undefined,
       ),
   },
   notifications: {
@@ -350,7 +364,12 @@ export const api = {
       ),
   },
   profile: {
-    get: (token: string) => apiFetch<UserProfile>("/api/v1/profile", token),
+    get: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<UserProfile>(
+        "/api/v1/profile",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     stats: (token: string) =>
       apiFetch<ProfileStats>("/api/v1/profile/stats", token),
     patch: (
@@ -565,14 +584,18 @@ export const api = {
       }>("/api/v1/wellness/checkin/today", token),
   },
   integrations: {
-    list: (token: string) =>
+    list: (token: string, options?: { signal?: AbortSignal }) =>
       apiFetch<
         {
           provider: string;
           sync_status: string;
           last_synced_at: string | null;
         }[]
-      >("/api/v1/integrations", token),
+      >(
+        "/api/v1/integrations",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     connectAppleHealth: (token: string) =>
       apiFetch<{ token: string; token_prefix: string; ingest_url: string }>(
         "/api/v1/integrations/apple-health/connect",

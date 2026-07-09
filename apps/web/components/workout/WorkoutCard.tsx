@@ -140,17 +140,22 @@ export function WorkoutCard({
   useEffect(() => {
     if (!isExpanded || teamSessionChecked.current) return;
     teamSessionChecked.current = true;
+    const controller = new AbortController();
     let cancelled = false;
     api.teamSessions
-      .getWorkoutTeamSession(accessToken, workout.id)
+      .getWorkoutTeamSession(accessToken, workout.id, {
+        signal: controller.signal,
+      })
       .then((ts) => {
         if (!cancelled) setTeamSession(ts);
       })
-      .catch(() => {
-        if (!cancelled) setTeamSession(false);
+      .catch((err) => {
+        if (!cancelled && (err as Error).name !== "AbortError")
+          setTeamSession(false);
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [isExpanded, accessToken, workout.id]);
 

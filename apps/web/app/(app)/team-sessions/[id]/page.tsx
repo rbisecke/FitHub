@@ -176,23 +176,26 @@ export default function TeamSessionDetailPage() {
 
   useEffect(() => {
     if (!token) return;
+    const controller = new AbortController();
     let cancelled = false;
     api.teamSessions
-      .get(token, id)
+      .get(token, id, { signal: controller.signal })
       .then((ts) => {
         if (cancelled) return;
         setSession(ts);
         setScoreInput(formatTeamScore(ts));
         setNotesInput(ts.notes ?? "");
       })
-      .catch(() => {
-        if (!cancelled) setError("Team session not found.");
+      .catch((err) => {
+        if (!cancelled && (err as Error).name !== "AbortError")
+          setError("Team session not found.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [token, id]);
 
