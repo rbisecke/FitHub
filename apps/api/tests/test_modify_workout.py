@@ -55,14 +55,14 @@ async def _create_plan_with_session(client: AsyncClient, movements: list[str]) -
         "/api/v1/plans",
         json={
             "archetype": "general-crossfit",
-            "title": "Modify Test Plan",
+            "title": "Modify Workout Test Plan",
             "start_date": "2026-07-01",
             "weeks": 4,
             "training_age": "beginner",
-            "days_per_week": 1,
+            "days_per_week": 3,
         },
     )
-    if r.status_code != 200:
+    if r.status_code != 202:
         pytest.skip("Plan creation failed — AI not available in this environment")
     plan_id = r.json()["id"]
 
