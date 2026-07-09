@@ -58,7 +58,7 @@ async def _prefetch_1rm(
                 WHERE user_id = %s AND movement_id = %s
                   AND result_type = 'weight'
                   AND load_kg IS NOT NULL AND reps IS NOT NULL
-                ORDER BY performed_at DESC
+                ORDER BY created_at DESC
                 LIMIT 20
                 """,
                 [user_id, movement_id],
