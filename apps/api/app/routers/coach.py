@@ -248,7 +248,9 @@ async def chat(
         )
 
     if tier == SafetyTier.STOP:
-        await coach_repo.write_message(db, session_id, "user", body.question, safety_tier="stop")
+        await coach_repo.write_message(
+            db, session_id, user.user_id, "user", body.question, safety_tier="stop"
+        )
         return ChatResponse(
             answer=(
                 "Please stop your workout and consult a medical professional immediately. "
@@ -260,8 +262,12 @@ async def chat(
         )
 
     if is_stubbed():
-        await coach_repo.write_message(db, session_id, "user", body.question, stub=True)
-        await coach_repo.write_message(db, session_id, "assistant", _STUB_ANSWER, stub=True)
+        await coach_repo.write_message(
+            db, session_id, user.user_id, "user", body.question, stub=True
+        )
+        await coach_repo.write_message(
+            db, session_id, user.user_id, "assistant", _STUB_ANSWER, stub=True
+        )
         return ChatResponse(
             answer=_STUB_ANSWER,
             citations=[],
@@ -360,9 +366,11 @@ async def chat(
         }
         for c in chunks
     ]
-    await coach_repo.write_message(db, session_id, "user", body.question, safety_tier=tier.value)
     await coach_repo.write_message(
-        db, session_id, "assistant", answer_text, citations=citations_raw
+        db, session_id, user.user_id, "user", body.question, safety_tier=tier.value
+    )
+    await coach_repo.write_message(
+        db, session_id, user.user_id, "assistant", answer_text, citations=citations_raw
     )
 
     citations = [
@@ -441,10 +449,13 @@ async def _do_stream(
         session_id = await coach_repo.create_session(db, user_id=user_id, title=question[:200])
 
     if tier == SafetyTier.STOP:
-        await coach_repo.write_message(db, session_id, "user", question, safety_tier="stop")
+        await coach_repo.write_message(
+            db, session_id, user_id, "user", question, safety_tier="stop"
+        )
         await coach_repo.write_message(
             db,
             session_id,
+            user_id,
             "assistant",
             "I can't assist with that request.",
             safety_tier="stop",
@@ -608,10 +619,10 @@ async def _do_stream(
     ]
 
     await coach_repo.write_message(
-        db, session_id, "user", question, safety_tier=tier.value, stub=stub
+        db, session_id, user_id, "user", question, safety_tier=tier.value, stub=stub
     )
     await coach_repo.write_message(
-        db, session_id, "assistant", answer_text, citations=citations, stub=stub
+        db, session_id, user_id, "assistant", answer_text, citations=citations, stub=stub
     )
 
     if have_usage:

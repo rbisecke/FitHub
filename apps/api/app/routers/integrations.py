@@ -57,7 +57,9 @@ async def connect_apple_health(
 
 
 @router.delete("/apple-health/token", status_code=204)
+@limiter.limit("10/hour", key_func=user_or_ip_key)
 async def revoke_apple_health_token(
+    request: Request,
     user: Auth,
     db: DBConn,
 ) -> None:

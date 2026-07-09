@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 
 import app.repositories.team_sessions as repo
 from app.dependencies.common import Auth, DBConn
+from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.team_session import AddPartnerRequest, Notification, TrainingPartner
 from app.repositories import profile as profile_repo
 
@@ -24,7 +25,13 @@ async def list_notifications(
 
 
 @router.post("/api/v1/notifications/{notification_id}/read", response_model=Notification)
-async def mark_read(user: Auth, conn: DBConn, notification_id: uuid.UUID) -> Notification:
+@limiter.limit("60/minute", key_func=user_or_ip_key)
+async def mark_read(
+    request: Request,
+    user: Auth,
+    conn: DBConn,
+    notification_id: uuid.UUID,
+) -> Notification:
     notif = await repo.mark_notification_read(
         conn, user_id=user.user_id, notification_id=notification_id
     )
@@ -39,8 +46,12 @@ async def list_training_partners(user: Auth, conn: DBConn) -> list[TrainingPartn
 
 
 @router.post("/api/v1/training-partners", response_model=TrainingPartner, status_code=201)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def add_training_partner(
-    user: Auth, conn: DBConn, body: AddPartnerRequest
+    request: Request,
+    user: Auth,
+    conn: DBConn,
+    body: AddPartnerRequest,
 ) -> TrainingPartner:
     email = body.email.strip().lower()
     partner = await profile_repo.find_user_by_email(conn, email=email, exclude_user_id=user.user_id)

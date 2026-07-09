@@ -4,9 +4,10 @@ import re
 import uuid
 from datetime import date
 
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, HTTPException, Query, Request, Response, status
 
 from app.dependencies.common import Auth, DBConn
+from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.team_session import TeamSession
 from app.models.workout import (
     CreateWorkoutRequest,
@@ -55,7 +56,9 @@ async def list_workouts_route(
 
 
 @router.post("", response_model=Workout, status_code=status.HTTP_201_CREATED)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def create_workout_route(
+    request: Request,
     user: Auth,
     conn: DBConn,
     req: CreateWorkoutRequest,
@@ -87,7 +90,9 @@ async def get_workout_route(
 
 
 @router.patch("/{workout_id}", response_model=Workout)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def patch_workout_route(
+    request: Request,
     user: Auth,
     conn: DBConn,
     workout_id: uuid.UUID,
@@ -100,7 +105,9 @@ async def patch_workout_route(
 
 
 @router.delete("/{workout_id}", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def delete_workout_route(
+    request: Request,
     user: Auth,
     conn: DBConn,
     workout_id: uuid.UUID,

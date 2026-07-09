@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, HTTPException, Query, Request, Response, status
 from psycopg.errors import UniqueViolation
 
 import app.repositories.team_sessions as repo
 from app.dependencies.common import Auth, DBConn
+from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.team_session import (
     AddParticipantRequest,
     CreateTeamSessionRequest,
@@ -31,8 +32,12 @@ async def role_suggestions(user: Auth, conn: DBConn) -> RoleSuggestionsResponse:
 
 
 @router.post("", response_model=TeamSession, status_code=status.HTTP_201_CREATED)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def create_team_session(
-    user: Auth, conn: DBConn, req: CreateTeamSessionRequest
+    request: Request,
+    user: Auth,
+    conn: DBConn,
+    req: CreateTeamSessionRequest,
 ) -> TeamSession:
     return await repo.create_team_session(conn, user_id=user.user_id, req=req)
 
@@ -60,8 +65,13 @@ async def get_team_session(user: Auth, conn: DBConn, team_session_id: uuid.UUID)
 
 
 @router.patch("/{team_session_id}", response_model=TeamSession)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def patch_team_session(
-    user: Auth, conn: DBConn, team_session_id: uuid.UUID, req: PatchTeamSessionRequest
+    request: Request,
+    user: Auth,
+    conn: DBConn,
+    team_session_id: uuid.UUID,
+    req: PatchTeamSessionRequest,
 ) -> TeamSession:
     ts = await repo.patch_team_session(
         conn, user_id=user.user_id, team_session_id=team_session_id, req=req
@@ -72,7 +82,13 @@ async def patch_team_session(
 
 
 @router.delete("/{team_session_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_team_session(user: Auth, conn: DBConn, team_session_id: uuid.UUID) -> Response:
+@limiter.limit("30/minute", key_func=user_or_ip_key)
+async def delete_team_session(
+    request: Request,
+    user: Auth,
+    conn: DBConn,
+    team_session_id: uuid.UUID,
+) -> Response:
     deleted = await repo.delete_team_session(
         conn, user_id=user.user_id, team_session_id=team_session_id
     )
@@ -82,8 +98,13 @@ async def delete_team_session(user: Auth, conn: DBConn, team_session_id: uuid.UU
 
 
 @router.post("/{team_session_id}/participants", response_model=TeamSession)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def add_participant(
-    user: Auth, conn: DBConn, team_session_id: uuid.UUID, req: AddParticipantRequest
+    request: Request,
+    user: Auth,
+    conn: DBConn,
+    team_session_id: uuid.UUID,
+    req: AddParticipantRequest,
 ) -> TeamSession:
     try:
         ts = await repo.add_participant(
@@ -97,7 +118,9 @@ async def add_participant(
 
 
 @router.patch("/{team_session_id}/participants/{participant_user_id}", response_model=TeamSession)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def patch_participant(
+    request: Request,
     user: Auth,
     conn: DBConn,
     team_session_id: uuid.UUID,
@@ -125,7 +148,9 @@ async def patch_participant(
     "/{team_session_id}/participants/{participant_user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def remove_participant(
+    request: Request,
     user: Auth,
     conn: DBConn,
     team_session_id: uuid.UUID,

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from psycopg import errors as pg_errors
 
 from app.dependencies.common import Auth, DBConn
+from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.movement import (
     CreateMovementRequest,
     LastResult,
@@ -36,7 +37,9 @@ async def list_movements(
 
 
 @router.post("", response_model=Movement, status_code=status.HTTP_201_CREATED)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def create_movement_route(
+    request: Request,
     user: Auth,
     conn: DBConn,
     req: CreateMovementRequest,

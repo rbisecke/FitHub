@@ -5,9 +5,10 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 
 import psycopg.rows
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from app.dependencies.common import Auth, DBConn
+from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.wellness import CheckInRequest, CheckInResponse, TodayCheckInResponse
 
 router = APIRouter(prefix="/api/v1/wellness", tags=["wellness"])
@@ -25,7 +26,9 @@ def _hooper_index(sleep: int, stress: int, fatigue: int, soreness: int) -> int:
 
 
 @router.post("/checkin", response_model=CheckInResponse, status_code=201)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def submit_checkin(
+    request: Request,
     body: CheckInRequest,
     user: Auth,
     db: DBConn,
