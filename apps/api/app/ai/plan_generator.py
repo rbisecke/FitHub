@@ -11,10 +11,11 @@ import psycopg
 import psycopg.rows
 from pydantic import BaseModel, Field, field_validator
 
+from app.ai.plan_scaffold import MEV_MAV_MRV
 from app.ai.prompts import PLAN_GENERATION_SYSTEM, PLAN_REVISION_SYSTEM
 from app.ai.stub import stubbed
-from app.engine.programming import validate_plan
-from app.models.plan import PlanRevisionDiff, SessionPatch  # noqa: F401
+from app.engine.programming import PlanValidationError, validate_plan
+from app.models.plan import PlanRevisionDiff, PlanScaffold, SessionPatch  # noqa: F401
 
 log = logging.getLogger(__name__)
 
@@ -652,6 +653,249 @@ async def run_plan_generation(
                 )
         except Exception:
             log.exception("Failed to record plan generation failure for task=%s", task_id)
+
+
+# ── Plan validation + active correction ──────────────────────────────────────
+
+_LOAD_MIN = 40.0
+_LOAD_MAX = 95.0
+_MAX_EXERCISES = 8
+_RECOVERY_PLACEHOLDER: dict[str, object] = {
+    "movement_name": "Air Squat",
+    "sets": 3,
+    "reps": "10-20",
+    "load_pct_1rm": None,
+    "movement_pattern": "squat",
+    "notes": None,
+}
+_PADDING_SESSION: dict[str, object] = {
+    "day_offset": 6,
+    "session_type": "active_recovery",
+    "title": "Active Recovery",
+    "intensity_level": "easy",
+    "items": [_RECOVERY_PLACEHOLDER],
+    "notes": None,
+}
+
+
+def _clamp_sets_to_mrv(
+    sessions: list[dict[str, object]],
+    mev_mav_mrv: dict[str, tuple[int, int, int]],
+    week_num: int,
+    errors: list[PlanValidationError],
+) -> None:
+    pattern_sets: dict[str, int] = {}
+    for s in sessions:
+        for item in s.get("items") or []:  # type: ignore[attr-defined]
+            if not isinstance(item, dict):
+                continue
+            p = str(item.get("movement_pattern") or "squat")
+            sets_val = item.get("sets")
+            pattern_sets[p] = pattern_sets.get(p, 0) + (
+                int(sets_val) if isinstance(sets_val, int | float) and sets_val else 0
+            )
+    for pattern, total in pattern_sets.items():
+        mrv = mev_mav_mrv.get(pattern, (0, 0, 20))[2]
+        if total <= mrv:
+            continue
+        ratio = mrv / total
+        for s in sessions:
+            for item in s.get("items") or []:  # type: ignore[attr-defined]
+                if not isinstance(item, dict):
+                    continue
+                if str(item.get("movement_pattern")) != pattern:
+                    continue
+                old = int(item.get("sets") or 0)
+                new_sets = max(1, round(old * ratio))
+                if new_sets != old:
+                    item["sets"] = new_sets
+        log.info(
+            "plan_correction",
+            extra={
+                "type": "sets_clamped",
+                "pattern": pattern,
+                "week": week_num,
+                "delta": total - mrv,
+            },
+        )
+        errors.append(
+            PlanValidationError(
+                code="sets_clamped",
+                message=f"Week {week_num}: {pattern} sets {total} > MRV {mrv}; scaled down",
+                week=week_num,
+            )
+        )
+
+
+def _clamp_load_pct(
+    sessions: list[dict[str, object]],
+    week_num: int,
+    errors: list[PlanValidationError],
+) -> None:
+    for s in sessions:
+        for item in s.get("items") or []:  # type: ignore[attr-defined]
+            if not isinstance(item, dict):
+                continue
+            val = item.get("load_pct_1rm")
+            if val is None:
+                continue
+            try:
+                fval = float(val)  # type: ignore[arg-type]
+            except TypeError, ValueError:
+                continue
+            clamped = max(_LOAD_MIN, min(_LOAD_MAX, fval))
+            if clamped != fval:
+                item["load_pct_1rm"] = clamped
+                log.info(
+                    "plan_correction",
+                    extra={
+                        "type": "load_pct_clamped",
+                        "week": week_num,
+                        "from": fval,
+                        "to": clamped,
+                    },
+                )
+                errors.append(
+                    PlanValidationError(
+                        code="load_pct_clamped",
+                        message=f"Week {week_num}: load_pct {fval} clamped to {clamped}",
+                        week=week_num,
+                    )
+                )
+
+
+def _enforce_exercise_count(
+    sessions: list[dict[str, object]],
+    week_num: int,
+    errors: list[PlanValidationError],
+) -> None:
+    rest_types = {"rest", "active_recovery"}
+    for s in sessions:
+        if not isinstance(s, dict):
+            continue
+        raw_items = s.get("items")
+        if not isinstance(raw_items, list):
+            s["items"] = []
+            raw_items = s["items"]
+        items: list[object] = raw_items  # type: ignore[assignment]
+        stype = str(s.get("session_type") or "mixed")
+        if len(items) > _MAX_EXERCISES:
+            del items[_MAX_EXERCISES:]
+            log.info(
+                "plan_correction",
+                extra={"type": "exercise_count_trimmed", "week": week_num},
+            )
+            errors.append(
+                PlanValidationError(
+                    code="exercise_count_trimmed",
+                    message=f"Week {week_num}: session trimmed to {_MAX_EXERCISES} exercises",
+                    week=week_num,
+                )
+            )
+        elif len(items) == 0 and stype not in rest_types:
+            items.append(dict(_RECOVERY_PLACEHOLDER))
+            log.info(
+                "plan_correction",
+                extra={"type": "exercise_placeholder_added", "week": week_num},
+            )
+            errors.append(
+                PlanValidationError(
+                    code="exercise_placeholder_added",
+                    message=f"Week {week_num}: empty non-rest session; placeholder added",
+                    week=week_num,
+                )
+            )
+
+
+def _enforce_session_count(
+    week: dict[str, object],
+    scaffold_week_map: dict[int, int],
+    week_num: int,
+    errors: list[PlanValidationError],
+) -> None:
+    expected = scaffold_week_map.get(week_num)
+    if expected is None:
+        return
+    raw_sessions = week.get("sessions")
+    if not isinstance(raw_sessions, list):
+        week["sessions"] = []
+        raw_sessions = week["sessions"]
+    sessions: list[object] = raw_sessions  # type: ignore[assignment]
+    actual = len(sessions)
+    if actual > expected:
+        del sessions[expected:]
+        log.info(
+            "plan_correction",
+            extra={
+                "type": "sessions_trimmed",
+                "week": week_num,
+                "from": actual,
+                "to": expected,
+            },
+        )
+        errors.append(
+            PlanValidationError(
+                code="sessions_trimmed",
+                message=f"Week {week_num}: {actual} sessions trimmed to {expected}",
+                week=week_num,
+            )
+        )
+    elif actual < expected:
+        for _ in range(expected - actual):
+            sessions.append(dict(_PADDING_SESSION))
+        log.info(
+            "plan_correction",
+            extra={
+                "type": "sessions_padded",
+                "week": week_num,
+                "from": actual,
+                "to": expected,
+            },
+        )
+        errors.append(
+            PlanValidationError(
+                code="sessions_padded",
+                message=f"Week {week_num}: padded from {actual} to {expected} sessions",
+                week=week_num,
+            )
+        )
+
+
+def validate_and_correct_plan(
+    plan: dict[str, object],
+    training_age: str,
+    scaffold: PlanScaffold,
+) -> tuple[dict[str, object], list[PlanValidationError]]:
+    """Validate and correct a plan dict in-place. Never raises.
+
+    Clamps sets to MRV, enforces session/exercise counts, clamps load%,
+    and emits a structured log entry for every correction made.
+    Returns (corrected_plan, errors).
+    """
+    errors: list[PlanValidationError] = []
+    try:
+        mev_mav_mrv = MEV_MAV_MRV.get(training_age, MEV_MAV_MRV["intermediate"])
+        scaffold_week_map = {w.week_number: len(w.sessions) for w in scaffold.weeks}
+        weeks = plan.get("weeks")
+        if not isinstance(weeks, list):
+            return plan, errors
+        for week in weeks:
+            if not isinstance(week, dict):
+                continue
+            try:
+                week_num = int(week.get("week") or 0)
+            except TypeError, ValueError:
+                continue
+            _enforce_session_count(week, scaffold_week_map, week_num, errors)
+            sessions = week.get("sessions")
+            if not isinstance(sessions, list):
+                continue
+            _clamp_sets_to_mrv(sessions, mev_mav_mrv, week_num, errors)
+            _clamp_load_pct(sessions, week_num, errors)
+            _enforce_exercise_count(sessions, week_num, errors)
+    except Exception:
+        log.exception("validate_and_correct_plan: unexpected error; returning plan uncorrected")
+    return plan, errors
 
 
 # ── Plan revision ─────────────────────────────────────────────────────────────
