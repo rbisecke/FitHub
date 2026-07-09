@@ -13,11 +13,12 @@ from tests.conftest import ALICE_ID, TEST_DB_DSN
 # ── Shared helpers ─────────────────────────────────────────────────────────────
 
 CREATE_BODY = {
-    "goal": "general_fitness",
+    "archetype": "general-crossfit",
     "title": "Revision Test Plan",
     "start_date": "2026-07-01",
     "weeks": 4,
     "training_age": "intermediate",
+    "days_per_week": 3,
 }
 
 FEEDBACK = "My knees have been bothering me — please reduce squat volume."

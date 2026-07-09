@@ -8,11 +8,12 @@ import pytest
 from httpx import AsyncClient
 
 CREATE_BODY = {
-    "goal": "general_fitness",
+    "archetype": "general-crossfit",
     "title": "My Test Plan",
     "start_date": "2026-07-01",
     "weeks": 8,
     "training_age": "intermediate",
+    "days_per_week": 3,
 }
 
 
@@ -38,7 +39,7 @@ async def test_create_plan_requires_auth(anon_client: AsyncClient) -> None:
 async def test_create_plan_invalid_goal(alice_client: AsyncClient) -> None:
     r = await alice_client.post(
         "/api/v1/plans",
-        json={**CREATE_BODY, "goal": "win_olympics"},
+        json={**CREATE_BODY, "archetype": "win_olympics"},
     )
     assert r.status_code == 422
 
@@ -109,7 +110,7 @@ async def test_list_plans_shows_created_plan(alice_client: AsyncClient) -> None:
     r = await alice_client.get("/api/v1/plans")
     assert r.status_code == 200
     assert len(r.json()) >= 1
-    assert all("id" in p and "goal" in p for p in r.json())
+    assert all("id" in p and "archetype" in p for p in r.json())
 
 
 @pytest.mark.asyncio
@@ -127,7 +128,7 @@ async def test_get_plan_detail(alice_client: AsyncClient) -> None:
     r = await alice_client.get(f"/api/v1/plans/{plan_id}")
     assert r.status_code == 200
     data = r.json()
-    assert data["goal"] == "general_fitness"
+    assert data["archetype"] == "general-crossfit"
     assert isinstance(data["mesocycles"], list)
     assert len(data["mesocycles"]) >= 1
     assert isinstance(data["sessions"], list)
