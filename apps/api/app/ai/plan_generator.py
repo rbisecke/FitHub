@@ -378,9 +378,9 @@ def _fallback_plan_fill(archetype: str) -> PlanFill:
 
     template = FALLBACK_SESSIONS.get(archetype, FALLBACK_SESSIONS["general-crossfit"])
     weeks = []
-    for wdata in list(template.get("weeks", []))[:1]:
+    for wdata in cast(list[dict[str, object]], template.get("weeks", []))[:1]:
         sessions = []
-        for sdata in list(wdata.get("sessions", []))[:3]:  # type: ignore[union-attr]
+        for sdata in cast(list[dict[str, object]], wdata.get("sessions", []))[:3]:
             items = [
                 _ES(
                     movement_name=str(idata.get("movement_name") or "Air Squat"),
@@ -507,7 +507,7 @@ async def _call_llm(
                 model=model,
                 max_tokens=8192,
                 extra_body={"options": {"num_ctx": 16384}},
-                messages=messages,
+                messages=messages,  # type: ignore[arg-type]
                 response_model=ConstrainedPlanFill,
             ),
             context="assemble_plan",
@@ -543,11 +543,11 @@ async def _call_llm(
         from app.ai.fallback_templates import FALLBACK_SESSIONS  # noqa: PLC0415
 
         template = FALLBACK_SESSIONS.get(req.archetype, FALLBACK_SESSIONS["general-crossfit"])
-        for wdata in list(template.get("weeks", []))[:1]:
+        for wdata in cast(list[dict[str, object]], template.get("weeks", []))[:1]:
             sessions = []
-            for sdata in list(wdata.get("sessions", []))[:3]:  # type: ignore[union-attr]
+            for sdata in cast(list[dict[str, object]], wdata.get("sessions", []))[:3]:
                 items = []
-                for idata in list(sdata.get("items", []))[:3]:  # type: ignore[union-attr]
+                for idata in cast(list[dict[str, object]], sdata.get("items", []))[:3]:
                     raw_name = str(idata.get("movement_name") or "")
                     if raw_name not in all_names:
                         pat = str(idata.get("movement_pattern") or "unknown")
@@ -602,9 +602,9 @@ async def _call_llm(
     from app.ai.movement_enum import WeekFill as _WF3
 
     t3_weeks = []
-    for wdata in list(template3.get("weeks", []))[:1]:
+    for wdata in cast(list[dict[str, object]], template3.get("weeks", []))[:1]:
         sessions = []
-        for sdata in list(wdata.get("sessions", []))[:3]:  # type: ignore[union-attr]
+        for sdata in cast(list[dict[str, object]], wdata.get("sessions", []))[:3]:
             items = [
                 _ES3(
                     movement_name=str(idata.get("movement_name") or "Air Squat"),
@@ -613,7 +613,7 @@ async def _call_llm(
                     load_pct=None,
                     notes=None,
                 )
-                for idata in list(sdata.get("items", []))[:3]  # type: ignore[union-attr]
+                for idata in cast(list[dict[str, object]], sdata.get("items", []))[:3]
             ]
             if len(items) < 3:
                 while len(items) < 3:
@@ -1038,7 +1038,7 @@ async def run_plan_generation(
 
                 target_id = req_data.get("target_movement_id")
                 history = await build_user_history_skill(
-                    user_id, db, str(target_id) if target_id else None
+                    user_id, db, str(target_id) if target_id else ""
                 )
             else:
                 history = await build_user_history(user_id, db)
