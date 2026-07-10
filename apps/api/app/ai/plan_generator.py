@@ -384,7 +384,7 @@ def _fallback_plan_fill(archetype: str) -> PlanFill:
             items = [
                 _ES(
                     movement_name=str(idata.get("movement_name") or "Air Squat"),
-                    sets=int(idata.get("sets") or 3),
+                    sets=cast(int, idata.get("sets", 3)),
                     reps_or_duration=str(idata.get("reps") or "10"),
                     load_pct=None,
                     notes=None,
@@ -556,7 +556,7 @@ async def _call_llm(
                     items.append(
                         _ES(
                             movement_name=raw_name,
-                            sets=int(idata.get("sets") or 3),  # type: ignore[arg-type]
+                            sets=cast(int, idata.get("sets", 3)),
                             reps_or_duration=str(idata.get("reps") or "10"),
                             load_pct=None,
                             notes=None,
@@ -608,7 +608,7 @@ async def _call_llm(
             items = [
                 _ES3(
                     movement_name=str(idata.get("movement_name") or "Air Squat"),
-                    sets=int(idata.get("sets") or 3),  # type: ignore[arg-type]
+                    sets=cast(int, idata.get("sets", 3)),
                     reps_or_duration=str(idata.get("reps") or "10"),
                     load_pct=None,
                     notes=None,
