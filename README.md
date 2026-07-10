@@ -71,10 +71,18 @@ The app is invite-only and in active development. Use the "Request access" form 
   </tr>
   <tr>
     <td><img src="screenshots/readme/revamp-plan-wizard.png" alt="Plan Wizard"></td>
-    <td></td>
+    <td><img src="screenshots/readme/revamp-plan-detail.png" alt="Plan Detail"></td>
   </tr>
   <tr>
     <td align="center"><sub><strong>Plan Wizard</strong> &mdash; 5-step AI plan generator</sub></td>
+    <td align="center"><sub><strong>Plan Detail</strong> &mdash; timeline, volume, session list</sub></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/readme/revamp-session-execute.png" alt="Session Execution"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><strong>Session Execution</strong> &mdash; live set logging + exercise swap</sub></td>
     <td></td>
   </tr>
 </table>
