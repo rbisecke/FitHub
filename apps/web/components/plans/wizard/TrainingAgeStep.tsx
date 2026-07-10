@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { generatePlanTitle } from "@/lib/plans/titles";
 import type { TrainingAge, WizardState } from "@/lib/types/plans";
 
@@ -48,45 +48,49 @@ export function TrainingAgeStep({
   isSubmitting,
   error,
 }: Props) {
-  // Track whether user has manually edited the title. Once they do, stop
-  // auto-regenerating on training age changes.
-  const [titleDirty, setTitleDirty] = useState(false);
-  const [localTitle, setLocalTitle] = useState<string>("");
+  // When null the title is auto-derived from the archetype + training age.
+  // Once the user types in the field it becomes a controlled string.
+  // Selecting a new training age resets this back to null so the field
+  // auto-regenerates — the user can re-edit if they want.
+  const [customTitle, setCustomTitle] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [injuryNotes, setInjuryNotes] = useState("");
   const [intensityBias, setIntensityBias] = useState<IntensityBias>("Moderate");
 
-  // Regenerate title whenever training age changes, unless the user already
-  // hand-edited it.
-  useEffect(() => {
-    if (titleDirty) return;
-    if (!state.trainingAge || !state.archetype) return;
-    const generated = generatePlanTitle(
+  // Derive the visible title without an effect: prefer the user's custom
+  // override, otherwise generate from the current wizard state.
+  function derivedTitle(): string {
+    if (customTitle !== null) return customTitle;
+    if (!state.archetype || !state.trainingAge) return "";
+    return generatePlanTitle(
       state.archetype,
       state.trainingAge,
       state.targetMovementName,
     );
-    setLocalTitle(generated);
-    onTitleChange(generated);
-    // onTitleChange identity is stable (useCallback in parent); safe to omit
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    state.trainingAge,
-    state.archetype,
-    state.targetMovementName,
-    titleDirty,
-  ]);
+  }
 
   function handleAgeSelect(age: TrainingAge) {
+    // Changing age resets any custom title so the field auto-regenerates.
+    setCustomTitle(null);
     onAgeSelect(age);
+    // Notify parent with the freshly-generated title for this age.
+    if (state.archetype) {
+      const generated = generatePlanTitle(
+        state.archetype,
+        age,
+        state.targetMovementName,
+      );
+      onTitleChange(generated);
+    }
   }
 
   function handleTitleChange(value: string) {
-    setLocalTitle(value);
-    setTitleDirty(true);
+    setCustomTitle(value);
     onTitleChange(value);
   }
 
+  const titleValue = derivedTitle();
+  const titleDirty = customTitle !== null;
   const canSubmit = state.trainingAge !== null && !isSubmitting;
 
   return (
@@ -118,7 +122,6 @@ export function TrainingAgeStep({
               type="button"
               role="radio"
               aria-checked={isSelected}
-              aria-pressed={isSelected}
               title={tooltip}
               data-testid={`training-age-${value}`}
               onClick={() => handleAgeSelect(value)}
@@ -160,7 +163,7 @@ export function TrainingAgeStep({
           id="plan-title"
           type="text"
           data-testid="plan-title-input"
-          value={localTitle}
+          value={titleValue}
           onChange={(e) => handleTitleChange(e.target.value)}
           placeholder={
             state.trainingAge ? "" : "select a training age to generate title"

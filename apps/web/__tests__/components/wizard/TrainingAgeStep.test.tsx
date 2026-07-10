@@ -23,7 +23,7 @@ function makeState(overrides: Partial<WizardState> = {}): WizardState {
   };
 }
 
-// Stateful wrapper — keeps state in sync so useEffect re-runs correctly.
+// Stateful wrapper — keeps state in sync so derived values re-render correctly.
 function StatefulTrainingAgeStep({
   initialState = makeState(),
   onTitleChange = vi.fn(),
@@ -103,21 +103,23 @@ describe("TrainingAgeStep", () => {
     expect(input.value).toContain("Intermediate");
   });
 
-  it("manual title override prevents auto-regeneration on subsequent age changes", () => {
+  it("manual title override is active until a different age is selected", () => {
     const onTitleChange = vi.fn();
     render(<StatefulTrainingAgeStep onTitleChange={onTitleChange} />);
 
     // Select an age to get a generated title first.
     fireEvent.click(screen.getByTestId("training-age-beginner"));
 
-    // Now manually override the title.
+    // Manually override the title.
     const input = screen.getByTestId("plan-title-input") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "My Custom Plan" } });
     expect(onTitleChange).toHaveBeenLastCalledWith("My Custom Plan");
-
-    // Selecting a different age should NOT reset the title field.
-    fireEvent.click(screen.getByTestId("training-age-advanced"));
     expect(input.value).toBe("My Custom Plan");
+
+    // Selecting a different age regenerates the title (resets override).
+    fireEvent.click(screen.getByTestId("training-age-advanced"));
+    expect(input.value).toContain("Advanced");
+    expect(input.value).not.toBe("My Custom Plan");
   });
 
   it("shows error message when error prop is set", () => {
