@@ -35,3 +35,11 @@ export interface WizardState {
   error: string | null;
   planId: string | null;
 }
+
+export type PrerequisiteStatusValue = "checked" | "pending" | "target";
+
+export interface PrerequisiteStatus {
+  movementId: string;
+  movementName: string;
+  status: PrerequisiteStatusValue;
+}
