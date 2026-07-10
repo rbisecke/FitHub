@@ -113,6 +113,23 @@ export function PlanTimelineRail({
         </div>
       )}
 
+      {/* TODAY floating label above the today marker */}
+      {todayPct >= 0 && todayPct <= 100 && (
+        <div className="relative h-5 mb-1" aria-hidden="true">
+          <div
+            style={{ left: `${todayPct}%`, transform: "translateX(-50%)" }}
+            className="absolute top-0 flex flex-col items-center"
+          >
+            <span
+              className="font-data text-[9.5px] font-extrabold tracking-[0.5px] px-1.5 py-0.5 rounded-[5px]"
+              style={{ background: "var(--accent)", color: "var(--bg)" }}
+            >
+              TODAY
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Timeline bar with phase bands */}
       <div
         className="relative h-3 rounded-full bg-[var(--border)] overflow-hidden"
@@ -129,10 +146,13 @@ export function PlanTimelineRail({
           />
         ))}
 
-        {/* Today marker */}
+        {/* Today marker line — with glow */}
         {todayPct >= 0 && todayPct <= 100 && (
           <div
-            style={{ left: `${todayPct}%` }}
+            style={{
+              left: `${todayPct}%`,
+              boxShadow: "0 0 6px 1px var(--accent)",
+            }}
             className="absolute inset-y-0 w-0.5 bg-[var(--accent)] z-10"
             aria-label="Today"
           />

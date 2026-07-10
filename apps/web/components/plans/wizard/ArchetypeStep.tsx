@@ -12,6 +12,14 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { ArchetypeSlug, WizardState } from "@/lib/types/plans";
 
+// Archetypes that carry a specific program-type tag badge.
+const ARCHETYPE_TAG: Partial<Record<ArchetypeSlug, string>> = {
+  "skill-acquisition": "sets a target",
+  "one-rm-peak": "sets a target",
+  "travel-minimal": "locks equipment",
+  "bodyweight-calisthenics": "locks equipment",
+};
+
 const ARCHETYPES: {
   slug: ArchetypeSlug;
   name: string;
@@ -83,6 +91,7 @@ export function ArchetypeStep({ state, onSelect }: Props) {
       >
         {ARCHETYPES.map(({ slug, name, Icon, desc }) => {
           const isSelected = state.archetype === slug;
+          const tag = ARCHETYPE_TAG[slug];
           return (
             <button
               key={slug}
@@ -113,6 +122,20 @@ export function ArchetypeStep({ state, onSelect }: Props) {
               <p className="font-mono text-xs text-[var(--muted)] leading-snug">
                 {desc}
               </p>
+              {tag && (
+                <span
+                  className="inline-block mt-2 font-data text-[9.5px] font-semibold uppercase tracking-[0.04em] rounded-full px-2 py-0.5"
+                  style={{
+                    color: "var(--accent)",
+                    background:
+                      "color-mix(in srgb, var(--accent) 10%, transparent)",
+                    border:
+                      "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+                  }}
+                >
+                  {tag}
+                </span>
+              )}
             </button>
           );
         })}

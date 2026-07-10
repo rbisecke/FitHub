@@ -1,13 +1,5 @@
+import Link from "next/link";
 import type { PlannedSessionOut } from "@/lib/api/plans";
-
-function getSessionStyle(type: string | undefined): {
-  bg: string;
-  text: string;
-  label: string;
-} {
-  const key = type ?? "rest";
-  return SESSION_TYPE_STYLES[key] ?? DEFAULT_SESSION_STYLE;
-}
 
 function getWeekRange(): { start: Date; end: Date } {
   const today = new Date();
@@ -21,53 +13,19 @@ function getWeekRange(): { start: Date; end: Date } {
   return { start, end };
 }
 
-const DEFAULT_SESSION_STYLE = {
-  bg: "bg-[var(--surface-2)] border-[var(--border)]",
-  text: "text-[var(--muted)]",
-  label: "Session",
+// Map session type to our token system.
+const SESSION_TYPE_CONFIG: Record<string, { token: string; label: string }> = {
+  strength: { token: "var(--green)", label: "Strength" },
+  metcon: { token: "var(--amber)", label: "Conditioning" },
+  skill: { token: "var(--accent)", label: "Skill" },
+  mixed: { token: "var(--purple)", label: "Mixed" },
+  active_recovery: { token: "var(--muted)", label: "Recovery" },
+  rest: { token: "var(--muted)", label: "Rest" },
 };
 
-const SESSION_TYPE_STYLES: Record<
-  string,
-  { bg: string; text: string; label: string }
-> = {
-  strength: {
-    bg: "bg-[rgba(88,166,255,0.12)] border-[rgba(88,166,255,0.3)]",
-    text: "text-[var(--blue)]",
-    label: "Strength",
-  },
-  metcon: {
-    bg: "bg-[rgba(255,122,69,0.12)] border-[rgba(255,122,69,0.3)]",
-    text: "text-[var(--hot)]",
-    label: "Metcon",
-  },
-  cardio: {
-    bg: "bg-[rgba(74,222,128,0.12)] border-[rgba(74,222,128,0.3)]",
-    text: "text-[var(--accent)]",
-    label: "Cardio",
-  },
-  skill: {
-    bg: "bg-[rgba(255,200,61,0.12)] border-[rgba(255,200,61,0.3)]",
-    text: "text-[var(--gold)]",
-    label: "Skill",
-  },
-  mixed: {
-    bg: "bg-[rgba(88,166,255,0.12)] border-[rgba(88,166,255,0.3)]",
-    text: "text-[var(--blue)]",
-    label: "Mixed",
-  },
-  active_recovery: {
-    bg: "bg-[rgba(74,222,128,0.08)] border-[rgba(74,222,128,0.2)]",
-    text: "text-[var(--accent)]",
-    label: "Recovery",
-  },
-  rest: {
-    bg: "bg-[var(--surface-2)] border-[var(--border)]",
-    text: "text-[var(--muted)]",
-    label: "Rest",
-  },
-};
+const DEFAULT_SESSION_CONFIG = { token: "var(--muted)", label: "Session" };
 
+const DAY_ABBR = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DAY_NAMES = [
   "Monday",
   "Tuesday",
@@ -107,8 +65,8 @@ export function CurrentWeekView({ sessions }: Props) {
     const session = sessionByDate.get(dateKey);
     const isToday = date.toDateString() === today.toDateString();
     const isPast = date < today;
-    const sessionStyle = getSessionStyle(session?.session_type);
-    return { date, dateKey, session, isToday, isPast, sessionStyle };
+    const isDone = session?.status === "completed";
+    return { date, dateKey, session, isToday, isPast, isDone };
   });
 
   // only show if any sessions in range
@@ -127,82 +85,138 @@ export function CurrentWeekView({ sessions }: Props) {
       </div>
 
       <div className="flex flex-col gap-2">
-        {days.map(
-          ({ date, dateKey, session, isToday, isPast, sessionStyle }, i) => {
-            let statusEl: React.ReactNode = null;
-            if (session) {
-              if (session.status === "completed") {
-                statusEl = (
-                  <span className="font-data text-[11px] text-[var(--accent)]">
-                    Completed ✓
-                  </span>
-                );
-              } else if (isPast) {
-                statusEl = (
-                  <span className="font-data text-[11px] text-[var(--hot)]">
-                    Missed ✕
-                  </span>
-                );
-              } else {
-                statusEl = (
-                  <span className="font-data text-[11px] text-[var(--muted)]">
-                    Scheduled
-                  </span>
-                );
-              }
-            }
+        {days.map(({ date, dateKey, session, isToday, isPast, isDone }, i) => {
+          const typeCfg =
+            SESSION_TYPE_CONFIG[session?.session_type ?? ""] ??
+            DEFAULT_SESSION_CONFIG;
 
-            return (
+          // Day pill color based on session state.
+          let dayPillBg: string;
+          let dayPillText: string;
+          if (isDone) {
+            dayPillBg = "var(--green)";
+            dayPillText = "var(--bg)";
+          } else if (isToday) {
+            dayPillBg = "color-mix(in srgb, var(--accent) 18%, transparent)";
+            dayPillText = "var(--accent)";
+          } else {
+            dayPillBg = "color-mix(in srgb, var(--muted) 12%, transparent)";
+            dayPillText = "var(--muted)";
+          }
+
+          // Status badge.
+          let statusText: string;
+          let statusColor: string;
+          let statusBg: string;
+          if (!session) {
+            statusText = "";
+            statusColor = "var(--muted)";
+            statusBg = "transparent";
+          } else if (isDone) {
+            statusText = "Done ✓";
+            statusColor = "var(--green)";
+            statusBg = "color-mix(in srgb, var(--green) 12%, transparent)";
+          } else if (isToday) {
+            statusText = "Today";
+            statusColor = "var(--bg)";
+            statusBg = "var(--accent)";
+          } else {
+            statusText = isPast ? "Missed" : "Upcoming";
+            statusColor = "var(--muted)";
+            statusBg = "color-mix(in srgb, var(--muted) 12%, transparent)";
+          }
+
+          // CTA text.
+          const ctaText = isToday ? "Log session · start now" : "Log session";
+
+          return (
+            <div
+              key={dateKey}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
+              style={{
+                border: isToday
+                  ? "1px solid color-mix(in srgb, var(--accent) 45%, transparent)"
+                  : "1px solid transparent",
+                boxShadow: isToday
+                  ? "0 0 0 1px color-mix(in srgb, var(--accent) 15%, transparent)"
+                  : "none",
+              }}
+            >
+              {/* Day pill */}
               <div
-                key={dateKey}
-                className={[
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
-                  isToday
-                    ? "bg-[rgba(74,222,128,0.06)] border border-[rgba(74,222,128,0.2)]"
-                    : "border border-transparent",
-                ].join(" ")}
+                className="flex-shrink-0 flex flex-col items-center justify-center font-data tabular-nums text-[11px] font-bold rounded-lg"
+                style={{
+                  width: 44,
+                  height: 44,
+                  background: dayPillBg,
+                  color: dayPillText,
+                }}
+                aria-label={`${DAY_NAMES[i]}, ${formatDayDate(date)}`}
               >
-                <div className="w-20 flex-shrink-0">
-                  <div
-                    className={`font-sans text-[13px] font-semibold ${
-                      isToday
-                        ? "text-[var(--accent)]"
-                        : "text-[var(--foreground)]"
-                    }`}
-                  >
-                    {DAY_NAMES[i]}
-                  </div>
-                  <div className="font-data text-[11px] text-[var(--muted)] tabular-nums">
-                    {formatDayDate(date)}
-                  </div>
-                </div>
+                <span className="text-[10px] uppercase tracking-wide">
+                  {DAY_ABBR[i]}
+                </span>
+                <span className="text-[13px] leading-tight">
+                  {date.getDate()}
+                </span>
+              </div>
 
-                <div className="flex-1 min-w-0">
-                  {session ? (
+              <div className="flex-1 min-w-0">
+                {session ? (
+                  <>
                     <div className="font-sans text-[13px] text-[var(--foreground)] truncate">
                       {session.title}
                     </div>
-                  ) : (
-                    <div className="font-data text-[12px] text-[var(--muted)]">
-                      Rest day
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {session && (
+                    {/* Session type badge */}
                     <span
-                      className={`text-[11px] font-semibold border px-2 py-0.5 rounded-full ${sessionStyle.bg} ${sessionStyle.text}`}
+                      className="inline-block mt-0.5 font-sans text-[10px] font-bold uppercase tracking-[0.5px] rounded px-1.5 py-0"
+                      style={{
+                        color: typeCfg.token,
+                        background: `color-mix(in srgb, ${typeCfg.token} 14%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${typeCfg.token} 32%, transparent)`,
+                      }}
                     >
-                      {sessionStyle.label}
+                      {typeCfg.label}
                     </span>
-                  )}
-                  {statusEl}
-                </div>
+                  </>
+                ) : (
+                  <div className="font-data text-[12px] text-[var(--muted)]">
+                    Rest day
+                  </div>
+                )}
               </div>
-            );
-          },
-        )}
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {session && statusText && (
+                  <span
+                    className="font-data text-[11px] font-semibold rounded px-1.5 py-0.5"
+                    style={{ color: statusColor, background: statusBg }}
+                  >
+                    {statusText}
+                  </span>
+                )}
+                {session && !isDone && (
+                  <Link
+                    href={`/plans/${session.mesocycle_id}`}
+                    className="font-data text-[11px] rounded px-2 py-1 transition-opacity hover:opacity-80"
+                    style={{
+                      background: isToday
+                        ? "var(--accent)"
+                        : "color-mix(in srgb, var(--muted) 15%, transparent)",
+                      color: isToday ? "var(--bg)" : "var(--muted)",
+                      minHeight: 28,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {ctaText}
+                  </Link>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
