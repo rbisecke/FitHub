@@ -79,16 +79,17 @@ function NextSessionSkeleton() {
 
 export function NextSessionCard({ accessToken, activePlanId }: Props) {
   const client = useMemo(() => createApiClient(accessToken), [accessToken]);
+  // undefined = still loading; null = no upcoming session found.
+  // Initialize to null when there is no plan to fetch — avoids a synchronous
+  // setState call inside the effect that would trigger the lint rule.
   const [session, setSession] = useState<PlannedSessionOut | null | undefined>(
-    undefined,
+    activePlanId ? undefined : null,
   );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!activePlanId) {
-      setSession(null);
-      return;
-    }
+    // No plan — nothing to fetch. State is already null from initialization.
+    if (!activePlanId) return;
 
     const controller = new AbortController();
     let cancelled = false;
