@@ -347,12 +347,12 @@ export function TargetMovementStep({
               on1rmChange(e.target.value === "" ? null : Number(e.target.value))
             }
             placeholder="e.g. 100"
-            className="rounded font-mono text-sm"
+            className="rounded font-data tabular-nums text-[30px] font-bold"
             style={{
-              width: "128px",
+              width: "160px",
               border: "1px solid var(--border)",
               backgroundColor: "var(--surface)",
-              color: "var(--text)",
+              color: "var(--amber)",
               padding: "8px 12px",
               fontVariantNumeric: "tabular-nums",
             }}
@@ -421,7 +421,7 @@ export function TargetMovementStep({
           data-testid="continue-btn"
           className="rounded font-mono text-sm transition-opacity"
           style={{
-            backgroundColor: "var(--accent)",
+            backgroundColor: "var(--text)",
             color: "var(--bg)",
             padding: "8px 16px",
             minHeight: "44px",
