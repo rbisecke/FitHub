@@ -12,11 +12,19 @@ interface Props {
 
 const SESSION_TYPE_LABELS: Record<PlannedSessionOut["session_type"], string> = {
   strength: "Strength",
-  metcon: "Metcon",
+  metcon: "Conditioning",
   skill: "Skill",
   mixed: "Mixed",
   rest: "Rest",
   active_recovery: "Active Recovery",
+};
+
+// Map session type to design-system token for colored badges.
+const SESSION_TYPE_TOKEN: Record<string, string> = {
+  strength: "var(--green)",
+  metcon: "var(--amber)",
+  skill: "var(--accent)",
+  mixed: "var(--purple)",
 };
 
 function formatScheduledDate(iso: string): string {
@@ -136,21 +144,29 @@ export function NextSessionCard({ accessToken, activePlanId }: Props) {
     return (
       <div
         className="rounded-lg border p-4 flex flex-col gap-3"
-        style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+        style={{
+          borderColor: "var(--border)",
+          borderStyle: "dashed",
+          background: "var(--surface)",
+        }}
       >
-        <div className="flex items-center gap-2">
-          <span
-            className="font-data text-[10px] uppercase tracking-widest"
-            style={{ color: "var(--muted)" }}
-          >
-            $ git log --plan
-          </span>
-        </div>
-        <p className="font-data text-[13px]" style={{ color: "var(--muted)" }}>
-          No active plan — nothing to commit.
+        <span
+          className="font-data text-[10px] uppercase tracking-widest"
+          style={{ color: "var(--muted)" }}
+        >
+          No active plan
+        </span>
+        <h3
+          className="font-heading text-[16px] leading-tight"
+          style={{ color: "var(--text)" }}
+        >
+          Nothing queued up yet
+        </h3>
+        <p className="font-data text-[12px]" style={{ color: "var(--muted)" }}>
+          Once you generate a plan, your next session will appear here.
         </p>
         <Link
-          href="/plans"
+          href="/plans/new"
           className="inline-flex items-center gap-1 min-h-[44px] w-fit rounded-md px-4 py-3 font-data text-[13px] font-medium transition-opacity hover:opacity-80"
           style={{
             background: "var(--accent)",
@@ -167,6 +183,7 @@ export function NextSessionCard({ accessToken, activePlanId }: Props) {
   const dateLabel = formatScheduledDate(session.scheduled_date);
   const sessionTypeLabel =
     SESSION_TYPE_LABELS[session.session_type] ?? session.session_type;
+  const typeToken = SESSION_TYPE_TOKEN[session.session_type] ?? "var(--muted)";
   const visibleItems = session.items
     .slice()
     .sort((a, b) => a.item_order - b.item_order)
@@ -175,8 +192,27 @@ export function NextSessionCard({ accessToken, activePlanId }: Props) {
   return (
     <div
       className="rounded-lg border p-4 flex flex-col gap-3"
-      style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+      style={{
+        borderColor: "var(--border)",
+        background: "var(--surface)",
+        position: "relative",
+        overflow: "hidden",
+      }}
     >
+      {/* Green accent glow bar at top of card */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: "3px",
+          background:
+            "linear-gradient(90deg, var(--green), color-mix(in srgb, var(--green) 20%, transparent))",
+        }}
+      />
+
       {/* Header row */}
       <div className="flex items-center justify-between gap-2">
         <span
@@ -185,19 +221,9 @@ export function NextSessionCard({ accessToken, activePlanId }: Props) {
         >
           $ git checkout next-session
         </span>
-        <span
-          className="font-data text-[10px] rounded px-2 py-0.5"
-          style={{
-            background: "rgba(88,166,255,0.12)",
-            color: "var(--accent)",
-            border: "1px solid rgba(88,166,255,0.25)",
-          }}
-        >
-          {sessionTypeLabel}
-        </span>
       </div>
 
-      {/* Session title / date */}
+      {/* Session title / date + type badge */}
       <div>
         <p
           className="font-data text-[11px] tabular-nums"
@@ -211,6 +237,17 @@ export function NextSessionCard({ accessToken, activePlanId }: Props) {
         >
           {session.title}
         </h3>
+        {/* Session type badge */}
+        <span
+          className="inline-block mt-1 font-sans text-[10.5px] font-bold uppercase tracking-[0.5px] rounded px-2 py-0.5"
+          style={{
+            color: typeToken,
+            background: `color-mix(in srgb, ${typeToken} 14%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${typeToken} 32%, transparent)`,
+          }}
+        >
+          {sessionTypeLabel}
+        </span>
       </div>
 
       {/* Exercise list */}
@@ -218,21 +255,36 @@ export function NextSessionCard({ accessToken, activePlanId }: Props) {
         <ul className="space-y-1.5" role="list">
           {visibleItems.map((item) => {
             const rep = formatExerciseLine(item);
+            const hasLoad = rep.length > 0 && rep !== "–";
             return (
               <li
                 key={item.id}
-                className="flex items-baseline justify-between gap-2"
+                className="flex items-center justify-between gap-2"
               >
-                <span
-                  className="font-data text-[12px] truncate"
-                  style={{ color: "var(--text)" }}
-                >
-                  {item.movement_name}
+                <span className="flex items-center gap-1.5 min-w-0">
+                  {/* Colored dot */}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: "var(--green)",
+                      flexShrink: 0,
+                      display: "inline-block",
+                    }}
+                  />
+                  <span
+                    className="font-data text-[12px] truncate"
+                    style={{ color: "var(--text)" }}
+                  >
+                    {item.movement_name}
+                  </span>
                 </span>
                 {rep && (
                   <span
-                    className="font-mono tabular-nums text-[12px] shrink-0"
-                    style={{ color: "var(--muted)" }}
+                    className="font-data tabular-nums text-[12px] font-bold shrink-0"
+                    style={{ color: hasLoad ? "var(--amber)" : "var(--muted)" }}
                   >
                     {rep}
                   </span>
@@ -255,10 +307,31 @@ export function NextSessionCard({ accessToken, activePlanId }: Props) {
         </p>
       )}
 
-      {/* Link to full plan */}
+      {/* Start session button */}
       <Link
         href={`/plans/${session.mesocycle_id}`}
-        className="font-data text-[12px] mt-1 hover:opacity-80 transition-opacity"
+        className="inline-flex items-center justify-center gap-1.5 min-h-[44px] w-full rounded-md px-4 py-3 font-data text-[13px] font-semibold transition-opacity hover:opacity-80"
+        style={{
+          background: "var(--green)",
+          color: "var(--bg)",
+        }}
+      >
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M6 4l14 8-14 8V4z" />
+        </svg>
+        Start session
+      </Link>
+
+      {/* View full plan ghost link */}
+      <Link
+        href={`/plans/${session.mesocycle_id}`}
+        className="font-data text-[12px] text-center hover:opacity-80 transition-opacity"
         style={{ color: "var(--accent)" }}
       >
         View full plan →

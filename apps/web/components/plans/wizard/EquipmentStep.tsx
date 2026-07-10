@@ -168,6 +168,34 @@ export function EquipmentStep({ state, onUpdate, onNext }: Props) {
                   </span>
                 </button>
 
+                {/* Lock icon for auto-selected (Full Gym forced) presets */}
+                {isLocked && (
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-label="Locked by Full Gym selection"
+                    style={{ color: "var(--amber)", flexShrink: 0 }}
+                  >
+                    <rect
+                      x="5"
+                      y="11"
+                      width="14"
+                      height="10"
+                      rx="2"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    />
+                    <path
+                      d="M8 11V7a4 4 0 1 1 8 0v4"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                )}
+
                 {/* Expand toggle */}
                 <button
                   type="button"
@@ -238,7 +266,7 @@ export function EquipmentStep({ state, onUpdate, onNext }: Props) {
         data-testid="continue-btn"
         className="rounded font-mono text-sm transition-opacity"
         style={{
-          backgroundColor: "var(--accent)",
+          backgroundColor: "var(--text)",
           color: "var(--bg)",
           padding: "10px 24px",
           minHeight: "44px",

@@ -178,6 +178,21 @@ export function ScheduleStep({
           </p>
         )}
         {!weeksHelper && <div style={{ marginBottom: "12px" }} />}
+        {/* Prominent week count display */}
+        <div style={{ marginBottom: "12px" }}>
+          <span
+            className="font-data tabular-nums text-[22px] font-bold"
+            style={{ color: "var(--accent)" }}
+          >
+            {selectedWeeks}
+          </span>{" "}
+          <span
+            className="font-sans text-[13px]"
+            style={{ color: "var(--muted)" }}
+          >
+            weeks
+          </span>
+        </div>
         <div
           data-testid="weeks-buttons"
           style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
@@ -229,7 +244,7 @@ export function ScheduleStep({
             padding: "10px 24px",
             borderRadius: "6px",
             border: "none",
-            backgroundColor: "var(--accent)",
+            backgroundColor: "var(--text)",
             color: "var(--bg)",
             fontSize: "0.9375rem",
             fontWeight: 600,
