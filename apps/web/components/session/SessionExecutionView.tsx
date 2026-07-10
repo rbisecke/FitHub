@@ -12,9 +12,9 @@ import {
 } from "@/components/ui/sheet";
 import type { PlannedSessionOut, PlannedItemOut } from "@/lib/api/plans";
 import type { PlanDetail } from "@/lib/api/plans";
-import { api } from "@/lib/api/client";
 import { ExerciseCard } from "./ExerciseCard";
 import { RestTimer } from "./RestTimer";
+import { ExerciseSwapSheet } from "./ExerciseSwapSheet";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -232,17 +232,6 @@ function saveLastLoadToStorage(movementId: string, kg: number) {
 }
 
 // ---------------------------------------------------------------------------
-// Substitute fetch hook
-// ---------------------------------------------------------------------------
-
-interface SubstituteOption {
-  movementId: string;
-  movementName: string;
-  movementPattern: string;
-  reason: string;
-}
-
-// ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
@@ -302,57 +291,6 @@ export function SessionExecutionView({
     }
     dispatch({ type: "SET_LOAD_MAP", map });
   }, [session.items]);
-
-  // Substitute options state
-  const [substitutes, setSubstitutes] = useState<SubstituteOption[]>([]);
-  const [substitutesLoading, setSubstitutesLoading] = useState(false);
-
-  // Fetch substitutes when swap sheet opens
-  useEffect(() => {
-    if (state.phase !== "swapping" || !state.swapItemId) return;
-
-    const controller = new AbortController();
-    let cancelled = false;
-    const swapItemId = state.swapItemId;
-
-    // Defer state resets to a microtask to satisfy react-hooks/set-state-in-effect
-    void Promise.resolve().then(() => {
-      if (cancelled) return;
-      setSubstitutes([]);
-      setSubstitutesLoading(true);
-      dispatch({ type: "SET_SUBSTITUTE_ERROR", message: null });
-    });
-
-    api.movements
-      .getSubstitutes(accessToken, swapItemId, [], {
-        signal: controller.signal,
-      })
-      .then((results) => {
-        if (cancelled) return;
-        setSubstitutes(
-          results.map((r) => ({
-            movementId: r.id,
-            movementName: r.name,
-            movementPattern: r.movement_pattern,
-            reason: r.equipment_required.join(", "),
-          })),
-        );
-        setSubstitutesLoading(false);
-      })
-      .catch(() => {
-        if (cancelled || controller.signal.aborted) return;
-        dispatch({
-          type: "SET_SUBSTITUTE_ERROR",
-          message: "Could not load substitutes. Try again.",
-        });
-        setSubstitutesLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [state.phase, state.swapItemId, accessToken]);
 
   // Handlers
   const handleBegin = useCallback(() => {
@@ -420,8 +358,11 @@ export function SessionExecutionView({
     dispatch({ type: "CLOSE_SWAP" });
   }, []);
 
+  // Second arg (substituteMovementName) is not needed in the state machine but
+  // is part of ExerciseSwapSheet's onSwap contract for future callers.
   const handleConfirmSwap = useCallback(
-    (substituteMovementId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    (substituteMovementId: string, _substituteMovementName?: string) => {
       if (!currentItem) return;
       dispatch({
         type: "CONFIRM_SWAP",
@@ -810,78 +751,15 @@ export function SessionExecutionView({
       </Sheet>
 
       {/* Exercise swap sheet */}
-      <Sheet
+      <ExerciseSwapSheet
         open={state.phase === "swapping"}
-        onOpenChange={(open) => {
-          if (!open) handleCloseSwap();
-        }}
-      >
-        <SheetContent
-          side="bottom"
-          className="bg-[var(--surface)] border-t border-[var(--border)] rounded-t-2xl max-h-[60vh] overflow-y-auto pb-8"
-        >
-          <SheetHeader className="px-5 pt-4 pb-2">
-            <p className="font-data text-[11px] text-[var(--accent)] text-left">
-              $ checkout --swap
-            </p>
-            <SheetTitle className="font-heading text-[20px] text-[var(--text)] text-left">
-              swap exercise
-            </SheetTitle>
-          </SheetHeader>
-
-          <div className="px-5 pb-6 flex flex-col gap-3">
-            {substitutesLoading && (
-              <p className="font-sans text-[13px] text-[var(--muted)] py-4 text-center">
-                loading substitutes...
-              </p>
-            )}
-            {state.substituteError && (
-              <p
-                className="font-sans text-[12px] text-[var(--red)]"
-                role="alert"
-              >
-                {state.substituteError}
-              </p>
-            )}
-            {!substitutesLoading &&
-              substitutes.length === 0 &&
-              !state.substituteError && (
-                <p className="font-sans text-[13px] text-[var(--muted)] py-4 text-center">
-                  no substitutes available
-                </p>
-              )}
-            {substitutes.map((sub) => (
-              <div
-                key={sub.movementId}
-                className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-sans text-[14px] text-[var(--text)] font-semibold">
-                    {sub.movementName}
-                  </p>
-                  {sub.movementPattern && (
-                    <p className="font-data text-[11px] text-[var(--accent)] mt-0.5">
-                      {sub.movementPattern}
-                    </p>
-                  )}
-                  {sub.reason && (
-                    <p className="font-sans text-[11px] text-[var(--muted)] mt-0.5">
-                      {sub.reason}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleConfirmSwap(sub.movementId)}
-                  className="min-h-[44px] px-3 rounded-lg bg-[var(--accent)] font-sans text-[12px] font-bold text-[var(--bg)] transition-opacity hover:opacity-90 shrink-0"
-                  aria-label={`Use ${sub.movementName} as substitute`}
-                >
-                  use this
-                </button>
-              </div>
-            ))}
-          </div>
-        </SheetContent>
-      </Sheet>
+        onClose={handleCloseSwap}
+        movementId={state.swapItemId ?? ""}
+        movementName={currentItem?.movement_name ?? ""}
+        userEquipment={[]}
+        accessToken={accessToken}
+        onSwap={handleConfirmSwap}
+      />
     </div>
   );
 }
