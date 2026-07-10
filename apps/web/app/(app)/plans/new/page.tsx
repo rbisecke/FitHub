@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/supabase/requireAuth";
-import { CreatePlanForm } from "@/components/plans/CreatePlanForm";
+import { CreatePlanWizard } from "@/components/plans/CreatePlanWizard";
 
 export default async function NewPlanPage() {
   const { token } = await requireAuth();
@@ -12,7 +12,7 @@ export default async function NewPlanPage() {
       <p className="mb-8 font-mono text-xs text-[var(--muted)]">
         # generate a new training plan
       </p>
-      <CreatePlanForm accessToken={token} />
+      <CreatePlanWizard accessToken={token} />
     </div>
   );
 }
