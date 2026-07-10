@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { api } from "@/lib/api/client";
 import type { WizardState, PrerequisiteStatus } from "@/lib/types/plans";
 import type { Movement } from "@/lib/api";
@@ -112,12 +112,18 @@ export function TargetMovementStep({
   const current1rmKg = state.current1rmKg;
 
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Movement[]>([]);
+  const [searchResults, setSearchResults] = useState<Movement[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [prerequisites, setPrerequisites] = useState<
-    PrerequisiteStatus[] | null
-  >(null);
+
+  // Derived: show results only when query is non-empty and no movement selected.
+  const results = query.trim() ? searchResults : [];
+
+  // Prerequisite chain is derived synchronously — no separate state needed.
+  const prerequisites = useMemo<PrerequisiteStatus[] | null>(() => {
+    if (archetype !== "skill-acquisition" || !selectedMovementName) return null;
+    return getPrerequisites(selectedMovementName);
+  }, [archetype, selectedMovementName]);
 
   // Ref so the cleanup function inside the setTimeout closure can abort the
   // right controller even after re-renders.
@@ -127,8 +133,8 @@ export function TargetMovementStep({
   // Debounced movement search — new AbortController per keystroke.
   useEffect(() => {
     if (!query.trim()) {
-      setResults([]);
-      setSearchError(null);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (controllerRef.current) controllerRef.current.abort();
       return;
     }
 
@@ -154,11 +160,11 @@ export function TargetMovementStep({
         )
         .then((data) => {
           if (!cancelled) {
-            setResults(data);
+            setSearchResults(data);
             setSearching(false);
           }
         })
-        .catch((_err: unknown) => {
+        .catch(() => {
           if (!cancelled && !controller.signal.aborted) {
             setSearching(false);
             setSearchError("Search failed. Please try again.");
@@ -173,27 +179,17 @@ export function TargetMovementStep({
     };
   }, [query, accessToken, archetype]);
 
-  // When a skill-acquisition movement is selected, build the prerequisite chain.
-  useEffect(() => {
-    if (archetype !== "skill-acquisition" || !selectedMovementName) {
-      setPrerequisites(null);
-      return;
-    }
-    setPrerequisites(getPrerequisites(selectedMovementName));
-  }, [selectedMovementId, selectedMovementName, archetype]);
-
   function handleSelect(id: string, name: string) {
     onSelect(id, name);
     setQuery("");
-    setResults([]);
+    setSearchResults([]);
     setSearchError(null);
   }
 
   function handleClear() {
     onSelect("", "");
     on1rmChange(null);
-    setPrerequisites(null);
-    setResults([]);
+    setSearchResults([]);
     setQuery("");
   }
 
