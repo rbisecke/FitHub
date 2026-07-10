@@ -204,6 +204,7 @@ async function seedPlanData(userId: string): Promise<PlanIds> {
     );
   }
   const [plan] = (await planRes.json()) as Array<{ id: string }>;
+  if (!plan) throw new Error("plan insert returned empty array");
   const planId = plan.id;
 
   // 2. Insert mesocycle
@@ -227,6 +228,7 @@ async function seedPlanData(userId: string): Promise<PlanIds> {
     );
   }
   const [meso] = (await mesoRes.json()) as Array<{ id: string }>;
+  if (!meso) throw new Error("meso insert returned empty array");
   const mesoId = meso.id;
 
   // 3. Insert planned session
@@ -251,6 +253,7 @@ async function seedPlanData(userId: string): Promise<PlanIds> {
     );
   }
   const [session] = (await sessionRes.json()) as Array<{ id: string }>;
+  if (!session) throw new Error("session insert returned empty array");
   const sessionId = session.id;
 
   // 4. Insert two exercises (3 sets each)
