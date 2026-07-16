@@ -242,6 +242,7 @@ function DeploymentList({
       {deployments.slice(0, 5).map((d) => (
         <div
           key={d.id}
+          title={d.error_message || undefined}
           style={{
             display: "flex",
             alignItems: "center",
@@ -274,6 +275,19 @@ function DeploymentList({
           >
             {d.commit_message ?? d.branch ?? "—"}
           </span>
+          {d.error_message && (
+            <span
+              style={{
+                color: "var(--red)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                maxWidth: 160,
+              }}
+            >
+              {d.error_message}
+            </span>
+          )}
           <span style={{ marginLeft: "auto", flexShrink: 0 }}>
             {formatDate(d.occurred_at)}
           </span>
@@ -411,6 +425,7 @@ function VercelBlock({
   const commitMessage = str(m.commit_message);
   const branch = str(m.branch);
   const commitSha = str(m.commit_sha);
+  const errorMessage = str(m.error_message);
   const vercelDeploys = deployments.filter((d) => d.platform === "vercel");
 
   return (
@@ -450,6 +465,21 @@ function VercelBlock({
         >
           {branch ?? "main"} · {commitSha ? commitSha.slice(0, 7) : "—"} —{" "}
           {commitMessage}
+        </div>
+      )}
+      {errorMessage && (
+        <div
+          style={{
+            fontSize: 11.5,
+            color: "var(--red)",
+            fontFamily: "var(--font-jetbrains-mono), monospace",
+            marginTop: 4,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {errorMessage}
         </div>
       )}
       <DeploymentList deployments={vercelDeploys} />
