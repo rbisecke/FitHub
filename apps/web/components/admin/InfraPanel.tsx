@@ -235,62 +235,76 @@ function DeploymentList({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 6,
+        gap: 10,
         marginTop: 12,
       }}
     >
       {deployments.slice(0, 5).map((d) => (
         <div
           key={d.id}
-          title={d.error_message || undefined}
           style={{
             display: "flex",
-            alignItems: "center",
-            gap: 8,
+            flexDirection: "column",
+            gap: 3,
             fontSize: 11.5,
-            color: "var(--muted)",
             fontFamily: "var(--font-jetbrains-mono), monospace",
           }}
         >
-          <span
-            aria-hidden="true"
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: deployStatusColor(d.status),
-              flexShrink: 0,
-            }}
-          />
-          <span style={{ color: deployStatusColor(d.status), flexShrink: 0 }}>
-            {d.status}
-          </span>
-          <span
-            style={{
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              color: "var(--text)",
-            }}
-          >
-            {d.commit_message ?? d.branch ?? "—"}
-          </span>
-          {d.error_message && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span
+              aria-hidden="true"
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: deployStatusColor(d.status),
+                flexShrink: 0,
+              }}
+            />
+            <span style={{ color: deployStatusColor(d.status), flexShrink: 0 }}>
+              {d.status}
+            </span>
             <span
               style={{
+                flex: 1,
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                color: "var(--text)",
+              }}
+            >
+              {d.commit_sha && (
+                <span style={{ color: "var(--muted)" }}>
+                  {d.commit_sha.slice(0, 7)}{" "}
+                </span>
+              )}
+              {d.commit_message ?? d.branch ?? "—"}
+            </span>
+            <span
+              style={{
+                marginLeft: "auto",
+                flexShrink: 0,
+                color: "var(--muted)",
+              }}
+            >
+              {formatDate(d.occurred_at)}
+            </span>
+          </div>
+          {d.error_message && (
+            <div
+              title={d.error_message}
+              style={{
+                paddingLeft: 14,
                 color: "var(--red)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                maxWidth: 160,
               }}
             >
               {d.error_message}
-            </span>
+            </div>
           )}
-          <span style={{ marginLeft: "auto", flexShrink: 0 }}>
-            {formatDate(d.occurred_at)}
-          </span>
         </div>
       ))}
     </div>
@@ -422,10 +436,6 @@ function VercelBlock({
   const m = snap?.metrics ?? {};
   const deployState = str(m.last_deploy_state);
   const buildMs = num(m.build_duration_ms);
-  const commitMessage = str(m.commit_message);
-  const branch = str(m.branch);
-  const commitSha = str(m.commit_sha);
-  const errorMessage = str(m.error_message);
   const vercelDeploys = deployments.filter((d) => d.platform === "vercel");
 
   return (
@@ -434,10 +444,18 @@ function VercelBlock({
         title="Vercel — Frontend"
         status={snap?.status ?? "unknown"}
       />
+      {/* 3 columns (not 2) so these cards line up edge-to-edge with the
+          Supabase/Railway grids above — Vercel only has 2 metrics today,
+          the grid just leaves the third track empty rather than stretching
+          the two cards wide. The branch/commit/error detail that used to
+          be duplicated here now lives solely in DeploymentList below, which
+          already carries the same info (plus short SHA) in a git-log format
+          shared with the Railway block. */}
       <div
+        className="admin-infra-grid"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
+          gridTemplateColumns: "repeat(3, 1fr)",
           gap: 12,
         }}
       >
@@ -451,37 +469,6 @@ function VercelBlock({
           value={buildMs != null ? `${Math.round(buildMs / 1000)}s` : "—"}
         />
       </div>
-      {commitMessage && (
-        <div
-          style={{
-            fontSize: 11.5,
-            color: "var(--muted)",
-            fontFamily: "var(--font-jetbrains-mono), monospace",
-            marginTop: 12,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {branch ?? "main"} · {commitSha ? commitSha.slice(0, 7) : "—"} —{" "}
-          {commitMessage}
-        </div>
-      )}
-      {errorMessage && (
-        <div
-          style={{
-            fontSize: 11.5,
-            color: "var(--red)",
-            fontFamily: "var(--font-jetbrains-mono), monospace",
-            marginTop: 4,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {errorMessage}
-        </div>
-      )}
       <DeploymentList deployments={vercelDeploys} />
     </section>
   );
