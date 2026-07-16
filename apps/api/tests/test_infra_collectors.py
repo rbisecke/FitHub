@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import AsyncGenerator, Generator
+from datetime import UTC, datetime, timedelta
 
 import psycopg
 import pytest
@@ -12,6 +14,7 @@ from pytest_httpx import HTTPXMock
 from app.config import get_settings
 from app.jobs.infra_collectors import (
     _build_supabase_metrics,
+    _compute_last_restart_at,
     _parse_prometheus,
     _railway_status,
     _supabase_status,
@@ -21,6 +24,11 @@ from app.jobs.infra_collectors import (
     collect_vercel_status,
 )
 from tests.conftest import TEST_DB_DSN
+
+
+def _iso_ago(**kwargs: float) -> str:
+    return (datetime.now(UTC) - timedelta(**kwargs)).isoformat()
+
 
 # ── Cleanup: these tables are global (not scoped by user_id), so reset any
 # rows the full-path tests touch back to their seeded/empty state. ───────────
@@ -145,46 +153,59 @@ def test_build_supabase_metrics_handles_missing_totals() -> None:
     ("metrics", "expected"),
     [
         (
-            {
-                "memory_used_pct": 50,
-                "disk_used_pct": 50,
-                "db_restarts_total": 0,
-                "gotrue_running": True,
-            },
+            {"memory_used_pct": 50, "disk_used_pct": 50, "gotrue_running": True},
             "healthy",
         ),
         (
-            {
-                "memory_used_pct": 85,
-                "disk_used_pct": 50,
-                "db_restarts_total": 0,
-                "gotrue_running": True,
-            },
+            {"memory_used_pct": 85, "disk_used_pct": 50, "gotrue_running": True},
             "degraded",
         ),
         (
-            {
-                "memory_used_pct": 50,
-                "disk_used_pct": 96,
-                "db_restarts_total": 0,
-                "gotrue_running": True,
-            },
+            {"memory_used_pct": 50, "disk_used_pct": 96, "gotrue_running": True},
             "critical",
         ),
         (
             {
                 "memory_used_pct": 50,
                 "disk_used_pct": 50,
-                "db_restarts_total": 3,
                 "gotrue_running": True,
+                "last_restart_at": _iso_ago(minutes=5),
             },
-            "critical",
+            "degraded",  # a recent restart degrades this dimension
+        ),
+        (
+            {
+                "memory_used_pct": 50,
+                "disk_used_pct": 50,
+                "gotrue_running": True,
+                "last_restart_at": _iso_ago(hours=3),
+            },
+            "healthy",  # outside the 2h recency window — no longer counts
         ),
         ({"memory_used_pct": 50, "disk_used_pct": 50, "gotrue_running": False}, "critical"),
     ],
 )
 def test_supabase_status_thresholds(metrics: dict[str, object], expected: str) -> None:
     assert _supabase_status(metrics) == expected
+
+
+def test_compute_last_restart_at_first_bump_stamps_now() -> None:
+    """A restart-counter increase with no prior restart on record stamps `now()`."""
+    result = _compute_last_restart_at(1, {"db_restarts_total": 0})
+    assert result is not None
+    assert (datetime.now(UTC) - datetime.fromisoformat(result)).total_seconds() < 5
+
+
+def test_compute_last_restart_at_no_bump_carries_forward_previous_value() -> None:
+    """No new restart (count unchanged) carries forward the prior last_restart_at."""
+    previous_ts = _iso_ago(hours=3)
+    result = _compute_last_restart_at(5, {"db_restarts_total": 5, "last_restart_at": previous_ts})
+    assert result == previous_ts
+
+
+def test_compute_last_restart_at_no_previous_record_returns_none() -> None:
+    assert _compute_last_restart_at(0, None) is None
+    assert _compute_last_restart_at(0, {}) is None
 
 
 @pytest.mark.parametrize(
@@ -331,6 +352,90 @@ async def test_collect_supabase_infra_full_path(
         row2 = await cur.fetchone()
         assert row2 is not None
         assert row2[0] == 1
+
+
+# ── Restart-counter latching regression (see infra_collectors._compute_last_restart_at) ──
+
+
+async def _seed_supabase_metrics(metrics: dict[str, object]) -> None:
+    async with await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn:
+        await conn.execute(
+            "UPDATE public.infra_current SET metrics = %s WHERE source = 'supabase'",
+            (json.dumps(metrics),),
+        )
+
+
+def _prometheus_text_with_restarts(count: int) -> str:
+    return _SAMPLE_PROMETHEUS_TEXT.replace(
+        "postgresql_restarts_total 0", f"postgresql_restarts_total {count}"
+    )
+
+
+async def test_collect_supabase_infra_first_restart_bump_sets_last_restart_at(
+    monkeypatch: pytest.MonkeyPatch, httpx_mock: HTTPXMock
+) -> None:
+    """(a) A restart-counter bump with no prior restart on record stamps
+    last_restart_at with now() and the status reflects it (degraded)."""
+    monkeypatch.setenv("SUPABASE_PROJECT_REF", "testref")
+    get_settings.cache_clear()
+    httpx_mock.add_response(
+        url="https://testref.supabase.co/customer/v1/privileged/metrics",
+        text=_prometheus_text_with_restarts(1),
+    )
+
+    await collect_supabase_infra()
+
+    row = await _fetch_infra_current("supabase")
+    assert row is not None
+    assert row["metrics"]["db_restarts_total"] == 1
+    assert row["metrics"]["last_restart_at"] is not None
+    assert row["status"] == "degraded"
+
+
+async def test_collect_supabase_infra_old_restart_no_longer_counts(
+    monkeypatch: pytest.MonkeyPatch, httpx_mock: HTTPXMock
+) -> None:
+    """(b) An old restart (last_restart_at 3h ago, no new bump this poll) no
+    longer affects status, even though the lifetime counter stays elevated."""
+    monkeypatch.setenv("SUPABASE_PROJECT_REF", "testref")
+    get_settings.cache_clear()
+    old_restart = _iso_ago(hours=3)
+    await _seed_supabase_metrics({"db_restarts_total": 5, "last_restart_at": old_restart})
+    httpx_mock.add_response(
+        url="https://testref.supabase.co/customer/v1/privileged/metrics",
+        text=_prometheus_text_with_restarts(5),  # unchanged from the seeded value
+    )
+
+    await collect_supabase_infra()
+
+    row = await _fetch_infra_current("supabase")
+    assert row is not None
+    assert row["metrics"]["db_restarts_total"] == 5
+    assert row["metrics"]["last_restart_at"] == old_restart  # carried forward, unchanged
+    assert row["status"] == "healthy"
+
+
+async def test_collect_supabase_infra_status_never_permanently_latches(
+    monkeypatch: pytest.MonkeyPatch, httpx_mock: HTTPXMock
+) -> None:
+    """(c) However high the lifetime restart counter climbs, status recovers to
+    healthy once enough time passes without a *new* restart — it can never get
+    stuck at degraded/critical forever."""
+    monkeypatch.setenv("SUPABASE_PROJECT_REF", "testref")
+    get_settings.cache_clear()
+    old_restart = _iso_ago(hours=5)
+    await _seed_supabase_metrics({"db_restarts_total": 1000, "last_restart_at": old_restart})
+    httpx_mock.add_response(
+        url="https://testref.supabase.co/customer/v1/privileged/metrics",
+        text=_prometheus_text_with_restarts(1000),  # unchanged from the seeded value
+    )
+
+    await collect_supabase_infra()
+
+    row = await _fetch_infra_current("supabase")
+    assert row is not None
+    assert row["metrics"]["db_restarts_total"] == 1000
+    assert row["status"] == "healthy"
 
 
 async def test_collect_vercel_status_full_path(

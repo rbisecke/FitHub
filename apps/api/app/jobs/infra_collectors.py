@@ -14,11 +14,19 @@ import contextlib
 import json
 import logging
 import re
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
 
 log = logging.getLogger("fithub.jobs")
+
+# A restart is only counted against the Supabase status for this long after it
+# is first observed. Bounding the window (rather than comparing the lifetime
+# counter to a fixed threshold) is what makes the status self-healing: it
+# always recovers to healthy once the window elapses, no matter how high the
+# lifetime restart count climbs.
+_RESTART_RECENCY_WINDOW = timedelta(hours=2)
 
 # ── Prometheus text-format parser ───────────────────────────────────────────
 
@@ -99,15 +107,52 @@ def _build_supabase_metrics(raw: dict[str, float]) -> dict[str, Any]:
     }
 
 
+def _restarted_recently(last_restart_at: str | None) -> bool:
+    """True if `last_restart_at` (an ISO timestamp) falls within the recency window.
+
+    Returns False for anything unparsable so a corrupt/legacy value degrades
+    to "no known restart" instead of raising into the scheduler.
+    """
+    if not last_restart_at:
+        return False
+    try:
+        restarted_at = datetime.fromisoformat(last_restart_at)
+    except ValueError:
+        return False
+    if restarted_at.tzinfo is None:
+        restarted_at = restarted_at.replace(tzinfo=UTC)
+    return datetime.now(UTC) - restarted_at < _RESTART_RECENCY_WINDOW
+
+
+def _compute_last_restart_at(
+    db_restarts_total: int, previous_metrics: dict[str, Any] | None
+) -> str | None:
+    """Return the ISO timestamp of the most recent restart, or None if none on record.
+
+    `db_restarts_total` comes from the Prometheus counter `postgresql_restarts_total`,
+    a monotonic lifetime total that never resets — so it can't be compared against
+    an absolute threshold without eventually latching permanently once the instance
+    has restarted a handful of times over its life. Instead we compare against the
+    previous poll's count: an increase means a fresh restart just happened, so we
+    stamp `last_restart_at` with now(). Otherwise we carry forward whatever was
+    already recorded (or None if there's no prior restart on record).
+    """
+    previous = previous_metrics or {}
+    previous_total = int(previous.get("db_restarts_total") or 0)
+    if db_restarts_total > previous_total:
+        return datetime.now(UTC).isoformat()
+    last_restart_at = previous.get("last_restart_at")
+    return last_restart_at if isinstance(last_restart_at, str) else None
+
+
 def _supabase_status(metrics: dict[str, Any]) -> str:
     mem = metrics.get("memory_used_pct") or 0
     disk = metrics.get("disk_used_pct") or 0
-    restarts = metrics.get("db_restarts_total") or 0
     gotrue = metrics.get("gotrue_running", False)
 
-    if not gotrue or mem >= 95 or disk >= 95 or restarts >= 3:
+    if not gotrue or mem >= 95 or disk >= 95:
         return "critical"
-    if mem >= 80 or disk >= 80 or restarts >= 1:
+    if mem >= 80 or disk >= 80 or _restarted_recently(metrics.get("last_restart_at")):
         return "degraded"
     return "healthy"
 
@@ -140,7 +185,24 @@ def _basic_auth(username: str, password: str) -> str:
     return base64.b64encode(f"{username}:{password}".encode()).decode()
 
 
-# ── DB write helpers ─────────────────────────────────────────────────────────
+# ── DB read/write helpers ────────────────────────────────────────────────────
+
+
+async def _fetch_previous_metrics(source: str) -> dict[str, Any] | None:
+    """Read the current infra_current.metrics for `source` before it gets overwritten.
+
+    Returns None if there's no row yet (there always is one post-migration, since
+    the three sources are seeded, but this stays defensive for tests/fresh DBs).
+    """
+    from app.db import pool_connection
+
+    async with pool_connection().connection() as db, db.cursor() as cur:
+        await cur.execute(
+            "SELECT metrics FROM public.infra_current WHERE source = %s",
+            (source,),
+        )
+        row = await cur.fetchone()
+        return row[0] if row else None  # type: ignore[index]
 
 
 async def _upsert_infra(source: str, status: str, metrics: dict[str, Any]) -> None:
@@ -245,6 +307,12 @@ async def collect_supabase_infra() -> None:
 
         raw = _parse_prometheus(resp.text)
         metrics = _build_supabase_metrics(raw)
+
+        previous_metrics = await _fetch_previous_metrics("supabase")
+        metrics["last_restart_at"] = _compute_last_restart_at(
+            metrics["db_restarts_total"], previous_metrics
+        )
+
         status = _supabase_status(metrics)
         await _upsert_infra("supabase", status, metrics)
 
