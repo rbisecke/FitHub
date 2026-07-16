@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/requireAuth";
 import { api } from "@/lib/api/client";
 import type { AdminInfraSnapshot } from "@/lib/api";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
@@ -17,12 +17,10 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
-  const user = session.user;
+  // requireAuth() verifies identity via getUser() before returning the
+  // session token, so the adminIds check below runs against a verified
+  // user id (not a bare, unverified getSession() payload).
+  const { user, token } = await requireAuth();
 
   // ADMIN_USER_IDS is set in Vercel env vars (production) or .env.local (dev).
   // The backend also reads ADMIN_USER_IDS_CSV from its own env — see apps/api/app/config.py.
@@ -39,10 +37,15 @@ export default async function AdminLayout({
 
   // Graceful degradation: the status bar shows "unknown" pills if the
   // collectors haven't run yet or the endpoint is temporarily unavailable —
-  // it must never take the whole admin layout down.
+  // it must never take the whole admin layout down. This call is awaited
+  // during SSR of every admin page, so it also gets a short timeout: a
+  // stalled backend request aborts instead of hanging the render, and the
+  // resulting AbortError is caught below like any other failure.
   let infraSnapshots: AdminInfraSnapshot[] = [];
   try {
-    infraSnapshots = await api.admin.infraStatus(session.access_token);
+    infraSnapshots = await api.admin.infraStatus(token, {
+      signal: AbortSignal.timeout(2500),
+    });
   } catch {
     // infraSnapshots stays [] — InfraStatusBar renders all sources "unknown"
   }
