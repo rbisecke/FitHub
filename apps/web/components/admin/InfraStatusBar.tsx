@@ -24,10 +24,14 @@ const ORDER: AdminInfraSnapshot["source"][] = ["supabase", "railway", "vercel"];
 export function InfraStatusBar({ snapshots }: Props) {
   const bySource = new Map(snapshots.map((s) => [s.source, s]));
 
+  const announcement = ORDER.map((source) => {
+    const snap = bySource.get(source);
+    const status = snap?.status ?? "unknown";
+    return `${SOURCE_LABEL[source]}: ${status}`;
+  }).join(", ");
+
   return (
     <div
-      role="status"
-      aria-label="Infrastructure status"
       className="flex items-center gap-[10px] px-[18px] py-[7px] md:gap-[12px] md:px-[28px]"
       style={{
         borderBottom: "1px solid var(--border)",
@@ -36,6 +40,15 @@ export function InfraStatusBar({ snapshots }: Props) {
         overflowX: "auto",
       }}
     >
+      {/* Passive announcer for the pill states — the pills themselves are
+          real navigation links, not a live region, so they stay outside this. */}
+      <span
+        role="status"
+        aria-label="Infrastructure status"
+        className="sr-only"
+      >
+        {announcement}
+      </span>
       {ORDER.map((source) => {
         const snap = bySource.get(source);
         const status = snap?.status ?? "unknown";

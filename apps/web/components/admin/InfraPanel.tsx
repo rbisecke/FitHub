@@ -130,9 +130,22 @@ function Sparkline({
   height?: number;
   width?: number;
 }) {
-  const values = points
-    .map((p) => num((p.metrics as Record<string, unknown>)[metricKey]))
-    .filter((v): v is number => v != null);
+  const timestamps = points.map((p) => new Date(p.collected_at).getTime());
+  const minTime = Math.min(...timestamps);
+  const maxTime = Math.max(...timestamps);
+  const timeRange = maxTime - minTime || 1;
+
+  // Retain each point's real collection time alongside its value so the
+  // x-position reflects actual elapsed time, not the index among survivors —
+  // metrics like http_error_rate_pct can be null on rows with no active
+  // deployment while collected_at is still a real timestamp.
+  const series = points
+    .map((p) => ({
+      t: new Date(p.collected_at).getTime(),
+      v: num(p.metrics[metricKey]),
+    }))
+    .filter((s): s is { t: number; v: number } => s.v != null);
+  const values = series.map((s) => s.v);
 
   return (
     <div style={{ marginTop: 8 }}>
@@ -166,10 +179,12 @@ function Sparkline({
           const min = Math.min(...values);
           const max = Math.max(...values);
           const range = max - min || 1;
-          const step = width / (values.length - 1);
-          const coords = values
+          const coords = series
             .map(
-              (v, i) => `${i * step},${height - ((v - min) / range) * height}`,
+              (s) =>
+                `${((s.t - minTime) / timeRange) * width},${
+                  height - ((s.v - min) / range) * height
+                }`,
             )
             .join(" ");
           return (
@@ -285,6 +300,9 @@ function SupabaseBlock({
 }) {
   const m = snap?.metrics ?? {};
   const gotrue = boolOrNull(m.gotrue_running);
+  const connectionsActive = num(m.connections_active);
+  const dbRestartsTotal = num(m.db_restarts_total);
+  const load1m = num(m.load_1m);
 
   return (
     <section style={{ marginBottom: 32 }}>
@@ -304,23 +322,15 @@ function SupabaseBlock({
         <MetricsCard label="Disk used" value={pct(m.disk_used_pct)} />
         <MetricsCard
           label="Active connections"
-          value={
-            num(m.connections_active) != null
-              ? String(num(m.connections_active))
-              : "—"
-          }
+          value={connectionsActive != null ? String(connectionsActive) : "—"}
         />
         <MetricsCard
           label="DB restarts (total)"
-          value={
-            num(m.db_restarts_total) != null
-              ? String(num(m.db_restarts_total))
-              : "—"
-          }
+          value={dbRestartsTotal != null ? String(dbRestartsTotal) : "—"}
         />
         <MetricsCard
           label="Load avg (1m)"
-          value={num(m.load_1m) != null ? String(num(m.load_1m)) : "—"}
+          value={load1m != null ? String(load1m) : "—"}
         />
         <MetricsCard
           label="Auth service"
@@ -445,7 +455,7 @@ function VercelBlock({
           }}
         >
           {branch ?? "main"} · {commitSha ? commitSha.slice(0, 7) : "—"} —{" "}
-          {commitMessage.slice(0, 72)}
+          {commitMessage}
         </div>
       )}
       <DeploymentList deployments={vercelDeploys} />
