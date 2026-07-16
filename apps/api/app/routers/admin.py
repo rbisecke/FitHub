@@ -700,7 +700,8 @@ async def admin_infra_status(
     """Lightweight endpoint for the layout status bar — current state only, no history."""
     async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
-            "SELECT source, status, metrics, checked_at FROM public.infra_current LIMIT 3"
+            "SELECT source, status, metrics, checked_at FROM public.infra_current "
+            "ORDER BY source LIMIT 3"
         )
         rows = await cur.fetchall()
 
@@ -715,7 +716,8 @@ async def admin_infra(
     """Full infra dashboard: current state + 1h sparkline history + recent deployments."""
     async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
-            "SELECT source, status, metrics, checked_at FROM public.infra_current LIMIT 3"
+            "SELECT source, status, metrics, checked_at FROM public.infra_current "
+            "ORDER BY source LIMIT 3"
         )
         current_rows = await cur.fetchall()
 

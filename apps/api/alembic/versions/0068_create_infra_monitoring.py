@@ -19,7 +19,8 @@ def upgrade() -> None:
     # ── infra_current: one row per source, updated in-place ───────────────
     op.execute("""
         CREATE TABLE public.infra_current (
-            source      text        NOT NULL PRIMARY KEY,
+            source      text        NOT NULL PRIMARY KEY
+                            CHECK (source IN ('supabase', 'vercel', 'railway')),
             status      text        NOT NULL DEFAULT 'unknown'
                             CHECK (status IN ('healthy', 'degraded', 'critical', 'unknown')),
             metrics     jsonb       NOT NULL DEFAULT '{}',
@@ -37,7 +38,8 @@ def upgrade() -> None:
     op.execute("""
         CREATE TABLE public.infra_history (
             id           uuid        NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-            source       text        NOT NULL,
+            source       text        NOT NULL
+                             CHECK (source IN ('supabase', 'vercel', 'railway')),
             metrics      jsonb       NOT NULL,
             collected_at timestamptz NOT NULL DEFAULT now()
         )
