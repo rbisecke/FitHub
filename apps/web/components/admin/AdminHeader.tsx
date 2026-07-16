@@ -8,6 +8,7 @@ const SECTION_LABELS: Record<string, string> = {
   "/admin/access": "access",
   "/admin/users": "users",
   "/admin/health": "health",
+  "/admin/infra": "infra",
 };
 
 function formatTime(date: Date): string {
