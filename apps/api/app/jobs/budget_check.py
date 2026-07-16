@@ -26,8 +26,34 @@ _SPEND_SQL = """
 """
 
 
+async def _critical_infra_sources() -> list[str]:
+    """Return infra_current source names with 'critical' status checked in the last 2 hours."""
+    from app.db import pool_connection
+
+    try:
+        async with pool_connection().connection() as db, db.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT source FROM public.infra_current
+                WHERE status = 'critical'
+                  AND checked_at > now() - interval '2 hours'
+                LIMIT 10
+                """
+            )
+            rows = await cur.fetchall()
+        return [row[0] for row in rows]  # type: ignore[index]
+    except Exception:
+        log.exception("_critical_infra_sources failed")
+        return []
+
+
 async def check_llm_budget() -> None:
-    """Query rolling 30-day LLM spend and log a warning or error if near/over budget."""
+    """Query rolling 30-day LLM spend and log a warning or error if near/over budget.
+
+    Also checks infra_current for any source reporting a recent critical status
+    and logs an error if so, piggybacking on this job's existing nightly schedule
+    rather than standing up a separate alert path.
+    """
     from app.config import get_settings
     from app.db import pool_connection
 
@@ -59,6 +85,13 @@ async def check_llm_budget() -> None:
                 pct,
                 spend,
                 budget,
+            )
+
+        critical = await _critical_infra_sources()
+        if critical:
+            log.error(
+                "Infra critical alert: %s reporting critical status. Check /admin/infra.",
+                ", ".join(critical),
             )
     except Exception:
         log.exception("check_llm_budget failed")
