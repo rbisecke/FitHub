@@ -3,6 +3,7 @@ import type {
   AdminAccessRequest,
   AdminUser,
   AdminHealth,
+  AdminInfraSnapshot,
 } from "./index";
 import type {
   Movement,
@@ -635,6 +636,12 @@ export const api = {
       apiFetch<AdminUser[]>("/api/v1/admin/users", token),
     health: (token: string) =>
       apiFetch<AdminHealth>("/api/v1/admin/health", token),
+    infraStatus: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<AdminInfraSnapshot[]>(
+        "/api/v1/admin/infra/status",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
   },
 };
 
