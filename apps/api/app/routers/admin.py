@@ -27,6 +27,10 @@ from app.models.admin import (
     AdminHealth,
     AdminUser,
     DailyCostPoint,
+    DeploymentEvent,
+    InfraDashboard,
+    InfraHistoryPoint,
+    InfraSnapshot,
     InvitedEmail,
     KBEntry,
     LLMError,
@@ -682,4 +686,70 @@ async def get_reindex_status(
         job_id=job_id,
         status="unknown",
         message="Job tracking not yet implemented. Check server logs.",
+    )
+
+
+# ── Admin: infrastructure monitoring ──────────────────────────────────────────
+
+
+@router.get("/api/v1/admin/infra/status", response_model=list[InfraSnapshot])
+async def admin_infra_status(
+    _admin: Annotated[uuid.UUID, Depends(require_admin)],
+    conn: Annotated[DBConn, Depends(get_db)],
+) -> list[InfraSnapshot]:
+    """Lightweight endpoint for the layout status bar — current state only, no history."""
+    async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            "SELECT source, status, metrics, checked_at FROM public.infra_current LIMIT 3"
+        )
+        rows = await cur.fetchall()
+
+    return [InfraSnapshot(**r) for r in rows]
+
+
+@router.get("/api/v1/admin/infra", response_model=InfraDashboard)
+async def admin_infra(
+    _admin: Annotated[uuid.UUID, Depends(require_admin)],
+    conn: Annotated[DBConn, Depends(get_db)],
+) -> InfraDashboard:
+    """Full infra dashboard: current state + 1h sparkline history + recent deployments."""
+    async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            "SELECT source, status, metrics, checked_at FROM public.infra_current LIMIT 3"
+        )
+        current_rows = await cur.fetchall()
+
+        await cur.execute(
+            """
+            SELECT source, metrics, collected_at
+            FROM public.infra_history
+            WHERE collected_at > now() - interval '1 hour'
+            ORDER BY source, collected_at ASC
+            LIMIT 300
+            """
+        )
+        history_rows = await cur.fetchall()
+
+        await cur.execute(
+            """
+            SELECT id, platform_id, platform, service_name, status,
+                   commit_sha, commit_message, branch, duration_ms,
+                   error_message, occurred_at
+            FROM public.deployment_events
+            ORDER BY occurred_at DESC
+            LIMIT 20
+            """
+        )
+        deploy_rows = await cur.fetchall()
+
+    history: dict[str, list[InfraHistoryPoint]] = {"supabase": [], "vercel": [], "railway": []}
+    for row in history_rows:
+        history.setdefault(row["source"], []).append(
+            InfraHistoryPoint(collected_at=row["collected_at"], metrics=row["metrics"])
+        )
+
+    return InfraDashboard(
+        current=[InfraSnapshot(**r) for r in current_rows],
+        history=history,
+        recent_deployments=[DeploymentEvent(**r) for r in deploy_rows],
     )

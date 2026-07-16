@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -141,3 +141,38 @@ class SubmitAccessRequestResponse(BaseModel):
 
 class MagicLinkResponse(BaseModel):
     link: str
+
+
+# ── Infra monitoring ──────────────────────────────────────────────────────────
+
+
+class InfraSnapshot(BaseModel):
+    source: Literal["supabase", "vercel", "railway"]
+    status: Literal["healthy", "degraded", "critical", "unknown"]
+    metrics: dict[str, Any]
+    checked_at: datetime
+
+
+class InfraHistoryPoint(BaseModel):
+    collected_at: datetime
+    metrics: dict[str, Any]
+
+
+class DeploymentEvent(BaseModel):
+    id: uuid.UUID
+    platform_id: str
+    platform: Literal["vercel", "railway"]
+    service_name: str
+    status: str
+    commit_sha: str | None
+    commit_message: str | None
+    branch: str | None
+    duration_ms: int | None
+    error_message: str | None
+    occurred_at: datetime
+
+
+class InfraDashboard(BaseModel):
+    current: list[InfraSnapshot]
+    history: dict[str, list[InfraHistoryPoint]]
+    recent_deployments: list[DeploymentEvent]
