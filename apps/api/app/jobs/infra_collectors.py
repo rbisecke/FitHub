@@ -37,13 +37,21 @@ _WANTED_METRICS: frozenset[str] = frozenset(
     }
 )
 
-_PROM_LINE_RE = re.compile(r"^([a-zA-Z_:][a-zA-Z0-9_:]*)(?:\{[^}]*\})?\s+([0-9eE+\-.]+)")
+_PROM_LINE_RE = re.compile(r"^([a-zA-Z_:][a-zA-Z0-9_:]*)(?:\{([^}]*)\})?\s+([0-9eE+\-.]+)")
+
+# node_exporter emits one line per mountpoint for these two metrics, so "first
+# occurrence wins" can pick an arbitrary non-root filesystem. Only accept the
+# root filesystem's line for these.
+_FILESYSTEM_METRICS: frozenset[str] = frozenset(
+    {"node_filesystem_size_bytes", "node_filesystem_avail_bytes"}
+)
 
 
 def _parse_prometheus(text: str) -> dict[str, float]:
     """Parse Prometheus text exposition into {metric_name: first_value}.
 
-    Ignores labels entirely — for our use case we take the first line seen
+    Ignores labels entirely (except to disambiguate filesystem mountpoints —
+    see `_FILESYSTEM_METRICS`) — for our use case we take the first line seen
     per metric name and skip comment/blank lines and metrics we don't want.
     """
     result: dict[str, float] = {}
@@ -53,9 +61,11 @@ def _parse_prometheus(text: str) -> dict[str, float]:
         match = _PROM_LINE_RE.match(line)
         if not match:
             continue
-        name, raw_value = match.group(1), match.group(2)
+        name, labels, raw_value = match.group(1), match.group(2), match.group(3)
         if name not in _WANTED_METRICS or name in result:
             continue  # skip unwanted metrics; keep first occurrence per name
+        if name in _FILESYSTEM_METRICS and 'mountpoint="/"' not in (labels or ""):
+            continue  # only the root filesystem is relevant for disk_used_pct
         with contextlib.suppress(ValueError):
             result[name] = float(raw_value)
     return result
@@ -63,13 +73,21 @@ def _parse_prometheus(text: str) -> dict[str, float]:
 
 def _build_supabase_metrics(raw: dict[str, float]) -> dict[str, Any]:
     """Compute the derived metrics dict stored in infra_current/infra_history."""
-    mem_total = raw.get("node_memory_MemTotal_bytes", 0)
-    mem_avail = raw.get("node_memory_MemAvailable_bytes", 0)
-    mem_used_pct = round((1 - mem_avail / mem_total) * 100, 1) if mem_total else None
+    mem_total = raw.get("node_memory_MemTotal_bytes")
+    mem_avail = raw.get("node_memory_MemAvailable_bytes")
+    mem_used_pct = (
+        round((1 - mem_avail / mem_total) * 100, 1)
+        if mem_total is not None and mem_avail is not None and mem_total
+        else None
+    )
 
-    fs_size = raw.get("node_filesystem_size_bytes", 0)
-    fs_avail = raw.get("node_filesystem_avail_bytes", 0)
-    disk_used_pct = round((1 - fs_avail / fs_size) * 100, 1) if fs_size else None
+    fs_size = raw.get("node_filesystem_size_bytes")
+    fs_avail = raw.get("node_filesystem_avail_bytes")
+    disk_used_pct = (
+        round((1 - fs_avail / fs_size) * 100, 1)
+        if fs_size is not None and fs_avail is not None and fs_size
+        else None
+    )
 
     return {
         "memory_used_pct": mem_used_pct,
@@ -85,7 +103,7 @@ def _supabase_status(metrics: dict[str, Any]) -> str:
     mem = metrics.get("memory_used_pct") or 0
     disk = metrics.get("disk_used_pct") or 0
     restarts = metrics.get("db_restarts_total") or 0
-    gotrue = metrics.get("gotrue_running", True)
+    gotrue = metrics.get("gotrue_running", False)
 
     if not gotrue or mem >= 95 or disk >= 95 or restarts >= 3:
         return "critical"
@@ -268,29 +286,30 @@ async def collect_railway_status() -> None:
                 },
             )
 
-        if deploy_resp.status_code != 200:
-            log.error("collect_railway_status: GraphQL returned HTTP %d", deploy_resp.status_code)
-            return
+            if deploy_resp.status_code != 200:
+                log.error(
+                    "collect_railway_status: GraphQL returned HTTP %d", deploy_resp.status_code
+                )
+                return
 
-        data = deploy_resp.json().get("data", {})
-        svc = data.get("serviceInstance") or {}
-        latest = svc.get("latestDeployment") or {}
-        deploy_status = latest.get("status", "unknown")
-        deploy_id = latest.get("id")
+            data = deploy_resp.json().get("data", {})
+            svc = data.get("serviceInstance") or {}
+            latest = svc.get("latestDeployment") or {}
+            deploy_status = latest.get("status", "unknown")
+            deploy_id = latest.get("id")
 
-        # Fetch HTTP logs for the active deployment (last 500 requests) to
-        # derive an error rate and p95 latency.
-        error_rate_pct = None
-        p95_ms = None
-        if deploy_id:
-            logs_query = """
-            query HttpLogs($deploymentId: String!, $limit: Int) {
-                httpLogs(deploymentId: $deploymentId, limit: $limit) {
-                    httpStatus totalDuration
+            # Fetch HTTP logs for the active deployment (last 500 requests) to
+            # derive an error rate and p95 latency.
+            error_rate_pct = None
+            p95_ms = None
+            if deploy_id:
+                logs_query = """
+                query HttpLogs($deploymentId: String!, $limit: Int) {
+                    httpLogs(deploymentId: $deploymentId, limit: $limit) {
+                        httpStatus totalDuration
+                    }
                 }
-            }
-            """
-            async with httpx.AsyncClient(timeout=15.0) as client:
+                """
                 logs_resp = await client.post(
                     "https://backboard.railway.com/graphql/v2",
                     headers=headers,
@@ -299,19 +318,19 @@ async def collect_railway_status() -> None:
                         "variables": {"deploymentId": deploy_id, "limit": 500},
                     },
                 )
-            if logs_resp.status_code == 200:
-                logs = logs_resp.json().get("data", {}).get("httpLogs") or []
-                if logs:
-                    errors = sum(1 for entry in logs if (entry.get("httpStatus") or 0) >= 500)
-                    error_rate_pct = round(errors / len(logs) * 100, 2)
-                    durations = sorted(
-                        entry["totalDuration"]
-                        for entry in logs
-                        if entry.get("totalDuration") is not None
-                    )
-                    if durations:
-                        p95_idx = int(len(durations) * 0.95)
-                        p95_ms = durations[min(p95_idx, len(durations) - 1)]
+                if logs_resp.status_code == 200:
+                    logs = logs_resp.json().get("data", {}).get("httpLogs") or []
+                    if logs:
+                        errors = sum(1 for entry in logs if (entry.get("httpStatus") or 0) >= 500)
+                        error_rate_pct = round(errors / len(logs) * 100, 2)
+                        durations = sorted(
+                            entry["totalDuration"]
+                            for entry in logs
+                            if entry.get("totalDuration") is not None
+                        )
+                        if durations:
+                            p95_idx = int(len(durations) * 0.95)
+                            p95_ms = durations[min(p95_idx, len(durations) - 1)]
 
         metrics: dict[str, Any] = {
             "deploy_status": deploy_status,

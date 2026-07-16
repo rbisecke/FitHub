@@ -102,6 +102,22 @@ def test_parse_prometheus_empty_input() -> None:
     assert _parse_prometheus("") == {}
 
 
+def test_parse_prometheus_filesystem_metrics_use_root_mountpoint() -> None:
+    """Real node_exporter output emits one filesystem line per mountpoint;
+    only the mountpoint="/" line should be kept, regardless of line order."""
+    text = """\
+node_filesystem_size_bytes{device="/dev/sda2",fstype="ext4",mountpoint="/boot"} 5e+08
+node_filesystem_size_bytes{device="/dev/sda1",fstype="ext4",mountpoint="/"} 1.07e+11
+node_filesystem_size_bytes{device="tmpfs",fstype="tmpfs",mountpoint="/dev/shm"} 8e+09
+node_filesystem_avail_bytes{device="/dev/sda2",fstype="ext4",mountpoint="/boot"} 4e+08
+node_filesystem_avail_bytes{device="/dev/sda1",fstype="ext4",mountpoint="/"} 5.35e+10
+node_filesystem_avail_bytes{device="tmpfs",fstype="tmpfs",mountpoint="/dev/shm"} 7.9e+09
+"""
+    result = _parse_prometheus(text)
+    assert result["node_filesystem_size_bytes"] == 1.07e11
+    assert result["node_filesystem_avail_bytes"] == 5.35e10
+
+
 # ── Derived metrics / status thresholds ──────────────────────────────────────
 
 
@@ -128,10 +144,42 @@ def test_build_supabase_metrics_handles_missing_totals() -> None:
 @pytest.mark.parametrize(
     ("metrics", "expected"),
     [
-        ({"memory_used_pct": 50, "disk_used_pct": 50, "db_restarts_total": 0}, "healthy"),
-        ({"memory_used_pct": 85, "disk_used_pct": 50, "db_restarts_total": 0}, "degraded"),
-        ({"memory_used_pct": 50, "disk_used_pct": 96, "db_restarts_total": 0}, "critical"),
-        ({"memory_used_pct": 50, "disk_used_pct": 50, "db_restarts_total": 3}, "critical"),
+        (
+            {
+                "memory_used_pct": 50,
+                "disk_used_pct": 50,
+                "db_restarts_total": 0,
+                "gotrue_running": True,
+            },
+            "healthy",
+        ),
+        (
+            {
+                "memory_used_pct": 85,
+                "disk_used_pct": 50,
+                "db_restarts_total": 0,
+                "gotrue_running": True,
+            },
+            "degraded",
+        ),
+        (
+            {
+                "memory_used_pct": 50,
+                "disk_used_pct": 96,
+                "db_restarts_total": 0,
+                "gotrue_running": True,
+            },
+            "critical",
+        ),
+        (
+            {
+                "memory_used_pct": 50,
+                "disk_used_pct": 50,
+                "db_restarts_total": 3,
+                "gotrue_running": True,
+            },
+            "critical",
+        ),
         ({"memory_used_pct": 50, "disk_used_pct": 50, "gotrue_running": False}, "critical"),
     ],
 )
@@ -185,6 +233,10 @@ async def test_collect_supabase_infra_skips_without_ref(
 
     assert any("skipping" in r.message for r in caplog.records)
 
+    row = await _fetch_infra_current("supabase")
+    assert row is not None
+    assert row["status"] == "unknown"  # collector never wrote to it
+
 
 async def test_collect_railway_status_skips_without_credentials(
     monkeypatch: pytest.MonkeyPatch,
@@ -199,6 +251,10 @@ async def test_collect_railway_status_skips_without_credentials(
 
     assert any("skipping" in r.message for r in caplog.records)
 
+    row = await _fetch_infra_current("railway")
+    assert row is not None
+    assert row["status"] == "unknown"  # collector never wrote to it
+
 
 async def test_collect_vercel_status_skips_without_credentials(
     monkeypatch: pytest.MonkeyPatch,
@@ -212,6 +268,10 @@ async def test_collect_vercel_status_skips_without_credentials(
         await collect_vercel_status()  # must not raise
 
     assert any("skipping" in r.message for r in caplog.records)
+
+    row = await _fetch_infra_current("vercel")
+    assert row is not None
+    assert row["status"] == "unknown"  # collector never wrote to it
 
 
 async def test_collectors_fail_soft_on_http_error(
