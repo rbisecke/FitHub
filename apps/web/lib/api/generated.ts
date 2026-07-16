@@ -243,6 +243,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/admin/infra/status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Admin Infra Status
+     * @description Lightweight endpoint for the layout status bar — current state only, no history.
+     */
+    get: operations["admin_infra_status_api_v1_admin_infra_status_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/infra": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Admin Infra
+     * @description Full infra dashboard: current state + 1h sparkline history + recent deployments.
+     */
+    get: operations["admin_infra_api_v1_admin_infra_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/analytics/load": {
     parameters: {
       query?: never;
@@ -1824,6 +1864,40 @@ export interface components {
       /** Acwr */
       acwr: number | null;
     };
+    /** DeploymentEvent */
+    DeploymentEvent: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Platform Id */
+      platform_id: string;
+      /**
+       * Platform
+       * @enum {string}
+       */
+      platform: "vercel" | "railway";
+      /** Service Name */
+      service_name: string;
+      /** Status */
+      status: string;
+      /** Commit Sha */
+      commit_sha: string | null;
+      /** Commit Message */
+      commit_message: string | null;
+      /** Branch */
+      branch: string | null;
+      /** Duration Ms */
+      duration_ms: number | null;
+      /** Error Message */
+      error_message: string | null;
+      /**
+       * Occurred At
+       * Format: date-time
+       */
+      occurred_at: string;
+    };
     /** DetectTriggersResponse */
     DetectTriggersResponse: {
       /** Plan Id */
@@ -1880,6 +1954,51 @@ export interface components {
        * Format: date-time
        */
       created_at: string;
+    };
+    /** InfraDashboard */
+    InfraDashboard: {
+      /** Current */
+      current: components["schemas"]["InfraSnapshot"][];
+      /** History */
+      history: {
+        [key: string]: components["schemas"]["InfraHistoryPoint"][];
+      };
+      /** Recent Deployments */
+      recent_deployments: components["schemas"]["DeploymentEvent"][];
+    };
+    /** InfraHistoryPoint */
+    InfraHistoryPoint: {
+      /**
+       * Collected At
+       * Format: date-time
+       */
+      collected_at: string;
+      /** Metrics */
+      metrics: {
+        [key: string]: unknown;
+      };
+    };
+    /** InfraSnapshot */
+    InfraSnapshot: {
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: "supabase" | "vercel" | "railway";
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "healthy" | "degraded" | "critical" | "unknown";
+      /** Metrics */
+      metrics: {
+        [key: string]: unknown;
+      };
+      /**
+       * Checked At
+       * Format: date-time
+       */
+      checked_at: string;
     };
     /** InjuryOut */
     InjuryOut: {
@@ -3746,6 +3865,46 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  admin_infra_status_api_v1_admin_infra_status_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InfraSnapshot"][];
+        };
+      };
+    };
+  };
+  admin_infra_api_v1_admin_infra_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InfraDashboard"];
         };
       };
     };
