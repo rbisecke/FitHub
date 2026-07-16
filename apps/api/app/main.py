@@ -14,6 +14,11 @@ from app.auth import UserContext, get_current_user
 from app.config import get_settings
 from app.db import close_pool, init_pool
 from app.jobs.budget_check import check_llm_budget, cleanup_old_error_events
+from app.jobs.infra_collectors import (
+    collect_railway_status,
+    collect_supabase_infra,
+    collect_vercel_status,
+)
 from app.logging_config import configure_logging
 from app.middleware.logging import RequestLoggingMiddleware
 from app.middleware.rate_limit import limiter
@@ -41,6 +46,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     scheduler = AsyncIOScheduler()
     scheduler.add_job(check_llm_budget, "cron", hour=8)
     scheduler.add_job(cleanup_old_error_events, "cron", hour=3)
+    scheduler.add_job(collect_supabase_infra, "interval", seconds=60)
+    scheduler.add_job(collect_railway_status, "interval", seconds=60)
+    scheduler.add_job(collect_vercel_status, "interval", minutes=5)
     scheduler.start()
     yield
     scheduler.shutdown()
