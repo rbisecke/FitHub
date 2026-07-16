@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { api } from "@/lib/api/client";
+import type { AdminInfraSnapshot } from "@/lib/api";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminMobileBar } from "@/components/admin/AdminMobileBar";
 import { AdminMobileTabBar } from "@/components/admin/AdminMobileTabBar";
+import { InfraStatusBar } from "@/components/admin/InfraStatusBar";
 
 export const metadata = {
   title: "FitHub Admin",
@@ -16,9 +19,10 @@ export default async function AdminLayout({
 }) {
   const supabase = await createClient();
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) redirect("/login");
+  const user = session.user;
 
   // ADMIN_USER_IDS is set in Vercel env vars (production) or .env.local (dev).
   // The backend also reads ADMIN_USER_IDS_CSV from its own env — see apps/api/app/config.py.
@@ -32,6 +36,16 @@ export default async function AdminLayout({
 
   const email = user.email ?? "";
   const initials = email.slice(0, 2).toUpperCase();
+
+  // Graceful degradation: the status bar shows "unknown" pills if the
+  // collectors haven't run yet or the endpoint is temporarily unavailable —
+  // it must never take the whole admin layout down.
+  let infraSnapshots: AdminInfraSnapshot[] = [];
+  try {
+    infraSnapshots = await api.admin.infraStatus(session.access_token);
+  } catch {
+    // infraSnapshots stays [] — InfraStatusBar renders all sources "unknown"
+  }
 
   return (
     <div
@@ -65,6 +79,10 @@ export default async function AdminLayout({
         <div className="hidden md:block">
           <AdminHeader />
         </div>
+
+        {/* Always-visible infra status pills — sits outside the scrollable
+            main region so it stays visible while scrolling page content. */}
+        <InfraStatusBar snapshots={infraSnapshots} />
 
         <main
           className="admin-main"
