@@ -1,7 +1,7 @@
 """Rename plans.goal to archetype and expand to 7 valid values.
 
-Revision ID: 0069_goal_to_archetype
-Revises: 0068_equipment_required
+Revision ID: 0070_goal_to_archetype
+Revises: 0069_equipment_required
 Create Date: 2026-07-09
 
 The upgrade is a 5-step sequence so no row is left with a NULL archetype
@@ -21,8 +21,8 @@ goal, then drops archetype.
 
 from alembic import op
 
-revision = "0069_goal_to_archetype"
-down_revision = "0068_equipment_required"
+revision = "0070_goal_to_archetype"
+down_revision = "0069_equipment_required"
 branch_labels = None
 depends_on = None
 

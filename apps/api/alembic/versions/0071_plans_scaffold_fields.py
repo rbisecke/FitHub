@@ -1,15 +1,15 @@
 """Add scaffold fields to plans: equipment, days_per_week, target_movement_id,
 max_duration_weeks, current_1rm_kg.
 
-Revision ID: 0070_plans_scaffold_fields
-Revises: 0069_goal_to_archetype
+Revision ID: 0071_plans_scaffold_fields
+Revises: 0070_goal_to_archetype
 Create Date: 2026-07-09
 """
 
 from alembic import op
 
-revision = "0070_plans_scaffold_fields"
-down_revision = "0069_goal_to_archetype"
+revision = "0071_plans_scaffold_fields"
+down_revision = "0070_goal_to_archetype"
 branch_labels = None
 depends_on = None
 
