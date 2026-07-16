@@ -37,6 +37,7 @@ async def _critical_infra_sources() -> list[str]:
                 SELECT source FROM public.infra_current
                 WHERE status = 'critical'
                   AND checked_at > now() - interval '2 hours'
+                LIMIT 10
                 """
             )
             rows = await cur.fetchall()
