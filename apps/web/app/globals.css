@@ -284,6 +284,9 @@
   .admin-health-stats {
     grid-template-columns: 1fr 1fr !important;
   }
+  .admin-infra-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
   /* Access requests: stack actions below content on narrow screens */
   .ar-card-inner {
     flex-direction: column !important;

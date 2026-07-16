@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { AdminInfraSnapshot } from "@/lib/api";
 
 interface Props {
@@ -23,10 +24,14 @@ const ORDER: AdminInfraSnapshot["source"][] = ["supabase", "railway", "vercel"];
 export function InfraStatusBar({ snapshots }: Props) {
   const bySource = new Map(snapshots.map((s) => [s.source, s]));
 
+  const announcement = ORDER.map((source) => {
+    const snap = bySource.get(source);
+    const status = snap?.status ?? "unknown";
+    return `${SOURCE_LABEL[source]}: ${status}`;
+  }).join(", ");
+
   return (
     <div
-      role="status"
-      aria-label="Infrastructure status"
       className="flex items-center gap-[10px] px-[18px] py-[7px] md:gap-[12px] md:px-[28px]"
       style={{
         borderBottom: "1px solid var(--border)",
@@ -35,6 +40,15 @@ export function InfraStatusBar({ snapshots }: Props) {
         overflowX: "auto",
       }}
     >
+      {/* Passive announcer for the pill states — the pills themselves are
+          real navigation links, not a live region, so they stay outside this. */}
+      <span
+        role="status"
+        aria-label="Infrastructure status"
+        className="sr-only"
+      >
+        {announcement}
+      </span>
       {ORDER.map((source) => {
         const snap = bySource.get(source);
         const status = snap?.status ?? "unknown";
@@ -42,9 +56,10 @@ export function InfraStatusBar({ snapshots }: Props) {
         const label = SOURCE_LABEL[source];
 
         return (
-          <div
+          <Link
             key={source}
-            title={`${label}: ${status}`}
+            href="/admin/infra"
+            title={`${label}: ${status} — view infrastructure detail`}
             style={{
               display: "flex",
               alignItems: "center",
@@ -54,6 +69,7 @@ export function InfraStatusBar({ snapshots }: Props) {
               borderRadius: 999,
               background: `color-mix(in srgb, ${color} 14%, transparent)`,
               border: `1px solid color-mix(in srgb, ${color} 38%, transparent)`,
+              textDecoration: "none",
             }}
           >
             <span
@@ -85,7 +101,7 @@ export function InfraStatusBar({ snapshots }: Props) {
             >
               {status}
             </span>
-          </div>
+          </Link>
         );
       })}
     </div>

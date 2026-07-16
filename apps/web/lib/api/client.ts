@@ -4,6 +4,7 @@ import type {
   AdminUser,
   AdminHealth,
   AdminInfraSnapshot,
+  AdminInfraDashboard,
 } from "./index";
 import type {
   Movement,
@@ -639,6 +640,12 @@ export const api = {
     infraStatus: (token: string, options?: { signal?: AbortSignal }) =>
       apiFetch<AdminInfraSnapshot[]>(
         "/api/v1/admin/infra/status",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
+    infra: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<AdminInfraDashboard>(
+        "/api/v1/admin/infra",
         token,
         options?.signal ? { signal: options.signal } : undefined,
       ),
