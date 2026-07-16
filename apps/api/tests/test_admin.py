@@ -210,3 +210,148 @@ async def test_knowledge_base_list(admin_client: AsyncClient) -> None:
     resp = await admin_client.get("/api/v1/admin/knowledge-base")
     assert resp.status_code == 200
     assert isinstance(resp.json(), list)
+
+
+# ── GET /api/v1/admin/infra/status & /api/v1/admin/infra ─────────────────────
+
+_INFRA_SOURCES = ("supabase", "vercel", "railway")
+
+
+@pytest.fixture
+async def _seed_infra() -> AsyncGenerator[None]:
+    """Populate infra_current/infra_history/deployment_events with rich test data.
+
+    infra_current is a fixed 3-row table (source PK) seeded to 'unknown' by the
+    migration, so this fixture UPDATEs those rows rather than inserting, and
+    resets them back to the migration baseline on teardown.
+    """
+    async with await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn:
+        await conn.execute(
+            """
+            UPDATE public.infra_current SET status = %s, metrics = %s::jsonb, checked_at = now()
+            WHERE source = 'supabase'
+            """,
+            ["healthy", '{"memory_used_pct": 42.5, "connections_active": 7}'],
+        )
+        await conn.execute(
+            """
+            UPDATE public.infra_current SET status = %s, metrics = %s::jsonb, checked_at = now()
+            WHERE source = 'railway'
+            """,
+            ["degraded", '{"deploy_status": "SLEEPING", "http_error_rate_pct": 1.2}'],
+        )
+        await conn.execute(
+            """
+            UPDATE public.infra_current SET status = %s, metrics = %s::jsonb, checked_at = now()
+            WHERE source = 'vercel'
+            """,
+            ["critical", '{"last_deploy_state": "ERROR"}'],
+        )
+
+        history_rows = [
+            (source, f'{{"memory_used_pct": {40 + i}}}', i)
+            for source in _INFRA_SOURCES
+            for i in range(2)
+        ]
+        async with conn.cursor() as cur:
+            await cur.executemany(
+                """
+                INSERT INTO public.infra_history (source, metrics, collected_at)
+                VALUES (%s, %s::jsonb, now() - make_interval(mins => %s))
+                """,
+                history_rows,
+            )
+
+        await conn.execute(
+            """
+            INSERT INTO public.deployment_events
+                (platform_id, platform, service_name, status, commit_sha, commit_message,
+                 branch, duration_ms, error_message, occurred_at)
+            VALUES
+                ('test-vercel-1', 'vercel', 'web', 'READY', 'abc1234', 'Test deploy',
+                 'main', 45000, NULL, now() - interval '10 minutes'),
+                ('test-railway-1', 'railway', 'api', 'SUCCESS', 'def5678', 'Test API deploy',
+                 'main', NULL, NULL, now() - interval '20 minutes')
+            ON CONFLICT (platform, platform_id) DO NOTHING
+            """,
+        )
+
+    yield
+
+    async with await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn:
+        await conn.execute(
+            "DELETE FROM public.deployment_events "
+            "WHERE platform_id IN ('test-vercel-1', 'test-railway-1')"
+        )
+        await conn.execute("DELETE FROM public.infra_history")
+        await conn.execute(
+            "UPDATE public.infra_current SET status = 'unknown', metrics = '{}'::jsonb, "
+            "checked_at = now()"
+        )
+
+
+@pytest.mark.asyncio
+async def test_admin_infra_status_requires_admin(non_admin_client: AsyncClient) -> None:
+    resp = await non_admin_client.get("/api/v1/admin/infra/status")
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_admin_infra_status_unauthenticated(anon_client: AsyncClient) -> None:
+    resp = await anon_client.get("/api/v1/admin/infra/status")
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_admin_infra_status_returns_current_rows(
+    admin_client: AsyncClient, _seed_infra: None
+) -> None:
+    resp = await admin_client.get("/api/v1/admin/infra/status")
+    assert resp.status_code == 200
+    rows = resp.json()
+    assert len(rows) == 3
+
+    by_source = {r["source"]: r for r in rows}
+    assert set(by_source) == set(_INFRA_SOURCES)
+    assert by_source["supabase"]["status"] == "healthy"
+    assert by_source["supabase"]["metrics"]["connections_active"] == 7
+    assert by_source["railway"]["status"] == "degraded"
+    assert by_source["vercel"]["status"] == "critical"
+    for row in rows:
+        assert "checked_at" in row
+
+
+@pytest.mark.asyncio
+async def test_admin_infra_requires_admin(non_admin_client: AsyncClient) -> None:
+    resp = await non_admin_client.get("/api/v1/admin/infra")
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_admin_infra_unauthenticated(anon_client: AsyncClient) -> None:
+    resp = await anon_client.get("/api/v1/admin/infra")
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_admin_infra_full_dashboard(admin_client: AsyncClient, _seed_infra: None) -> None:
+    resp = await admin_client.get("/api/v1/admin/infra")
+    assert resp.status_code == 200
+    data = resp.json()
+
+    assert len(data["current"]) == 3
+    assert set(data["history"]) == set(_INFRA_SOURCES)
+    for source in _INFRA_SOURCES:
+        assert len(data["history"][source]) == 2
+
+    deploy_platform_ids = {d["platform_id"] for d in data["recent_deployments"]}
+    assert "test-vercel-1" in deploy_platform_ids
+    assert "test-railway-1" in deploy_platform_ids
+
+    vercel_deploy = next(
+        d for d in data["recent_deployments"] if d["platform_id"] == "test-vercel-1"
+    )
+    assert vercel_deploy["commit_sha"] == "abc1234"
+    assert vercel_deploy["duration_ms"] == 45000
+    # Ordered by occurred_at DESC — the more recent vercel event comes first.
+    assert data["recent_deployments"][0]["platform_id"] == "test-vercel-1"

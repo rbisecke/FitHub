@@ -43,6 +43,20 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
+  // Next.js's dev-tools indicator defaults to bottom-left, which sits
+  // directly on top of AdminMobileTabBar's first tab (Metrics) on mobile
+  // viewports, covering its label and shrinking its touch target below the
+  // 44px minimum. Moving it to top-right (a prior attempt) just relocated
+  // the collision: the admin layout renders real content in every corner
+  // (AdminMobileBar's "healthy" pill and AdminHeader's "API healthy" text
+  // top-right, the logo top-left, AdminMobileTabBar bottom). Verified via
+  // screenshot that top-right still overlaps the health status text on both
+  // mobile and desktop — see claude_docs/monitoring/screenshots/admin-header-fixes/.
+  // Disabling the indicator entirely is the simplest fix: it's a purely
+  // dev-mode cosmetic tool (build info / route type badge) with zero
+  // production impact, so there's no reason to keep hunting for a clear
+  // corner on this route.
+  devIndicators: false,
   async headers() {
     return [
       {

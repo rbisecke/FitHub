@@ -103,3 +103,9 @@ export type AdminLLMError = components["schemas"]["LLMError"];
 export type AdminHealth = components["schemas"]["AdminHealth"];
 export type AdminUser = components["schemas"]["AdminUser"];
 export type AdminAccessRequest = components["schemas"]["AccessRequestRow"];
+
+// Infra monitoring types — from generated OpenAPI schema
+export type AdminInfraSnapshot = components["schemas"]["InfraSnapshot"];
+export type AdminInfraHistoryPoint = components["schemas"]["InfraHistoryPoint"];
+export type AdminDeploymentEvent = components["schemas"]["DeploymentEvent"];
+export type AdminInfraDashboard = components["schemas"]["InfraDashboard"];

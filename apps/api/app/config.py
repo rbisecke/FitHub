@@ -24,6 +24,20 @@ class Settings(BaseSettings):
     admin_user_ids_csv: str = ""
     # Comma-separated allowed CORS origins. Production: set to the public frontend URL.
     cors_origin: str = "http://localhost:3000"
+    # Infra monitoring collectors (app/jobs/infra_collectors.py) — all optional.
+    # Each collector logs a debug message and returns early if the fields it
+    # needs are unset, so these can stay blank until a platform's credentials
+    # are provisioned.
+    supabase_project_ref: str = (
+        ""  # optional; derived from supabase_url if blank — see supabase_ref
+    )
+    vercel_token: str = ""  # Personal Access Token — vercel.com/account/tokens
+    vercel_project_id: str = ""  # prj_xxx
+    vercel_team_id: str = ""  # team_xxx; only required if the project is under a Vercel team
+    railway_token: str = ""  # Account token — Railway → Account Settings → Tokens
+    railway_project_id: str = ""
+    railway_service_id: str = ""  # the API service specifically
+    railway_environment_id: str = ""  # production environment
 
     model_config = SettingsConfigDict(env_file=(_ENV_FILE, ".env"), extra="ignore")
 
@@ -35,6 +49,17 @@ class Settings(BaseSettings):
     def postgres_dsn(self) -> str:
         # psycopg3 uses the plain postgresql:// scheme; strip the driver hint.
         return self.database_url.replace("postgresql+psycopg://", "postgresql://", 1)
+
+    @property
+    def supabase_ref(self) -> str:
+        # Project ref extracted from supabase_url (https://<ref>.supabase.co)
+        # so we don't need a redundant env var in the common case.
+        if self.supabase_project_ref:
+            return self.supabase_project_ref
+        try:
+            return self.supabase_url.split("//")[1].split(".")[0]
+        except IndexError, AttributeError:
+            return ""
 
 
 @lru_cache

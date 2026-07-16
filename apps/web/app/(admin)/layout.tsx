@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/supabase/requireAuth";
+import { api } from "@/lib/api/client";
+import type { AdminInfraSnapshot } from "@/lib/api";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminMobileBar } from "@/components/admin/AdminMobileBar";
 import { AdminMobileTabBar } from "@/components/admin/AdminMobileTabBar";
+import { InfraStatusBar } from "@/components/admin/InfraStatusBar";
 
 export const metadata = {
   title: "FitHub Admin",
@@ -14,11 +17,10 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  // requireAuth() verifies identity via getUser() before returning the
+  // session token, so the adminIds check below runs against a verified
+  // user id (not a bare, unverified getSession() payload).
+  const { user, token } = await requireAuth();
 
   // ADMIN_USER_IDS is set in Vercel env vars (production) or .env.local (dev).
   // The backend also reads ADMIN_USER_IDS_CSV from its own env — see apps/api/app/config.py.
@@ -32,6 +34,21 @@ export default async function AdminLayout({
 
   const email = user.email ?? "";
   const initials = email.slice(0, 2).toUpperCase();
+
+  // Graceful degradation: the status bar shows "unknown" pills if the
+  // collectors haven't run yet or the endpoint is temporarily unavailable —
+  // it must never take the whole admin layout down. This call is awaited
+  // during SSR of every admin page, so it also gets a short timeout: a
+  // stalled backend request aborts instead of hanging the render, and the
+  // resulting AbortError is caught below like any other failure.
+  let infraSnapshots: AdminInfraSnapshot[] = [];
+  try {
+    infraSnapshots = await api.admin.infraStatus(token, {
+      signal: AbortSignal.timeout(2500),
+    });
+  } catch {
+    // infraSnapshots stays [] — InfraStatusBar renders all sources "unknown"
+  }
 
   return (
     <div
@@ -65,6 +82,10 @@ export default async function AdminLayout({
         <div className="hidden md:block">
           <AdminHeader />
         </div>
+
+        {/* Always-visible infra status pills — sits outside the scrollable
+            main region so it stays visible while scrolling page content. */}
+        <InfraStatusBar snapshots={infraSnapshots} />
 
         <main
           className="admin-main"
