@@ -1,4 +1,5 @@
 import { MetricsCard } from "@/components/admin/MetricsCard";
+import { STATUS_COLOR } from "@/components/admin/infraStatusColors";
 import type {
   AdminInfraDashboard,
   AdminInfraSnapshot,
@@ -33,13 +34,6 @@ function ms(v: unknown): string {
   const n = num(v);
   return n != null ? `${n}ms` : "—";
 }
-
-const STATUS_COLOR: Record<AdminInfraSnapshot["status"], string> = {
-  healthy: "var(--green)",
-  degraded: "var(--amber)",
-  critical: "var(--red)",
-  unknown: "var(--muted)",
-};
 
 function deployStatusColor(status: string | null): string {
   if (status === "READY" || status === "SUCCESS") return "var(--green)";

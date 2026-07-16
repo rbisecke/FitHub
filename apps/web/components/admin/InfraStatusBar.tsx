@@ -1,16 +1,10 @@
 import Link from "next/link";
 import type { AdminInfraSnapshot } from "@/lib/api";
+import { STATUS_COLOR } from "@/components/admin/infraStatusColors";
 
 interface Props {
   snapshots: AdminInfraSnapshot[];
 }
-
-const STATUS_COLOR: Record<AdminInfraSnapshot["status"], string> = {
-  healthy: "var(--green)",
-  degraded: "var(--amber)",
-  critical: "var(--red)",
-  unknown: "var(--muted)",
-};
 
 const SOURCE_LABEL: Record<AdminInfraSnapshot["source"], string> = {
   supabase: "DB",
