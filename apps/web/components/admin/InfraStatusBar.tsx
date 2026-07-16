@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { AdminInfraSnapshot } from "@/lib/api";
 
 interface Props {
@@ -42,9 +43,10 @@ export function InfraStatusBar({ snapshots }: Props) {
         const label = SOURCE_LABEL[source];
 
         return (
-          <div
+          <Link
             key={source}
-            title={`${label}: ${status}`}
+            href="/admin/infra"
+            title={`${label}: ${status} — view infrastructure detail`}
             style={{
               display: "flex",
               alignItems: "center",
@@ -54,6 +56,7 @@ export function InfraStatusBar({ snapshots }: Props) {
               borderRadius: 999,
               background: `color-mix(in srgb, ${color} 14%, transparent)`,
               border: `1px solid color-mix(in srgb, ${color} 38%, transparent)`,
+              textDecoration: "none",
             }}
           >
             <span
@@ -85,7 +88,7 @@ export function InfraStatusBar({ snapshots }: Props) {
             >
               {status}
             </span>
-          </div>
+          </Link>
         );
       })}
     </div>
