@@ -43,6 +43,14 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
+  // Next.js's dev-tools indicator defaults to bottom-left, which sits
+  // directly on top of AdminMobileTabBar's first tab (Metrics) on mobile
+  // viewports, covering its label and shrinking its touch target below the
+  // 44px minimum. Moving it to top-right keeps it clear of the fixed bottom
+  // nav on every admin page (and every other mobile page in the app).
+  devIndicators: {
+    position: "top-right",
+  },
   async headers() {
     return [
       {
