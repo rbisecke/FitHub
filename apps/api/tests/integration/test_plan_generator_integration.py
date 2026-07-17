@@ -60,7 +60,8 @@ async def test_create_plan_records_equipment_with_double_quote_round_trips() -> 
 
     Before the fix, _create_plan_records hand-built the Postgres array literal
     via f'"{e}"' with no escaping, so a tag like `24" box` produced invalid
-    array syntax and raised psycopg.errors.SyntaxError on insert. The fix binds
+    array syntax and raised psycopg.errors.InvalidTextRepresentation (a malformed
+    array literal, not a SQL grammar error) on insert. The fix binds
     the Python list directly as a %s::TEXT[] parameter, so psycopg handles the
     escaping — this asserts the insert succeeds and the value round-trips
     exactly, quote included.
