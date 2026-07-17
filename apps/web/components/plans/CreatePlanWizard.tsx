@@ -144,6 +144,11 @@ export function CreatePlanWizard({ accessToken }: Props) {
     }
   }, [state.planId, router]);
 
+  // Stop any in-flight create/poll requests if the wizard unmounts (e.g. the
+  // user navigates away mid-submit) so background polling doesn't keep firing
+  // against a torn-down component.
+  useEffect(() => wizard.abort, [wizard.abort]);
+
   // EquipmentStep expects a callback that receives the full Set, but
   // usePlanWizard exposes togglePreset(preset). Build a compatible adapter.
   function handleEquipmentUpdate(nextSet: Set<EquipmentPreset>) {
@@ -166,10 +171,8 @@ export function CreatePlanWizard({ accessToken }: Props) {
     }
   }
 
-  function handleTitleChange(_title: string) {
-    // Title is derived in usePlanWizard from archetype + training age.
-    // TrainingAgeStep manages its own customTitle state internally, and
-    // the wizard builds the title in buildSubmitPayload — no state sync needed.
+  function handleTitleChange(title: string) {
+    wizard.setCustomTitle(title);
   }
 
   function handleSubmit() {
@@ -265,9 +268,7 @@ export function CreatePlanWizard({ accessToken }: Props) {
           state={state}
           accessToken={accessToken}
           onSelect={wizard.setTargetMovement}
-          on1rmChange={(kg) => {
-            if (kg !== null) wizard.set1rm(kg);
-          }}
+          on1rmChange={(kg) => wizard.set1rm(kg)}
           onNext={wizard.goNext}
           onBack={wizard.goPrev}
         />

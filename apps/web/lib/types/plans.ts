@@ -31,6 +31,7 @@ export interface WizardState {
   current1rmKg: number | null;
   trainingAge: TrainingAge | null;
   maxDurationWeeks: number | null;
+  customTitle: string | null;
   isSubmitting: boolean;
   error: string | null;
   planId: string | null;

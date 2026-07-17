@@ -26,6 +26,7 @@ function makeState(overrides: Partial<WizardState> = {}): WizardState {
     current1rmKg: null,
     trainingAge: null,
     maxDurationWeeks: null,
+    customTitle: null,
     isSubmitting: false,
     error: null,
     planId: null,

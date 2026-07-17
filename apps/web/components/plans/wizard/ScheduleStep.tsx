@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import type { WizardState } from "@/lib/types/plans";
 
 const DAYS_OPTIONS = [2, 3, 4, 5, 6] as const;
-const DURATION_OPTIONS = [45, 60, 75, 90] as const;
 const WEEKS_OPTIONS = [4, 8, 12, 16, 20, 24] as const;
 
 interface ScheduleStepProps {
@@ -22,7 +20,6 @@ export function ScheduleStep({
 }: ScheduleStepProps) {
   const selectedDays = state.daysPerWeek;
   const selectedWeeks = state.maxDurationWeeks ?? 12;
-  const [sessionLength, setSessionLength] = useState<number>(60);
 
   const isSkillAcquisition = state.archetype === "skill-acquisition";
   const weeksLabel = isSkillAcquisition
@@ -85,67 +82,6 @@ export function ScheduleStep({
                 }}
               >
                 {d}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      {/* Session length (local UI state only) */}
-      <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
-        <legend
-          style={{
-            fontSize: "0.875rem",
-            fontWeight: 600,
-            color: "var(--text)",
-            marginBottom: "4px",
-            display: "block",
-          }}
-        >
-          Session length
-        </legend>
-        <p
-          style={{
-            fontSize: "0.8125rem",
-            color: "var(--muted)",
-            marginBottom: "12px",
-            marginTop: 0,
-          }}
-        >
-          Used to size workouts. Not sent to the AI until plan creation.
-        </p>
-        <div
-          data-testid="session-length-buttons"
-          style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
-        >
-          {DURATION_OPTIONS.map((min) => {
-            const active = sessionLength === min;
-            return (
-              <button
-                key={min}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setSessionLength(min)}
-                style={{
-                  minWidth: "64px",
-                  minHeight: "44px",
-                  padding: "8px 16px",
-                  borderRadius: "6px",
-                  border: `1px solid ${
-                    active ? "var(--accent)" : "var(--border)"
-                  }`,
-                  backgroundColor: active ? "var(--accent)" : "var(--surface)",
-                  color: active ? "var(--bg)" : "var(--text)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "0.9375rem",
-                  fontVariantNumeric: "tabular-nums",
-                  fontWeight: active ? 700 : 400,
-                  cursor: "pointer",
-                  transition:
-                    "background-color 0.15s, color 0.15s, border-color 0.15s",
-                }}
-              >
-                {min} min
               </button>
             );
           })}

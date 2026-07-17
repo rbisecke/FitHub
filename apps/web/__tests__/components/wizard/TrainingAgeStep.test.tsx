@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { useState } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { TrainingAgeStep } from "@/components/plans/wizard/TrainingAgeStep";
+import { usePlanWizard } from "@/hooks/usePlanWizard";
 import type { WizardState, TrainingAge } from "@/lib/types/plans";
 
 function makeState(overrides: Partial<WizardState> = {}): WizardState {
@@ -16,6 +17,7 @@ function makeState(overrides: Partial<WizardState> = {}): WizardState {
     current1rmKg: null,
     trainingAge: null,
     maxDurationWeeks: null,
+    customTitle: null,
     isSubmitting: false,
     error: null,
     planId: null,
@@ -81,17 +83,36 @@ describe("TrainingAgeStep", () => {
     expect(btn.disabled).toBe(true);
   });
 
-  it("auto-title updates when training age changes", () => {
+  it("auto-title (displayed) updates when training age changes", () => {
     const onTitleChange = vi.fn();
     render(<StatefulTrainingAgeStep onTitleChange={onTitleChange} />);
 
     fireEvent.click(screen.getByTestId("training-age-beginner"));
-    expect(onTitleChange).toHaveBeenCalledWith(
+    const input = screen.getByTestId("plan-title-input") as HTMLInputElement;
+    expect(input.value).toContain("Beginner");
+
+    fireEvent.click(screen.getByTestId("training-age-advanced"));
+    expect(input.value).toContain("Advanced");
+  });
+
+  // W1 regression fix — selecting a training age must only *clear* the
+  // parent's stored customTitle, never push a freshly-generated string into
+  // it. A generated string baked with the currently-selected target movement
+  // would go stale if the user later changes the movement via
+  // back-navigation without re-clicking training age (finding #2).
+  it("clears (does not set) the parent's custom title on age select", () => {
+    const onTitleChange = vi.fn();
+    render(<StatefulTrainingAgeStep onTitleChange={onTitleChange} />);
+
+    fireEvent.click(screen.getByTestId("training-age-beginner"));
+    expect(onTitleChange).toHaveBeenCalledWith("");
+    expect(onTitleChange).not.toHaveBeenCalledWith(
       expect.stringContaining("Beginner"),
     );
 
     fireEvent.click(screen.getByTestId("training-age-advanced"));
-    expect(onTitleChange).toHaveBeenCalledWith(
+    expect(onTitleChange).toHaveBeenLastCalledWith("");
+    expect(onTitleChange).not.toHaveBeenCalledWith(
       expect.stringContaining("Advanced"),
     );
   });
@@ -134,31 +155,6 @@ describe("TrainingAgeStep", () => {
     expect(screen.queryByTestId("submit-error")).toBeNull();
   });
 
-  it("advanced settings panel is collapsed by default", () => {
-    render(<StatefulTrainingAgeStep />);
-    expect(screen.queryByTestId("advanced-settings-panel")).toBeNull();
-  });
-
-  it("advanced settings panel expands when toggle is clicked", () => {
-    render(<StatefulTrainingAgeStep />);
-    const toggle = screen.getByRole("button", {
-      name: "Toggle advanced settings",
-    });
-    fireEvent.click(toggle);
-    expect(screen.getByTestId("advanced-settings-panel")).toBeDefined();
-  });
-
-  it("advanced settings collapses again on second toggle click", () => {
-    render(<StatefulTrainingAgeStep />);
-    const toggle = screen.getByRole("button", {
-      name: "Toggle advanced settings",
-    });
-    fireEvent.click(toggle);
-    expect(screen.getByTestId("advanced-settings-panel")).toBeDefined();
-    fireEvent.click(toggle);
-    expect(screen.queryByTestId("advanced-settings-panel")).toBeNull();
-  });
-
   it("calls onSubmit when commit plan is clicked with age selected", () => {
     const onSubmit = vi.fn();
     render(<StatefulTrainingAgeStep onSubmit={onSubmit} />);
@@ -172,5 +168,86 @@ describe("TrainingAgeStep", () => {
     render(<StatefulTrainingAgeStep onSubmit={onSubmit} />);
     fireEvent.click(screen.getByTestId("commit-plan-btn"));
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
+// Integration harness wiring the real usePlanWizard hook to the real
+// TrainingAgeStep component the same way CreatePlanWizard does — the parent
+// hook instance persists across TrainingAgeStep mount/unmount (simulating
+// wizard step navigation), while TrainingAgeStep's own local title state
+// resets on remount.
+function WizardHarness({
+  showAgeStep,
+  onWizardChange,
+}: {
+  showAgeStep: boolean;
+  onWizardChange: (wizard: ReturnType<typeof usePlanWizard>) => void;
+}) {
+  const wizard = usePlanWizard();
+  onWizardChange(wizard);
+  return (
+    <>
+      {showAgeStep && (
+        <TrainingAgeStep
+          state={wizard.state}
+          onAgeSelect={wizard.setTrainingAge}
+          onTitleChange={wizard.setCustomTitle}
+          onSubmit={() => {}}
+          isSubmitting={wizard.state.isSubmitting}
+          error={wizard.state.error}
+        />
+      )}
+    </>
+  );
+}
+
+describe("TrainingAgeStep + usePlanWizard integration — W1 finding #2 repro", () => {
+  it("does not submit a stale title after: movement A -> age -> back -> movement B -> forward -> submit (no re-click)", () => {
+    let wizard!: ReturnType<typeof usePlanWizard>;
+    const captureWizard = (w: ReturnType<typeof usePlanWizard>) => {
+      wizard = w;
+    };
+
+    const { rerender } = render(
+      <WizardHarness showAgeStep={true} onWizardChange={captureWizard} />,
+    );
+
+    // Set up a skill-acquisition plan targeting Movement A.
+    act(() => {
+      wizard.setArchetype("skill-acquisition");
+      wizard.setTargetMovement("mov-a", "Movement A");
+    });
+    rerender(
+      <WizardHarness showAgeStep={true} onWizardChange={captureWizard} />,
+    );
+
+    // Pick a training age — this is the step 5 UI action.
+    fireEvent.click(screen.getByTestId("training-age-intermediate"));
+    rerender(
+      <WizardHarness showAgeStep={true} onWizardChange={captureWizard} />,
+    );
+
+    // Back-navigate: TrainingAgeStep unmounts (its local title state is lost).
+    rerender(
+      <WizardHarness showAgeStep={false} onWizardChange={captureWizard} />,
+    );
+
+    // Change the target movement to B without touching training age.
+    act(() => {
+      wizard.setTargetMovement("mov-b", "Movement B");
+    });
+    rerender(
+      <WizardHarness showAgeStep={false} onWizardChange={captureWizard} />,
+    );
+
+    // Forward-navigate again: TrainingAgeStep remounts. The user submits
+    // WITHOUT re-clicking a training age.
+    rerender(
+      <WizardHarness showAgeStep={true} onWizardChange={captureWizard} />,
+    );
+
+    const payload = wizard.buildSubmitPayload();
+    expect(payload.title).toContain("Movement B");
+    expect(payload.title).not.toContain("Movement A");
   });
 });

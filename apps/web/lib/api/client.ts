@@ -489,13 +489,26 @@ export const api = {
     list: (token: string) => apiFetch<PlanSummary[]>("/api/v1/plans", token),
     get: (token: string, id: string) =>
       apiFetch<PlanDetail>(`/api/v1/plans/${id}`, token),
-    create: (token: string, body: CreatePlanRequest) =>
+    create: (
+      token: string,
+      body: CreatePlanRequest,
+      options?: { signal?: AbortSignal },
+    ) =>
       apiFetch<PlanTaskResponse>("/api/v1/plans", token, {
         method: "POST",
         body: JSON.stringify(body),
+        signal: options?.signal,
       }),
-    pollTask: (token: string, taskId: string) =>
-      apiFetch<PlanTaskResponse>(`/api/v1/plans/tasks/${taskId}`, token),
+    pollTask: (
+      token: string,
+      taskId: string,
+      options?: { signal?: AbortSignal },
+    ) =>
+      apiFetch<PlanTaskResponse>(
+        `/api/v1/plans/tasks/${taskId}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     today: (
       token: string,
       planId: string,
@@ -760,9 +773,12 @@ export function createApiClient(token: string) {
     plans: {
       list: () => api.plans.list(token),
       get: (id: string) => api.plans.get(token, id),
-      create: (body: Parameters<typeof api.plans.create>[1]) =>
-        api.plans.create(token, body),
-      pollTask: (taskId: string) => api.plans.pollTask(token, taskId),
+      create: (
+        body: Parameters<typeof api.plans.create>[1],
+        options?: { signal?: AbortSignal },
+      ) => api.plans.create(token, body, options),
+      pollTask: (taskId: string, options?: { signal?: AbortSignal }) =>
+        api.plans.pollTask(token, taskId, options),
       today: (planId: string, options?: { signal?: AbortSignal }) =>
         api.plans.today(token, planId, options),
       revise: (planId: string, feedback: string) =>

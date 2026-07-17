@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { api } from "@/lib/api/client";
 import { resolveEquipmentTags } from "@/lib/plans/equipment";
 import { generatePlanTitle } from "@/lib/plans/titles";
@@ -45,6 +45,7 @@ const initialState: WizardState = {
   current1rmKg: null,
   trainingAge: null,
   maxDurationWeeks: null,
+  customTitle: null,
   isSubmitting: false,
   error: null,
   planId: null,
@@ -56,12 +57,14 @@ export interface UsePlanWizardReturn {
   togglePreset: (preset: EquipmentPreset) => void;
   setDaysPerWeek: (days: number) => void;
   setTargetMovement: (id: string, name: string) => void;
-  set1rm: (kg: number) => void;
+  set1rm: (kg: number | null) => void;
   setTrainingAge: (age: TrainingAge) => void;
   setMaxDuration: (weeks: number) => void;
+  setCustomTitle: (title: string) => void;
   goNext: () => void;
   goPrev: () => void;
   submit: (token: string) => Promise<void>;
+  abort: () => void;
   buildSubmitPayload: () => CreatePlanRequest;
 }
 
@@ -96,7 +99,7 @@ export function usePlanWizard(): UsePlanWizardReturn {
     }));
   }, []);
 
-  const set1rm = useCallback((kg: number) => {
+  const set1rm = useCallback((kg: number | null) => {
     setState((s) => ({ ...s, current1rmKg: kg }));
   }, []);
 
@@ -106,6 +109,17 @@ export function usePlanWizard(): UsePlanWizardReturn {
 
   const setMaxDuration = useCallback((weeks: number) => {
     setState((s) => ({ ...s, maxDurationWeeks: weeks }));
+  }, []);
+
+  // Store null (never an empty/whitespace string) whenever the user hasn't
+  // actually typed a real title override — buildSubmitPayload's
+  // `customTitle ?? generatePlanTitle(...)` fallback then derives a fresh
+  // title at submit time. This is the single place that normalizes title
+  // input, so callers (e.g. TrainingAgeStep) don't need to duplicate the
+  // empty-check.
+  const setCustomTitle = useCallback((title: string) => {
+    const trimmed = title.trim();
+    setState((s) => ({ ...s, customTitle: trimmed === "" ? null : trimmed }));
   }, []);
 
   const goNext = useCallback(() => {
@@ -141,11 +155,9 @@ export function usePlanWizard(): UsePlanWizardReturn {
     const weeks = s.maxDurationWeeks ?? 12;
     return {
       archetype: s.archetype!,
-      title: generatePlanTitle(
-        s.archetype!,
-        s.trainingAge!,
-        s.targetMovementName,
-      ),
+      title:
+        s.customTitle ??
+        generatePlanTitle(s.archetype!, s.trainingAge!, s.targetMovementName),
       training_age: s.trainingAge!,
       days_per_week: s.daysPerWeek,
       equipment: resolveEquipmentTags(s.selectedPresets),
@@ -157,69 +169,71 @@ export function usePlanWizard(): UsePlanWizardReturn {
     };
   }, [state]);
 
+  // Holds the controller for the in-flight create/poll request chain so an
+  // unmounted (or navigated-away-from) wizard can stop background requests.
+  const abortRef = useRef<AbortController | null>(null);
+
+  const abort = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
+
   const submit = useCallback(
     async (token: string): Promise<void> => {
       setState((s) => ({ ...s, isSubmitting: true, error: null }));
 
       const controller = new AbortController();
-      let cancelled = false;
+      abortRef.current = controller;
 
       try {
         const payload = buildSubmitPayload();
-        const task = await api.plans.create(token, payload);
+        const task = await api.plans.create(token, payload, {
+          signal: controller.signal,
+        });
 
         // Poll the task until complete (max 12 attempts, 5s interval).
         let attempts = 0;
         while (attempts < 12) {
           await sleep(5000);
-          if (cancelled) return;
+          if (controller.signal.aborted) return;
 
-          const latest = await api.plans.pollTask(token, task.task_id);
+          const latest = await api.plans.pollTask(token, task.task_id, {
+            signal: controller.signal,
+          });
 
           if (latest.status === "complete") {
-            if (!cancelled) {
-              setState((s) => ({
-                ...s,
-                planId: latest.plan_id ?? null,
-                isSubmitting: false,
-              }));
-            }
+            setState((s) => ({
+              ...s,
+              planId: latest.plan_id ?? null,
+              isSubmitting: false,
+            }));
             return;
           }
 
           if (latest.status === "failed") {
-            if (!cancelled) {
-              setState((s) => ({
-                ...s,
-                error: latest.error ?? "Plan generation failed.",
-                isSubmitting: false,
-              }));
-            }
+            setState((s) => ({
+              ...s,
+              error: latest.error ?? "Plan generation failed.",
+              isSubmitting: false,
+            }));
             return;
           }
 
           attempts++;
         }
 
-        if (!cancelled) {
-          setState((s) => ({
-            ...s,
-            error: "Plan generation timed out.",
-            isSubmitting: false,
-          }));
-        }
+        setState((s) => ({
+          ...s,
+          error: "Plan generation timed out.",
+          isSubmitting: false,
+        }));
       } catch (err) {
-        if ((err as Error).name === "AbortError") return;
-        if (!cancelled) {
-          setState((s) => ({
-            ...s,
-            error: "Failed to create plan.",
-            isSubmitting: false,
-          }));
-        }
-      } finally {
-        cancelled = true;
-        controller.abort();
+        if (controller.signal.aborted || (err as Error).name === "AbortError")
+          return;
+        setState((s) => ({
+          ...s,
+          error: "Failed to create plan.",
+          isSubmitting: false,
+        }));
       }
     },
     [buildSubmitPayload],
@@ -234,9 +248,11 @@ export function usePlanWizard(): UsePlanWizardReturn {
     set1rm,
     setTrainingAge,
     setMaxDuration,
+    setCustomTitle,
     goNext,
     goPrev,
     submit,
+    abort,
     buildSubmitPayload,
   };
 }
