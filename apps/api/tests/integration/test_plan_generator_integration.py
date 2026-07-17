@@ -81,6 +81,36 @@ async def test_create_plan_records_equipment_with_double_quote_round_trips() -> 
         "max_duration_weeks": None,
         "current_1rm_kg": None,
     }
+
+    # weeks 1-4 all populated (matches req_data["weeks"] = 4) — this test targets
+    # equipment array escaping, not multi-week coverage, but _create_plan_records
+    # now rejects a draft that schedules fewer weeks than requested (see the
+    # truncation-safeguard fix), and plans_weeks_check requires weeks >= 4.
+    def _week(week_num: int) -> dict[str, object]:
+        return {
+            "week": week_num,
+            "sessions": [
+                {
+                    "day_offset": 0,
+                    "session_type": "strength",
+                    "title": "Day 1",
+                    "intensity_level": "hard",
+                    "items": [
+                        {
+                            "movement_name": "Air Squat",
+                            "sets": 3,
+                            "reps": "10",
+                            "load_pct_1rm": None,
+                            "load_kg": None,
+                            "movement_pattern": "squat",
+                            "notes": None,
+                        }
+                    ],
+                    "notes": None,
+                }
+            ],
+        }
+
     draft: dict[str, object] = {
         "mesocycles": [
             {
@@ -91,31 +121,7 @@ async def test_create_plan_records_equipment_with_double_quote_round_trips() -> 
                 "focus": None,
             }
         ],
-        "weeks": [
-            {
-                "week": 1,
-                "sessions": [
-                    {
-                        "day_offset": 0,
-                        "session_type": "strength",
-                        "title": "Day 1",
-                        "intensity_level": "hard",
-                        "items": [
-                            {
-                                "movement_name": "Air Squat",
-                                "sets": 3,
-                                "reps": "10",
-                                "load_pct_1rm": None,
-                                "load_kg": None,
-                                "movement_pattern": "squat",
-                                "notes": None,
-                            }
-                        ],
-                        "notes": None,
-                    }
-                ],
-            }
-        ],
+        "weeks": [_week(w) for w in range(1, 5)],
     }
 
     async with await psycopg.AsyncConnection.connect(TEST_DB_DSN) as conn:
