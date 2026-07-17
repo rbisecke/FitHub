@@ -146,8 +146,10 @@ def _fake_llm_always_fails() -> MagicMock:
     return fake
 
 
-def _small_plan_fill(archetype: str = "general-crossfit", sets: int = 2) -> PlanFill:
-    """A modest, valid PlanFill spanning 4 weeks x 3 sessions x 3 exercises.
+def _small_plan_fill(
+    archetype: str = "general-crossfit", sets: int = 2, weeks: int = 4
+) -> PlanFill:
+    """A modest, valid PlanFill spanning `weeks` weeks x 3 sessions x 3 exercises.
 
     `sets` is kept low enough (<=2) that no pattern crosses the intermediate
     MRV (20) across a 3-session week, so this never accidentally triggers a
@@ -158,8 +160,8 @@ def _small_plan_fill(archetype: str = "general-crossfit", sets: int = 2) -> Plan
         for _ in range(3)
     ]
     sessions = [SessionFill(session_type="strength", exercises=exercises) for _ in range(3)]
-    weeks = [WeekFill(week_number=wn, sessions=sessions) for wn in range(1, 5)]
-    return PlanFill(archetype=archetype, weeks=weeks)
+    week_fills = [WeekFill(week_number=wn, sessions=sessions) for wn in range(1, weeks + 1)]
+    return PlanFill(archetype=archetype, weeks=week_fills)
 
 
 async def _fake_movements_single_squat_variant(
@@ -219,6 +221,47 @@ async def test_generation_tier_ai_on_tier1_success(
     single_week = [m for m in mesocycles if m["week_end"] == m["week_start"]]
     assert single_week, (
         f"expected at least one single-week mesocycle for weeks=4/intermediate, got {mesocycles}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_generation_tier_ai_persists_realization_phase_mesocycle(
+    monkeypatch: pytest.MonkeyPatch, alice_client: AsyncClient
+) -> None:
+    """The end-to-end proof for the mesocycle phase-check fix (migration 0074):
+    weeks=7/intermediate produces a genuine realization-phase mesocycle. Per
+    plan_scaffold.py's _build_phase_map/get_deload_weeks, weeks=7/intermediate
+    puts deloads on weeks 4 and 7, leaving week 6 (the sole realization week
+    from MESOCYCLE_TABLE[7] = (3, 2, 2)) untouched by either deload rule — so
+    it's a real realization-phase mesocycle, not one overridden to deload.
+
+    Pre-fix, this INSERT violated mesocycles_phase_check (which never allowed
+    'realization', see migration 0027) and run_plan_generation would have
+    caught the exception and marked the task 'failed' instead of 'complete'.
+    This is a genuine gap in the weeks=4/intermediate test above: that
+    combination's would-be realization week (week 4) is itself overridden to
+    deload, so it never exercises this half of migration 0074's fix.
+    """
+    monkeypatch.setenv("STUB_LLM", "false")
+    task_id = await _insert_plan_task(ALICE_ID)
+
+    fake_llm = _fake_llm_success(_small_plan_fill(weeks=7))
+    with patch("app.ai.client.get_client", return_value=fake_llm):
+        await run_plan_generation(
+            task_id, str(ALICE_ID), _req_data(weeks=7, training_age="intermediate")
+        )
+
+    row = await _fetch_plan_task(task_id)
+    assert row["status"] == "complete"
+    assert row["generation_tier"] == "ai"
+
+    mesocycles = await _fetch_mesocycles(row["plan_id"])
+    realization = [m for m in mesocycles if m["phase"] == "realization"]
+    assert realization, (
+        f"expected a realization-phase mesocycle for weeks=7/intermediate, got {mesocycles}"
+    )
+    assert any(m["week_start"] == 6 and m["week_end"] == 6 for m in realization), (
+        f"expected the realization mesocycle to be the standalone week 6, got {realization}"
     )
 
 
