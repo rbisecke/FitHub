@@ -18,6 +18,7 @@ from app.ai.stub import is_stubbed
 from app.dependencies.common import Auth, DBConn
 from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.plan import (
+    CompleteSessionRequest,
     CreatePlanRequest,
     MesocycleOut,
     PlanDetail,
@@ -293,6 +294,113 @@ async def _apply_session_patch(
             )
 
 
+def _short_hash(workout_id: uuid.UUID) -> str:
+    """Same 8-char scheme as repositories/workouts.py's create_workout."""
+    return str(workout_id).replace("-", "")[:8]
+
+
+async def _complete_planned_session(
+    plan_id: str,
+    session_id: str,
+    user_id: str,
+    req: CompleteSessionRequest,
+    db: psycopg.AsyncConnection[object],
+) -> PlannedSessionOut:
+    """Persist logged sets as a workout+results and mark the session complete.
+
+    One transaction: ownership check, INSERT workout, bulk-INSERT results
+    (one row per logged set), UPDATE planned_sessions.status. A constraint
+    violation on any logged set (e.g. a bad planned_item_id) rolls back the
+    whole thing, including the workout row.
+    """
+    try:
+        async with db.transaction(), db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+            # Ownership check — 404 (not 403) for another user's session, same
+            # IDOR-prevention convention as _apply_session_patch/revise_plan.
+            await cur.execute(
+                "SELECT title FROM planned_sessions"
+                " WHERE id = %s::uuid AND plan_id = %s::uuid AND user_id = %s::uuid",
+                [session_id, plan_id, user_id],
+            )
+            session_row = await cur.fetchone()
+            if session_row is None:
+                raise HTTPException(status_code=404, detail="Session not found")
+
+            workout_id = uuid.uuid4()
+            await cur.execute(
+                """
+                INSERT INTO public.workouts
+                    (id, user_id, performed_at, title, short_hash, bodyweight_kg)
+                VALUES (%s, %s, now(), %s, %s, %s)
+                """,
+                [
+                    workout_id,
+                    user_id,
+                    session_row["title"],
+                    _short_hash(workout_id),
+                    req.bodyweight_kg,
+                ],
+            )
+
+            if req.logged_sets:
+                await cur.executemany(
+                    """
+                    INSERT INTO public.results
+                        (user_id, workout_id, movement_id, planned_item_id,
+                         result_type, load_kg, reps, rpe)
+                    VALUES (%s, %s, %s, %s, 'weight', %s, %s, %s)
+                    """,
+                    [
+                        (
+                            user_id,
+                            workout_id,
+                            s.movement_id,
+                            s.planned_item_id,
+                            s.load_kg,
+                            s.reps,
+                            s.rpe,
+                        )
+                        for s in req.logged_sets
+                    ],
+                )
+
+            await cur.execute(
+                """
+                UPDATE planned_sessions SET status = 'completed'
+                WHERE id = %s::uuid AND plan_id = %s::uuid AND user_id = %s::uuid
+                RETURNING id, mesocycle_id, scheduled_date, session_type, title, notes, status
+                """,
+                [session_id, plan_id, user_id],
+            )
+            updated = await cur.fetchone()
+            if updated is None:
+                raise HTTPException(status_code=404, detail="Session not found")
+
+            await cur.execute(
+                """
+                SELECT id, movement_name, sets, reps,
+                       load_pct_1rm::float AS load_pct_1rm, load_kg::float AS load_kg,
+                       notes, item_order
+                FROM planned_items
+                WHERE session_id = %s::uuid
+                ORDER BY item_order
+                LIMIT 100
+                """,
+                [session_id],
+            )
+            item_rows = await cur.fetchall()
+    except psycopg.Error as exc:
+        log.exception(
+            "db error completing session_id=%s plan_id=%s user_id=%s",
+            session_id,
+            plan_id,
+            user_id,
+        )
+        raise HTTPException(status_code=500, detail="Internal error. Please try again.") from exc
+
+    return PlannedSessionOut(**updated, items=[PlannedItemOut(**row) for row in item_rows])
+
+
 @router.post("", status_code=202, response_model=PlanTaskResponse)
 @limiter.limit("3/hour", key_func=user_or_ip_key)
 async def create_plan(
@@ -543,3 +651,22 @@ async def revise_plan(
 
     # 6. Return updated plan detail
     return await _get_plan_detail(str(plan_id), str(user.user_id), db)
+
+
+@router.post("/{plan_id}/sessions/{session_id}/complete", response_model=PlannedSessionOut)
+@limiter.limit("30/minute", key_func=user_or_ip_key)  # matches create_workout_route's convention
+async def complete_session(
+    plan_id: uuid.UUID,
+    session_id: uuid.UUID,
+    request: Request,
+    req: CompleteSessionRequest,
+    user: Auth,
+    db: DBConn,
+) -> PlannedSessionOut:
+    return await _complete_planned_session(
+        plan_id=str(plan_id),
+        session_id=str(session_id),
+        user_id=str(user.user_id),
+        req=req,
+        db=db,
+    )

@@ -974,6 +974,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/plans/{plan_id}/sessions/{session_id}/complete": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Complete Session */
+    post: operations["complete_session_api_v1_plans__plan_id__sessions__session_id__complete_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/plans/{plan_id}/adaptations/detect": {
     parameters: {
       query?: never;
@@ -1636,6 +1653,13 @@ export interface components {
        */
       created_at: string;
     };
+    /** CompleteSessionRequest */
+    CompleteSessionRequest: {
+      /** Logged Sets */
+      logged_sets?: components["schemas"]["LoggedSet"][];
+      /** Bodyweight Kg */
+      bodyweight_kg?: number | string | null;
+    };
     /** ConnectResponse */
     ConnectResponse: {
       /** Token */
@@ -2180,6 +2204,25 @@ export interface components {
         | "sweet_spot"
         | "caution"
         | "overreaching";
+    };
+    /**
+     * LoggedSet
+     * @description One completed set logged against a prescribed plan item during session execution.
+     */
+    LoggedSet: {
+      /**
+       * Planned Item Id
+       * Format: uuid
+       */
+      planned_item_id: string;
+      /** Movement Id */
+      movement_id?: string | null;
+      /** Load Kg */
+      load_kg?: number | string | null;
+      /** Reps */
+      reps?: number | null;
+      /** Rpe */
+      rpe?: number | string | null;
     };
     /** MagicLinkResponse */
     MagicLinkResponse: {
@@ -5332,6 +5375,42 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PlanDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  complete_session_api_v1_plans__plan_id__sessions__session_id__complete_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        plan_id: string;
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CompleteSessionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlannedSessionOut"];
         };
       };
       /** @description Validation Error */
