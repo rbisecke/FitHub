@@ -2738,6 +2738,15 @@ export interface components {
       mesocycles: components["schemas"]["MesocycleOut"][];
       /** Sessions */
       sessions: components["schemas"]["PlannedSessionOut"][];
+      /** Generation Tier */
+      generation_tier?:
+        | ("ai" | "deterministic_substitution" | "static_fallback")
+        | null;
+      /**
+       * Corrections
+       * @default []
+       */
+      corrections: string[];
     };
     /** PlanRevisionRequest */
     PlanRevisionRequest: {
@@ -2802,6 +2811,15 @@ export interface components {
       plan_id?: string | null;
       /** Error */
       error?: string | null;
+      /** Generation Tier */
+      generation_tier?:
+        | ("ai" | "deterministic_substitution" | "static_fallback")
+        | null;
+      /**
+       * Corrections
+       * @default []
+       */
+      corrections: string[];
     };
     /** PlannedItemOut */
     PlannedItemOut: {

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import cast
 
 import pytest
 
@@ -136,6 +137,65 @@ def test_sets_within_mrv_not_changed() -> None:
     codes = [e.code for e in errors]
     assert "sets_clamped" not in codes
     assert corrected["weeks"][0]["sessions"][0]["items"][0]["sets"] == 5
+
+
+# ── B4: no correction claimed unless sets actually decreased ─────────────────
+#
+# _clamp_sets_to_mrv is exercised directly (not through validate_and_correct_plan)
+# so these tests aren't contaminated by _enforce_exercise_count's independent
+# "trim to 8 exercises" correction, which would otherwise also fire for the
+# review's 20-item repro case and pollute the errors list.
+
+
+def test_clamp_sets_no_op_when_floor_prevents_reduction() -> None:
+    """B4 repro: 20 one-set items against an MRV of 6 (beginner carry).
+
+    round(1 * 6/20) rounds down to 0, then the floor-of-1 guard raises it
+    back to 1 — old == new, so nothing actually changed. Must not claim a
+    correction that didn't happen.
+    """
+    from app.ai import plan_generator as pg
+    from app.engine.programming import PlanValidationError
+
+    mrv = MEV_MAV_MRV["beginner"]["carry"][2]
+    assert mrv == 6
+
+    sessions: list[dict[str, object]] = [
+        {
+            "session_type": "strength",
+            "items": [{"movement_pattern": "carry", "sets": 1} for _ in range(20)],
+        }
+    ]
+    errors: list[PlanValidationError] = []
+    pg._clamp_sets_to_mrv(sessions, MEV_MAV_MRV["beginner"], 1, errors)
+
+    assert errors == []
+    items = cast(list[dict[str, object]], sessions[0]["items"])
+    total_sets = sum(cast(int, item["sets"]) for item in items)
+    assert total_sets == 20
+
+
+def test_clamp_sets_still_reports_genuine_reduction() -> None:
+    """When the ratio genuinely reduces sets, the correction must still be reported."""
+    from app.ai import plan_generator as pg
+    from app.engine.programming import PlanValidationError
+
+    sessions: list[dict[str, object]] = [
+        {
+            "session_type": "strength",
+            "items": [{"movement_pattern": "carry", "sets": 5} for _ in range(4)],
+        }
+    ]
+    # total = 20, mrv (beginner carry) = 6, ratio = 0.3, new_sets = round(5*0.3) = 2 < 5
+    errors: list[PlanValidationError] = []
+    pg._clamp_sets_to_mrv(sessions, MEV_MAV_MRV["beginner"], 1, errors)
+
+    assert len(errors) == 1
+    assert errors[0].code == "sets_clamped"
+    items = cast(list[dict[str, object]], sessions[0]["items"])
+    total_sets = sum(cast(int, item["sets"]) for item in items)
+    assert total_sets == 8  # 4 items * 2 sets
+    assert all(item["sets"] == 2 for item in items)
 
 
 # ── Scenario B: session count enforcement ─────────────────────────────────────

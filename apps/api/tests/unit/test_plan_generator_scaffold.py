@@ -135,6 +135,70 @@ async def test_call_llm_escapes_injection_in_history_movement_frequency(
     assert _INJECTION not in prompt_text, "raw closing tag must never reach the prompt unescaped"
 
 
+@pytest.mark.asyncio
+async def test_call_llm_returns_tier1_result_when_tier_recording_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A successful tier-1 LLM result must be returned even when the subsequent
+    _record_generation_tier DB write fails.
+
+    Regression test: _record_generation_tier used to be called inside the same
+    try block as the LLM call itself, so a transient DB error there was caught
+    by tier 1's except clause, silently discarding the valid result and
+    falling through to tier 2's deterministic substitution.
+    """
+    monkeypatch.setenv("STUB_LLM", "false")
+
+    req = _make_req()
+    scaffold = build_scaffold(req)
+    movements = _make_movements(["Back Squat"])
+
+    expected = PlanFill(
+        archetype=req.archetype,
+        weeks=[
+            WeekFill(
+                week_number=1,
+                sessions=[
+                    SessionFill(
+                        session_type="strength",
+                        exercises=[
+                            ExerciseSelection(
+                                movement_name="Back Squat", sets=5, reps_or_duration="5"
+                            )
+                            for _ in range(3)
+                        ],
+                    )
+                ],
+            )
+        ],
+    )
+
+    def _fake_create(**kwargs: Any) -> Any:  # noqa: ANN401
+        async def _coro() -> PlanFill:
+            return expected
+
+        return _coro()
+
+    fake_llm = MagicMock()
+    fake_llm.client.chat.completions.create = _fake_create
+
+    async def fake_call_llm(coro: Any, **kwargs: Any) -> Any:  # noqa: ANN401
+        return await coro
+
+    with (
+        patch("app.ai.client.get_client", return_value=fake_llm),
+        patch("app.ai.errors.call_llm", fake_call_llm),
+        patch(
+            "app.ai.plan_generator._record_generation_tier",
+            AsyncMock(side_effect=RuntimeError("simulated DB write failure")),
+        ) as mock_record,
+    ):
+        result = await _call_llm(req, scaffold, movements, {})
+
+    mock_record.assert_awaited_once()
+    assert result is expected, "tier1 result must be returned despite the recording failure"
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 

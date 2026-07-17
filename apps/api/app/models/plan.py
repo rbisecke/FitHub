@@ -55,11 +55,16 @@ class CreatePlanRequest(BaseModel):
         return self
 
 
+_GENERATION_TIER = Literal["ai", "deterministic_substitution", "static_fallback"]
+
+
 class PlanTaskResponse(BaseModel):
     task_id: str
     status: Literal["pending", "running", "complete", "failed"]
     plan_id: uuid.UUID | None = None
     error: str | None = None
+    generation_tier: _GENERATION_TIER | None = None
+    corrections: list[str] = []
 
 
 class PlanBase(BaseModel):
@@ -115,6 +120,8 @@ class MesocycleOut(BaseModel):
 class PlanDetail(PlanBase):
     mesocycles: list[MesocycleOut]
     sessions: list[PlannedSessionOut]
+    generation_tier: _GENERATION_TIER | None = None
+    corrections: list[str] = []
 
 
 class PlannedItemPatch(BaseModel):
