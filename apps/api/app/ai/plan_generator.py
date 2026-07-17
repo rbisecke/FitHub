@@ -613,8 +613,6 @@ async def _call_llm(
             user_id=user_id,
             db=db,
         )
-        await _record_generation_tier(db, task_id, user_id, "ai")
-        return result
     except Exception as tier1_exc:
         log.warning(
             "plan_gen_metric: tier1 instructor failed, attempting tier2 substitution",
@@ -624,6 +622,18 @@ async def _call_llm(
                 "error": str(tier1_exc)[:200],
             },
         )
+    else:
+        # A successful LLM result must be returned even if the tier-tracking write
+        # below fails — a transient DB error here must not discard valid AI output
+        # and fall through to tier 2/3.
+        try:
+            await _record_generation_tier(db, task_id, user_id, "ai")
+        except Exception as record_exc:
+            log.warning(
+                "plan_gen_metric: tier1 generation_tier recording failed: %s",
+                str(record_exc)[:200],
+            )
+        return result
 
     # Tier 2: deterministic substitution — replace invalid movement names
     # with a random pool member sharing the same movement_pattern.
@@ -681,16 +691,24 @@ async def _call_llm(
                 )
             if sessions:
                 fallback_weeks.append(_WF(week_number=1, sessions=sessions))
-
+    except Exception as tier2_exc:
+        log.warning("plan_gen_metric: tier2 substitution failed: %s", str(tier2_exc)[:200])
+    else:
         if fallback_weeks:
             log.info(
                 "plan_gen_metric",
                 extra={"metric": "correction_retries", "tier": 2, "archetype": req.archetype},
             )
-            await _record_generation_tier(db, task_id, user_id, "deterministic_substitution")
+            # As with tier 1, a successful substitution result must be returned even
+            # if the tier-tracking write fails — don't discard valid output over it.
+            try:
+                await _record_generation_tier(db, task_id, user_id, "deterministic_substitution")
+            except Exception as record_exc:
+                log.warning(
+                    "plan_gen_metric: tier2 generation_tier recording failed: %s",
+                    str(record_exc)[:200],
+                )
             return PlanFill(archetype=req.archetype, weeks=fallback_weeks)
-    except Exception as tier2_exc:
-        log.warning("plan_gen_metric: tier2 substitution failed: %s", str(tier2_exc)[:200])
 
     # Tier 3: static fallback template.
     log.warning(
@@ -735,7 +753,15 @@ async def _call_llm(
         if sessions:
             t3_weeks.append(_WF3(week_number=1, sessions=sessions))
 
-    await _record_generation_tier(db, task_id, user_id, "static_fallback")
+    # Tier 3 is the last resort — a recording failure here must not prevent the
+    # static fallback plan itself from being returned.
+    try:
+        await _record_generation_tier(db, task_id, user_id, "static_fallback")
+    except Exception as record_exc:
+        log.warning(
+            "plan_gen_metric: tier3 generation_tier recording failed: %s",
+            str(record_exc)[:200],
+        )
     return PlanFill(
         archetype=req.archetype,
         weeks=t3_weeks
