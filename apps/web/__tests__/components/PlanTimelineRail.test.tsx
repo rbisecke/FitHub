@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PlanTimelineRail } from "@/components/plans/PlanTimelineRail";
-import { MesocycleProgressBar } from "@/components/plans/MesocycleProgressBar";
+import {
+  MesocycleProgressBar,
+  computeWeekTicks,
+} from "@/components/plans/MesocycleProgressBar";
 import type { MesocycleOut, PlannedSessionOut } from "@/lib/api/plans";
 
 // ---------------------------------------------------------------------------
@@ -237,5 +240,65 @@ describe("MesocycleProgressBar", () => {
     );
     // week 3 of 4 = 75%
     expect(html).toContain("75%");
+  });
+
+  // PD5 — not-yet-started plan must not be clamped to fake week-1 progress.
+  it("shows an explicit not-started state instead of fake week-1 progress for a future startDate", () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const startDate = `${tomorrow.getFullYear()}-${String(
+      tomorrow.getMonth() + 1,
+    ).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+
+    const html = renderToStaticMarkup(
+      <MesocycleProgressBar
+        mesocycles={[
+          makeMeso({ phase: "accumulation", week_start: 1, week_end: 4 }),
+        ]}
+        startDate={startDate}
+      />,
+    );
+
+    expect(html).toContain("Not started");
+    expect(html).not.toContain("75%");
+    // No segment should be marked filled/current for a not-started plan.
+    expect(html).not.toContain("bg-[var(--green)] opacity-100");
+    expect(html).not.toContain("bg-[var(--green)] opacity-60");
+  });
+
+  // PD5 — segment fill should reuse PlanTimelineRail's phase-color mapping,
+  // not a single hardcoded accent color regardless of phase.
+  it("colors filled segments using the same phase-color mapping as PlanTimelineRail", () => {
+    const html = renderToStaticMarkup(
+      <MesocycleProgressBar
+        mesocycles={[
+          makeMeso({ phase: "intensification", week_start: 1, week_end: 4 }),
+        ]}
+        startDate={startDateForWeek(1)}
+      />,
+    );
+    // intensification -> amber, per mesoBandColor (shared with PlanTimelineRail)
+    expect(html).toContain("bg-[var(--amber)]");
+    expect(html).not.toContain("bg-[var(--accent)] opacity");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// computeWeekTicks — defensive RangeError guard (PD5)
+// ---------------------------------------------------------------------------
+
+describe("computeWeekTicks", () => {
+  it("returns the correct tick array for a positive week count", () => {
+    expect(computeWeekTicks(4)).toEqual([0, 1, 2, 3]);
+  });
+
+  it("returns an empty array instead of throwing for zero weeks", () => {
+    expect(() => computeWeekTicks(0)).not.toThrow();
+    expect(computeWeekTicks(0)).toEqual([]);
+  });
+
+  it("returns an empty array instead of throwing for a negative week count", () => {
+    expect(() => computeWeekTicks(-3)).not.toThrow();
+    expect(computeWeekTicks(-3)).toEqual([]);
   });
 });

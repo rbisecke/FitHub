@@ -122,6 +122,7 @@ export default async function PlanDetailPage({ params }: Props) {
       {plan.sessions.length > 0 && (
         <WeeklyVolumeSparklines
           sessions={plan.sessions}
+          mesocycles={plan.mesocycles}
           startDate={plan.start_date}
           weeks={plan.weeks}
         />
