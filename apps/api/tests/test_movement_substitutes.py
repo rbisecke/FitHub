@@ -206,6 +206,73 @@ async def test_substitutes_no_equipment_filter_returns_all_pattern_matches(
 
 
 @pytest.mark.asyncio
+async def test_substitutes_rejects_oversized_equipment_list(alice_client: AsyncClient) -> None:
+    """B8: more than 20 equipment tags is rejected with 422, matching the bound
+    personal-records already enforces on its own list-length query param."""
+    uid = uuid.uuid4().hex[:8]
+    src_id = await _create_movement(
+        alice_client,
+        name=f"Zercher Squat {uid}",
+        slug=f"zercher-squat-{uid}",
+        movement_pattern="squat",
+    )
+
+    equipment = [f"tag-{i}" for i in range(21)]
+    r = await alice_client.get(
+        f"/api/v1/movements/{src_id}/substitutes",
+        params={"equipment": equipment},
+    )
+    assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_substitutes_accepts_equipment_list_at_bound(alice_client: AsyncClient) -> None:
+    """Exactly 20 equipment tags (the bound itself) must still be accepted."""
+    uid = uuid.uuid4().hex[:8]
+    src_id = await _create_movement(
+        alice_client,
+        name=f"Cyclist Squat {uid}",
+        slug=f"cyclist-squat-{uid}",
+        movement_pattern="squat",
+    )
+
+    equipment = [f"tag-{i}" for i in range(20)]
+    r = await alice_client.get(
+        f"/api/v1/movements/{src_id}/substitutes",
+        params={"equipment": equipment},
+    )
+    assert r.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_substitutes_empty_list_when_source_pattern_is_null(
+    alice_client: AsyncClient,
+) -> None:
+    """B8: a source movement with no movement_pattern has no meaningful substitutes —
+    must return an empty list via an explicit None guard, not a stringified 'None'
+    that happens to match nothing."""
+    uid = uuid.uuid4().hex[:8]
+    src_id = await _create_movement(
+        alice_client,
+        name=f"Custom Novelty Movement {uid}",
+        slug=f"custom-novelty-movement-{uid}",
+        movement_pattern="squat",
+    )
+    # Clear movement_pattern to NULL directly — CreateMovementRequest allows it
+    # to be omitted, but the movements router requires modality; simplest to
+    # null it out post-creation for a deterministic fixture.
+    async with await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn:
+        await conn.execute(
+            "UPDATE public.movements SET movement_pattern = NULL WHERE id = %s",
+            [uuid.UUID(src_id)],
+        )
+
+    r = await alice_client.get(f"/api/v1/movements/{src_id}/substitutes")
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+@pytest.mark.asyncio
 async def test_substitutes_response_shape(alice_client: AsyncClient) -> None:
     uid = uuid.uuid4().hex[:8]
     src_id = await _create_movement(

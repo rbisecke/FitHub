@@ -206,7 +206,6 @@ STUB_PLAN: dict[str, object] = {
 
 async def get_equipment_filtered_movements(
     conn: psycopg.AsyncConnection[object],
-    user_id: str,
     equipment: list[str],
 ) -> list[dict[str, object]]:
     """Return movements whose equipment_required is a subset of the provided equipment list.
@@ -219,13 +218,11 @@ async def get_equipment_filtered_movements(
 
     Args:
         conn: Active async DB connection.
-        user_id: Caller's user ID (unused in query, passed for future RLS-bypass paths).
         equipment: Tags the athlete has available, e.g. ["barbell", "pull_up_bar"].
 
     Returns:
         List of movement dicts with keys: id, name, movement_pattern, equipment_required.
     """
-    _ = user_id  # reserved for future per-user movement visibility
     async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
@@ -315,6 +312,7 @@ async def build_user_history(
             WHERE user_id = %s
               AND date >= CURRENT_DATE - INTERVAL '28 days'
             ORDER BY date DESC
+            LIMIT 200
             """,
             [user_id],
         )
@@ -882,7 +880,7 @@ async def assemble_plan(
 
     # Step 1: equipment-filtered movements
     if db is not None:
-        movements = await get_equipment_filtered_movements(db, "", list(req_obj.equipment))
+        movements = await get_equipment_filtered_movements(db, list(req_obj.equipment))
     else:
         movements = []
 
@@ -1129,11 +1127,14 @@ async def _create_plan_records(
     if total_sessions == 0:
         raise ValueError("Plan draft has no sessions — aborting insert")
 
-    # Convert equipment list to Postgres array literal
-    equipment_pg = "{" + ",".join(f'"{e}"' for e in equipment) + "}"
-
     async with db.transaction():
         async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+            # B7: pass the Python list directly as a bound %s::TEXT[] parameter —
+            # psycopg adapts it to a Postgres array itself, the same safe pattern
+            # get_equipment_filtered_movements already uses. The previous manual
+            # f'"{e}"' string-building had no escaping for "/\ characters, so an
+            # equipment tag like `24" box` broke array-literal parsing and raised
+            # a Postgres syntax error on insert.
             await cur.execute(
                 """
                 INSERT INTO plans (
@@ -1154,7 +1155,7 @@ async def _create_plan_records(
                     branch_name,
                     weeks,
                     training_age,
-                    equipment_pg,
+                    equipment,
                     days_per_week,
                     str(target_movement_id) if target_movement_id is not None else None,
                     int(max_duration_weeks) if max_duration_weeks is not None else None,  # type: ignore[call-overload]

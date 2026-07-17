@@ -116,5 +116,5 @@ class PersonalRecordResult(BaseModel):
 class MovementSubstituteOut(BaseModel):
     id: uuid.UUID
     name: str
-    movement_pattern: str
+    movement_pattern: MovementPattern
     equipment_required: list[str]

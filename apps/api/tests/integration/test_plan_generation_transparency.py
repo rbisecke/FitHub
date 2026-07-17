@@ -165,7 +165,7 @@ def _small_plan_fill(
 
 
 async def _fake_movements_single_squat_variant(
-    conn: object, user_id: str, equipment: list[str]
+    conn: object, equipment: list[str]
 ) -> list[dict[str, object]]:
     """A single custom movement that doesn't match any fallback template's
     movement names, so tier 2's substitution loop is forced to actually call

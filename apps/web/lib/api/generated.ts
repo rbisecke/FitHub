@@ -2447,8 +2447,7 @@ export interface components {
       id: string;
       /** Name */
       name: string;
-      /** Movement Pattern */
-      movement_pattern: string;
+      movement_pattern: components["schemas"]["MovementPattern"];
       /** Equipment Required */
       equipment_required: string[];
     };

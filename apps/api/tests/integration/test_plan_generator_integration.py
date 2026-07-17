@@ -14,10 +14,11 @@ from __future__ import annotations
 import asyncio
 
 import psycopg
+import psycopg.rows
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import TEST_DB_DSN, requires_ollama
+from tests.conftest import ALICE_ID, TEST_DB_DSN, requires_ollama
 
 
 @pytest.mark.asyncio
@@ -30,7 +31,7 @@ async def test_get_equipment_filtered_movements_live_db_no_filter() -> None:
     from app.ai.plan_generator import get_equipment_filtered_movements
 
     async with await psycopg.AsyncConnection.connect(TEST_DB_DSN) as conn:
-        rows = await get_equipment_filtered_movements(conn, "", [])
+        rows = await get_equipment_filtered_movements(conn, [])
 
     assert isinstance(rows, list)
     assert len(rows) > 0  # local schema is seeded with the movement catalog
@@ -44,12 +45,90 @@ async def test_get_equipment_filtered_movements_live_db_with_equipment() -> None
     from app.ai.plan_generator import get_equipment_filtered_movements
 
     async with await psycopg.AsyncConnection.connect(TEST_DB_DSN) as conn:
-        rows = await get_equipment_filtered_movements(conn, "", ["barbell", "rack"])
+        rows = await get_equipment_filtered_movements(conn, ["barbell", "rack"])
 
     assert isinstance(rows, list)
     for row in rows:
         required = set(row["equipment_required"] or [])
         assert required <= {"barbell", "rack"}
+
+
+@pytest.mark.asyncio
+async def test_create_plan_records_equipment_with_double_quote_round_trips() -> None:
+    """B7 regression: an equipment tag containing a double-quote must not break
+    the INSERT.
+
+    Before the fix, _create_plan_records hand-built the Postgres array literal
+    via f'"{e}"' with no escaping, so a tag like `24" box` produced invalid
+    array syntax and raised psycopg.errors.SyntaxError on insert. The fix binds
+    the Python list directly as a %s::TEXT[] parameter, so psycopg handles the
+    escaping — this asserts the insert succeeds and the value round-trips
+    exactly, quote included.
+    """
+    from app.ai.plan_generator import _create_plan_records
+
+    tricky_equipment = ['24" box', "barbell"]
+    req_data: dict[str, object] = {
+        "archetype": "general-crossfit",
+        "title": "B7 Equipment Quote Test",
+        "start_date": "2026-08-04",
+        "weeks": 4,
+        "training_age": "intermediate",
+        "equipment": tricky_equipment,
+        "days_per_week": 3,
+        "target_movement_id": None,
+        "max_duration_weeks": None,
+        "current_1rm_kg": None,
+    }
+    draft: dict[str, object] = {
+        "mesocycles": [
+            {
+                "name": "Block",
+                "phase": "accumulation",
+                "week_start": 1,
+                "week_end": 4,
+                "focus": None,
+            }
+        ],
+        "weeks": [
+            {
+                "week": 1,
+                "sessions": [
+                    {
+                        "day_offset": 0,
+                        "session_type": "strength",
+                        "title": "Day 1",
+                        "intensity_level": "hard",
+                        "items": [
+                            {
+                                "movement_name": "Air Squat",
+                                "sets": 3,
+                                "reps": "10",
+                                "load_pct_1rm": None,
+                                "load_kg": None,
+                                "movement_pattern": "squat",
+                                "notes": None,
+                            }
+                        ],
+                        "notes": None,
+                    }
+                ],
+            }
+        ],
+    }
+
+    async with await psycopg.AsyncConnection.connect(TEST_DB_DSN) as conn:
+        plan_id = await _create_plan_records(str(ALICE_ID), req_data, draft, conn)
+
+    async with (
+        await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn,
+        conn.cursor(row_factory=psycopg.rows.dict_row) as cur,
+    ):
+        await cur.execute("SELECT equipment FROM plans WHERE id = %s", [plan_id])
+        row = await cur.fetchone()
+
+    assert row is not None
+    assert row["equipment"] == tricky_equipment
 
 
 @requires_ollama

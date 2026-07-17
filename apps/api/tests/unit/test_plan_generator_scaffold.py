@@ -265,7 +265,7 @@ async def test_equipment_filter_empty_list_returns_all() -> None:
     mock_conn = AsyncMock()
     mock_conn.cursor = MagicMock(return_value=mock_cur)
 
-    result = await get_equipment_filtered_movements(mock_conn, "user-1", [])
+    result = await get_equipment_filtered_movements(mock_conn, [])
 
     assert result == mock_rows
     # Verify the parametrized query was called with an empty list
@@ -289,7 +289,7 @@ async def test_equipment_filter_with_tags_passes_them() -> None:
     mock_conn.cursor = MagicMock(return_value=mock_cur)
 
     equipment = ["barbell", "pull_up_bar"]
-    result = await get_equipment_filtered_movements(mock_conn, "user-1", equipment)
+    result = await get_equipment_filtered_movements(mock_conn, equipment)
 
     assert result == mock_rows
     call_args = mock_cur.execute.call_args
@@ -309,7 +309,7 @@ async def test_equipment_filter_uses_parameterized_sql() -> None:
     mock_conn = AsyncMock()
     mock_conn.cursor = MagicMock(return_value=mock_cur)
 
-    await get_equipment_filtered_movements(mock_conn, "user-1", ["barbell"])
+    await get_equipment_filtered_movements(mock_conn, ["barbell"])
 
     sql: str = mock_cur.execute.call_args[0][0]
     # Must use <@ operator for subset check
@@ -332,7 +332,7 @@ async def test_equipment_filter_limit_present() -> None:
     mock_conn = AsyncMock()
     mock_conn.cursor = MagicMock(return_value=mock_cur)
 
-    await get_equipment_filtered_movements(mock_conn, "user-1", [])
+    await get_equipment_filtered_movements(mock_conn, [])
 
     sql: str = mock_cur.execute.call_args[0][0]
     assert "500" in sql  # the specific LIMIT value from the implementation
@@ -377,7 +377,7 @@ async def test_assemble_plan_calls_equipment_filter(monkeypatch: pytest.MonkeyPa
 
     captured_args: dict[str, Any] = {}
 
-    async def mock_filter(conn: Any, user_id: str, equipment: list[str]) -> list[dict]:  # noqa: ANN401
+    async def mock_filter(conn: Any, equipment: list[str]) -> list[dict]:  # noqa: ANN401
         captured_args["equipment"] = equipment
         return _make_movements(["Back Squat", "Pull-up"])
 
