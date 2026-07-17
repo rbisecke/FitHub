@@ -617,4 +617,126 @@ test.describe.serial("Plan wizard", () => {
     await page.locator('[data-testid="training-age-advanced"]').click();
     await expect(commitBtn).toBeEnabled();
   });
+
+  // ── 7. Custom title persists to the created plan (W1) ────────────────────
+
+  test("editing the plan title persists the custom value, not the auto-generated one", async ({
+    page,
+  }) => {
+    const captured: { payload: Record<string, unknown> } = { payload: {} };
+    await mockPlanApi(page, captured);
+
+    await gotoWizard(page);
+
+    await selectArchetype(page, "general-crossfit");
+    await selectPreset(page, "Full Gym");
+    await continueFromEquipment(page);
+    await completeSchedule(page, 4, 12);
+
+    await expect(page.getByText(/training age/i)).toBeVisible({
+      timeout: 5_000,
+    });
+    await page.locator('[data-testid="training-age-intermediate"]').click();
+
+    // The title field auto-fills from archetype + training age.
+    const titleInput = page.locator('[data-testid="plan-title-input"]');
+    await expect(titleInput).toHaveValue(/Intermediate/);
+
+    // Overwrite it with a custom title.
+    await titleInput.fill("My Totally Custom Plan Title");
+    await expect(titleInput).toHaveValue("My Totally Custom Plan Title");
+
+    const commitBtn = page.locator('[data-testid="commit-plan-btn"]');
+    await expect(commitBtn).toBeEnabled();
+    await commitBtn.click();
+
+    await expect(page).toHaveURL(`/plans/${MOCK_PLAN_ID}`, { timeout: 15_000 });
+
+    // The created plan's title must match the edited value, not the
+    // auto-generated "Intermediate CrossFit Program".
+    expect(captured.payload["title"]).toBe("My Totally Custom Plan Title");
+  });
+
+  // ── 8. Clearing 1RM across a movement change does not leak a stale value (W2) ─
+
+  test("clearing 1RM and switching target movement submits no stale 1RM value", async ({
+    page,
+  }) => {
+    const captured: { payload: Record<string, unknown> } = { payload: {} };
+    await mockPlanApi(page, captured);
+
+    // Return a different movement depending on the search query, so we can
+    // simulate the user switching from one target movement to another.
+    await page.route(`${API_BASE}/api/v1/movements*`, async (route) => {
+      const q = (
+        new URL(route.request().url()).searchParams.get("query") ?? ""
+      ).toLowerCase();
+      const results = q.includes("snatch")
+        ? [{ id: "mv-snatch-01", name: "Snatch" }]
+        : q.includes("clean")
+          ? [{ id: "mv-clean-01", name: "Clean" }]
+          : [];
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(results),
+      });
+    });
+
+    await gotoWizard(page);
+
+    await selectArchetype(page, "one-rm-peak");
+    await selectPreset(page, "Barbell Only");
+    await continueFromEquipment(page);
+    await completeSchedule(page, 5, 16);
+
+    await expect(page.getByText(/target movement/i)).toBeVisible({
+      timeout: 5_000,
+    });
+
+    // Select movement A (Snatch) and enter a 1RM.
+    await page.getByLabel("Search movements").fill("Snatch");
+    await expect(page.getByRole("button", { name: "Snatch" })).toBeVisible({
+      timeout: 3_000,
+    });
+    await page.getByRole("button", { name: "Snatch" }).click();
+
+    const rmInput = page.locator("#current-1rm");
+    await expect(rmInput).toBeVisible({ timeout: 3_000 });
+    await rmInput.fill("100");
+
+    // Clear the movement selection — this is meant to also clear the 1RM.
+    await page
+      .getByRole("button", { name: "Clear movement selection" })
+      .click();
+
+    // Select movement B (Clean) instead.
+    await page.getByLabel("Search movements").fill("Clean");
+    await expect(page.getByRole("button", { name: "Clean" })).toBeVisible({
+      timeout: 3_000,
+    });
+    await page.getByRole("button", { name: "Clean" }).click();
+
+    // The 1RM input must be empty for the newly selected movement — not the
+    // stale 100 carried over from Snatch.
+    const rmInputAfter = page.locator("#current-1rm");
+    await expect(rmInputAfter).toBeVisible({ timeout: 3_000 });
+    await expect(rmInputAfter).toHaveValue("");
+
+    await page.locator('[data-testid="continue-btn"]').click();
+
+    await expect(page.getByText(/training age/i)).toBeVisible({
+      timeout: 5_000,
+    });
+    await page.locator('[data-testid="training-age-advanced"]').click();
+
+    const commitBtn = page.locator('[data-testid="commit-plan-btn"]');
+    await expect(commitBtn).toBeEnabled();
+    await commitBtn.click();
+
+    await expect(page).toHaveURL(`/plans/${MOCK_PLAN_ID}`, { timeout: 15_000 });
+
+    expect(captured.payload["target_movement_id"]).toBe("mv-clean-01");
+    expect(captured.payload["current_1rm_kg"]).toBeUndefined();
+  });
 });

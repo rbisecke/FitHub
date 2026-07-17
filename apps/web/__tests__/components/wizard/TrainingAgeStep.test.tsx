@@ -16,6 +16,7 @@ function makeState(overrides: Partial<WizardState> = {}): WizardState {
     current1rmKg: null,
     trainingAge: null,
     maxDurationWeeks: null,
+    customTitle: null,
     isSubmitting: false,
     error: null,
     planId: null,
@@ -132,31 +133,6 @@ describe("TrainingAgeStep", () => {
   it("does not render error message when error prop is null", () => {
     render(<StatefulTrainingAgeStep error={null} />);
     expect(screen.queryByTestId("submit-error")).toBeNull();
-  });
-
-  it("advanced settings panel is collapsed by default", () => {
-    render(<StatefulTrainingAgeStep />);
-    expect(screen.queryByTestId("advanced-settings-panel")).toBeNull();
-  });
-
-  it("advanced settings panel expands when toggle is clicked", () => {
-    render(<StatefulTrainingAgeStep />);
-    const toggle = screen.getByRole("button", {
-      name: "Toggle advanced settings",
-    });
-    fireEvent.click(toggle);
-    expect(screen.getByTestId("advanced-settings-panel")).toBeDefined();
-  });
-
-  it("advanced settings collapses again on second toggle click", () => {
-    render(<StatefulTrainingAgeStep />);
-    const toggle = screen.getByRole("button", {
-      name: "Toggle advanced settings",
-    });
-    fireEvent.click(toggle);
-    expect(screen.getByTestId("advanced-settings-panel")).toBeDefined();
-    fireEvent.click(toggle);
-    expect(screen.queryByTestId("advanced-settings-panel")).toBeNull();
   });
 
   it("calls onSubmit when commit plan is clicked with age selected", () => {

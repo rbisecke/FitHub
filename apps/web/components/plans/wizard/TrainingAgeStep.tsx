@@ -28,9 +28,6 @@ const TRAINING_AGE_OPTIONS: TrainingAgeOption[] = [
   },
 ];
 
-const INTENSITY_OPTIONS = ["Conservative", "Moderate", "Aggressive"] as const;
-type IntensityBias = (typeof INTENSITY_OPTIONS)[number];
-
 interface Props {
   state: WizardState;
   onAgeSelect: (age: TrainingAge) => void;
@@ -53,9 +50,6 @@ export function TrainingAgeStep({
   // Selecting a new training age resets this back to null so the field
   // auto-regenerates — the user can re-edit if they want.
   const [customTitle, setCustomTitle] = useState<string | null>(null);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [injuryNotes, setInjuryNotes] = useState("");
-  const [intensityBias, setIntensityBias] = useState<IntensityBias>("Moderate");
 
   // Derive the visible title without an effect: prefer the user's custom
   // override, otherwise generate from the current wizard state.
@@ -186,110 +180,6 @@ export function TrainingAgeStep({
           <p className="font-mono text-xs" style={{ color: "var(--muted)" }}>
             custom title
           </p>
-        )}
-      </div>
-
-      {/* Advanced settings accordion */}
-      <div
-        className="rounded-lg border"
-        style={{ borderColor: "var(--border)" }}
-      >
-        <button
-          type="button"
-          onClick={() => setAdvancedOpen((prev) => !prev)}
-          aria-expanded={advancedOpen}
-          aria-controls="advanced-settings-panel"
-          aria-label="Toggle advanced settings"
-          className="flex w-full items-center justify-between p-4 font-mono text-sm transition-colors"
-          style={{
-            color: "var(--muted)",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            minHeight: "44px",
-          }}
-        >
-          <span>advanced settings</span>
-          <span
-            style={{
-              display: "inline-block",
-              transform: advancedOpen ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 150ms ease",
-            }}
-            aria-hidden="true"
-          >
-            ▾
-          </span>
-        </button>
-
-        {advancedOpen && (
-          <div
-            id="advanced-settings-panel"
-            className="flex flex-col gap-6 px-4 pb-4"
-            data-testid="advanced-settings-panel"
-          >
-            {/* Injury notes */}
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor="injury-notes"
-                className="font-mono text-xs font-semibold"
-                style={{ color: "var(--muted)" }}
-              >
-                notes for the AI coach{" "}
-                <span className="font-normal">(optional)</span>
-              </label>
-              <textarea
-                id="injury-notes"
-                data-testid="injury-notes"
-                value={injuryNotes}
-                onChange={(e) => setInjuryNotes(e.target.value)}
-                placeholder="e.g. avoiding overhead press due to shoulder impingement"
-                rows={3}
-                className="w-full rounded border font-mono text-xs resize-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                style={{
-                  backgroundColor: "var(--surface)",
-                  borderColor: "var(--border)",
-                  color: "var(--text)",
-                  padding: "8px 12px",
-                }}
-              />
-            </div>
-
-            {/* Intensity bias */}
-            <fieldset className="flex flex-col gap-3">
-              <legend
-                className="font-mono text-xs font-semibold"
-                style={{ color: "var(--muted)" }}
-              >
-                intensity bias
-              </legend>
-              <div className="flex gap-4">
-                {INTENSITY_OPTIONS.map((option) => {
-                  const isSelected = intensityBias === option;
-                  return (
-                    <label
-                      key={option}
-                      className="flex items-center gap-2 cursor-pointer font-mono text-xs"
-                      style={{
-                        color: isSelected ? "var(--text)" : "var(--muted)",
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        name="intensity-bias"
-                        value={option}
-                        checked={isSelected}
-                        onChange={() => setIntensityBias(option)}
-                        data-testid={`intensity-${option.toLowerCase()}`}
-                        style={{ accentColor: "var(--accent)" }}
-                      />
-                      {option}
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
-          </div>
         )}
       </div>
 

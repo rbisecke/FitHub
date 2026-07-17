@@ -19,6 +19,7 @@ function makeState(
     current1rmKg: null,
     trainingAge: null,
     maxDurationWeeks: null,
+    customTitle: null,
     isSubmitting: false,
     error: null,
     planId: null,

@@ -6,12 +6,18 @@ import { resolveEquipmentTags } from "@/lib/plans/equipment";
 import { generatePlanTitle } from "@/lib/plans/titles";
 import type { EquipmentPreset } from "@/lib/types/plans";
 
-// Prevent real API calls in tests.
+// Prevent real API calls in tests. Hoisted so the mock fns are reachable
+// from test bodies for call-arg assertions (e.g. the abort/signal tests).
+const { mockCreate, mockPollTask } = vi.hoisted(() => ({
+  mockCreate: vi.fn(),
+  mockPollTask: vi.fn(),
+}));
+
 vi.mock("@/lib/api/client", () => ({
   api: {
     plans: {
-      create: vi.fn(),
-      pollTask: vi.fn(),
+      create: mockCreate,
+      pollTask: mockPollTask,
     },
   },
 }));
@@ -289,5 +295,115 @@ describe("usePlanWizard — buildSubmitPayload", () => {
     const payload = result.current.buildSubmitPayload();
     expect(payload.weeks).toBe(8);
     expect(payload.max_duration_weeks).toBe(8);
+  });
+
+  // W1 — a user-edited title must win over the auto-derived one.
+  it("prefers customTitle over the auto-derived title once set", () => {
+    const { result } = renderHook(() => usePlanWizard());
+
+    act(() => {
+      result.current.setArchetype("strength-bias");
+      result.current.setTrainingAge("advanced");
+    });
+
+    // Before any edit, the derived title is used.
+    expect(result.current.buildSubmitPayload().title).toBe(
+      generatePlanTitle("strength-bias", "advanced"),
+    );
+
+    act(() => {
+      result.current.setCustomTitle("My Custom Plan");
+    });
+
+    expect(result.current.buildSubmitPayload().title).toBe("My Custom Plan");
+  });
+});
+
+describe("usePlanWizard — set1rm", () => {
+  // W2 — a clear (null) call must actually clear the stored value, not be
+  // silently swallowed.
+  it("stores null when set1rm(null) is called after a prior value", () => {
+    const { result } = renderHook(() => usePlanWizard());
+
+    act(() => {
+      result.current.set1rm(100);
+    });
+    expect(result.current.state.current1rmKg).toBe(100);
+
+    act(() => {
+      result.current.set1rm(null);
+    });
+    expect(result.current.state.current1rmKg).toBeNull();
+
+    // A stale value must not leak into the submitted payload for whatever
+    // movement is selected afterward.
+    act(() => {
+      result.current.setArchetype("one-rm-peak");
+      result.current.setTrainingAge("intermediate");
+      result.current.setTargetMovement("mov-b", "Snatch");
+    });
+    expect(result.current.buildSubmitPayload().current_1rm_kg).toBeUndefined();
+  });
+});
+
+describe("usePlanWizard — submit / abort (W4)", () => {
+  beforeEach(() => {
+    mockCreate.mockReset();
+    mockPollTask.mockReset();
+  });
+
+  it("forwards a real AbortSignal to create/pollTask and stops polling once abort() is called", async () => {
+    vi.useFakeTimers();
+    try {
+      mockCreate.mockResolvedValue({ task_id: "task-abort" });
+      mockPollTask.mockResolvedValue({ status: "pending" });
+
+      const { result } = renderHook(() => usePlanWizard());
+
+      let submitPromise!: Promise<void>;
+      await act(async () => {
+        submitPromise = result.current.submit("token-abort");
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      // create() must have been called with a real, not-yet-aborted signal.
+      expect(mockCreate).toHaveBeenCalledTimes(1);
+      const [, , createOptions] = mockCreate.mock.calls[0] as [
+        unknown,
+        unknown,
+        { signal: AbortSignal },
+      ];
+      expect(createOptions.signal).toBeInstanceOf(AbortSignal);
+      expect(createOptions.signal.aborted).toBe(false);
+
+      // Advance past the first 5s poll interval — exactly one poll fires.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+      expect(mockPollTask).toHaveBeenCalledTimes(1);
+      const [, , pollOptions] = mockPollTask.mock.calls[0] as [
+        unknown,
+        unknown,
+        { signal: AbortSignal },
+      ];
+      expect(pollOptions.signal).toBe(createOptions.signal);
+
+      // Abort mid-flight (simulating unmount navigating away).
+      act(() => {
+        result.current.abort();
+      });
+      expect(createOptions.signal.aborted).toBe(true);
+
+      // Advance through several more would-be poll intervals — no further
+      // poll requests should fire once aborted.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30000);
+      });
+      expect(mockPollTask).toHaveBeenCalledTimes(1);
+
+      await submitPromise;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
