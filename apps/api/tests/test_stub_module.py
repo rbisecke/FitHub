@@ -13,7 +13,7 @@ def test_stub_env_default() -> None:
     assert os.environ.get("STUB_LLM") == "true"
 
 
-def test_stub_decorator_returns_fixture() -> None:
+def test_stub_decorator_returns_a_copy() -> None:
     from pydantic import BaseModel
 
     from app.ai.stub import stubbed
@@ -29,7 +29,10 @@ def test_stub_decorator_returns_fixture() -> None:
 
     result: Foo = asyncio.run(my_fn())  # type: ignore[arg-type]
     assert result.x == 42
-    assert result is fixture
+    # A deep copy, never the fixture object itself — callers may mutate what
+    # they get back, and a shared fixture would accumulate corruption across
+    # requests/tests (see C2).
+    assert result is not fixture
 
 
 def test_stub_decorator_calls_real_when_not_stubbed(monkeypatch: pytest.MonkeyPatch) -> None:

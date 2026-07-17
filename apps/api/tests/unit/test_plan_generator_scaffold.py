@@ -76,7 +76,7 @@ def _make_scaffold(weeks: dict[int, int]) -> PlanScaffold:
 
 def _make_movements(names: list[str]) -> list[dict[str, object]]:
     return [
-        {"id": str(uuid.uuid4()), "name": n, "primary_pattern": "squat", "equipment_required": []}
+        {"id": str(uuid.uuid4()), "name": n, "movement_pattern": "squat", "equipment_required": []}
         for n in names
     ]
 

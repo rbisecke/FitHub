@@ -5,14 +5,16 @@ Flow:
   2. build_scaffold                   — deterministic structure from request params
   3. build_movement_enum              — constrain LLM to available movements
   4. _call_llm                        — instructor-structured PlanFill output
-  5. validate_and_correct_plan        — enforce sports-science constraints in-place
+  5. validate_and_correct_plan        — enforce sports-science constraints on a copy
   6. _create_plan_records             — persist to DB inside a transaction
 """
 
 from __future__ import annotations
 
+import copy
 import html
 import logging
+import uuid
 from datetime import date, timedelta
 from typing import cast
 
@@ -176,16 +178,15 @@ async def get_equipment_filtered_movements(
         equipment: Tags the athlete has available, e.g. ["barbell", "pull_up_bar"].
 
     Returns:
-        List of movement dicts with keys: id, name, primary_pattern, equipment_required.
+        List of movement dicts with keys: id, name, movement_pattern, equipment_required.
     """
     _ = user_id  # reserved for future per-user movement visibility
     async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
-            SELECT id::text, name, primary_pattern, equipment_required
+            SELECT id::text, name, movement_pattern, equipment_required
             FROM public.movements
-            WHERE is_active = true
-              AND (
+            WHERE (
                 %(equipment)s::TEXT[] = ARRAY[]::TEXT[]
                 OR equipment_required <@ %(equipment)s::TEXT[]
               )
@@ -467,7 +468,7 @@ async def _call_llm(
     )
 
     movement_pool = "\n".join(
-        f"  - {m['name']} ({m.get('primary_pattern', 'unknown')})"
+        f"  - {m['name']} ({m.get('movement_pattern', 'unknown')})"
         for m in movements[:200]  # cap to avoid prompt bloat
     )
 
@@ -527,13 +528,13 @@ async def _call_llm(
         )
 
     # Tier 2: deterministic substitution — replace invalid movement names
-    # with a random pool member sharing the same primary_pattern.
+    # with a random pool member sharing the same movement_pattern.
     try:
         import random
 
         pool_by_pattern: dict[str, list[str]] = {}
         for m in movements:
-            pat = str(m.get("primary_pattern") or "unknown")
+            pat = str(m.get("movement_pattern") or "unknown")
             pool_by_pattern.setdefault(pat, []).append(str(m.get("name") or ""))
         all_names = {str(m.get("name") or "") for m in movements}
 
@@ -766,6 +767,10 @@ generate_plan = assemble_plan
 
 # ── DB helpers ────────────────────────────────────────────────────────────────
 
+# Read-only templates — never mutate or share these directly. Corrections below
+# append/mutate items in place (_clamp_sets_to_mrv, etc.), so every call site
+# must go through the _build_* factories, which hand back a fresh deep copy
+# each time (see C2: sharing these across requests/tests corrupts them permanently).
 _RECOVERY_PLACEHOLDER: dict[str, object] = {
     "movement_name": "Air Squat",
     "sets": 3,
@@ -782,6 +787,16 @@ _PADDING_SESSION: dict[str, object] = {
     "items": [_RECOVERY_PLACEHOLDER],
     "notes": None,
 }
+
+
+def _build_recovery_placeholder() -> dict[str, object]:
+    """Return a fresh copy of the recovery-placeholder item, safe to mutate."""
+    return copy.deepcopy(_RECOVERY_PLACEHOLDER)
+
+
+def _build_padding_session() -> dict[str, object]:
+    """Return a fresh copy of the padding session (with its own item), safe to mutate."""
+    return copy.deepcopy(_PADDING_SESSION)
 
 
 async def _create_mesocycles(
@@ -829,9 +844,14 @@ async def _create_sessions(
     weeks_raw: list[object],
     db: psycopg.AsyncConnection[object],
 ) -> list[tuple[str, list[object]]]:
-    """Bulk-insert sessions with executemany, then retrieve IDs via SELECT.
+    """Bulk-insert sessions with client-generated ids, pairing items by construction.
 
-    Returns list of (session_id, items) pairs in scheduled_date order.
+    Session UUIDs are generated in Python before the INSERT, so each session's id
+    is known immediately and item association never depends on re-querying and
+    re-sorting rows after insert (see B2 — a positional zip against a re-sorted
+    SELECT can silently attach items to the wrong session).
+
+    Returns list of (session_id, items) pairs, one per inserted session.
     """
 
     def _meso_for_week(week_num: int) -> str:
@@ -840,6 +860,7 @@ async def _create_sessions(
                 return mid
         return ""
 
+    session_ids: list[str] = []
     insert_rows: list[tuple[object, ...]] = []
     items_list: list[list[object]] = []
 
@@ -863,7 +884,11 @@ async def _create_sessions(
             session_type = str(session.get("session_type", "mixed"))
             title = str(session.get("title", "Session"))
             notes = str(session.get("notes", "")) or None
-            insert_rows.append((plan_id, meso_id, user_id, sched_date, session_type, title, notes))
+            session_id = str(uuid.uuid4())
+            session_ids.append(session_id)
+            insert_rows.append(
+                (session_id, plan_id, meso_id, user_id, sched_date, session_type, title, notes)
+            )
             items_list.append(list(session.get("items", [])))
 
     if not insert_rows:
@@ -872,21 +897,17 @@ async def _create_sessions(
     async with db.cursor() as cur:
         await cur.executemany(
             "INSERT INTO planned_sessions"
-            " (plan_id, mesocycle_id, user_id, scheduled_date,"
+            " (id, plan_id, mesocycle_id, user_id, scheduled_date,"
             " session_type, title, notes)"
-            " VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
             insert_rows,
         )
 
-    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-        await cur.execute(
-            "SELECT id::text FROM planned_sessions WHERE plan_id = %s"
-            " ORDER BY scheduled_date, id LIMIT 1000",
-            [plan_id],
-        )
-        rows = await cur.fetchall()
-
-    return [(row["id"], items_list[i]) for i, row in enumerate(rows)]
+    # session_ids and items_list were built in lockstep above, so this pairing
+    # is correct by construction — no re-query, no re-sort, no positional zip
+    # against independently-ordered rows. strict=True turns any future length
+    # mismatch into a loud failure instead of silently misaligned data.
+    return list(zip(session_ids, items_list, strict=True))
 
 
 async def _create_items(
@@ -1210,7 +1231,7 @@ def _enforce_exercise_count(
                 )
             )
         elif len(items) == 0 and stype not in rest_types:
-            items.append(dict(_RECOVERY_PLACEHOLDER))
+            items.append(_build_recovery_placeholder())
             log.info(
                 "plan_correction",
                 extra={"type": "exercise_placeholder_added", "week": week_num},
@@ -1259,7 +1280,7 @@ def _enforce_session_count(
         )
     elif actual < expected:
         for _ in range(expected - actual):
-            sessions.append(dict(_PADDING_SESSION))
+            sessions.append(_build_padding_session())
         log.info(
             "plan_correction",
             extra={
@@ -1283,12 +1304,15 @@ def validate_and_correct_plan(
     training_age: str,
     scaffold: PlanScaffold,
 ) -> tuple[dict[str, object], list[PlanValidationError]]:
-    """Validate and correct a plan dict in-place. Never raises.
+    """Validate and correct a plan dict. Never raises.
 
     Clamps sets to MRV, enforces session/exercise counts, clamps load%,
-    and emits a structured log entry for every correction made.
+    and emits a structured log entry for every correction made. Deep-copies
+    `plan` before any correction so the caller's object is never mutated
+    (see C2 — corrections used to mutate the caller's dict in place).
     Returns (corrected_plan, errors).
     """
+    plan = copy.deepcopy(plan)
     errors: list[PlanValidationError] = []
     try:
         mev_mav_mrv = MEV_MAV_MRV.get(training_age, MEV_MAV_MRV["intermediate"])
