@@ -317,6 +317,76 @@ describe("usePlanWizard — buildSubmitPayload", () => {
 
     expect(result.current.buildSubmitPayload().title).toBe("My Custom Plan");
   });
+
+  // W1 regression fix — an empty/whitespace-only custom title must not be
+  // submitted as the real plan title; it must fall back to the derived one.
+  it("falls back to the derived title when customTitle is empty or whitespace-only", () => {
+    const { result } = renderHook(() => usePlanWizard());
+
+    act(() => {
+      result.current.setArchetype("strength-bias");
+      result.current.setTrainingAge("advanced");
+      // Simulate select-all-and-delete on the title field.
+      result.current.setCustomTitle("");
+    });
+
+    expect(result.current.state.customTitle).toBeNull();
+    expect(result.current.buildSubmitPayload().title).toBe(
+      generatePlanTitle("strength-bias", "advanced"),
+    );
+
+    act(() => {
+      result.current.setCustomTitle("My Custom Plan");
+      result.current.setCustomTitle("   ");
+    });
+
+    expect(result.current.state.customTitle).toBeNull();
+    expect(result.current.buildSubmitPayload().title).toBe(
+      generatePlanTitle("strength-bias", "advanced"),
+    );
+  });
+
+  it("trims surrounding whitespace from a real custom title", () => {
+    const { result } = renderHook(() => usePlanWizard());
+
+    act(() => {
+      result.current.setArchetype("strength-bias");
+      result.current.setTrainingAge("advanced");
+      result.current.setCustomTitle("  My Custom Plan  ");
+    });
+
+    expect(result.current.state.customTitle).toBe("My Custom Plan");
+    expect(result.current.buildSubmitPayload().title).toBe("My Custom Plan");
+  });
+
+  // W1 regression (finding #2) — a stale custom title baked with a
+  // previously-selected target movement must not survive a later target
+  // movement change made without re-selecting training age.
+  it("does not leak a stale generated title across a target movement change", () => {
+    const { result } = renderHook(() => usePlanWizard());
+
+    act(() => {
+      result.current.setArchetype("skill-acquisition");
+      result.current.setTargetMovement("mov-a", "Movement A");
+      result.current.setTrainingAge("intermediate");
+    });
+
+    // The user never typed a title — customTitle must stay null, not get
+    // auto-populated with a generated string tied to the current movement.
+    expect(result.current.state.customTitle).toBeNull();
+
+    act(() => {
+      // Back-navigate and pick a different target movement, without
+      // re-selecting training age.
+      result.current.setTargetMovement("mov-b", "Movement B");
+    });
+
+    const payload = result.current.buildSubmitPayload();
+    expect(payload.title).toBe(
+      generatePlanTitle("skill-acquisition", "intermediate", "Movement B"),
+    );
+    expect(payload.title).not.toContain("Movement A");
+  });
 });
 
 describe("usePlanWizard — set1rm", () => {

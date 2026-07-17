@@ -117,6 +117,10 @@ class TestCreatePlanRequestValid:
         req = CreatePlanRequest(**_base_request(archetype="strength-bias", max_duration_weeks=16))
         assert req.max_duration_weeks == 16
 
+    def test_title_is_stripped_of_surrounding_whitespace(self) -> None:
+        req = CreatePlanRequest(**_base_request(title="  Q4 Base Build  "))
+        assert req.title == "Q4 Base Build"
+
 
 # ---------------------------------------------------------------------------
 # CreatePlanRequest — validation errors
@@ -214,6 +218,14 @@ class TestCreatePlanRequestInvalid:
                     max_duration_weeks=25,
                 )
             )
+
+    def test_empty_title_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="title"):
+            CreatePlanRequest(**_base_request(title=""))
+
+    def test_whitespace_only_title_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="title"):
+            CreatePlanRequest(**_base_request(title="   "))
 
 
 # ---------------------------------------------------------------------------

@@ -111,8 +111,15 @@ export function usePlanWizard(): UsePlanWizardReturn {
     setState((s) => ({ ...s, maxDurationWeeks: weeks }));
   }, []);
 
+  // Store null (never an empty/whitespace string) whenever the user hasn't
+  // actually typed a real title override — buildSubmitPayload's
+  // `customTitle ?? generatePlanTitle(...)` fallback then derives a fresh
+  // title at submit time. This is the single place that normalizes title
+  // input, so callers (e.g. TrainingAgeStep) don't need to duplicate the
+  // empty-check.
   const setCustomTitle = useCallback((title: string) => {
-    setState((s) => ({ ...s, customTitle: title }));
+    const trimmed = title.trim();
+    setState((s) => ({ ...s, customTitle: trimmed === "" ? null : trimmed }));
   }, []);
 
   const goNext = useCallback(() => {

@@ -67,15 +67,15 @@ export function TrainingAgeStep({
     // Changing age resets any custom title so the field auto-regenerates.
     setCustomTitle(null);
     onAgeSelect(age);
-    // Notify parent with the freshly-generated title for this age.
-    if (state.archetype) {
-      const generated = generatePlanTitle(
-        state.archetype,
-        age,
-        state.targetMovementName,
-      );
-      onTitleChange(generated);
-    }
+    // Clear (not set) the parent's stored override. customTitle must only
+    // ever be set from an actual user keystroke — pushing a freshly
+    // generated string here would lock in a title baked with whatever
+    // target movement is selected *right now*, which goes stale if the
+    // user later back-navigates and changes the target movement without
+    // re-clicking a training age. The parent's buildSubmitPayload derives
+    // a fresh title from current state at submit time whenever
+    // customTitle is null/empty, so clearing here is sufficient.
+    onTitleChange("");
   }
 
   function handleTitleChange(value: string) {

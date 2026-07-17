@@ -9,7 +9,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 log = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ _ARCHETYPE = Literal[
 
 class CreatePlanRequest(BaseModel):
     archetype: _ARCHETYPE
-    title: str = Field(max_length=200)
+    title: str = Field(min_length=1, max_length=200)
     start_date: date
     weeks: int = Field(ge=4, le=24)
     training_age: Literal["beginner", "intermediate", "advanced"]
@@ -35,6 +35,14 @@ class CreatePlanRequest(BaseModel):
     target_movement_id: uuid.UUID | None = None
     max_duration_weeks: int | None = Field(default=None, ge=4, le=24)
     current_1rm_kg: float | None = Field(default=None, gt=0)
+
+    @field_validator("title")
+    @classmethod
+    def strip_title(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("title must not be empty or whitespace-only")
+        return stripped
 
     @model_validator(mode="after")
     def check_archetype_constraints(self) -> CreatePlanRequest:
