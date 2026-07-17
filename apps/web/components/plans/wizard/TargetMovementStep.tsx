@@ -93,6 +93,7 @@ interface Props {
   on1rmChange: (kg: number | null) => void;
   onNext: () => void;
   onBack: () => void;
+  headingRef?: React.RefObject<HTMLHeadingElement | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -105,6 +106,7 @@ export function TargetMovementStep({
   on1rmChange,
   onNext,
   onBack,
+  headingRef,
 }: Props) {
   const archetype = state.archetype as ArchetypeFilter;
   const selectedMovementId = state.targetMovementId;
@@ -204,7 +206,9 @@ export function TargetMovementStep({
     <div className="flex flex-col gap-4">
       <div>
         <h2
-          className="font-mono text-sm font-semibold"
+          ref={headingRef}
+          tabIndex={-1}
+          className="font-mono text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           style={{ color: "var(--text)" }}
         >
           step 4 &mdash; target movement
@@ -262,11 +266,10 @@ export function TargetMovementStep({
       {results.length > 0 && !selectedMovementId && (
         <ul
           className="flex flex-col gap-1"
-          role="listbox"
           aria-label="Movement search results"
         >
           {results.map((m) => (
-            <li key={m.id} role="option" aria-selected={false}>
+            <li key={m.id}>
               <button
                 type="button"
                 onClick={() => handleSelect(m.id, m.name)}
@@ -301,7 +304,8 @@ export function TargetMovementStep({
           className="flex items-center justify-between rounded"
           style={{
             border: "1px solid var(--accent)",
-            backgroundColor: "rgba(88, 166, 255, 0.06)",
+            backgroundColor:
+              "color-mix(in srgb, var(--accent) 6%, transparent)",
             padding: "8px 12px",
           }}
         >

@@ -177,8 +177,19 @@ export function usePlanWizard(): UsePlanWizardReturn {
     abortRef.current?.abort();
   }, []);
 
+  // Synchronous double-submit guard. `isSubmitting` in state is only
+  // committed on the next render, so two rapid clicks (or a double-tap on
+  // the 44px primary CTA on mobile) dispatched before that render lands can
+  // both slip past a `disabled={isSubmitting}` check and each call submit()
+  // independently — creating two backend plan-generation jobs. This ref is
+  // mutated immediately, before the first `setState`/`await`, so the second
+  // call sees it synchronously and bails out.
+  const submittingRef = useRef(false);
+
   const submit = useCallback(
     async (token: string): Promise<void> => {
+      if (submittingRef.current) return;
+      submittingRef.current = true;
       setState((s) => ({ ...s, isSubmitting: true, error: null }));
 
       const controller = new AbortController();
@@ -234,6 +245,8 @@ export function usePlanWizard(): UsePlanWizardReturn {
           error: "Failed to create plan.",
           isSubmitting: false,
         }));
+      } finally {
+        submittingRef.current = false;
       }
     },
     [buildSubmitPayload],

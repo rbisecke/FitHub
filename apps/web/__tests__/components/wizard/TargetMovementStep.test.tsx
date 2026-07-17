@@ -157,6 +157,38 @@ describe("TargetMovementStep — debounced search", () => {
     );
   });
 
+  // W10 — search results are a plain button list, not a listbox implying
+  // arrow-key navigation that isn't implemented; semantics should match the
+  // actual sequential-Tab-through-buttons interaction model.
+  it("renders results without listbox/option roles, as a plain button list", async () => {
+    render(
+      <TargetMovementStep
+        state={makeState()}
+        accessToken={TOKEN}
+        onSelect={noop}
+        on1rmChange={noop}
+        onNext={noop}
+        onBack={noop}
+      />,
+    );
+
+    const input = screen.getByRole("searchbox");
+    fireEvent.change(input, { target: { value: "muscle" } });
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Muscle-up" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Bar Muscle-up" })).toBeDefined();
+  });
+
   it("selecting a movement calls onSelect with id and name", async () => {
     const onSelect = vi.fn();
 

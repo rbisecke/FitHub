@@ -20,6 +20,16 @@ function needsTargetStep(archetype: ArchetypeSlug | null): boolean {
   return archetype !== null && NEEDS_TARGET_STEP.has(archetype);
 }
 
+// Human-readable name for each internal step index, used to build the
+// screen-reader step-transition announcement.
+const STEP_NAMES: Record<number, string> = {
+  0: "Choose Archetype",
+  1: "Equipment",
+  2: "Schedule",
+  3: "Target Movement",
+  4: "Training Age",
+};
+
 // Map internal step index (0–4) to the visible step position for a given archetype.
 // For 4-step flow: 0→1, 1→2, 2→3, 4→4 (step 3 is hidden).
 // For 5-step flow: 0→1, 1→2, 2→3, 3→4, 4→5.
@@ -136,6 +146,14 @@ export function CreatePlanWizard({ accessToken }: Props) {
   const has5Steps = needsTargetStep(state.archetype);
   const totalSteps = has5Steps ? 5 : 4;
 
+  // Derived (not stored) so it always tracks state.step exactly — no extra
+  // setState-in-effect render pass needed. Feeds the visually-hidden live
+  // region below.
+  const stepAnnouncement = `Step ${toDisplayStep(
+    state.step,
+    has5Steps,
+  )} of ${totalSteps}: ${STEP_NAMES[state.step]}`;
+
   // Redirect when the plan is ready, guard against calling push more than once.
   useEffect(() => {
     if (state.planId && !redirectedRef.current) {
@@ -143,6 +161,19 @@ export function CreatePlanWizard({ accessToken }: Props) {
       router.push(`/plans/${state.planId}`);
     }
   }, [state.planId, router]);
+
+  // Move focus to the new step's heading on every transition — otherwise
+  // focus silently falls back to document.body when the previous step's
+  // focused element unmounts, forcing keyboard/screen-reader users to
+  // re-discover their position via Tab from the top of the page after every
+  // step. The visually-hidden live region below (rendered separately from
+  // the step content) announces the same transition via stepAnnouncement,
+  // which is derived from state.step above rather than stored, so it
+  // updates in lockstep with focus without a second render pass.
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, [state.step]);
 
   // Stop any in-flight create/poll requests if the wizard unmounts (e.g. the
   // user navigates away mid-submit) so background polling doesn't keep firing
@@ -196,113 +227,130 @@ export function CreatePlanWizard({ accessToken }: Props) {
         </div>
       </nav>
 
+      {/* Visually-hidden live region — announces step transitions only.
+          Kept separate from the step content below so ordinary in-step
+          interactions (checkbox toggles, search results, etc.) don't
+          trigger extra screen-reader announcements. Focus is additionally
+          moved to the step heading via the headingRef effect above so
+          keyboard users don't lose their place. */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {stepAnnouncement}
+      </div>
+
       {/* Step content */}
-      {state.step === 0 && (
-        <ArchetypeStep
-          state={state}
-          onSelect={(arch) => {
-            wizard.setArchetype(arch);
-            wizard.goNext();
-          }}
-        />
-      )}
-
-      {state.step === 1 && (
-        <>
-          <EquipmentStep
+      <div>
+        {state.step === 0 && (
+          <ArchetypeStep
             state={state}
-            onUpdate={handleEquipmentUpdate}
+            headingRef={headingRef}
+            onSelect={(arch) => {
+              wizard.setArchetype(arch);
+              wizard.goNext();
+            }}
+          />
+        )}
+
+        {state.step === 1 && (
+          <>
+            <EquipmentStep
+              state={state}
+              headingRef={headingRef}
+              onUpdate={handleEquipmentUpdate}
+              onNext={wizard.goNext}
+            />
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={wizard.goPrev}
+                className="rounded font-mono text-sm transition-colors"
+                style={{
+                  border: "1px solid var(--border)",
+                  background: "none",
+                  color: "var(--muted)",
+                  padding: "8px 16px",
+                  minHeight: "44px",
+                  cursor: "pointer",
+                }}
+              >
+                back
+              </button>
+            </div>
+          </>
+        )}
+
+        {state.step === 2 && (
+          <>
+            <ScheduleStep
+              state={state}
+              headingRef={headingRef}
+              onDaysChange={wizard.setDaysPerWeek}
+              onDurationChange={wizard.setMaxDuration}
+              onNext={wizard.goNext}
+            />
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={wizard.goPrev}
+                className="rounded font-mono text-sm transition-colors"
+                style={{
+                  border: "1px solid var(--border)",
+                  background: "none",
+                  color: "var(--muted)",
+                  padding: "8px 16px",
+                  minHeight: "44px",
+                  cursor: "pointer",
+                }}
+              >
+                back
+              </button>
+            </div>
+          </>
+        )}
+
+        {state.step === 3 && (
+          // TargetMovementStep owns its own back/next navigation buttons.
+          <TargetMovementStep
+            state={state}
+            accessToken={accessToken}
+            headingRef={headingRef}
+            onSelect={wizard.setTargetMovement}
+            on1rmChange={(kg) => wizard.set1rm(kg)}
             onNext={wizard.goNext}
+            onBack={wizard.goPrev}
           />
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={wizard.goPrev}
-              className="rounded font-mono text-sm transition-colors"
-              style={{
-                border: "1px solid var(--border)",
-                background: "none",
-                color: "var(--muted)",
-                padding: "8px 16px",
-                minHeight: "44px",
-                cursor: "pointer",
-              }}
-            >
-              back
-            </button>
-          </div>
-        </>
-      )}
+        )}
 
-      {state.step === 2 && (
-        <>
-          <ScheduleStep
-            state={state}
-            onDaysChange={wizard.setDaysPerWeek}
-            onDurationChange={wizard.setMaxDuration}
-            onNext={wizard.goNext}
-          />
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={wizard.goPrev}
-              className="rounded font-mono text-sm transition-colors"
-              style={{
-                border: "1px solid var(--border)",
-                background: "none",
-                color: "var(--muted)",
-                padding: "8px 16px",
-                minHeight: "44px",
-                cursor: "pointer",
-              }}
-            >
-              back
-            </button>
-          </div>
-        </>
-      )}
-
-      {state.step === 3 && (
-        // TargetMovementStep owns its own back/next navigation buttons.
-        <TargetMovementStep
-          state={state}
-          accessToken={accessToken}
-          onSelect={wizard.setTargetMovement}
-          on1rmChange={(kg) => wizard.set1rm(kg)}
-          onNext={wizard.goNext}
-          onBack={wizard.goPrev}
-        />
-      )}
-
-      {state.step === 4 && (
-        <>
-          <TrainingAgeStep
-            state={state}
-            onAgeSelect={wizard.setTrainingAge}
-            onTitleChange={handleTitleChange}
-            onSubmit={handleSubmit}
-            isSubmitting={state.isSubmitting}
-            error={state.error}
-          />
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={wizard.goPrev}
-              className="rounded font-mono text-sm transition-colors"
-              style={{
-                border: "1px solid var(--border)",
-                background: "none",
-                color: "var(--muted)",
-                padding: "8px 16px",
-                minHeight: "44px",
-                cursor: "pointer",
-              }}
-            >
-              back
-            </button>
-          </div>
-        </>
-      )}
+        {state.step === 4 && (
+          <>
+            <TrainingAgeStep
+              state={state}
+              headingRef={headingRef}
+              onAgeSelect={wizard.setTrainingAge}
+              onTitleChange={handleTitleChange}
+              onSubmit={handleSubmit}
+              isSubmitting={state.isSubmitting}
+              error={state.error}
+            />
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={wizard.goPrev}
+                className="rounded font-mono text-sm transition-colors"
+                style={{
+                  border: "1px solid var(--border)",
+                  background: "none",
+                  color: "var(--muted)",
+                  padding: "8px 16px",
+                  minHeight: "44px",
+                  cursor: "pointer",
+                }}
+              >
+                back
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

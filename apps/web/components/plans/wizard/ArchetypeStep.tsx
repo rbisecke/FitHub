@@ -73,12 +73,17 @@ const ARCHETYPES: {
 interface Props {
   state: WizardState;
   onSelect: (archetype: ArchetypeSlug) => void;
+  headingRef?: React.RefObject<HTMLHeadingElement | null>;
 }
 
-export function ArchetypeStep({ state, onSelect }: Props) {
+export function ArchetypeStep({ state, onSelect, headingRef }: Props) {
   return (
     <div>
-      <h2 className="mb-1 font-mono text-sm font-semibold text-[var(--text)]">
+      <h2
+        ref={headingRef}
+        tabIndex={-1}
+        className="mb-1 font-mono text-sm font-semibold text-[var(--text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+      >
         step 1 — choose archetype
       </h2>
       <p className="mb-4 font-mono text-xs text-[var(--muted)]">
@@ -98,14 +103,13 @@ export function ArchetypeStep({ state, onSelect }: Props) {
               data-testid={`archetype-${slug}`}
               role="radio"
               aria-checked={isSelected}
-              aria-pressed={isSelected}
               onClick={() => onSelect(slug)}
               className={[
                 "rounded-lg border p-4 text-left min-h-[44px]",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
                 "transition-[border-color,background-color] motion-reduce:transition-none",
                 isSelected
-                  ? "border-[var(--accent)] bg-[rgba(88,166,255,0.08)] text-[var(--text)]"
+                  ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] text-[var(--text)]"
                   : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--muted)] hover:brightness-110",
               ].join(" ")}
             >

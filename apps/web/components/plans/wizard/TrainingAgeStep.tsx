@@ -35,6 +35,7 @@ interface Props {
   onSubmit: () => void;
   isSubmitting: boolean;
   error: string | null;
+  headingRef?: React.RefObject<HTMLHeadingElement | null>;
 }
 
 export function TrainingAgeStep({
@@ -44,6 +45,7 @@ export function TrainingAgeStep({
   onSubmit,
   isSubmitting,
   error,
+  headingRef,
 }: Props) {
   // When null the title is auto-derived from the archetype + training age.
   // Once the user types in the field it becomes a controlled string.
@@ -92,7 +94,9 @@ export function TrainingAgeStep({
       {/* Step header */}
       <div>
         <h2
-          className="font-mono text-sm font-semibold"
+          ref={headingRef}
+          tabIndex={-1}
+          className="font-mono text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           style={{ color: "var(--text)" }}
         >
           step 5 &mdash; training age
@@ -124,7 +128,7 @@ export function TrainingAgeStep({
                 minHeight: "44px",
                 borderColor: isSelected ? "var(--accent)" : "var(--border)",
                 backgroundColor: isSelected
-                  ? "rgba(74, 222, 128, 0.08)"
+                  ? "color-mix(in srgb, var(--accent) 8%, transparent)"
                   : "var(--surface)",
                 color: isSelected ? "var(--text)" : "var(--muted)",
                 cursor: "pointer",

@@ -19,9 +19,10 @@ interface Props {
   state: WizardState;
   onUpdate: (presets: Set<EquipmentPreset>) => void;
   onNext: () => void;
+  headingRef?: React.RefObject<HTMLHeadingElement | null>;
 }
 
-export function EquipmentStep({ state, onUpdate, onNext }: Props) {
+export function EquipmentStep({ state, onUpdate, onNext, headingRef }: Props) {
   const [expanded, setExpanded] = useState<Set<EquipmentPreset>>(new Set());
 
   const selectedPresets = state.selectedPresets;
@@ -68,7 +69,9 @@ export function EquipmentStep({ state, onUpdate, onNext }: Props) {
     <div className="flex flex-col gap-6">
       <div>
         <h2
-          className="font-mono text-sm font-semibold"
+          ref={headingRef}
+          tabIndex={-1}
+          className="font-mono text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           style={{ color: "var(--text)" }}
         >
           step 2 &mdash; equipment
@@ -92,7 +95,7 @@ export function EquipmentStep({ state, onUpdate, onNext }: Props) {
               style={{
                 borderColor: isSelected ? "var(--accent)" : "var(--border)",
                 backgroundColor: isSelected
-                  ? "rgba(88, 166, 255, 0.08)"
+                  ? "color-mix(in srgb, var(--accent) 8%, transparent)"
                   : "var(--surface)",
                 opacity: isLocked ? 0.6 : 1,
               }}
