@@ -13,7 +13,7 @@ def test_stub_env_default() -> None:
     assert os.environ.get("STUB_LLM") == "true"
 
 
-def test_stub_decorator_returns_fixture() -> None:
+def test_stub_decorator_returns_a_copy() -> None:
     from pydantic import BaseModel
 
     from app.ai.stub import stubbed
