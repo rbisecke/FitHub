@@ -13,6 +13,7 @@ from app.models.movement import (
     LastResult,
     Modality,
     Movement,
+    MovementPattern,
     MovementSubstituteOut,
     PersonalRecordResult,
 )
@@ -117,15 +118,16 @@ async def get_movement_personal_record(
 
 
 @router.get("/{movement_id}/substitutes", response_model=list[MovementSubstituteOut])
-@limiter.limit("30/minute", key_func=user_or_ip_key)
 async def get_movement_substitutes(
     movement_id: uuid.UUID,
-    request: Request,
     user: Auth,
     conn: DBConn,
     equipment: list[str] = Query(default=[]),
 ) -> list[MovementSubstituteOut]:
     """Return up to 20 movements with the same movement_pattern that fit the equipment list."""
+    if equipment and len(equipment) > 20:
+        raise HTTPException(status_code=422, detail="Too many equipment filters")
+
     async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
@@ -140,6 +142,14 @@ async def get_movement_substitutes(
 
     if src is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movement not found")
+
+    # Explicit None guard: a source movement with no movement_pattern has no
+    # meaningful "same pattern" substitutes. Coercing None to the literal
+    # string "None" before the WHERE clause happened to return an empty list
+    # too, but only by accident — this makes the intent explicit instead of
+    # relying on no real movement ever having the pattern "None".
+    if src["movement_pattern"] is None:
+        return []
 
     pattern = str(src["movement_pattern"])
 
@@ -165,7 +175,7 @@ async def get_movement_substitutes(
         MovementSubstituteOut(
             id=r["id"],
             name=str(r["name"]),
-            movement_pattern=str(r["movement_pattern"]),
+            movement_pattern=MovementPattern(r["movement_pattern"]),
             equipment_required=list(r["equipment_required"] or []),
         )
         for r in rows

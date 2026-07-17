@@ -7569,8 +7569,7 @@
             "title": "Name"
           },
           "movement_pattern": {
-            "type": "string",
-            "title": "Movement Pattern"
+            "$ref": "#/components/schemas/MovementPattern"
           },
           "equipment_required": {
             "items": {
