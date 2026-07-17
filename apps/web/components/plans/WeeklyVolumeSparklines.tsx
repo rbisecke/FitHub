@@ -1,7 +1,9 @@
-import type { PlannedSessionOut } from "@/lib/api/plans";
+import type { PlannedSessionOut, MesocycleOut } from "@/lib/api/plans";
+import { mesoPhaseForWeek } from "@/lib/plans/mesocycle";
 
 interface Props {
   sessions: PlannedSessionOut[];
+  mesocycles: MesocycleOut[];
   startDate: string; // "YYYY-MM-DD" — plan start date
   weeks: number;
 }
@@ -31,34 +33,55 @@ function currentPlanWeek(planStart: Date): number {
   return Math.max(1, Math.floor(dayDiff / 7) + 1);
 }
 
-// Map session count relative to max to a load level.
+type LoadLevel = "light" | "moderate" | "heavy" | "deload" | "none";
+
+// A week's label is driven by the real mesocycle phase, not a session-count
+// heuristic — "Deload" means the plan's actual deload phase, never just "we
+// happened to schedule nothing here." A zero-session week outside a real
+// deload phase gets the neutral "None" label instead.
 function loadLevel(
+  weekNumber: number,
   count: number,
   max: number,
-): "light" | "moderate" | "heavy" | "deload" {
-  if (count === 0) return "deload";
+  mesocycles: MesocycleOut[],
+): LoadLevel {
+  const phase = mesoPhaseForWeek(weekNumber, mesocycles);
+  if (phase === "deload") return "deload";
+  if (count === 0) return "none";
   const ratio = count / max;
   if (ratio <= 0.4) return "light";
   if (ratio <= 0.7) return "moderate";
   return "heavy";
 }
 
-// Map load level to token color string.
-const LOAD_COLOR: Record<string, string> = {
-  light: "var(--accent)",
-  moderate: "var(--green)",
-  heavy: "var(--amber)",
-  deload: "var(--amber)",
-};
-
-const LEGEND_ITEMS: { level: string; label: string }[] = [
-  { level: "light", label: "Light" },
-  { level: "moderate", label: "Moderate" },
-  { level: "heavy", label: "Heavy" },
-  { level: "deload", label: "Deload" },
+// Single source of truth for level → color/label, shared by the bars and
+// the legend so they can never drift out of sync with each other.
+const LOAD_LEVELS: { level: LoadLevel; label: string; color: string }[] = [
+  { level: "light", label: "Light", color: "var(--accent)" },
+  { level: "moderate", label: "Moderate", color: "var(--green)" },
+  { level: "heavy", label: "Heavy", color: "var(--amber)" },
+  { level: "deload", label: "Deload", color: "var(--purple)" },
+  { level: "none", label: "None", color: "var(--muted)" },
 ];
 
-export function WeeklyVolumeSparklines({ sessions, startDate, weeks }: Props) {
+const LOAD_COLOR: Record<LoadLevel, string> = LOAD_LEVELS.reduce(
+  (acc, { level, color }) => ({ ...acc, [level]: color }),
+  {} as Record<LoadLevel, string>,
+);
+
+const LOAD_LABEL: Record<LoadLevel, string> = LOAD_LEVELS.reduce(
+  (acc, { level, label }) => ({ ...acc, [level]: label }),
+  {} as Record<LoadLevel, string>,
+);
+
+const LEGEND_ITEMS = LOAD_LEVELS;
+
+export function WeeklyVolumeSparklines({
+  sessions,
+  mesocycles,
+  startDate,
+  weeks,
+}: Props) {
   const [sy, sm, sd] = startDate.split("-").map(Number) as [
     number,
     number,
@@ -93,10 +116,10 @@ export function WeeklyVolumeSparklines({ sessions, startDate, weeks }: Props) {
         <div style={{ display: "flex", gap: "2px", alignItems: "flex-end" }}>
           {countByWeek.map((count, i) => {
             const weekNum = i + 1;
-            const level = loadLevel(count, maxCount);
+            const level = loadLevel(weekNum, count, maxCount, mesocycles);
             const color = LOAD_COLOR[level] ?? "var(--border)";
             const isCurrentWeek = weekNum === thisWeek;
-            const isDeload = count === 0;
+            const isEmpty = count === 0;
             const heightPct = Math.max(6, (count / maxCount) * 100);
 
             return (
@@ -104,10 +127,10 @@ export function WeeklyVolumeSparklines({ sessions, startDate, weeks }: Props) {
                 key={i}
                 title={`Week ${weekNum}: ${count} session${
                   count !== 1 ? "s" : ""
-                }`}
+                } — ${LOAD_LABEL[level]}`}
                 aria-label={`Week ${weekNum}: ${count} session${
                   count !== 1 ? "s" : ""
-                }`}
+                } — ${LOAD_LABEL[level]}`}
                 style={{
                   width: `${BAR_W}px`,
                   height: `${SVG_H}px`,
@@ -118,8 +141,9 @@ export function WeeklyVolumeSparklines({ sessions, startDate, weeks }: Props) {
                   borderRadius: "2px",
                 }}
               >
-                {isDeload ? (
-                  // Deload: dashed amber pattern (empty week)
+                {isEmpty ? (
+                  // No sessions scheduled: dashed pattern in the level's
+                  // color — purple for a real deload week, muted for a gap.
                   <div
                     style={{
                       width: "100%",

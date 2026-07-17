@@ -1,26 +1,11 @@
 import type { PlannedSessionOut, MesocycleOut } from "@/lib/api/plans";
+import { mesoBandColor } from "@/lib/plans/mesocycle";
 
 interface Props {
   sessions: PlannedSessionOut[];
   mesocycles: MesocycleOut[];
   startDate: string; // "YYYY-MM-DD"
   weeks: number;
-}
-
-function mesoBandColor(phase: string | undefined | null): string {
-  switch (phase) {
-    case "accumulation":
-      return "bg-[var(--green)]";
-    case "intensification":
-      return "bg-[var(--amber)]";
-    case "peak":
-    case "realization":
-      return "bg-[var(--red)]";
-    case "deload":
-      return "bg-[var(--purple)]";
-    default:
-      return "bg-[var(--muted)]";
-  }
 }
 
 function todayDateStr(): string {

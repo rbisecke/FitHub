@@ -37,11 +37,30 @@ function formatScheduledDate(iso: string): string {
   });
 }
 
-function formatExerciseLine(item: PlannedItemOut): string {
+export function formatExerciseLine(item: PlannedItemOut): string {
   const parts: string[] = [];
   if (item.sets != null) parts.push(`${item.sets}×`);
   if (item.reps) parts.push(item.reps);
-  return parts.join("") || "";
+  const base = parts.join("");
+
+  const loadPart =
+    item.load_kg != null
+      ? `@ ${item.load_kg}kg`
+      : item.load_pct_1rm != null
+        ? `@ ${item.load_pct_1rm}%`
+        : "";
+
+  if (base && loadPart) return `${base} ${loadPart}`;
+  return base || loadPart;
+}
+
+// hasLoad must track the actual load fields, not whether the reps string
+// happens to be non-empty — a bodyweight movement has reps but no load, and
+// a loaded movement can carry a null reps string (e.g. a max-effort lift).
+export function itemHasLoad(
+  item: Pick<PlannedItemOut, "load_kg" | "load_pct_1rm">,
+): boolean {
+  return item.load_kg != null || item.load_pct_1rm != null;
 }
 
 // Loading skeleton — fixed dimensions to prevent layout shift when data arrives.
@@ -87,16 +106,24 @@ function NextSessionSkeleton() {
 
 export function NextSessionCard({ accessToken, activePlanId }: Props) {
   const client = useMemo(() => createApiClient(accessToken), [accessToken]);
-  // undefined = still loading; null = no upcoming session found.
-  // Initialize to null when there is no plan to fetch — avoids a synchronous
-  // setState call inside the effect that would trigger the lint rule.
+  // undefined = never fetched; null = no upcoming session found (or no plan).
   const [session, setSession] = useState<PlannedSessionOut | null | undefined>(
     activePlanId ? undefined : null,
   );
+  // Which planId `session` actually reflects. Loading state derives from
+  // comparing this against `activePlanId`, not from overloading `session`
+  // for both "never fetched" and "no plan" — that overload is what let a
+  // stale `session` from a previous plan render as the wrong empty state
+  // for one render after `activePlanId` changes on an already-mounted
+  // instance (e.g. via router.refresh() right after plan creation).
+  const [fetchedForPlanId, setFetchedForPlanId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // No plan — nothing to fetch. State is already null from initialization.
+    // No plan — nothing to fetch. The render below already treats
+    // `!activePlanId` as the empty state regardless of any stale `session`
+    // left over from a previously-mounted plan id, so no state reset is
+    // needed here.
     if (!activePlanId) return;
 
     const controller = new AbortController();
@@ -107,6 +134,8 @@ export function NextSessionCard({ accessToken, activePlanId }: Props) {
       .then((data) => {
         if (cancelled) return;
         setSession(data);
+        setFetchedForPlanId(activePlanId);
+        setError(null);
       })
       .catch((err: unknown) => {
         if (cancelled || controller.signal.aborted) return;
@@ -120,8 +149,13 @@ export function NextSessionCard({ accessToken, activePlanId }: Props) {
     };
   }, [client, activePlanId]);
 
-  // Loading state — activePlanId is set but fetch hasn't resolved yet.
-  if (activePlanId && session === undefined && error === null) {
+  // Loading state — a plan is active but we haven't finished fetching for
+  // THIS plan id yet (covers both first mount and a plan id change on an
+  // already-mounted instance).
+  const isLoading =
+    !!activePlanId && fetchedForPlanId !== activePlanId && error === null;
+
+  if (isLoading) {
     return <NextSessionSkeleton />;
   }
 
@@ -255,7 +289,7 @@ export function NextSessionCard({ accessToken, activePlanId }: Props) {
         <ul className="space-y-1.5" role="list">
           {visibleItems.map((item) => {
             const rep = formatExerciseLine(item);
-            const hasLoad = rep.length > 0 && rep !== "–";
+            const hasLoad = itemHasLoad(item);
             return (
               <li
                 key={item.id}
