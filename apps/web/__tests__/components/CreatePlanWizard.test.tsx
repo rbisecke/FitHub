@@ -208,11 +208,41 @@ describe("CreatePlanWizard", () => {
       expect(document.activeElement).toBe(heading);
     });
 
-    it("wraps step content in an aria-live polite region", async () => {
+    it("has a visually-hidden aria-live region separate from the step content", async () => {
       const { container } = renderWizard();
       const liveRegion = container.querySelector('[aria-live="polite"]');
       expect(liveRegion).not.toBeNull();
       expect(liveRegion?.getAttribute("aria-atomic")).toBe("true");
+      expect(liveRegion?.className).toContain("sr-only");
+
+      // The actual interactive step content must not be nested inside the
+      // live-region wrapper — otherwise every in-step interaction (checkbox
+      // toggles, search results, etc.) gets announced, not just step
+      // transitions.
+      const radiogroup = screen.getByRole("radiogroup", {
+        name: "Training archetype",
+      });
+      expect(liveRegion?.contains(radiogroup)).toBe(false);
+    });
+
+    it("updates the hidden announcer's text only when the step changes", async () => {
+      const user = userEvent.setup();
+      const { container } = renderWizard();
+
+      const liveRegion = container.querySelector('[aria-live="polite"]');
+      const initialText = liveRegion?.textContent;
+      expect(initialText).toMatch(/Step 1 of 4: Choose Archetype/);
+
+      await user.click(screen.getByTestId("archetype-general-crossfit"));
+
+      expect(liveRegion?.textContent).toMatch(/Step 2 of 4: Equipment/);
+      expect(liveRegion?.textContent).not.toBe(initialText);
+
+      // Selecting an equipment preset is an in-step interaction — it must
+      // NOT change the step announcement.
+      const announcementAfterStepChange = liveRegion?.textContent;
+      await user.click(screen.getByLabelText("Toggle Full Gym"));
+      expect(liveRegion?.textContent).toBe(announcementAfterStepChange);
     });
   });
 });

@@ -42,7 +42,7 @@ export function ScheduleStep({
       <h2
         ref={headingRef}
         tabIndex={-1}
-        className="focus:outline-none"
+        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         style={{
           fontFamily: "var(--font-mono)",
           fontSize: "0.875rem",

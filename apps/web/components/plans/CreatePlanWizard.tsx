@@ -20,6 +20,16 @@ function needsTargetStep(archetype: ArchetypeSlug | null): boolean {
   return archetype !== null && NEEDS_TARGET_STEP.has(archetype);
 }
 
+// Human-readable name for each internal step index, used to build the
+// screen-reader step-transition announcement.
+const STEP_NAMES: Record<number, string> = {
+  0: "Choose Archetype",
+  1: "Equipment",
+  2: "Schedule",
+  3: "Target Movement",
+  4: "Training Age",
+};
+
 // Map internal step index (0–4) to the visible step position for a given archetype.
 // For 4-step flow: 0→1, 1→2, 2→3, 4→4 (step 3 is hidden).
 // For 5-step flow: 0→1, 1→2, 2→3, 3→4, 4→5.
@@ -136,6 +146,14 @@ export function CreatePlanWizard({ accessToken }: Props) {
   const has5Steps = needsTargetStep(state.archetype);
   const totalSteps = has5Steps ? 5 : 4;
 
+  // Derived (not stored) so it always tracks state.step exactly — no extra
+  // setState-in-effect render pass needed. Feeds the visually-hidden live
+  // region below.
+  const stepAnnouncement = `Step ${toDisplayStep(
+    state.step,
+    has5Steps,
+  )} of ${totalSteps}: ${STEP_NAMES[state.step]}`;
+
   // Redirect when the plan is ready, guard against calling push more than once.
   useEffect(() => {
     if (state.planId && !redirectedRef.current) {
@@ -148,9 +166,10 @@ export function CreatePlanWizard({ accessToken }: Props) {
   // focus silently falls back to document.body when the previous step's
   // focused element unmounts, forcing keyboard/screen-reader users to
   // re-discover their position via Tab from the top of the page after every
-  // step. The step content region below is also wrapped in an aria-live
-  // region so screen-reader users get an announcement even when focus
-  // tracking alone wouldn't trigger one.
+  // step. The visually-hidden live region below (rendered separately from
+  // the step content) announces the same transition via stepAnnouncement,
+  // which is derived from state.step above rather than stored, so it
+  // updates in lockstep with focus without a second render pass.
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     headingRef.current?.focus();
@@ -208,10 +227,18 @@ export function CreatePlanWizard({ accessToken }: Props) {
         </div>
       </nav>
 
-      {/* Step content — aria-live announces the new step to screen-reader
-          users; focus is additionally moved to the step heading above via
-          the headingRef effect so keyboard users don't lose their place. */}
-      <div aria-live="polite" aria-atomic="true">
+      {/* Visually-hidden live region — announces step transitions only.
+          Kept separate from the step content below so ordinary in-step
+          interactions (checkbox toggles, search results, etc.) don't
+          trigger extra screen-reader announcements. Focus is additionally
+          moved to the step heading via the headingRef effect above so
+          keyboard users don't lose their place. */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {stepAnnouncement}
+      </div>
+
+      {/* Step content */}
+      <div>
         {state.step === 0 && (
           <ArchetypeStep
             state={state}

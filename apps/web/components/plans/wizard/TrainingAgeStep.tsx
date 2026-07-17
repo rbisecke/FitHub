@@ -96,7 +96,7 @@ export function TrainingAgeStep({
         <h2
           ref={headingRef}
           tabIndex={-1}
-          className="font-mono text-sm font-semibold focus:outline-none"
+          className="font-mono text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           style={{ color: "var(--text)" }}
         >
           step 5 &mdash; training age
