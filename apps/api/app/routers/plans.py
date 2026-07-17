@@ -643,7 +643,7 @@ async def revise_plan(
     # 3. Generate revision diff
     from app.ai.plan_generator import generate_plan_revision  # noqa: PLC0415
 
-    diff = await generate_plan_revision(prescribed, req.feedback)
+    diff = await generate_plan_revision(prescribed, req.feedback, user_id=user.user_id, db=db)
 
     # 4. Validate that all changed sessions are prescribed
     prescribed_ids = {str(s["id"]) for s in prescribed}
