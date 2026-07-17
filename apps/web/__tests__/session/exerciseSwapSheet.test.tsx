@@ -212,3 +212,61 @@ describe("Swap confirmation flow", () => {
     expect(onSwap).not.toHaveBeenCalled();
   });
 });
+
+// ---------------------------------------------------------------------------
+// 5. S4 — synchronous double-submit guard on "Confirm"
+// ---------------------------------------------------------------------------
+
+describe("S4 — double-submit guard on swap confirm", () => {
+  it("a rapid second tap on Confirm does not call onSwap twice", () => {
+    const onSwap = vi.fn();
+    const confirmingRef = { current: false };
+    let pending: { movementId: string; movementName: string } | null = {
+      movementId: "sub-1",
+      movementName: "Goblet Squat",
+    };
+
+    function handleConfirm() {
+      if (!pending) return;
+      if (confirmingRef.current) return;
+      confirmingRef.current = true;
+      onSwap(pending.movementId, pending.movementName);
+      pending = null;
+    }
+
+    // Two rapid taps before React would have a chance to unmount/rerender
+    // the sheet in response to the first.
+    handleConfirm();
+    handleConfirm();
+
+    expect(onSwap).toHaveBeenCalledOnce();
+  });
+
+  it("resets the guard when the sheet reopens for a new swap attempt", () => {
+    const onSwap = vi.fn();
+    const confirmingRef = { current: false };
+    let pending: { movementId: string; movementName: string } | null = {
+      movementId: "sub-1",
+      movementName: "Goblet Squat",
+    };
+
+    function handleConfirm() {
+      if (!pending) return;
+      if (confirmingRef.current) return;
+      confirmingRef.current = true;
+      onSwap(pending.movementId, pending.movementName);
+      pending = null;
+    }
+
+    handleConfirm();
+    expect(onSwap).toHaveBeenCalledTimes(1);
+
+    // Sheet reopens for a new movement — the open-effect resets the guard.
+    confirmingRef.current = false;
+    pending = { movementId: "sub-2", movementName: "Kettlebell Swing" };
+    handleConfirm();
+
+    expect(onSwap).toHaveBeenCalledTimes(2);
+    expect(onSwap).toHaveBeenLastCalledWith("sub-2", "Kettlebell Swing");
+  });
+});

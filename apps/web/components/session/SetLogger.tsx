@@ -30,6 +30,8 @@ export function SetLogger({
   const [showRpe, setShowRpe] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [submitting, setSubmitting] = useState(false);
+
   const step = 2.5;
 
   const handleDecrement = useCallback(() => {
@@ -56,13 +58,24 @@ export function SetLogger({
     [],
   );
 
-  const handleCommit = useCallback(async () => {
+  // No ref guard here (unlike ExerciseSwapSheet's confirm or
+  // SessionExecutionView's handleFinish, which await a real network call and
+  // keep their ref guards): onLog is a synchronous dispatch with no await,
+  // so this handler runs to completion within a single event-handler
+  // invocation. JS event handlers can't interleave, so a second click's
+  // handler cannot begin until this one has already returned — there's no
+  // async gap for a ref to close. `disabled={submitting}` is sufficient on
+  // its own.
+  const handleCommit = useCallback(() => {
+    setSubmitting(true);
     try {
       setError(null);
       const loadKg = prescribedKg === null && kg === 0 ? null : kg;
       onLog(loadKg, reps, rpe ?? undefined);
     } catch {
       setError("Failed to log set. Try again.");
+    } finally {
+      setSubmitting(false);
     }
   }, [kg, reps, rpe, prescribedKg, onLog]);
 
@@ -73,7 +86,7 @@ export function SetLogger({
         <div className="flex gap-1.5" role="group" aria-label="Set progress">
           {Array.from({ length: totalSets }, (_, i) => (
             <div
-              key={i}
+              key={`set-${i}-of-${totalSets}`}
               className="h-2 w-6 rounded-sm"
               style={{
                 background:
@@ -169,7 +182,9 @@ export function SetLogger({
       {/* commit set — primary CTA */}
       <button
         onClick={handleCommit}
-        className="min-h-[56px] w-full rounded-2xl bg-[var(--accent)] font-sans text-[16px] font-semibold text-[var(--bg)] transition-opacity hover:opacity-90 active:scale-[0.98]"
+        disabled={submitting}
+        aria-busy={submitting}
+        className="min-h-[56px] w-full rounded-2xl bg-[var(--accent)] font-sans text-[16px] font-semibold text-[var(--bg)] transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
         aria-label={`Commit set ${setIndex + 1} of ${totalSets}`}
       >
         commit set

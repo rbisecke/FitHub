@@ -13,6 +13,9 @@ interface ExerciseCardProps {
   onLogSet: (kg: number | null, reps: number, rpe?: number) => void;
   onSwap: () => void;
   onSkip: () => void;
+  // True while resolving the real movement id for the swap sheet (fix #1) —
+  // disables the button so a second tap can't fire a duplicate lookup.
+  swapDisabled?: boolean;
 }
 
 export function ExerciseCard({
@@ -24,6 +27,7 @@ export function ExerciseCard({
   onLogSet,
   onSwap,
   onSkip,
+  swapDisabled = false,
 }: ExerciseCardProps) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 flex flex-col gap-4">
@@ -59,7 +63,9 @@ export function ExerciseCard({
         {/* Swap button */}
         <button
           onClick={onSwap}
-          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] shrink-0"
+          disabled={swapDisabled}
+          aria-busy={swapDisabled}
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
           aria-label="Swap this exercise with a substitute"
         >
           <ArrowLeftRight className="h-4 w-4" strokeWidth={2} />

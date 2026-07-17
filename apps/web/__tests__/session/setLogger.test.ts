@@ -96,4 +96,86 @@ describe("SetLogger load stepping", () => {
       expect(kg).toBe(100);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Review fix #3 — SetLogger's commit handler has no ref guard
+  //
+  // handleCommit is fully synchronous (onLog is a plain dispatch, no await),
+  // so there is no async gap between the guard check and the logging call —
+  // a ref adds no protection a synchronous call stack doesn't already give.
+  // These mirrors reflect the simplified handler: no ref, `submitting` state
+  // set around the call for the `disabled` prop, and — critically — every
+  // call to handleCommit invokes onLog exactly once (there is nothing to
+  // "drop", because JS event handlers can't interleave with each other).
+  // ---------------------------------------------------------------------------
+  describe("Review fix #3 — no ref guard on commit set (synchronous handler)", () => {
+    it("each call to handleCommit invokes onLog exactly once — no interleaving possible", () => {
+      const onLogCalls: number[] = [];
+      const submittingStates: boolean[] = [];
+
+      function handleCommit(callId: number) {
+        submittingStates.push(true);
+        try {
+          onLogCalls.push(callId);
+        } finally {
+          submittingStates.push(false);
+        }
+      }
+
+      // Two separate, sequential "clicks" — since handleCommit is fully
+      // synchronous, each one runs to completion (including calling onLog)
+      // before the next can begin. There is no window in which a second
+      // call could double-fire onLog for the same click.
+      handleCommit(1);
+      handleCommit(2);
+
+      expect(onLogCalls).toEqual([1, 2]);
+      expect(submittingStates).toEqual([true, false, true, false]);
+    });
+
+    it("propagates a thrown error into the error state without re-entrancy protection", () => {
+      let error: string | null = null;
+      let submitting = false;
+
+      function handleCommit(onLog: () => void) {
+        submitting = true;
+        try {
+          error = null;
+          onLog();
+        } catch {
+          error = "Failed to log set. Try again.";
+        } finally {
+          submitting = false;
+        }
+      }
+
+      handleCommit(() => {
+        throw new Error("boom");
+      });
+
+      expect(error).toBe("Failed to log set. Try again.");
+      expect(submitting).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // S5 — stable keys for the synthetic set-progress pips
+  // ---------------------------------------------------------------------------
+  describe("S5 — set-progress pip keys", () => {
+    function pipKey(setIndex: number, totalSets: number): string {
+      return `set-${setIndex}-of-${totalSets}`;
+    }
+
+    it("produces a distinct, stable key per pip for a given totalSets", () => {
+      const keys = Array.from({ length: 3 }, (_, i) => pipKey(i, 3));
+      expect(keys).toEqual(["set-0-of-3", "set-1-of-3", "set-2-of-3"]);
+      expect(new Set(keys).size).toBe(3);
+    });
+
+    it("does not collide with keys generated for a different totalSets", () => {
+      const threeSets = pipKey(0, 3);
+      const fiveSets = pipKey(0, 5);
+      expect(threeSets).not.toBe(fiveSets);
+    });
+  });
 });

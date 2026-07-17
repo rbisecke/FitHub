@@ -51,6 +51,7 @@ import type {
   ModifyWorkoutResponse,
   CheckWodResponse,
   MovementSubstituteOut,
+  CompleteSessionRequest,
 } from "./plans";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -526,6 +527,20 @@ export const api = {
         throw err;
       }
     },
+    completeSession: (
+      token: string,
+      planId: string,
+      sessionId: string,
+      body: CompleteSessionRequest,
+    ) =>
+      apiFetch<PlannedSessionOut>(
+        `/api/v1/plans/${planId}/sessions/${sessionId}/complete`,
+        token,
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        },
+      ),
   },
   adaptations: {
     list: (token: string, planId: string, options?: { signal?: AbortSignal }) =>
@@ -754,6 +769,11 @@ export function createApiClient(token: string) {
         api.plans.revise(token, planId, feedback),
       getNextSession: (planId: string, options?: { signal?: AbortSignal }) =>
         api.plans.getNextSession(token, planId, options),
+      completeSession: (
+        planId: string,
+        sessionId: string,
+        body: Parameters<typeof api.plans.completeSession>[3],
+      ) => api.plans.completeSession(token, planId, sessionId, body),
     },
     adaptations: {
       list: (planId: string, options?: { signal?: AbortSignal }) =>

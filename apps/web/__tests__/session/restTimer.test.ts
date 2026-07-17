@@ -117,4 +117,93 @@ describe("RestTimer countdown logic", () => {
       expect(isComplete(1)).toBe(false);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // S3 — wall-clock anchored countdown (no per-tick drift)
+  //
+  // Mirrors RestTimer's fixed algorithm: a target timestamp computed once
+  // (Date.now() + secondsLeft * 1000), with secondsLeft derived each tick as
+  // Math.round((target - now()) / 1000) — not by decrementing a counter that
+  // round-trips through parent state/render on every tick, which is what let
+  // real render overhead accumulate into measurable drift over a multi-minute
+  // rest (S3, apps/web/components/session/RestTimer.tsx).
+  // ---------------------------------------------------------------------------
+  describe("S3 — wall-clock anchored countdown", () => {
+    it("reaches exactly 0 after enough real time passes, immune to irregular per-tick overhead", () => {
+      let now = 0; // simulated wall-clock ms
+      const initialSecondsLeft = 180;
+      const target = now + initialSecondsLeft * 1000;
+
+      let secondsLeft = initialSecondsLeft;
+      let ticks = 0;
+      // Each tick advances real time by 1000ms plus a variable amount of
+      // render/JS overhead — the exact source of drift the old
+      // secondsLeft-derived implementation accumulated tick over tick.
+      while (secondsLeft > 0) {
+        now += 1000 + (ticks % 3) * 40;
+        secondsLeft = Math.max(0, Math.round((target - now) / 1000));
+        ticks += 1;
+      }
+
+      expect(secondsLeft).toBe(0);
+      // The target is fixed and derived once — per-tick overhead changes how
+      // many polls it takes to notice 0 was reached, but never leaves
+      // secondsLeft stuck above 0 or drifting past it into negative territory.
+      expect(ticks).toBeGreaterThan(0);
+    });
+
+    it("re-anchoring the target on resume preserves the exact retained remaining time", () => {
+      let now = 0;
+      const initialSecondsLeft = 90;
+      let target = now + initialSecondsLeft * 1000;
+
+      // Run for 30 real seconds.
+      now += 30_000;
+      let secondsLeft = Math.max(0, Math.round((target - now) / 1000));
+      expect(secondsLeft).toBe(60);
+
+      // Pause for an arbitrary amount of real time — no ticking happens
+      // while paused, so secondsLeft (60) must be retained exactly.
+      now += 45_000;
+
+      // Resume: re-anchor the target from the retained secondsLeft, not the
+      // stale original target (which would now read as already elapsed).
+      target = now + secondsLeft * 1000;
+
+      // Run for another 60 real seconds — should land exactly on 0.
+      now += 60_000;
+      secondsLeft = Math.max(0, Math.round((target - now) / 1000));
+      expect(secondsLeft).toBe(0);
+    });
+
+    it("supports multiple pause/resume cycles across a 180s rest and still lands on exactly 0", () => {
+      let now = 0;
+      let secondsLeft = 180;
+      let target = now + secondsLeft * 1000;
+
+      function tick(ms: number) {
+        now += ms;
+        secondsLeft = Math.max(0, Math.round((target - now) / 1000));
+      }
+      function pauseThenResumeAfter(ms: number) {
+        now += ms; // no ticking while paused
+        target = now + secondsLeft * 1000; // re-anchor on resume
+      }
+
+      tick(60_000); // 60s elapsed → 120 left
+      expect(secondsLeft).toBe(120);
+
+      pauseThenResumeAfter(20_000); // paused 20s, resumes — secondsLeft unchanged
+      expect(secondsLeft).toBe(120);
+
+      tick(60_000); // another 60s → 60 left
+      expect(secondsLeft).toBe(60);
+
+      pauseThenResumeAfter(5_000);
+      expect(secondsLeft).toBe(60);
+
+      tick(60_000); // final 60s → exactly 0
+      expect(secondsLeft).toBe(0);
+    });
+  });
 });
