@@ -477,3 +477,42 @@ describe("usePlanWizard — submit / abort (W4)", () => {
     }
   });
 });
+
+describe("usePlanWizard — synchronous double-submit guard (W6)", () => {
+  beforeEach(() => {
+    mockCreate.mockReset();
+    mockPollTask.mockReset();
+  });
+
+  it("only calls api.plans.create once when submit() is fired twice with no await in between", async () => {
+    vi.useFakeTimers();
+    try {
+      // Never resolves within this test's window — keeps both calls
+      // in-flight so a second, un-awaited call would race the first
+      // one past the isSubmitting state check if the guard were only
+      // async React state.
+      mockCreate.mockImplementation(
+        () => new Promise<{ task_id: string }>(() => {}),
+      );
+
+      const { result } = renderHook(() => usePlanWizard());
+
+      act(() => {
+        result.current.setArchetype("general-crossfit");
+        result.current.setTrainingAge("beginner");
+      });
+
+      // Fire two synchronous submit() calls back-to-back, simulating a
+      // double-click/double-tap dispatched before React commits the
+      // isSubmitting=true re-render.
+      act(() => {
+        void result.current.submit("token-a");
+        void result.current.submit("token-b");
+      });
+
+      expect(mockCreate).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

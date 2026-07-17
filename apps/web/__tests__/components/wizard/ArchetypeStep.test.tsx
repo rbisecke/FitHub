@@ -57,7 +57,7 @@ describe("ArchetypeStep", () => {
     expect(onSelect).toHaveBeenCalledWith("strength-bias");
   });
 
-  it("marks the selected card with aria-pressed='true'", () => {
+  it("marks the selected card with aria-checked='true'", () => {
     render(
       <ArchetypeStep
         state={makeState({ archetype: "aerobic-base" })}
@@ -66,17 +66,32 @@ describe("ArchetypeStep", () => {
     );
 
     const selected = screen.getByTestId("archetype-aerobic-base");
-    expect(selected.getAttribute("aria-pressed")).toBe("true");
     expect(selected.getAttribute("aria-checked")).toBe("true");
   });
 
-  it("has no card with aria-pressed when archetype is null", () => {
-    render(<ArchetypeStep state={makeState()} onSelect={vi.fn()} />);
+  // W9 — aria-pressed is invalid on a role="radio" element
+  // (jsx-a11y/role-supports-aria-props); aria-checked alone conveys state.
+  it("never renders aria-pressed on any archetype card", () => {
+    render(
+      <ArchetypeStep
+        state={makeState({ archetype: "aerobic-base" })}
+        onSelect={vi.fn()}
+      />,
+    );
 
     const pressed = screen
       .getAllByRole("radio")
-      .filter((el) => el.getAttribute("aria-pressed") === "true");
+      .filter((el) => el.hasAttribute("aria-pressed"));
     expect(pressed).toHaveLength(0);
+  });
+
+  it("has no card with aria-checked='true' when archetype is null", () => {
+    render(<ArchetypeStep state={makeState()} onSelect={vi.fn()} />);
+
+    const checked = screen
+      .getAllByRole("radio")
+      .filter((el) => el.getAttribute("aria-checked") === "true");
+    expect(checked).toHaveLength(0);
   });
 
   it("calls onSelect with 'one-rm-peak' when that card is clicked", async () => {

@@ -159,4 +159,60 @@ describe("CreatePlanWizard", () => {
       screen.getByRole("radiogroup", { name: "Training archetype" }),
     ).toBeDefined();
   });
+
+  // W8 — focus must move to the new step's heading on every transition so
+  // keyboard/screen-reader users don't lose their position.
+  describe("focus management on step transitions (W8)", () => {
+    it("moves focus to the step 2 heading after selecting an archetype", async () => {
+      const user = userEvent.setup();
+      renderWizard();
+
+      await user.click(screen.getByTestId("archetype-general-crossfit"));
+
+      const heading = screen.getByRole("heading", {
+        name: /step 2.*equipment/i,
+      });
+      expect(document.activeElement).toBe(heading);
+      expect(heading.getAttribute("tabindex")).toBe("-1");
+    });
+
+    it("moves focus to the step 3 heading after continuing from equipment", async () => {
+      const user = userEvent.setup();
+      renderWizard();
+
+      await user.click(screen.getByTestId("archetype-general-crossfit"));
+      // continue-btn is disabled until at least one equipment preset is
+      // selected — select one first so the click actually advances.
+      await user.click(screen.getByLabelText("Toggle Full Gym"));
+      await user.click(screen.getByTestId("continue-btn"));
+
+      const heading = screen.getByRole("heading", {
+        name: /step 3.*schedule/i,
+      });
+      expect(document.activeElement).toBe(heading);
+    });
+
+    it("moves focus back to the step 1 heading when navigating back", async () => {
+      const user = userEvent.setup();
+      renderWizard();
+
+      await user.click(screen.getByTestId("archetype-strength-bias"));
+      await user.click(screen.getByRole("button", { name: /back/i }));
+
+      // Step 0 (archetype) has no heading target — headingRef is not
+      // wired to ArchetypeStep's own render on the very first mount, but
+      // going back to it should still move focus to its heading.
+      const heading = screen.getByRole("heading", {
+        name: /step 1.*choose archetype/i,
+      });
+      expect(document.activeElement).toBe(heading);
+    });
+
+    it("wraps step content in an aria-live polite region", async () => {
+      const { container } = renderWizard();
+      const liveRegion = container.querySelector('[aria-live="polite"]');
+      expect(liveRegion).not.toBeNull();
+      expect(liveRegion?.getAttribute("aria-atomic")).toBe("true");
+    });
+  });
 });

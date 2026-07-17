@@ -10,6 +10,7 @@ interface ScheduleStepProps {
   onDaysChange: (days: number) => void;
   onDurationChange: (weeks: number) => void;
   onNext: () => void;
+  headingRef?: React.RefObject<HTMLHeadingElement | null>;
 }
 
 export function ScheduleStep({
@@ -17,6 +18,7 @@ export function ScheduleStep({
   onDaysChange,
   onDurationChange,
   onNext,
+  headingRef,
 }: ScheduleStepProps) {
   const selectedDays = state.daysPerWeek;
   const selectedWeeks = state.maxDurationWeeks ?? 12;
@@ -37,6 +39,20 @@ export function ScheduleStep({
         gap: "32px",
       }}
     >
+      <h2
+        ref={headingRef}
+        tabIndex={-1}
+        className="focus:outline-none"
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "0.875rem",
+          fontWeight: 600,
+          color: "var(--text)",
+        }}
+      >
+        step 3 &mdash; schedule
+      </h2>
+
       {/* Days per week */}
       <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
         <legend
