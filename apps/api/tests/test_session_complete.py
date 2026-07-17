@@ -260,6 +260,153 @@ async def test_complete_session_rolls_back_on_invalid_planned_item_id(
         assert results_row["n"] == 0, "No partial results rows from the rolled-back transaction"
 
 
+# ── Cross-tenant reference injection ────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_complete_session_rejects_planned_item_from_another_session(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """A planned_item_id that is a real row but belongs to a different user's
+    session must be rejected with 400 — not silently accepted (which would let
+    Alice attach her results to Bob's planned_items row) and not a raw FK
+    violation (which would leak a 200-vs-500 UUID-guessing oracle)."""
+    alice_plan_id = await _create_plan(alice_client)
+    alice_session_id, alice_item_ids = await _prescribed_session_with_items(alice_plan_id)
+
+    bob_plan_id = await _create_plan(bob_client)
+    _bob_session_id, bob_item_ids = await _prescribed_session_with_items(bob_plan_id)
+
+    logged_sets = _logged_sets_body(alice_item_ids, None)
+    logged_sets.append(
+        {
+            "planned_item_id": bob_item_ids[0],  # real row, but Bob's, not this session's
+            "movement_id": None,
+            "load_kg": 50,
+            "reps": 5,
+            "rpe": 6,
+        }
+    )
+
+    async with (
+        await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn,
+        conn.cursor(row_factory=psycopg.rows.dict_row) as cur,
+    ):
+        await cur.execute(
+            "SELECT COUNT(*) AS n FROM public.workouts WHERE user_id = %s::uuid", [str(ALICE_ID)]
+        )
+        before_row = await cur.fetchone()
+        assert before_row is not None
+        workouts_before = before_row["n"]
+
+    r = await alice_client.post(
+        f"/api/v1/plans/{alice_plan_id}/sessions/{alice_session_id}/complete",
+        json={"logged_sets": logged_sets},
+    )
+    assert r.status_code == 400, r.json()
+
+    async with (
+        await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn,
+        conn.cursor(row_factory=psycopg.rows.dict_row) as cur,
+    ):
+        await cur.execute(
+            "SELECT COUNT(*) AS n FROM public.workouts WHERE user_id = %s::uuid", [str(ALICE_ID)]
+        )
+        after_row = await cur.fetchone()
+        assert after_row is not None
+        assert after_row["n"] == workouts_before, (
+            "No orphaned workout row from the rejected request"
+        )
+
+        await cur.execute(
+            "SELECT status FROM planned_sessions WHERE id = %s::uuid", [alice_session_id]
+        )
+        session_row = await cur.fetchone()
+        assert session_row is not None
+        assert session_row["status"] == "prescribed"
+
+        await cur.execute(
+            "SELECT COUNT(*) AS n FROM public.results WHERE user_id = %s::uuid", [str(ALICE_ID)]
+        )
+        results_row = await cur.fetchone()
+        assert results_row is not None
+        assert results_row["n"] == 0, "No results rows from the rejected request"
+
+
+# ── Idempotency ──────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_complete_session_twice_returns_409_and_does_not_duplicate(
+    alice_client: AsyncClient,
+) -> None:
+    """Resubmitting /complete (double-tap, network retry) must not create a
+    second workout+results set for the same logical completion."""
+    plan_id = await _create_plan(alice_client)
+    session_id, item_ids = await _prescribed_session_with_items(plan_id)
+
+    r1 = await alice_client.post(
+        f"/api/v1/plans/{plan_id}/sessions/{session_id}/complete",
+        json={"logged_sets": _logged_sets_body(item_ids, None)},
+    )
+    assert r1.status_code == 200, r1.json()
+
+    async with (
+        await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn,
+        conn.cursor(row_factory=psycopg.rows.dict_row) as cur,
+    ):
+        await cur.execute(
+            "SELECT COUNT(*) AS n FROM public.workouts WHERE user_id = %s::uuid", [str(ALICE_ID)]
+        )
+        workouts_row = await cur.fetchone()
+        assert workouts_row is not None
+        workouts_after_first = workouts_row["n"]
+
+        await cur.execute(
+            "SELECT COUNT(*) AS n FROM public.results WHERE user_id = %s::uuid", [str(ALICE_ID)]
+        )
+        results_row = await cur.fetchone()
+        assert results_row is not None
+        results_after_first = results_row["n"]
+
+    # Second submission uses a different payload (single set, different load)
+    # to prove the guard fires regardless of what the retried body contains.
+    r2 = await alice_client.post(
+        f"/api/v1/plans/{plan_id}/sessions/{session_id}/complete",
+        json={
+            "logged_sets": [
+                {"planned_item_id": item_ids[0], "movement_id": None, "load_kg": 99, "reps": 1}
+            ]
+        },
+    )
+    assert r2.status_code == 409, r2.json()
+
+    async with (
+        await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn,
+        conn.cursor(row_factory=psycopg.rows.dict_row) as cur,
+    ):
+        await cur.execute(
+            "SELECT COUNT(*) AS n FROM public.workouts WHERE user_id = %s::uuid", [str(ALICE_ID)]
+        )
+        workouts_row = await cur.fetchone()
+        assert workouts_row is not None
+        assert workouts_row["n"] == workouts_after_first, (
+            "Resubmit must not create a second workout row"
+        )
+
+        await cur.execute(
+            "SELECT COUNT(*) AS n FROM public.results WHERE user_id = %s::uuid", [str(ALICE_ID)]
+        )
+        results_row = await cur.fetchone()
+        assert results_row is not None
+        assert results_row["n"] == results_after_first, "Resubmit must not duplicate results rows"
+
+        await cur.execute("SELECT status FROM planned_sessions WHERE id = %s::uuid", [session_id])
+        session_row = await cur.fetchone()
+        assert session_row is not None
+        assert session_row["status"] == "completed"
+
+
 # ── Validation ─────────────────────────────────────────────────────────────────
 
 

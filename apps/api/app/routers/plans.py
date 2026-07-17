@@ -308,10 +308,12 @@ async def _complete_planned_session(
 ) -> PlannedSessionOut:
     """Persist logged sets as a workout+results and mark the session complete.
 
-    One transaction: ownership check, INSERT workout, bulk-INSERT results
-    (one row per logged set), UPDATE planned_sessions.status. A constraint
-    violation on any logged set (e.g. a bad planned_item_id) rolls back the
-    whole thing, including the workout row.
+    One transaction: ownership check, planned_item_id cross-tenant validation,
+    INSERT workout, bulk-INSERT results (one row per logged set), UPDATE
+    planned_sessions.status (guarded to only fire from 'prescribed', so a
+    resubmit can't duplicate the workout). A constraint violation on any
+    logged set (e.g. a bad planned_item_id) rolls back the whole thing,
+    including the workout row.
     """
     try:
         async with db.transaction(), db.cursor(row_factory=psycopg.rows.dict_row) as cur:
@@ -325,6 +327,25 @@ async def _complete_planned_session(
             session_row = await cur.fetchone()
             if session_row is None:
                 raise HTTPException(status_code=404, detail="Session not found")
+
+            # Cross-tenant reference check — every logged_sets[].planned_item_id
+            # must genuinely belong to THIS session and user, not just exist
+            # somewhere in the table (a plain FK check would let a caller
+            # attach their own results to another user's planned_items row).
+            if req.logged_sets:
+                submitted_item_ids = {s.planned_item_id for s in req.logged_sets}
+                await cur.execute(
+                    "SELECT id FROM planned_items"
+                    " WHERE id = ANY(%s) AND session_id = %s::uuid AND user_id = %s::uuid",
+                    [list(submitted_item_ids), session_id, user_id],
+                )
+                valid_rows = await cur.fetchall()
+                valid_item_ids = {row["id"] for row in valid_rows}
+                if valid_item_ids != submitted_item_ids:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="One or more logged sets reference an invalid planned item.",
+                    )
 
             workout_id = uuid.uuid4()
             await cur.execute(
@@ -368,13 +389,19 @@ async def _complete_planned_session(
                 """
                 UPDATE planned_sessions SET status = 'completed'
                 WHERE id = %s::uuid AND plan_id = %s::uuid AND user_id = %s::uuid
+                  AND status = 'prescribed'
                 RETURNING id, mesocycle_id, scheduled_date, session_type, title, notes, status
                 """,
                 [session_id, plan_id, user_id],
             )
             updated = await cur.fetchone()
             if updated is None:
-                raise HTTPException(status_code=404, detail="Session not found")
+                # Ownership/existence was already confirmed above, so zero rows
+                # here means the session was found but is no longer 'prescribed'
+                # (already completed/skipped/adapted) — a resubmit, not an IDOR.
+                raise HTTPException(
+                    status_code=409, detail="This session has already been completed."
+                )
 
             await cur.execute(
                 """
