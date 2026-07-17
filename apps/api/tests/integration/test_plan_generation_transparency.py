@@ -20,9 +20,17 @@ LLM being unavailable:
     reached because the equipment filter is patched to return a custom
     movement whose name isn't in any fallback template) raise.
 
-_create_plan_records is stubbed out in every test below that needs a real
-completed plan — see _fake_create_plan_records' docstring for why: it isn't
-part of AI3/B5, it's a separate, pre-existing bug this work uncovered.
+These tests go through the real _create_plan_records (no stand-in) — including
+its scaffold-derived mesocycle rows, which are frequently single-week blocks
+(e.g. an isolated deload week). That used to violate ck_mesocycles_week_range
+(`week_end > week_start`, added independently in migration 0061) for
+essentially every archetype/weeks/training_age combination, since STUB_LLM=true
+always short-circuits assemble_plan before build_scaffold's real mesocycles are
+used, so the two code paths were never exercised together against a live DB.
+Migration 0074 relaxed the constraint to `week_end >= week_start` to fix this;
+these tests (weeks=4, intermediate — which produces single-week
+intensification and deload blocks, see plan_scaffold.py) are this repo's
+end-to-end proof that real plan generation now completes successfully.
 
 B5's "a real correction happened" case wraps the real validate_and_correct_plan
 with a synthetic extra violation rather than trying to trigger the MRV clamp
@@ -100,46 +108,17 @@ async def _fetch_plan_task(task_id: str) -> dict[str, Any]:
     return row
 
 
-async def _fake_create_plan_records(
-    user_id: str,
-    req_data: dict[str, object],
-    draft: dict[str, object],
-    db: psycopg.AsyncConnection[object],
-) -> str:
-    """Stand-in for the real _create_plan_records, used only in these tests.
-
-    The real implementation inserts scaffold-derived mesocycles that can be a
-    single week wide (e.g. an isolated deload week — and after the B3 fix in
-    this same PR, deload weeks are *never* adjacent, so they are almost always
-    isolated). build_scaffold's mesocycle-collapsing logic and the
-    ck_mesocycles_week_range CHECK constraint (`week_end > week_start`, added
-    independently in migration 0061) were never exercised together against a
-    live DB before this PR: STUB_LLM=true always short-circuits assemble_plan
-    before build_scaffold's real mesocycles are used, and STUB_PLAN's own
-    hardcoded 2-mesocycle fixture happens to never hit a single-week span. In
-    other words: every real (non-stub) plan generation for essentially any
-    archetype/weeks/training_age combination currently fails a DB constraint.
-
-    That's a genuine, pre-existing, high-severity bug — but it's a separate
-    finding, not one of AI3/B5/B3/B4, so it isn't fixed here (flagged
-    separately). This fake inserts a minimal valid `plans` row directly so
-    AI3/B5's own wiring — which is what these tests are actually about — can
-    be verified end to end without tripping over it.
-    """
-    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+async def _fetch_mesocycles(plan_id: str) -> list[dict[str, Any]]:
+    async with (
+        await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn,
+        conn.cursor(row_factory=psycopg.rows.dict_row) as cur,
+    ):
         await cur.execute(
-            """
-            INSERT INTO plans
-                (user_id, archetype, title, start_date, end_date,
-                 branch_name, weeks, training_age, equipment, days_per_week)
-            VALUES (%s, 'general-crossfit', 'Fake Plan', %s, %s,
-                    'plan/fake', 4, 'intermediate', '{}'::TEXT[], 3)
-            RETURNING id::text
-            """,
-            [user_id, date(2026, 8, 4), date(2026, 9, 1)],
+            "SELECT phase, week_start, week_end FROM mesocycles"
+            " WHERE plan_id = %s ORDER BY week_start",
+            [plan_id],
         )
-        row = await cur.fetchone()
-    return row["id"]  # type: ignore[index]
+        return list(await cur.fetchall())
 
 
 def _fake_llm_success(plan_fill: PlanFill) -> MagicMock:
@@ -167,8 +146,10 @@ def _fake_llm_always_fails() -> MagicMock:
     return fake
 
 
-def _small_plan_fill(archetype: str = "general-crossfit", sets: int = 2) -> PlanFill:
-    """A modest, valid PlanFill spanning 4 weeks x 3 sessions x 3 exercises.
+def _small_plan_fill(
+    archetype: str = "general-crossfit", sets: int = 2, weeks: int = 4
+) -> PlanFill:
+    """A modest, valid PlanFill spanning `weeks` weeks x 3 sessions x 3 exercises.
 
     `sets` is kept low enough (<=2) that no pattern crosses the intermediate
     MRV (20) across a 3-session week, so this never accidentally triggers a
@@ -179,8 +160,8 @@ def _small_plan_fill(archetype: str = "general-crossfit", sets: int = 2) -> Plan
         for _ in range(3)
     ]
     sessions = [SessionFill(session_type="strength", exercises=exercises) for _ in range(3)]
-    weeks = [WeekFill(week_number=wn, sessions=sessions) for wn in range(1, 5)]
-    return PlanFill(archetype=archetype, weeks=weeks)
+    week_fills = [WeekFill(week_number=wn, sessions=sessions) for wn in range(1, weeks + 1)]
+    return PlanFill(archetype=archetype, weeks=week_fills)
 
 
 async def _fake_movements_single_squat_variant(
@@ -214,10 +195,7 @@ async def test_generation_tier_ai_on_tier1_success(
     task_id = await _insert_plan_task(ALICE_ID)
 
     fake_llm = _fake_llm_success(_small_plan_fill())
-    with (
-        patch("app.ai.client.get_client", return_value=fake_llm),
-        patch("app.ai.plan_generator._create_plan_records", _fake_create_plan_records),
-    ):
+    with patch("app.ai.client.get_client", return_value=fake_llm):
         await run_plan_generation(task_id, str(ALICE_ID), _req_data())
 
     row = await _fetch_plan_task(task_id)
@@ -232,6 +210,60 @@ async def test_generation_tier_ai_on_tier1_success(
     assert plan_resp.status_code == 200
     assert plan_resp.json()["generation_tier"] == "ai"
 
+    # The end-to-end proof for the mesocycle single-week fix (migration 0074):
+    # weeks=4/intermediate produces an isolated single-week intensification
+    # block and an isolated single-week deload block (see plan_scaffold.py),
+    # and both were persisted successfully — pre-fix, this INSERT violated
+    # ck_mesocycles_week_range and run_plan_generation would have caught the
+    # exception and marked the task 'failed' instead of 'complete'.
+    mesocycles = await _fetch_mesocycles(row["plan_id"])
+    assert mesocycles, "expected mesocycles to be persisted"
+    single_week = [m for m in mesocycles if m["week_end"] == m["week_start"]]
+    assert single_week, (
+        f"expected at least one single-week mesocycle for weeks=4/intermediate, got {mesocycles}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_generation_tier_ai_persists_realization_phase_mesocycle(
+    monkeypatch: pytest.MonkeyPatch, alice_client: AsyncClient
+) -> None:
+    """The end-to-end proof for the mesocycle phase-check fix (migration 0074):
+    weeks=7/intermediate produces a genuine realization-phase mesocycle. Per
+    plan_scaffold.py's _build_phase_map/get_deload_weeks, weeks=7/intermediate
+    puts deloads on weeks 4 and 7, leaving week 6 (the sole realization week
+    from MESOCYCLE_TABLE[7] = (3, 2, 2)) untouched by either deload rule — so
+    it's a real realization-phase mesocycle, not one overridden to deload.
+
+    Pre-fix, this INSERT violated mesocycles_phase_check (which never allowed
+    'realization', see migration 0027) and run_plan_generation would have
+    caught the exception and marked the task 'failed' instead of 'complete'.
+    This is a genuine gap in the weeks=4/intermediate test above: that
+    combination's would-be realization week (week 4) is itself overridden to
+    deload, so it never exercises this half of migration 0074's fix.
+    """
+    monkeypatch.setenv("STUB_LLM", "false")
+    task_id = await _insert_plan_task(ALICE_ID)
+
+    fake_llm = _fake_llm_success(_small_plan_fill(weeks=7))
+    with patch("app.ai.client.get_client", return_value=fake_llm):
+        await run_plan_generation(
+            task_id, str(ALICE_ID), _req_data(weeks=7, training_age="intermediate")
+        )
+
+    row = await _fetch_plan_task(task_id)
+    assert row["status"] == "complete"
+    assert row["generation_tier"] == "ai"
+
+    mesocycles = await _fetch_mesocycles(row["plan_id"])
+    realization = [m for m in mesocycles if m["phase"] == "realization"]
+    assert realization, (
+        f"expected a realization-phase mesocycle for weeks=7/intermediate, got {mesocycles}"
+    )
+    assert any(m["week_start"] == 6 and m["week_end"] == 6 for m in realization), (
+        f"expected the realization mesocycle to be the standalone week 6, got {realization}"
+    )
+
 
 @pytest.mark.asyncio
 async def test_generation_tier_deterministic_substitution_on_tier1_failure(
@@ -241,10 +273,7 @@ async def test_generation_tier_deterministic_substitution_on_tier1_failure(
     task_id = await _insert_plan_task(ALICE_ID)
 
     fake_llm = _fake_llm_always_fails()
-    with (
-        patch("app.ai.client.get_client", return_value=fake_llm),
-        patch("app.ai.plan_generator._create_plan_records", _fake_create_plan_records),
-    ):
+    with patch("app.ai.client.get_client", return_value=fake_llm):
         await run_plan_generation(task_id, str(ALICE_ID), _req_data())
 
     row = await _fetch_plan_task(task_id)
@@ -273,7 +302,6 @@ async def test_generation_tier_static_fallback_when_tier1_and_tier2_fail(
             _fake_movements_single_squat_variant,
         ),
         patch.object(random, "choice", _raise_choice),
-        patch("app.ai.plan_generator._create_plan_records", _fake_create_plan_records),
     ):
         await run_plan_generation(task_id, str(ALICE_ID), _req_data())
 
@@ -315,10 +343,7 @@ async def test_corrections_empty_when_no_violation(
     task_id = await _insert_plan_task(ALICE_ID)
 
     fake_llm = _fake_llm_success(_small_plan_fill())
-    with (
-        patch("app.ai.client.get_client", return_value=fake_llm),
-        patch("app.ai.plan_generator._create_plan_records", _fake_create_plan_records),
-    ):
+    with patch("app.ai.client.get_client", return_value=fake_llm):
         await run_plan_generation(task_id, str(ALICE_ID), _req_data())
 
     row = await _fetch_plan_task(task_id)
@@ -359,7 +384,6 @@ async def test_corrections_surfaced_when_a_real_violation_occurs(
     with (
         patch("app.ai.client.get_client", return_value=fake_llm),
         patch("app.ai.plan_generator.validate_and_correct_plan", _vcp_with_injected_violation),
-        patch("app.ai.plan_generator._create_plan_records", _fake_create_plan_records),
     ):
         await run_plan_generation(task_id, str(ALICE_ID), _req_data())
 
