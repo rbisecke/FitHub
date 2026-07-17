@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { findExactMovementMatch } from "@/components/session/SessionExecutionView";
 
 // ---------------------------------------------------------------------------
 // Pure logic tests mirroring the fixes in SessionExecutionView.tsx
@@ -6,7 +7,65 @@ import { describe, it, expect } from "vitest";
 // convention already used by restTimer/setLogger/exerciseSwapSheet tests in
 // this directory: the underlying pure logic is exercised directly rather
 // than rendering the client component.
+//
+// findExactMovementMatch (review fix #1) is imported directly from the
+// component rather than mirrored — it's the exact function handleOpenSwap
+// calls, so a regression in the real resolution logic fails this test.
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Review fix #1 — swap sheet resolves a real movements.id, not a
+// planned_items.id
+// ---------------------------------------------------------------------------
+
+describe("Fix #1 — findExactMovementMatch resolves a real movements.id", () => {
+  it("resolves the movement whose name exactly matches (case-insensitive)", () => {
+    const searchResults = [
+      { id: "11111111-aaaa-4aaa-8aaa-111111111111", name: "Front Squat" },
+      { id: "22222222-bbbb-4bbb-8bbb-222222222222", name: "Back Squat" },
+    ];
+    const match = findExactMovementMatch(searchResults, "back squat");
+    expect(match?.id).toBe("22222222-bbbb-4bbb-8bbb-222222222222");
+  });
+
+  it("returns a real movements-shaped id, distinct from any planned_items id", () => {
+    // Reproduces the review's bug scenario: the caller has a planned_items
+    // row id in hand and must NOT end up using it as the movementId.
+    const plannedItemId = "planned-item-week-3-row-7";
+    const searchResults = [
+      { id: "33333333-cccc-4ccc-8ccc-333333333333", name: "Deadlift" },
+    ];
+    const match = findExactMovementMatch(searchResults, "Deadlift");
+    expect(match?.id).toBe("33333333-cccc-4ccc-8ccc-333333333333");
+    expect(match?.id).not.toBe(plannedItemId);
+  });
+
+  it("trims and lower-cases both sides before comparing", () => {
+    const searchResults = [{ id: "mv-1", name: "  Romanian Deadlift  " }];
+    const match = findExactMovementMatch(searchResults, "romanian deadlift");
+    expect(match?.id).toBe("mv-1");
+  });
+
+  it("returns undefined when no exact match exists (e.g. catalog name drift)", () => {
+    const searchResults = [{ id: "mv-1", name: "Front Squat" }];
+    const match = findExactMovementMatch(searchResults, "Front Squats");
+    expect(match).toBeUndefined();
+  });
+
+  it("returns undefined for an empty result set", () => {
+    expect(findExactMovementMatch([], "Back Squat")).toBeUndefined();
+  });
+
+  it("picks the exact match even when multiple loosely-similar names are present", () => {
+    const searchResults = [
+      { id: "mv-1", name: "Squat" },
+      { id: "mv-2", name: "Front Squat" },
+      { id: "mv-3", name: "Back Squat" },
+    ];
+    const match = findExactMovementMatch(searchResults, "Back Squat");
+    expect(match?.id).toBe("mv-3");
+  });
+});
 
 interface Item {
   id: string;
@@ -75,7 +134,12 @@ describe("C3 — exercise swap resolution", () => {
 });
 
 // ---------------------------------------------------------------------------
-// C4 — completion payload construction (movement_id resolved through swaps)
+// C4 / review fix #2 — completion payload construction
+//
+// movement_id is now captured on the LoggedSet record AT LOG_SET dispatch
+// time (see the reducer's LOG_SET case and handleLogSet), not re-derived
+// through the FINAL swappedExercises state in handleFinish. These mirrors
+// reflect that: toLoggedSetPayload simply reads s.movementId directly.
 // ---------------------------------------------------------------------------
 
 interface LoggedSet {
@@ -83,6 +147,7 @@ interface LoggedSet {
   loadKg: number | null;
   reps: number;
   rpe: number | null;
+  movementId: string | null;
 }
 
 interface LoggedSetPayload {
@@ -93,26 +158,41 @@ interface LoggedSetPayload {
   rpe: number | null;
 }
 
-// Mirrors handleFinish's payload construction.
-function toLoggedSetPayload(
-  loggedSets: LoggedSet[],
-  swappedExercises: Record<string, SwapEntry>,
-): LoggedSetPayload[] {
+// Mirrors handleFinish's payload construction (post fix #2 — no lookup).
+function toLoggedSetPayload(loggedSets: LoggedSet[]): LoggedSetPayload[] {
   return loggedSets.map((s) => ({
     planned_item_id: s.itemId,
-    movement_id: swappedExercises[s.itemId]?.movementId ?? null,
+    movement_id: s.movementId,
     load_kg: s.loadKg,
     reps: s.reps,
     rpe: s.rpe,
   }));
 }
 
+// Mirrors the reducer's LOG_SET case + handleLogSet: the movementId is
+// resolved from whatever swap is active for this item RIGHT NOW, at the
+// moment of logging — never re-derived later.
+function logSet(
+  itemId: string,
+  loadKg: number,
+  reps: number,
+  swappedExercises: Record<string, SwapEntry>,
+): LoggedSet {
+  return {
+    itemId,
+    loadKg,
+    reps,
+    rpe: null,
+    movementId: swappedExercises[itemId]?.movementId ?? null,
+  };
+}
+
 describe("C4 — completion payload construction", () => {
   it("carries a null movement_id for sets logged against the original (non-swapped) movement", () => {
     const sets: LoggedSet[] = [
-      { itemId: "item-1", loadKg: 100, reps: 5, rpe: null },
+      { itemId: "item-1", loadKg: 100, reps: 5, rpe: null, movementId: null },
     ];
-    const payload = toLoggedSetPayload(sets, {});
+    const payload = toLoggedSetPayload(sets);
     expect(payload).toEqual([
       {
         planned_item_id: "item-1",
@@ -126,41 +206,101 @@ describe("C4 — completion payload construction", () => {
 
   it("resolves movement_id to the substitute for sets logged after a swap", () => {
     const sets: LoggedSet[] = [
-      { itemId: "item-1", loadKg: 40, reps: 8, rpe: 7 },
+      {
+        itemId: "item-1",
+        loadKg: 40,
+        reps: 8,
+        rpe: 7,
+        movementId: "mv-99",
+      },
     ];
-    const swaps: Record<string, SwapEntry> = {
-      "item-1": { movementId: "mv-99", movementName: "Front Squat" },
-    };
-    const payload = toLoggedSetPayload(sets, swaps);
+    const payload = toLoggedSetPayload(sets);
     expect(payload[0]?.movement_id).toBe("mv-99");
     expect(payload[0]?.planned_item_id).toBe("item-1");
   });
 
   it("resolves movement_id independently per item when only some exercises were swapped", () => {
     const sets: LoggedSet[] = [
-      { itemId: "item-1", loadKg: 40, reps: 8, rpe: null },
-      { itemId: "item-2", loadKg: 60, reps: 5, rpe: null },
+      { itemId: "item-1", loadKg: 40, reps: 8, rpe: null, movementId: "mv-99" },
+      { itemId: "item-2", loadKg: 60, reps: 5, rpe: null, movementId: null },
     ];
-    const swaps: Record<string, SwapEntry> = {
-      "item-1": { movementId: "mv-99", movementName: "Front Squat" },
-    };
-    const payload = toLoggedSetPayload(sets, swaps);
+    const payload = toLoggedSetPayload(sets);
     expect(payload[0]?.movement_id).toBe("mv-99");
     expect(payload[1]?.movement_id).toBeNull();
   });
 
   it("preserves multiple logged sets for the same swapped item in order", () => {
     const sets: LoggedSet[] = [
-      { itemId: "item-1", loadKg: 40, reps: 8, rpe: null },
-      { itemId: "item-1", loadKg: 42.5, reps: 6, rpe: 8 },
+      { itemId: "item-1", loadKg: 40, reps: 8, rpe: null, movementId: "mv-99" },
+      {
+        itemId: "item-1",
+        loadKg: 42.5,
+        reps: 6,
+        rpe: 8,
+        movementId: "mv-99",
+      },
     ];
-    const swaps: Record<string, SwapEntry> = {
-      "item-1": { movementId: "mv-99", movementName: "Front Squat" },
-    };
-    const payload = toLoggedSetPayload(sets, swaps);
+    const payload = toLoggedSetPayload(sets);
     expect(payload).toHaveLength(2);
     expect(payload.every((p) => p.movement_id === "mv-99")).toBe(true);
     expect(payload.map((p) => p.load_kg)).toEqual([40, 42.5]);
+  });
+});
+
+describe("Review fix #2 — mid-exercise swap does not relabel already-logged sets", () => {
+  it("keeps a pre-swap set's movement_id at its original value after a later swap, while post-swap sets get the substitute", () => {
+    let swaps: Record<string, SwapEntry> = {};
+    const logged: LoggedSet[] = [];
+
+    // Set 1: logged for "Back Squat" — no swap active yet.
+    logged.push(logSet("item-1", 100, 5, swaps));
+
+    // User swaps mid-exercise: Back Squat -> Front Squat.
+    swaps = {
+      ...swaps,
+      "item-1": { movementId: "mv-front-squat", movementName: "Front Squat" },
+    };
+
+    // Sets 2-3: logged after the swap.
+    logged.push(logSet("item-1", 60, 8, swaps));
+    logged.push(logSet("item-1", 60, 8, swaps));
+
+    const payload = toLoggedSetPayload(logged);
+
+    // The bug: re-deriving through the FINAL swap state at submit time would
+    // have labeled set 1 as Front Squat too. It must stay null (original).
+    expect(payload[0]?.movement_id).toBeNull();
+    expect(payload[0]?.load_kg).toBe(100);
+
+    // Sets logged after the swap correctly carry the substitute's id.
+    expect(payload[1]?.movement_id).toBe("mv-front-squat");
+    expect(payload[2]?.movement_id).toBe("mv-front-squat");
+  });
+
+  it("handles two sequential swaps on the same item — each set keeps the movement active when it was logged", () => {
+    let swaps: Record<string, SwapEntry> = {};
+    const logged: LoggedSet[] = [];
+
+    logged.push(logSet("item-1", 100, 5, swaps)); // original movement
+
+    swaps = {
+      ...swaps,
+      "item-1": { movementId: "mv-front-squat", movementName: "Front Squat" },
+    };
+    logged.push(logSet("item-1", 60, 8, swaps)); // first substitute
+
+    swaps = {
+      ...swaps,
+      "item-1": { movementId: "mv-goblet-squat", movementName: "Goblet Squat" },
+    };
+    logged.push(logSet("item-1", 24, 12, swaps)); // second substitute
+
+    const payload = toLoggedSetPayload(logged);
+    expect(payload.map((p) => p.movement_id)).toEqual([
+      null,
+      "mv-front-squat",
+      "mv-goblet-squat",
+    ]);
   });
 });
 

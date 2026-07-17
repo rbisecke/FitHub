@@ -98,55 +98,63 @@ describe("SetLogger load stepping", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // S4 — synchronous double-submit guard on "commit set"
+  // Review fix #3 — SetLogger's commit handler has no ref guard
   //
-  // Mirrors handleCommit's fix: a ref checked and set *before* any state
-  // update or the logging call itself, so a second rapid tap fired before
-  // the first render commits still can't dispatch a second LOG_SET.
+  // handleCommit is fully synchronous (onLog is a plain dispatch, no await),
+  // so there is no async gap between the guard check and the logging call —
+  // a ref adds no protection a synchronous call stack doesn't already give.
+  // These mirrors reflect the simplified handler: no ref, `submitting` state
+  // set around the call for the `disabled` prop, and — critically — every
+  // call to handleCommit invokes onLog exactly once (there is nothing to
+  // "drop", because JS event handlers can't interleave with each other).
   // ---------------------------------------------------------------------------
-  describe("S4 — double-submit guard on commit set", () => {
-    it("a rapid second call is dropped while the first is still in flight", async () => {
-      const submittingRef = { current: false };
+  describe("Review fix #3 — no ref guard on commit set (synchronous handler)", () => {
+    it("each call to handleCommit invokes onLog exactly once — no interleaving possible", () => {
       const onLogCalls: number[] = [];
+      const submittingStates: boolean[] = [];
 
-      async function handleCommit(callId: number) {
-        if (submittingRef.current) return;
-        submittingRef.current = true;
+      function handleCommit(callId: number) {
+        submittingStates.push(true);
         try {
           onLogCalls.push(callId);
-          await Promise.resolve(); // simulates work between the guard and release
         } finally {
-          submittingRef.current = false;
+          submittingStates.push(false);
         }
       }
 
-      // Two "taps" fired before either has a chance to release the guard.
-      const first = handleCommit(1);
-      const second = handleCommit(2);
-      await Promise.all([first, second]);
-
-      expect(onLogCalls).toEqual([1]);
-    });
-
-    it("allows a new commit once the previous one has released the guard", async () => {
-      const submittingRef = { current: false };
-      const onLogCalls: number[] = [];
-
-      async function handleCommit(callId: number) {
-        if (submittingRef.current) return;
-        submittingRef.current = true;
-        try {
-          onLogCalls.push(callId);
-          await Promise.resolve();
-        } finally {
-          submittingRef.current = false;
-        }
-      }
-
-      await handleCommit(1);
-      await handleCommit(2);
+      // Two separate, sequential "clicks" — since handleCommit is fully
+      // synchronous, each one runs to completion (including calling onLog)
+      // before the next can begin. There is no window in which a second
+      // call could double-fire onLog for the same click.
+      handleCommit(1);
+      handleCommit(2);
 
       expect(onLogCalls).toEqual([1, 2]);
+      expect(submittingStates).toEqual([true, false, true, false]);
+    });
+
+    it("propagates a thrown error into the error state without re-entrancy protection", () => {
+      let error: string | null = null;
+      let submitting = false;
+
+      function handleCommit(onLog: () => void) {
+        submitting = true;
+        try {
+          error = null;
+          onLog();
+        } catch {
+          error = "Failed to log set. Try again.";
+        } finally {
+          submitting = false;
+        }
+      }
+
+      handleCommit(() => {
+        throw new Error("boom");
+      });
+
+      expect(error).toBe("Failed to log set. Try again.");
+      expect(submitting).toBe(false);
     });
   });
 

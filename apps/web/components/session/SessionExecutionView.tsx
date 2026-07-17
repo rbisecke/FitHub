@@ -24,6 +24,7 @@ import type {
   CompleteSessionRequest,
   LoggedSetPayload,
 } from "@/lib/api/plans";
+import type { Movement } from "@/lib/api";
 import { api } from "@/lib/api/client";
 import { ExerciseCard } from "./ExerciseCard";
 import { RestTimer } from "./RestTimer";
@@ -40,6 +41,30 @@ export interface LoggedSet {
   reps: number;
   rpe: number | null;
   loggedAt: string;
+  // Fix #2 — captured from whatever swap was active for this item AT the
+  // moment this set was logged (or null if none). Never re-derived later
+  // through swappedExercises, so a swap taken mid-exercise can't retroactively
+  // relabel sets that were actually performed under the original movement.
+  movementId: string | null;
+}
+
+// Fix #1 — resolves a real `movements.id` for the swap sheet from a search
+// result set. `movements.name` is UNIQUE NOT NULL in the DB and the plan
+// generator only ever writes `planned_items.movement_name` from real,
+// unique catalog names, so an exact (case-insensitive) name match reliably
+// identifies the corresponding movements row. Exported so it can be tested
+// directly against the same code path the component uses, rather than a
+// hand-copied mirror.
+//
+// Known limitation: build_movement_enum's duplicate-name suffixing (e.g.
+// "Name (2)") means a literal-match search could theoretically miss on a
+// duplicate-named catalog entry — acceptable, not solved here.
+export function findExactMovementMatch(
+  movements: Pick<Movement, "id" | "name">[],
+  movementName: string,
+): Pick<Movement, "id" | "name"> | undefined {
+  const target = movementName.trim().toLowerCase();
+  return movements.find((m) => m.name.trim().toLowerCase() === target);
 }
 
 type Phase = "idle" | "exercising" | "resting" | "swapping" | "complete";
@@ -62,6 +87,11 @@ interface ExecutionState {
   loggedSets: LoggedSet[];
   swappedExercises: Record<string, SwapEntry>;
   swapItemId: string | null;
+  // Fix #1 — the real `movements.id` resolved for the item currently being
+  // swapped, passed to ExerciseSwapSheet's `movementId` prop. Distinct from
+  // swapItemId (a planned_items row id), which stays the "which exercise is
+  // being swapped" key.
+  swapMovementId: string | null;
   lastLoadMap: Map<string, number>; // itemId → last logged kg
   substituteError: string | null;
 }
@@ -71,6 +101,7 @@ type Action =
   | {
       type: "LOG_SET";
       itemId: string;
+      movementId: string | null;
       loadKg: number | null;
       reps: number;
       rpe?: number;
@@ -84,7 +115,7 @@ type Action =
   | { type: "SKIP_REST" }
   | { type: "TOGGLE_PAUSE" }
   | { type: "SKIP_EXERCISE"; totalItems: number }
-  | { type: "OPEN_SWAP"; itemId: string }
+  | { type: "OPEN_SWAP"; itemId: string; movementId: string }
   | { type: "CLOSE_SWAP" }
   | {
       type: "CONFIRM_SWAP";
@@ -130,6 +161,7 @@ function reducer(state: ExecutionState, action: Action): ExecutionState {
         reps: action.reps,
         rpe: action.rpe ?? null,
         loggedAt: now,
+        movementId: action.movementId,
       };
       const updatedSets = [...state.loggedSets, newSet];
       const updatedLoadMap = new Map(state.lastLoadMap);
@@ -193,10 +225,21 @@ function reducer(state: ExecutionState, action: Action): ExecutionState {
       return advanceExercise(state, action.totalItems);
 
     case "OPEN_SWAP":
-      return { ...state, phase: "swapping", swapItemId: action.itemId };
+      return {
+        ...state,
+        phase: "swapping",
+        swapItemId: action.itemId,
+        swapMovementId: action.movementId,
+        substituteError: null,
+      };
 
     case "CLOSE_SWAP":
-      return { ...state, phase: "exercising", swapItemId: null };
+      return {
+        ...state,
+        phase: "exercising",
+        swapItemId: null,
+        swapMovementId: null,
+      };
 
     case "CONFIRM_SWAP":
       return {
@@ -254,6 +297,10 @@ const LS_PREFIX = "fithub:lastload:";
 // never matches across weeks; the movement name is the only value stable
 // enough to recur. Minimal fix — the ideal fix is a stable movement_id on
 // PlannedItemOut, which is a backend contract change out of scope here.
+// Note: movements.name is case-sensitive-unique at the DB level, so two
+// catalog entries differing only in case could theoretically collide on
+// this cache key once lower-cased below — acceptable tradeoff for a
+// "pre-populate last weight" convenience cache, not authoritative data.
 function normalizeMovementKey(movementName: string): string {
   return movementName.trim().toLowerCase().replace(/\s+/g, " ");
 }
@@ -305,6 +352,7 @@ export function SessionExecutionView({
     loggedSets: [],
     swappedExercises: {},
     swapItemId: null,
+    swapMovementId: null,
     lastLoadMap: new Map(),
     substituteError: null,
   };
@@ -375,6 +423,10 @@ export function SessionExecutionView({
       dispatch({
         type: "LOG_SET",
         itemId: currentItem.id,
+        // Fix #2 — captured now, from whatever swap is active for this item
+        // AT THE MOMENT this set is logged. If the user swaps again after
+        // this set, that later swap must not retroactively relabel this one.
+        movementId: activeSwap?.movementId ?? null,
         loadKg: kg,
         reps,
         rpe,
@@ -386,6 +438,7 @@ export function SessionExecutionView({
     },
     [
       currentItem,
+      activeSwap,
       state.setIndex,
       state.exerciseIndex,
       totalSets,
@@ -414,10 +467,44 @@ export function SessionExecutionView({
     dispatch({ type: "SKIP_EXERCISE", totalItems });
   }, [totalItems]);
 
-  const handleOpenSwap = useCallback(() => {
+  // Fix #1 — resolve a real `movements.id` before opening the swap sheet.
+  // currentItem.id is a planned_items row id; the substitutes endpoint
+  // (GET /api/v1/movements/{id}/substitutes) looks up public.movements by
+  // id, so passing the planned_items id 404s every time. Search the
+  // catalog by movement_name and take the exact (case-insensitive) match —
+  // see findExactMovementMatch for why this is reliable.
+  const [resolvingSwap, setResolvingSwap] = useState(false);
+
+  const handleOpenSwap = useCallback(async () => {
     if (!currentItem) return;
-    dispatch({ type: "OPEN_SWAP", itemId: currentItem.id });
-  }, [currentItem]);
+    const itemId = currentItem.id;
+    const movementName = currentItem.movement_name;
+    setResolvingSwap(true);
+    dispatch({ type: "SET_SUBSTITUTE_ERROR", message: null });
+    try {
+      const results = await api.movements.search(accessToken, {
+        q: movementName,
+        limit: 20,
+      });
+      const match = findExactMovementMatch(results, movementName);
+      if (!match) {
+        dispatch({
+          type: "SET_SUBSTITUTE_ERROR",
+          message: `Couldn't find "${movementName}" in the movement catalog — swap unavailable.`,
+        });
+        return;
+      }
+      dispatch({ type: "OPEN_SWAP", itemId, movementId: match.id });
+    } catch {
+      dispatch({
+        type: "SET_SUBSTITUTE_ERROR",
+        message:
+          "Couldn't look up substitutes — check your connection and try again.",
+      });
+    } finally {
+      setResolvingSwap(false);
+    }
+  }, [currentItem, accessToken]);
 
   const handleCloseSwap = useCallback(() => {
     dispatch({ type: "CLOSE_SWAP" });
@@ -454,12 +541,15 @@ export function SessionExecutionView({
     setFinishing(true);
     setFinishError(null);
 
-    // Resolve each logged set's movement_id through swappedExercises (C3) —
+    // Fix #2 — movement_id is read directly off each already-logged set
+    // (captured at LOG_SET time, see the LOG_SET dispatch in handleLogSet),
+    // not re-derived through the FINAL swappedExercises state. Re-deriving
+    // here would retroactively relabel sets logged before a later swap.
     // planned_item_id always stays the base planned_items row id (what the
-    // backend validates against); movement_id reflects the substitute, if any.
+    // backend validates against).
     const loggedSetsPayload: LoggedSetPayload[] = state.loggedSets.map((s) => ({
       planned_item_id: s.itemId,
-      movement_id: state.swappedExercises[s.itemId]?.movementId ?? null,
+      movement_id: s.movementId,
       load_kg: s.loadKg,
       reps: s.reps,
       rpe: s.rpe,
@@ -479,14 +569,7 @@ export function SessionExecutionView({
       submittingRef.current = false;
       setFinishing(false);
     }
-  }, [
-    accessToken,
-    plan.id,
-    session.id,
-    state.loggedSets,
-    state.swappedExercises,
-    router,
-  ]);
+  }, [accessToken, plan.id, session.id, state.loggedSets, router]);
 
   // Progress bar (exercises completed / total)
   const progressPct =
@@ -648,7 +731,16 @@ export function SessionExecutionView({
                 onLogSet={handleLogSet}
                 onSwap={handleOpenSwap}
                 onSkip={handleSkipExercise}
+                swapDisabled={resolvingSwap}
               />
+              {state.substituteError && (
+                <p
+                  className="font-sans text-[12px] text-[var(--red)] text-center mt-3"
+                  role="alert"
+                >
+                  {state.substituteError}
+                </p>
+              )}
             </motion.div>
           )}
 
@@ -882,7 +974,7 @@ export function SessionExecutionView({
       <ExerciseSwapSheet
         open={state.phase === "swapping"}
         onClose={handleCloseSwap}
-        movementId={state.swapItemId ?? ""}
+        movementId={state.swapMovementId ?? ""}
         movementName={currentItem?.movement_name ?? ""}
         userEquipment={[]}
         accessToken={accessToken}

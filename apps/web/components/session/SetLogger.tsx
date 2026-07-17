@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 
 interface SetLoggerProps {
   setIndex: number;
@@ -30,10 +30,6 @@ export function SetLogger({
   const [showRpe, setShowRpe] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // S4 — synchronous guard against a rapid double-tap on "commit set";
-  // submittingRef is checked before any state update so a second click that
-  // fires before the first render commits still can't re-enter.
-  const submittingRef = useRef(false);
   const [submitting, setSubmitting] = useState(false);
 
   const step = 2.5;
@@ -62,9 +58,15 @@ export function SetLogger({
     [],
   );
 
-  const handleCommit = useCallback(async () => {
-    if (submittingRef.current) return;
-    submittingRef.current = true;
+  // No ref guard here (unlike ExerciseSwapSheet's confirm or
+  // SessionExecutionView's handleFinish, which await a real network call and
+  // keep their ref guards): onLog is a synchronous dispatch with no await,
+  // so this handler runs to completion within a single event-handler
+  // invocation. JS event handlers can't interleave, so a second click's
+  // handler cannot begin until this one has already returned — there's no
+  // async gap for a ref to close. `disabled={submitting}` is sufficient on
+  // its own.
+  const handleCommit = useCallback(() => {
     setSubmitting(true);
     try {
       setError(null);
@@ -73,7 +75,6 @@ export function SetLogger({
     } catch {
       setError("Failed to log set. Try again.");
     } finally {
-      submittingRef.current = false;
       setSubmitting(false);
     }
   }, [kg, reps, rpe, prescribedKg, onLog]);
