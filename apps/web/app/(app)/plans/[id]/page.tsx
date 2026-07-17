@@ -4,6 +4,7 @@ import { api } from "@/lib/api/client";
 import Link from "next/link";
 import { formatArchetype } from "@/lib/display";
 import { PlanBranchView } from "@/components/plans/PlanBranchView";
+import { PlanGenerationNotice } from "@/components/plans/PlanGenerationNotice";
 import { MesocycleDotGrid } from "@/components/plans/MesocycleDotGrid";
 import { CurrentWeekView } from "@/components/plans/CurrentWeekView";
 import { AIAdaptationsPanel } from "@/components/plans/AIAdaptationsPanel";
@@ -77,6 +78,12 @@ export default async function PlanDetailPage({ params }: Props) {
           {plan.start_date}
         </p>
       </div>
+
+      {/* Generation tier / correction transparency notice */}
+      <PlanGenerationNotice
+        generationTier={plan.generation_tier}
+        corrections={plan.corrections}
+      />
 
       {/* Mesocycle progress bar */}
       {plan.mesocycles.length > 0 && (

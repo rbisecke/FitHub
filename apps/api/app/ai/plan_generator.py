@@ -16,16 +16,23 @@ import html
 import json
 import logging
 import uuid
+from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Literal, cast
 
 import psycopg
 import psycopg.rows
 
-from app.ai.movement_enum import PlanFill, build_movement_enum
+from app.ai.movement_enum import (
+    ExerciseSelection,
+    PlanFill,
+    SessionFill,
+    WeekFill,
+    build_movement_enum,
+)
 from app.ai.plan_scaffold import MEV_MAV_MRV, build_scaffold
 from app.ai.prompts import PLAN_REVISION_SYSTEM
-from app.ai.stub import stubbed
+from app.ai.stub import is_stubbed, stubbed
 from app.engine.programming import PlanValidationError, validate_plan
 from app.models.plan import (  # noqa: F401
     CreatePlanRequest,
@@ -439,49 +446,102 @@ def _build_messages(
     ]
 
 
-def _fallback_plan_fill(archetype: str) -> PlanFill:
-    """Tier 3: build a minimal PlanFill from FALLBACK_SESSIONS for the archetype."""
-    from app.ai.fallback_templates import FALLBACK_SESSIONS  # noqa: PLC0415
-    from app.ai.movement_enum import ExerciseSelection as _ES  # noqa: PLC0415
-    from app.ai.movement_enum import SessionFill as _SF  # noqa: PLC0415
-    from app.ai.movement_enum import WeekFill as _WF  # noqa: PLC0415
+def _template_week_sessions(
+    wdata: dict[str, object],
+    name_resolver: Callable[[str, str], str] | None = None,
+) -> list[SessionFill]:
+    """Build the SessionFill list for one FALLBACK_SESSIONS week entry.
 
-    template = FALLBACK_SESSIONS.get(archetype, FALLBACK_SESSIONS["general-crossfit"])
-    weeks = []
-    for wdata in cast(list[dict[str, object]], template.get("weeks", []))[:1]:
-        sessions = []
-        for sdata in cast(list[dict[str, object]], wdata.get("sessions", []))[:3]:
-            items = [
-                _ES(
-                    movement_name=str(idata.get("movement_name") or "Air Squat"),
+    `name_resolver(raw_name, movement_pattern) -> resolved_name`, when given, lets
+    tier 2 substitute a movement name that isn't in the equipment-filtered pool
+    (including for the <3-exercises padding below, so padded items are also
+    resolved against the pool rather than reintroducing an off-pool name).
+    Tier 3 passes None and uses the template's names verbatim.
+    """
+    sessions: list[SessionFill] = []
+    for sdata in cast(list[dict[str, object]], wdata.get("sessions", []))[:3]:
+        items: list[ExerciseSelection] = []
+        for idata in cast(list[dict[str, object]], sdata.get("items", []))[:3]:
+            raw_name = str(idata.get("movement_name") or "Air Squat")
+            pattern = str(idata.get("movement_pattern") or "unknown")
+            if name_resolver is not None:
+                raw_name = name_resolver(raw_name, pattern)
+            items.append(
+                ExerciseSelection(
+                    movement_name=raw_name,
                     sets=cast(int, idata.get("sets", 3)),
                     reps_or_duration=str(idata.get("reps") or "10"),
                     load_pct=None,
                     notes=None,
                 )
-                for idata in cast(list[dict[str, object]], sdata.get("items", []))[:3]
-            ]
-            while len(items) < 3:
-                items.append(
-                    _ES(
-                        movement_name="Air Squat",
-                        sets=3,
-                        reps_or_duration="10",
-                        load_pct=None,
-                        notes=None,
-                    )
-                )
-            sessions.append(
-                _SF(session_type=str(sdata.get("session_type") or "metcon"), exercises=items)
             )
+        while len(items) < 3:
+            pad_name = (
+                name_resolver("Air Squat", "squat") if name_resolver is not None else "Air Squat"
+            )
+            items.append(
+                ExerciseSelection(
+                    movement_name=pad_name, sets=3, reps_or_duration="10", load_pct=None, notes=None
+                )
+            )
+        sessions.append(
+            SessionFill(session_type=str(sdata.get("session_type") or "metcon"), exercises=items)
+        )
+    return sessions
+
+
+def _tile_template_weeks(
+    template: dict[str, object],
+    total_weeks: int,
+    name_resolver: Callable[[str, str], str] | None = None,
+) -> list[WeekFill]:
+    """Repeat a FALLBACK_SESSIONS template's session structure across every
+    requested week, instead of emitting content for week 1 only.
+
+    FALLBACK_SESSIONS entries each define a single representative week; tier 3's
+    documented design ("same session structure for every archetype, looped to
+    fill the requested duration") already implies this tiling — slicing to only
+    ever emit the first template week was the truncation bug this fixes, not a
+    deliberate design choice.
+    """
+    template_weeks = cast(list[dict[str, object]], template.get("weeks", []))
+    if not template_weeks:
+        return []
+    weeks: list[WeekFill] = []
+    for week_num in range(1, total_weeks + 1):
+        wdata = template_weeks[(week_num - 1) % len(template_weeks)]
+        sessions = _template_week_sessions(wdata, name_resolver)
         if sessions:
-            weeks.append(_WF(week_number=1, sessions=sessions))
+            weeks.append(WeekFill(week_number=week_num, sessions=sessions))
+    return weeks
 
-    if not weeks:
-        ex = _ES(movement_name="Air Squat", sets=3, reps_or_duration="10")
-        weeks = [_WF(week_number=1, sessions=[_SF(session_type="metcon", exercises=[ex, ex, ex])])]
 
-    return PlanFill(archetype=archetype, weeks=weeks)
+def _fallback_plan_fill(archetype: str, weeks: int = 1) -> PlanFill:
+    """Tier 3: build a PlanFill from FALLBACK_SESSIONS for the archetype, tiled
+    across `weeks` weeks (defaults to a single week for callers that just need
+    a structural sample, e.g. unit tests)."""
+    from app.ai.fallback_templates import FALLBACK_SESSIONS  # noqa: PLC0415
+
+    template = FALLBACK_SESSIONS.get(archetype, FALLBACK_SESSIONS["general-crossfit"])
+    plan_weeks = _tile_template_weeks(template, weeks)
+
+    if not plan_weeks:
+
+        def _default_session() -> SessionFill:
+            return SessionFill(
+                session_type="metcon",
+                exercises=[
+                    ExerciseSelection(movement_name="Air Squat", sets=3, reps_or_duration="10"),
+                    ExerciseSelection(movement_name="Push-up", sets=3, reps_or_duration="10"),
+                    ExerciseSelection(movement_name="Sit-up", sets=3, reps_or_duration="20"),
+                ],
+            )
+
+        plan_weeks = [
+            WeekFill(week_number=wn, sessions=[_default_session()]) for wn in range(1, weeks + 1)
+        ]
+
+    return PlanFill(archetype=archetype, weeks=plan_weeks)
 
 
 async def _call_llm(
@@ -518,15 +578,11 @@ async def _call_llm(
     # constrain movement_name choices to the filtered pool at call time.
     from pydantic import create_model  # noqa: PLC0415
 
-    from app.ai.movement_enum import ExerciseSelection  # noqa: PLC0415
-
     ConstrainedExercise = create_model(  # noqa: N806
         "ConstrainedExercise",
         __base__=ExerciseSelection,
         movement_name=(mov_enum, ...),
     )
-
-    from app.ai.movement_enum import SessionFill, WeekFill  # noqa: PLC0415
 
     ConstrainedSessionFill = create_model(  # noqa: N806
         "ConstrainedSessionFill",
@@ -579,11 +635,6 @@ async def _call_llm(
     # AI2: XML-sandbox the user-controlled plan title to prevent prompt injection.
     safe_title = _sandbox("user_input", req.title)
 
-    # AI5: .get() with a conservative default — a safety net if a future archetype
-    # is added to _ARCHETYPE before ARCHETYPE_MODEL is updated; does not change
-    # behavior for any of the 7 currently-valid archetypes.
-    model = ARCHETYPE_MODEL.get(req.archetype, "claude-haiku-4-5-20251001")
-
     messages = _build_messages(
         archetype=req.archetype,
         scaffold_desc=scaffold_desc,
@@ -595,6 +646,20 @@ async def _call_llm(
     )
 
     llm = get_client()
+
+    # Model routing: the default Anthropic backend keeps ARCHETYPE_MODEL's
+    # per-archetype Haiku/Sonnet cost routing exactly as before. Any other
+    # configured LLM_BACKEND (ollama, openai) must use the model client.py
+    # already resolved from OLLAMA_MODEL/OPENAI_MODEL — falling through to
+    # ARCHETYPE_MODEL's hardcoded Anthropic model IDs regardless of backend
+    # silently ignored LLM_BACKEND overrides for plan generation specifically.
+    # AI5: .get() with a conservative default — a safety net if a future archetype
+    # is added to _ARCHETYPE before ARCHETYPE_MODEL is updated; does not change
+    # behavior for any of the 7 currently-valid archetypes.
+    if llm.backend == "anthropic":
+        model = ARCHETYPE_MODEL.get(req.archetype, "claude-haiku-4-5-20251001")
+    else:
+        model = llm.model
 
     # Tier 1: instructor retry (up to 3 attempts).
     try:
@@ -634,9 +699,13 @@ async def _call_llm(
         return result
 
     # Tier 2: deterministic substitution — replace invalid movement names
-    # with a random pool member sharing the same movement_pattern.
+    # with a random pool member sharing the same movement_pattern, tiled
+    # across every week in the scaffold (not just week 1 — see
+    # _tile_template_weeks' docstring for why the old [:1] slice was a bug).
     try:
         import random
+
+        from app.ai.fallback_templates import FALLBACK_SESSIONS  # noqa: PLC0415
 
         pool_by_pattern: dict[str, list[str]] = {}
         for m in movements:
@@ -644,51 +713,14 @@ async def _call_llm(
             pool_by_pattern.setdefault(pat, []).append(str(m.get("name") or ""))
         all_names = {str(m.get("name") or "") for m in movements}
 
-        # Build a stub PlanFill using known-good movement names.
-        from app.ai.movement_enum import ExerciseSelection as _ES
-        from app.ai.movement_enum import SessionFill as _SF
-        from app.ai.movement_enum import WeekFill as _WF
-
-        fallback_weeks = []
-        from app.ai.fallback_templates import FALLBACK_SESSIONS  # noqa: PLC0415
+        def _resolve_name(raw_name: str, pattern: str) -> str:
+            if raw_name in all_names:
+                return raw_name
+            candidates = pool_by_pattern.get(pattern) or list(all_names)
+            return random.choice(candidates) if candidates else "Air Squat"
 
         template = FALLBACK_SESSIONS.get(req.archetype, FALLBACK_SESSIONS["general-crossfit"])
-        for wdata in cast(list[dict[str, object]], template.get("weeks", []))[:1]:
-            sessions = []
-            for sdata in cast(list[dict[str, object]], wdata.get("sessions", []))[:3]:
-                items = []
-                for idata in cast(list[dict[str, object]], sdata.get("items", []))[:3]:
-                    raw_name = str(idata.get("movement_name") or "")
-                    if raw_name not in all_names:
-                        pat = str(idata.get("movement_pattern") or "unknown")
-                        candidates = pool_by_pattern.get(pat) or list(all_names)
-                        raw_name = random.choice(candidates) if candidates else "Air Squat"
-                    items.append(
-                        _ES(
-                            movement_name=raw_name,
-                            sets=cast(int, idata.get("sets", 3)),
-                            reps_or_duration=str(idata.get("reps") or "10"),
-                            load_pct=None,
-                            notes=None,
-                        )
-                    )
-                if len(items) < 3:
-                    any_name = next(iter(all_names), "Air Squat")
-                    while len(items) < 3:
-                        items.append(
-                            _ES(
-                                movement_name=any_name,
-                                sets=3,
-                                reps_or_duration="10",
-                                load_pct=None,
-                                notes=None,
-                            )
-                        )
-                sessions.append(
-                    _SF(session_type=str(sdata.get("session_type") or "metcon"), exercises=items)
-                )
-            if sessions:
-                fallback_weeks.append(_WF(week_number=1, sessions=sessions))
+        fallback_weeks = _tile_template_weeks(template, scaffold.total_weeks, _resolve_name)
     except Exception as tier2_exc:
         log.warning("plan_gen_metric: tier2 substitution failed: %s", str(tier2_exc)[:200])
     else:
@@ -708,48 +740,13 @@ async def _call_llm(
                 )
             return PlanFill(archetype=req.archetype, weeks=fallback_weeks)
 
-    # Tier 3: static fallback template.
+    # Tier 3: static fallback template, tiled across every week in the scaffold
+    # (see _fallback_plan_fill / _tile_template_weeks for why).
     log.warning(
         "plan_gen_metric",
         extra={"metric": "fallback_used", "archetype": req.archetype},
     )
-    from app.ai.fallback_templates import FALLBACK_SESSIONS as _FS  # noqa: PLC0415
-
-    template3 = _FS.get(req.archetype, _FS["general-crossfit"])
-    from app.ai.movement_enum import ExerciseSelection as _ES3
-    from app.ai.movement_enum import SessionFill as _SF3
-    from app.ai.movement_enum import WeekFill as _WF3
-
-    t3_weeks = []
-    for wdata in cast(list[dict[str, object]], template3.get("weeks", []))[:1]:
-        sessions = []
-        for sdata in cast(list[dict[str, object]], wdata.get("sessions", []))[:3]:
-            items = [
-                _ES3(
-                    movement_name=str(idata.get("movement_name") or "Air Squat"),
-                    sets=cast(int, idata.get("sets", 3)),
-                    reps_or_duration=str(idata.get("reps") or "10"),
-                    load_pct=None,
-                    notes=None,
-                )
-                for idata in cast(list[dict[str, object]], sdata.get("items", []))[:3]
-            ]
-            if len(items) < 3:
-                while len(items) < 3:
-                    items.append(
-                        _ES3(
-                            movement_name="Air Squat",
-                            sets=3,
-                            reps_or_duration="10",
-                            load_pct=None,
-                            notes=None,
-                        )
-                    )
-            sessions.append(
-                _SF3(session_type=str(sdata.get("session_type") or "metcon"), exercises=items)
-            )
-        if sessions:
-            t3_weeks.append(_WF3(week_number=1, sessions=sessions))
+    result_fill = _fallback_plan_fill(req.archetype, scaffold.total_weeks)
 
     # Tier 3 is the last resort — a recording failure here must not prevent the
     # static fallback plan itself from being returned.
@@ -760,25 +757,7 @@ async def _call_llm(
             "plan_gen_metric: tier3 generation_tier recording failed: %s",
             str(record_exc)[:200],
         )
-    return PlanFill(
-        archetype=req.archetype,
-        weeks=t3_weeks
-        or [
-            _WF3(
-                week_number=1,
-                sessions=[
-                    _SF3(
-                        session_type="metcon",
-                        exercises=[
-                            _ES3(movement_name="Air Squat", sets=3, reps_or_duration="10"),
-                            _ES3(movement_name="Push-up", sets=3, reps_or_duration="10"),
-                            _ES3(movement_name="Sit-up", sets=3, reps_or_duration="20"),
-                        ],
-                    )
-                ],
-            )
-        ],
-    )
+    return result_fill
 
 
 def _plan_fill_to_draft(
@@ -1126,6 +1105,30 @@ async def _create_plan_records(
     total_sessions = sum(len(w.get("sessions", [])) for w in weeks_raw if isinstance(w, dict))
     if total_sessions == 0:
         raise ValueError("Plan draft has no sessions — aborting insert")
+
+    # Defensive safeguard against silent truncation (this is what the tier-2/
+    # tier-3 fallback-builder fix in _call_llm addresses upstream): a plan
+    # draft must schedule sessions across every requested week, not just a
+    # prefix of them. total_sessions == 0 above only catches a fully-empty
+    # draft, not "only the first week has sessions" — which is exactly the
+    # shape this bug produced (status: "complete", structurally fine, only
+    # 1/N weeks actually populated). Fail loudly here so a future regression
+    # marks the plan_task 'failed' with a clear error (via run_plan_generation's
+    # exception handler) instead of silently persisting an incomplete plan.
+    # Skipped when STUB_LLM=true: STUB_PLAN is a deliberately abbreviated
+    # single-week fixture regardless of the requested week count, and is never
+    # meant to exercise this invariant.
+    if not is_stubbed():
+        scheduled_week_nums = {
+            int(str(w.get("week", 0)))
+            for w in weeks_raw
+            if isinstance(w, dict) and w.get("sessions")
+        }
+        if len(scheduled_week_nums) < weeks:
+            raise ValueError(
+                f"Plan draft only schedules {len(scheduled_week_nums)}/{weeks} requested weeks"
+                " — aborting insert to avoid persisting a truncated plan"
+            )
 
     async with db.transaction():
         async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
