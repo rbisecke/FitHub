@@ -39,7 +39,7 @@ from httpx import AsyncClient
 
 from app.ai.archetype_prompts import ARCHETYPE_MODEL
 from app.ai.movement_enum import ExerciseSelection, PlanFill, SessionFill, WeekFill
-from app.ai.plan_generator import _call_llm, run_plan_generation
+from app.ai.plan_generator import _call_llm, _plan_fill_to_draft, run_plan_generation
 from app.ai.plan_scaffold import build_scaffold
 from app.models.plan import CreatePlanRequest
 from tests.conftest import ALICE_ID, TEST_DB_DSN
@@ -299,6 +299,78 @@ async def test_safeguard_fails_loudly_on_truncated_draft(
 
     task_resp = await alice_client.get(f"/api/v1/plans/tasks/{task_id}")
     assert task_resp.json()["status"] == "failed"
+
+
+@pytest.mark.asyncio
+async def test_safeguard_uses_scaffold_target_weeks_for_skill_acquisition(
+    monkeypatch: pytest.MonkeyPatch, alice_client: AsyncClient
+) -> None:
+    """MEDIUM regression: for archetype == "skill-acquisition", build_scaffold
+    targets max_duration_weeks (not weeks) as the real week count (see
+    plan_scaffold.build_scaffold), and CreatePlanRequest allows the two fields
+    to legitimately diverge. A request with weeks=12, max_duration_weeks=8
+    correctly produces an 8-week plan.
+
+    Before the fix, the truncation safeguard compared the persisted week count
+    against the raw req_data["weeks"] (12) instead of the scaffold's actual
+    8-week target, so this valid 8-week plan was incorrectly rejected and the
+    plan_task wrongly marked 'failed'.
+    """
+    monkeypatch.setenv("STUB_LLM", "false")
+
+    async with (
+        await psycopg.AsyncConnection.connect(TEST_DB_DSN) as conn,
+        conn.cursor(row_factory=psycopg.rows.dict_row) as cur,
+    ):
+        await cur.execute("SELECT id::text FROM public.movements WHERE slug = 'bar-muscle-up'")
+        movement_row = await cur.fetchone()
+    assert movement_row is not None, (
+        "local seed data must include a 'Bar Muscle-Up' movement (slug 'bar-muscle-up') "
+        "for this test — see supabase/seed.sql"
+    )
+    movement_id = movement_row["id"]
+
+    req_data = _req_data(
+        archetype="skill-acquisition",
+        weeks=12,
+        max_duration_weeks=8,
+        target_movement_id=movement_id,
+    )
+    scaffold = build_scaffold(CreatePlanRequest(**req_data))
+    assert scaffold.total_weeks == 8, "scaffold must target max_duration_weeks, not weeks"
+
+    def _fake_plan_fill() -> PlanFill:
+        exercises = [
+            ExerciseSelection(movement_name="Air Squat", sets=2, reps_or_duration="10")
+            for _ in range(3)
+        ]
+        week_fills = [
+            WeekFill(
+                week_number=w.week_number,
+                sessions=[
+                    SessionFill(session_type=s.session_type, exercises=exercises)
+                    for s in w.sessions
+                ],
+            )
+            for w in scaffold.weeks
+        ]
+        return PlanFill(archetype="skill-acquisition", weeks=week_fills)
+
+    async def _fake_assemble_plan(*args: object, **kwargs: object) -> dict[str, object]:
+        return _plan_fill_to_draft(_fake_plan_fill(), scaffold)
+
+    task_id = await _insert_plan_task(ALICE_ID)
+    with patch("app.ai.plan_generator.assemble_plan", _fake_assemble_plan):
+        await run_plan_generation(task_id, str(ALICE_ID), req_data)
+
+    row = await _fetch_plan_task(task_id)
+    assert row["status"] == "complete", row.get("error")
+
+    weeks_covered = await _fetch_scheduled_weeks(row["plan_id"], START_DATE)
+    assert set(weeks_covered.keys()) == set(range(1, 9)), (
+        f"expected weeks 1-8 scheduled (max_duration_weeks target), got "
+        f"{sorted(weeks_covered.keys())}"
+    )
 
 
 # ── Model routing: LLM_BACKEND must be respected, default behavior unchanged ─

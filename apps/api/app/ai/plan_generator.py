@@ -1066,8 +1066,18 @@ async def _create_plan_records(
     req_data: dict[str, object],
     draft: dict[str, object],
     db: psycopg.AsyncConnection[object],
+    target_weeks: int | None = None,
 ) -> str:
-    """Persist plan + mesocycles + sessions + items inside a transaction; return plan_id."""
+    """Persist plan + mesocycles + sessions + items inside a transaction; return plan_id.
+
+    target_weeks: the scaffold's actual target week count (PlanScaffold.total_weeks),
+    used by the truncation safeguard below. Callers that already built a scaffold
+    (run_plan_generation) should pass it in — for skill-acquisition archetypes,
+    build_scaffold uses max_duration_weeks rather than weeks as the real target,
+    so comparing scheduled weeks against the raw req_data["weeks"] would reject a
+    legitimately shorter plan. Defaults to req_data["weeks"] for callers that don't
+    have a scaffold on hand, which is correct for every non-skill-acquisition case.
+    """
     archetype = str(req_data["archetype"])
     title = str(req_data["title"])
     start_date_raw = req_data["start_date"]
@@ -1108,26 +1118,35 @@ async def _create_plan_records(
 
     # Defensive safeguard against silent truncation (this is what the tier-2/
     # tier-3 fallback-builder fix in _call_llm addresses upstream): a plan
-    # draft must schedule sessions across every requested week, not just a
-    # prefix of them. total_sessions == 0 above only catches a fully-empty
-    # draft, not "only the first week has sessions" — which is exactly the
-    # shape this bug produced (status: "complete", structurally fine, only
-    # 1/N weeks actually populated). Fail loudly here so a future regression
-    # marks the plan_task 'failed' with a clear error (via run_plan_generation's
-    # exception handler) instead of silently persisting an incomplete plan.
+    # draft must schedule sessions across every week the scaffold actually
+    # targeted, not just a prefix of them. total_sessions == 0 above only
+    # catches a fully-empty draft, not "only the first week has sessions" —
+    # which is exactly the shape this bug produced (status: "complete",
+    # structurally fine, only 1/N weeks actually populated). Fail loudly here
+    # so a future regression marks the plan_task 'failed' with a clear error
+    # (via run_plan_generation's exception handler) instead of silently
+    # persisting an incomplete plan.
+    #
+    # Compare against target_weeks (the scaffold's PlanScaffold.total_weeks),
+    # not the raw req_data["weeks"]: for archetype == "skill-acquisition",
+    # build_scaffold targets max_duration_weeks instead of weeks, and
+    # CreatePlanRequest allows the two to legitimately differ. Falling back to
+    # `weeks` when no scaffold was supplied is correct for every other
+    # archetype, where the scaffold's total_weeks always equals weeks.
     # Skipped when STUB_LLM=true: STUB_PLAN is a deliberately abbreviated
     # single-week fixture regardless of the requested week count, and is never
     # meant to exercise this invariant.
     if not is_stubbed():
+        expected_weeks = target_weeks if target_weeks is not None else weeks
         scheduled_week_nums = {
             int(str(w.get("week", 0)))
             for w in weeks_raw
             if isinstance(w, dict) and w.get("sessions")
         }
-        if len(scheduled_week_nums) < weeks:
+        if len(scheduled_week_nums) < expected_weeks:
             raise ValueError(
-                f"Plan draft only schedules {len(scheduled_week_nums)}/{weeks} requested weeks"
-                " — aborting insert to avoid persisting a truncated plan"
+                f"Plan draft only schedules {len(scheduled_week_nums)}/{expected_weeks} "
+                "target weeks — aborting insert to avoid persisting a truncated plan"
             )
 
     async with db.transaction():
@@ -1227,7 +1246,9 @@ async def run_plan_generation(
             log.warning("Plan validation violations: %s", violations)
 
         async with pool.connection() as db:
-            plan_id = await _create_plan_records(user_id, req_data, draft, db)
+            plan_id = await _create_plan_records(
+                user_id, req_data, draft, db, target_weeks=scaffold.total_weeks
+            )
             # B5: surface violations on the response instead of only logging them —
             # persisted alongside the completion write regardless of whether the
             # list is empty, matching plan_tasks.corrections' NOT NULL DEFAULT '[]'.
