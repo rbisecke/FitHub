@@ -186,7 +186,7 @@ async def test_substitutes_no_equipment_filter_returns_all_pattern_matches(
         slug=f"wall-ball-{uid}",
         movement_pattern="squat",
     )
-    await _set_equipment(sub_a, ["wall_ball"])
+    await _set_equipment(sub_a, ["bodyweight"])
 
     sub_b = await _create_movement(
         alice_client,
@@ -287,7 +287,7 @@ async def test_substitutes_response_shape(alice_client: AsyncClient) -> None:
         slug=f"bulgarian-split-squat-{uid}",
         movement_pattern="squat",
     )
-    await _set_equipment(sub_id, ["dumbbell"])
+    await _set_equipment(sub_id, ["dumbbells"])
 
     r = await alice_client.get(f"/api/v1/movements/{src_id}/substitutes")
     assert r.status_code == 200
