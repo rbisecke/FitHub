@@ -116,6 +116,81 @@ async function loginAndSetSession(page: Page, _token: string): Promise<void> {
 
 // ── Data seeding ──────────────────────────────────────────────────────────────
 
+async function ensureDemoPlan(token: string): Promise<void> {
+  // Check if a plan already exists.
+  const listRes = await fetch(`${API_URL}/api/v1/plans`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (listRes.ok) {
+    const plans = (await listRes.json()) as Array<{ id: string }>;
+    if (plans.length > 0) {
+      console.log(`  ✓ Plan already exists (${plans[0]!.id})`);
+      return;
+    }
+  }
+
+  // POST to generate a new plan (202 async).
+  const today = new Date();
+  const startDate = `${today.getFullYear()}-${String(
+    today.getMonth() + 1,
+  ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  const createRes = await fetch(`${API_URL}/api/v1/plans`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      archetype: "general-crossfit",
+      title: "General CrossFit — 8 Weeks",
+      start_date: startDate,
+      weeks: 8,
+      training_age: "intermediate",
+      equipment: ["barbell", "pull-up bar", "kettlebell"],
+      days_per_week: 4,
+    }),
+  });
+
+  if (!createRes.ok) {
+    console.warn(
+      `  ⚠ Plan create returned ${createRes.status} — skipping plan screenshots`,
+    );
+    return;
+  }
+
+  const taskData = (await createRes.json()) as {
+    task_id: string;
+    status: string;
+  };
+  console.log(`  → Plan task created: ${taskData.task_id}`);
+
+  // Poll until complete or timeout (30s).
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 1500));
+    const pollRes = await fetch(
+      `${API_URL}/api/v1/plans/tasks/${taskData.task_id}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    if (!pollRes.ok) continue;
+    const poll = (await pollRes.json()) as { status: string; plan_id?: string };
+    if (poll.status === "complete") {
+      console.log(`  ✓ Plan generated (plan_id=${poll.plan_id})`);
+      return;
+    }
+    if (poll.status === "failed") {
+      console.warn(`  ⚠ Plan generation failed — skipping plan screenshots`);
+      return;
+    }
+  }
+  console.warn(
+    `  ⚠ Plan generation timed out — plan screenshots may be empty`,
+  );
+}
+
 async function ensureProfile(token: string): Promise<void> {
   const res = await fetch(`${API_URL}/api/v1/profile`, {
     method: "PATCH",
@@ -465,6 +540,9 @@ async function main(): Promise<void> {
   console.log("→ Seeding workout data…");
   await ensureSeededWorkouts(token);
 
+  console.log("→ Ensuring demo plan…");
+  await ensureDemoPlan(token);
+
   console.log("→ Setting up browser session…");
   await loginAndSetSession(page, token);
 
@@ -503,6 +581,51 @@ async function main(): Promise<void> {
   await page.goto(`${BASE_URL}/plans`, { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   await shot(page, "revamp-plans");
+
+  // Plan wizard — step 1 (archetype selection)
+  await page.goto(`${BASE_URL}/plans/new`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  await shot(page, "revamp-plan-wizard");
+
+  // Plan detail — navigate to the first plan
+  const plansRes = await fetch(`${API_URL}/api/v1/plans`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (plansRes.ok) {
+    const plansData = (await plansRes.json()) as Array<{
+      id: string;
+      sessions?: Array<{ id: string }>;
+    }>;
+    if (plansData.length > 0) {
+      const planId = plansData[0]!.id;
+      await page.goto(`${BASE_URL}/plans/${planId}`, {
+        waitUntil: "networkidle",
+      });
+      await page.waitForTimeout(1000);
+      await shot(page, "revamp-plan-detail");
+
+      // Session execution — use the sessions embedded in the plan detail response
+      const planDetailRes = await fetch(`${API_URL}/api/v1/plans/${planId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (planDetailRes.ok) {
+        const planDetail = (await planDetailRes.json()) as {
+          sessions: Array<{ id: string }>;
+        };
+        if (planDetail.sessions.length > 0) {
+          const sessId = planDetail.sessions[0]!.id;
+          await page.goto(
+            `${BASE_URL}/plans/${planId}/sessions/${sessId}/execute`,
+            {
+              waitUntil: "networkidle",
+            },
+          );
+          await page.waitForTimeout(800);
+          await shot(page, "revamp-session-execute");
+        }
+      }
+    }
+  }
 
   // Records (git tag --list)
   await page.goto(`${BASE_URL}/records`, { waitUntil: "networkidle" });

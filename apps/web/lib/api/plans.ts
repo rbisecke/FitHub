@@ -25,3 +25,10 @@ export type MovementModification =
   components["schemas"]["MovementModification"];
 export type CheckWodResponse = components["schemas"]["CheckWodResponse"];
 export type WodMovementResult = components["schemas"]["WodMovementResult"];
+export type MovementSubstituteOut =
+  components["schemas"]["MovementSubstituteOut"];
+export type CompleteSessionRequest =
+  components["schemas"]["CompleteSessionRequest"];
+export type LoggedSetPayload = NonNullable<
+  CompleteSessionRequest["logged_sets"]
+>[number];

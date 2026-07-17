@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 
+import psycopg.rows
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from psycopg import errors as pg_errors
 
@@ -12,6 +13,8 @@ from app.models.movement import (
     LastResult,
     Modality,
     Movement,
+    MovementPattern,
+    MovementSubstituteOut,
     PersonalRecordResult,
 )
 from app.repositories.movements import (
@@ -112,3 +115,68 @@ async def get_movement_personal_record(
         implement=implement,
         side=side,
     )
+
+
+@router.get("/{movement_id}/substitutes", response_model=list[MovementSubstituteOut])
+async def get_movement_substitutes(
+    movement_id: uuid.UUID,
+    user: Auth,
+    conn: DBConn,
+    equipment: list[str] = Query(default=[]),
+) -> list[MovementSubstituteOut]:
+    """Return up to 20 movements with the same movement_pattern that fit the equipment list."""
+    if equipment and len(equipment) > 20:
+        raise HTTPException(status_code=422, detail="Too many equipment filters")
+
+    async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT movement_pattern
+            FROM public.movements
+            WHERE id = %(movement_id)s
+            LIMIT 1
+            """,
+            {"movement_id": movement_id},
+        )
+        src = await cur.fetchone()
+
+    if src is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movement not found")
+
+    # Explicit None guard: a source movement with no movement_pattern has no
+    # meaningful "same pattern" substitutes. Coercing None to the literal
+    # string "None" before the WHERE clause happened to return an empty list
+    # too, but only by accident — this makes the intent explicit instead of
+    # relying on no real movement ever having the pattern "None".
+    if src["movement_pattern"] is None:
+        return []
+
+    pattern = str(src["movement_pattern"])
+
+    async with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT id, name, movement_pattern, equipment_required
+            FROM public.movements
+            WHERE movement_pattern = %(pattern)s
+              AND id != %(movement_id)s
+              AND (
+                    %(equipment)s::TEXT[] = ARRAY[]::TEXT[]
+                    OR equipment_required <@ %(equipment)s::TEXT[]
+                  )
+            ORDER BY name
+            LIMIT 20
+            """,
+            {"pattern": pattern, "movement_id": movement_id, "equipment": equipment},
+        )
+        rows = await cur.fetchall()
+
+    return [
+        MovementSubstituteOut(
+            id=r["id"],
+            name=str(r["name"]),
+            movement_pattern=MovementPattern(r["movement_pattern"]),
+            equipment_required=list(r["equipment_required"] or []),
+        )
+        for r in rows
+    ]

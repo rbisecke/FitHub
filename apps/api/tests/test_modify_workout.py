@@ -54,13 +54,15 @@ async def _create_plan_with_session(client: AsyncClient, movements: list[str]) -
     r = await client.post(
         "/api/v1/plans",
         json={
-            "goal": "test",
-            "weeks": 1,
-            "days_per_week": 1,
-            "training_level": "beginner",
+            "archetype": "general-crossfit",
+            "title": "Modify Workout Test Plan",
+            "start_date": "2026-07-01",
+            "weeks": 4,
+            "training_age": "beginner",
+            "days_per_week": 3,
         },
     )
-    if r.status_code != 200:
+    if r.status_code != 202:
         pytest.skip("Plan creation failed — AI not available in this environment")
     plan_id = r.json()["id"]
 
@@ -91,8 +93,8 @@ async def _create_session_with_items(client: AsyncClient, movements: list[str]) 
         await conn.execute(
             """
             INSERT INTO plans
-                (id, user_id, goal, title, weeks, status, start_date, end_date, branch_name)
-            VALUES (%s, %s, 'strength', 'Test plan', 4, 'active', %s, %s, 'test-plan')
+                (id, user_id, archetype, title, weeks, status, start_date, end_date, branch_name)
+            VALUES (%s, %s, 'strength-bias', 'Test plan', 4, 'active', %s, %s, 'test-plan')
             """,
             [plan_id, str(ALICE_ID), _today, _today + timedelta(weeks=4)],
         )

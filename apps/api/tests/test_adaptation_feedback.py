@@ -11,11 +11,12 @@ from httpx import AsyncClient
 from tests.conftest import ALICE_ID, TEST_DB_DSN
 
 CREATE_PLAN_BODY = {
-    "goal": "general_fitness",
+    "archetype": "general-crossfit",
     "title": "Feedback Test Plan",
     "start_date": "2026-07-01",
     "weeks": 8,
     "training_age": "intermediate",
+    "days_per_week": 4,
 }
 
 

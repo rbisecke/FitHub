@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import uuid
 from datetime import date
 from typing import Annotated, Literal, cast
@@ -17,6 +18,7 @@ from app.ai.stub import is_stubbed
 from app.dependencies.common import Auth, DBConn
 from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.plan import (
+    CompleteSessionRequest,
     CreatePlanRequest,
     MesocycleOut,
     PlanDetail,
@@ -28,9 +30,55 @@ from app.models.plan import (
     SessionPatch,
 )
 
+log = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/v1/plans", tags=["plans"])
 
 _bg_tasks: set[asyncio.Task[None]] = set()
+
+
+async def _prefetch_1rm(
+    movement_id: uuid.UUID,
+    user_id: str,
+    db: psycopg.AsyncConnection[object],
+) -> float | None:
+    """Return the best estimated 1RM (kg) for this user + movement using the Epley formula.
+
+    Queries the 20 most recent weight results for the movement, computes
+    estimated 1RM = load * (1 + reps/30) for each set, and returns the max.
+    Returns None if there are no eligible results.
+
+    Security: WHERE clause always includes user_id to prevent IDOR.
+    """
+    try:
+        async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT load_kg, reps
+                FROM public.results
+                WHERE user_id = %s AND movement_id = %s
+                  AND result_type = 'weight'
+                  AND load_kg IS NOT NULL AND reps IS NOT NULL
+                ORDER BY created_at DESC
+                LIMIT 20
+                """,
+                [user_id, movement_id],
+            )
+            rows = await cur.fetchall()
+    except psycopg.Error:
+        log.exception("db error in _prefetch_1rm user_id=%s movement_id=%s", user_id, movement_id)
+        return None
+
+    if not rows:
+        return None
+
+    # Epley formula: e1RM = load * (1 + reps/30); take max across recent sets
+    estimates = [
+        float(r["load_kg"]) * (1 + int(str(r["reps"])) / 30)
+        for r in rows
+        if str(r["reps"]).isdigit()
+    ]
+    return round(max(estimates), 1) if estimates else None
 
 
 async def _get_plan_detail(
@@ -39,11 +87,20 @@ async def _get_plan_detail(
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
-            SELECT id, goal, title, branch_name, weeks, status,
-                   start_date, end_date, training_age,
-                   to_char(created_at AT TIME ZONE 'UTC',
-                           'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
-            FROM plans WHERE id = %s AND user_id = %s
+            SELECT p.id, p.archetype, p.title, p.branch_name, p.weeks, p.status,
+                   p.start_date, p.end_date, p.training_age,
+                   to_char(p.created_at AT TIME ZONE 'UTC',
+                           'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at,
+                   pt.generation_tier, pt.corrections
+            FROM plans p
+            LEFT JOIN LATERAL (
+                SELECT generation_tier, corrections
+                FROM plan_tasks
+                WHERE plan_id = p.id
+                ORDER BY created_at DESC
+                LIMIT 1
+            ) pt ON true
+            WHERE p.id = %s AND p.user_id = %s
             """,
             [plan_id, user_id],
         )
@@ -94,8 +151,17 @@ async def _get_plan_detail(
 
     return PlanDetail(
         id=plan["id"],
-        goal=cast(
-            Literal["general_fitness", "strength", "endurance", "competition_prep"], plan["goal"]
+        archetype=cast(
+            Literal[
+                "general-crossfit",
+                "strength-bias",
+                "travel-minimal",
+                "aerobic-base",
+                "bodyweight-calisthenics",
+                "skill-acquisition",
+                "one-rm-peak",
+            ],
+            plan["archetype"],
         ),
         title=str(plan["title"]),
         branch_name=str(plan["branch_name"]),
@@ -107,6 +173,11 @@ async def _get_plan_detail(
             Literal["beginner", "intermediate", "advanced"] | None, plan["training_age"]
         ),
         created_at=str(plan["created_at"]),
+        generation_tier=cast(
+            Literal["ai", "deterministic_substitution", "static_fallback"] | None,
+            plan["generation_tier"],
+        ),
+        corrections=list(plan["corrections"]) if plan["corrections"] else [],
         mesocycles=[
             MesocycleOut(
                 id=m["id"],
@@ -237,6 +308,140 @@ async def _apply_session_patch(
             )
 
 
+def _short_hash(workout_id: uuid.UUID) -> str:
+    """Same 8-char scheme as repositories/workouts.py's create_workout."""
+    return str(workout_id).replace("-", "")[:8]
+
+
+async def _complete_planned_session(
+    plan_id: str,
+    session_id: str,
+    user_id: str,
+    req: CompleteSessionRequest,
+    db: psycopg.AsyncConnection[object],
+) -> PlannedSessionOut:
+    """Persist logged sets as a workout+results and mark the session complete.
+
+    One transaction: ownership check, planned_item_id cross-tenant validation,
+    INSERT workout, bulk-INSERT results (one row per logged set), UPDATE
+    planned_sessions.status (guarded to only fire from 'prescribed', so a
+    resubmit can't duplicate the workout). A constraint violation on any
+    logged set (e.g. a bad planned_item_id) rolls back the whole thing,
+    including the workout row.
+    """
+    try:
+        async with db.transaction(), db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+            # Ownership check — 404 (not 403) for another user's session, same
+            # IDOR-prevention convention as _apply_session_patch/revise_plan.
+            await cur.execute(
+                "SELECT title FROM planned_sessions"
+                " WHERE id = %s::uuid AND plan_id = %s::uuid AND user_id = %s::uuid",
+                [session_id, plan_id, user_id],
+            )
+            session_row = await cur.fetchone()
+            if session_row is None:
+                raise HTTPException(status_code=404, detail="Session not found")
+
+            # Cross-tenant reference check — every logged_sets[].planned_item_id
+            # must genuinely belong to THIS session and user, not just exist
+            # somewhere in the table (a plain FK check would let a caller
+            # attach their own results to another user's planned_items row).
+            if req.logged_sets:
+                submitted_item_ids = {s.planned_item_id for s in req.logged_sets}
+                await cur.execute(
+                    "SELECT id FROM planned_items"
+                    " WHERE id = ANY(%s) AND session_id = %s::uuid AND user_id = %s::uuid",
+                    [list(submitted_item_ids), session_id, user_id],
+                )
+                valid_rows = await cur.fetchall()
+                valid_item_ids = {row["id"] for row in valid_rows}
+                if valid_item_ids != submitted_item_ids:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="One or more logged sets reference an invalid planned item.",
+                    )
+
+            workout_id = uuid.uuid4()
+            await cur.execute(
+                """
+                INSERT INTO public.workouts
+                    (id, user_id, performed_at, title, short_hash, bodyweight_kg)
+                VALUES (%s, %s, now(), %s, %s, %s)
+                """,
+                [
+                    workout_id,
+                    user_id,
+                    session_row["title"],
+                    _short_hash(workout_id),
+                    req.bodyweight_kg,
+                ],
+            )
+
+            if req.logged_sets:
+                await cur.executemany(
+                    """
+                    INSERT INTO public.results
+                        (user_id, workout_id, movement_id, planned_item_id,
+                         result_type, load_kg, reps, rpe)
+                    VALUES (%s, %s, %s, %s, 'weight', %s, %s, %s)
+                    """,
+                    [
+                        (
+                            user_id,
+                            workout_id,
+                            s.movement_id,
+                            s.planned_item_id,
+                            s.load_kg,
+                            s.reps,
+                            s.rpe,
+                        )
+                        for s in req.logged_sets
+                    ],
+                )
+
+            await cur.execute(
+                """
+                UPDATE planned_sessions SET status = 'completed'
+                WHERE id = %s::uuid AND plan_id = %s::uuid AND user_id = %s::uuid
+                  AND status = 'prescribed'
+                RETURNING id, mesocycle_id, scheduled_date, session_type, title, notes, status
+                """,
+                [session_id, plan_id, user_id],
+            )
+            updated = await cur.fetchone()
+            if updated is None:
+                # Ownership/existence was already confirmed above, so zero rows
+                # here means the session was found but is no longer 'prescribed'
+                # (already completed/skipped/adapted) — a resubmit, not an IDOR.
+                raise HTTPException(
+                    status_code=409, detail="This session has already been completed."
+                )
+
+            await cur.execute(
+                """
+                SELECT id, movement_name, sets, reps,
+                       load_pct_1rm::float AS load_pct_1rm, load_kg::float AS load_kg,
+                       notes, item_order
+                FROM planned_items
+                WHERE session_id = %s::uuid
+                ORDER BY item_order
+                LIMIT 100
+                """,
+                [session_id],
+            )
+            item_rows = await cur.fetchall()
+    except psycopg.Error as exc:
+        log.exception(
+            "db error completing session_id=%s plan_id=%s user_id=%s",
+            session_id,
+            plan_id,
+            user_id,
+        )
+        raise HTTPException(status_code=500, detail="Internal error. Please try again.") from exc
+
+    return PlannedSessionOut(**updated, items=[PlannedItemOut(**row) for row in item_rows])
+
+
 @router.post("", status_code=202, response_model=PlanTaskResponse)
 @limiter.limit("3/hour", key_func=user_or_ip_key)
 async def create_plan(
@@ -246,20 +451,34 @@ async def create_plan(
     db: DBConn,
     _kill: Annotated[None, Depends(require_llm_enabled)],
 ) -> PlanTaskResponse:
-    task_id = str(uuid.uuid4())
-    await db.execute(
-        "INSERT INTO plan_tasks (id, user_id, status) VALUES (%s::uuid, %s, 'pending')",
-        [task_id, user.user_id],
-    )
+    # Pre-fetch 1RM from results table when archetype needs it but caller didn't supply one
+    current_1rm: float | None = req.current_1rm_kg
+    if req.target_movement_id is not None and current_1rm is None:
+        current_1rm = await _prefetch_1rm(req.target_movement_id, str(user.user_id), db)
+
+    try:
+        task_id = str(uuid.uuid4())
+        await db.execute(
+            "INSERT INTO plan_tasks (id, user_id, status) VALUES (%s::uuid, %s, 'pending')",
+            [task_id, user.user_id],
+        )
+    except psycopg.Error as exc:
+        log.exception("db error creating plan_task for user_id=%s", user.user_id)
+        raise HTTPException(status_code=500, detail="Internal error. Please try again.") from exc
 
     from app.ai.plan_generator import run_plan_generation  # noqa: PLC0415
 
     req_data: dict[str, object] = {
-        "goal": req.goal,
+        "archetype": req.archetype,
         "title": req.title,
         "start_date": req.start_date.isoformat(),
         "weeks": req.weeks,
         "training_age": req.training_age,
+        "equipment": list(req.equipment),
+        "days_per_week": req.days_per_week,
+        "target_movement_id": str(req.target_movement_id) if req.target_movement_id else None,
+        "max_duration_weeks": req.max_duration_weeks,
+        "current_1rm_kg": current_1rm,
     }
     _task = asyncio.create_task(run_plan_generation(task_id, str(user.user_id), req_data))
     _bg_tasks.add(_task)
@@ -276,7 +495,7 @@ async def get_task(
 ) -> PlanTaskResponse:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
-            "SELECT id::text, status, plan_id, error"
+            "SELECT id::text, status, plan_id, error, generation_tier, corrections"
             " FROM plan_tasks WHERE id = %s AND user_id = %s",
             [task_id, user.user_id],
         )
@@ -290,6 +509,11 @@ async def get_task(
         status=cast(Literal["pending", "running", "complete", "failed"], row["status"]),
         plan_id=row["plan_id"],
         error=str(row["error"]) if row["error"] else None,
+        generation_tier=cast(
+            Literal["ai", "deterministic_substitution", "static_fallback"] | None,
+            row["generation_tier"],
+        ),
+        corrections=list(row["corrections"]) if row["corrections"] else [],
     )
 
 
@@ -303,7 +527,7 @@ async def list_plans(
         if before_id is not None:
             await cur.execute(
                 """
-                SELECT id, goal, title, branch_name, weeks, status,
+                SELECT id, archetype, title, branch_name, weeks, status,
                        start_date, end_date,
                        to_char(created_at AT TIME ZONE 'UTC',
                                'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
@@ -320,7 +544,7 @@ async def list_plans(
         else:
             await cur.execute(
                 """
-                SELECT id, goal, title, branch_name, weeks, status,
+                SELECT id, archetype, title, branch_name, weeks, status,
                        start_date, end_date,
                        to_char(created_at AT TIME ZONE 'UTC',
                                'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
@@ -333,8 +557,17 @@ async def list_plans(
     return [
         PlanSummary(
             id=r["id"],
-            goal=cast(
-                Literal["general_fitness", "strength", "endurance", "competition_prep"], r["goal"]
+            archetype=cast(
+                Literal[
+                    "general-crossfit",
+                    "strength-bias",
+                    "travel-minimal",
+                    "aerobic-base",
+                    "bodyweight-calisthenics",
+                    "skill-acquisition",
+                    "one-rm-peak",
+                ],
+                r["archetype"],
             ),
             title=str(r["title"]),
             branch_name=str(r["branch_name"]),
@@ -429,7 +662,7 @@ async def revise_plan(
     # 3. Generate revision diff
     from app.ai.plan_generator import generate_plan_revision  # noqa: PLC0415
 
-    diff = await generate_plan_revision(prescribed, req.feedback)
+    diff = await generate_plan_revision(prescribed, req.feedback, user_id=user.user_id, db=db)
 
     # 4. Validate that all changed sessions are prescribed
     prescribed_ids = {str(s["id"]) for s in prescribed}
@@ -464,3 +697,22 @@ async def revise_plan(
 
     # 6. Return updated plan detail
     return await _get_plan_detail(str(plan_id), str(user.user_id), db)
+
+
+@router.post("/{plan_id}/sessions/{session_id}/complete", response_model=PlannedSessionOut)
+@limiter.limit("30/minute", key_func=user_or_ip_key)  # matches create_workout_route's convention
+async def complete_session(
+    plan_id: uuid.UUID,
+    session_id: uuid.UUID,
+    request: Request,
+    req: CompleteSessionRequest,
+    user: Auth,
+    db: DBConn,
+) -> PlannedSessionOut:
+    return await _complete_planned_session(
+        plan_id=str(plan_id),
+        session_id=str(session_id),
+        user_id=str(user.user_id),
+        req=req,
+        db=db,
+    )

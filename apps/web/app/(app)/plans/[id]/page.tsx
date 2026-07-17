@@ -2,12 +2,16 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/supabase/requireAuth";
 import { api } from "@/lib/api/client";
 import Link from "next/link";
-import { formatGoal } from "@/lib/display";
+import { formatArchetype } from "@/lib/display";
 import { PlanBranchView } from "@/components/plans/PlanBranchView";
+import { PlanGenerationNotice } from "@/components/plans/PlanGenerationNotice";
 import { MesocycleDotGrid } from "@/components/plans/MesocycleDotGrid";
 import { CurrentWeekView } from "@/components/plans/CurrentWeekView";
 import { AIAdaptationsPanel } from "@/components/plans/AIAdaptationsPanel";
 import { TodayPrescription } from "@/components/plans/TodayPrescription";
+import { PlanTimelineRail } from "@/components/plans/PlanTimelineRail";
+import { MesocycleProgressBar } from "@/components/plans/MesocycleProgressBar";
+import { WeeklyVolumeSparklines } from "@/components/plans/WeeklyVolumeSparklines";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -70,10 +74,32 @@ export default async function PlanDetailPage({ params }: Props) {
           )}
         </div>
         <p className="font-data text-[12px] text-[var(--muted)] mt-1 tabular-nums">
-          {formatGoal(plan.goal)} · {plan.weeks} weeks · starts{" "}
+          {formatArchetype(plan.archetype)} · {plan.weeks} weeks · starts{" "}
           {plan.start_date}
         </p>
       </div>
+
+      {/* Generation tier / correction transparency notice */}
+      <PlanGenerationNotice
+        generationTier={plan.generation_tier}
+        corrections={plan.corrections}
+      />
+
+      {/* Mesocycle progress bar */}
+      {plan.mesocycles.length > 0 && (
+        <MesocycleProgressBar
+          mesocycles={plan.mesocycles}
+          startDate={plan.start_date}
+        />
+      )}
+
+      {/* Plan timeline rail */}
+      <PlanTimelineRail
+        sessions={plan.sessions}
+        mesocycles={plan.mesocycles}
+        startDate={plan.start_date}
+        weeks={plan.weeks}
+      />
 
       {/* Today's prescription */}
       <TodayPrescription
@@ -97,6 +123,16 @@ export default async function PlanDetailPage({ params }: Props) {
             # generating sessions...
           </p>
         </div>
+      )}
+
+      {/* Weekly volume sparklines */}
+      {plan.sessions.length > 0 && (
+        <WeeklyVolumeSparklines
+          sessions={plan.sessions}
+          mesocycles={plan.mesocycles}
+          startDate={plan.start_date}
+          weeks={plan.weeks}
+        />
       )}
 
       {/* Current week */}

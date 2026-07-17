@@ -5,11 +5,38 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api/client";
 import type { CreatePlanRequest } from "@/lib/api/plans";
 
-const GOALS = [
-  { value: "general_fitness", label: "General Fitness" },
-  { value: "strength", label: "Strength" },
-  { value: "endurance", label: "Endurance" },
-  { value: "competition_prep", label: "Competition Prep" },
+const ARCHETYPES: {
+  value: CreatePlanRequest["archetype"];
+  label: string;
+  desc: string;
+}[] = [
+  {
+    value: "general-crossfit",
+    label: "General CrossFit",
+    desc: "Balanced GPP",
+  },
+  {
+    value: "strength-bias",
+    label: "Strength Bias",
+    desc: "More barbell, less metcon",
+  },
+  { value: "aerobic-base", label: "Aerobic Base", desc: "Engine-first" },
+  {
+    value: "travel-minimal",
+    label: "Travel / Minimal",
+    desc: "Bodyweight + dumbbells",
+  },
+  {
+    value: "bodyweight-calisthenics",
+    label: "Calisthenics",
+    desc: "Rings, bars, gymnastics",
+  },
+  {
+    value: "skill-acquisition",
+    label: "Skill Acquisition",
+    desc: "Specific movement focus",
+  },
+  { value: "one-rm-peak", label: "1RM Peak", desc: "Peaking for a max lift" },
 ] as const;
 
 const TRAINING_AGES = [
@@ -32,7 +59,9 @@ export function CreatePlanForm({ accessToken }: Props) {
     [],
   );
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [goal, setGoal] = useState<CreatePlanRequest["goal"] | "">("");
+  const [archetype, setArchetype] = useState<
+    CreatePlanRequest["archetype"] | ""
+  >("");
   const [title, setTitle] = useState<string>("");
   const [weeks, setWeeks] = useState<number>(8);
   const [trainingAge, setTrainingAge] = useState<
@@ -42,9 +71,8 @@ export function CreatePlanForm({ accessToken }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit() {
-    if (!goal || !trainingAge) return;
-    // Narrowed: goal and trainingAge are non-empty after the guard above
-    const safeGoal = goal as CreatePlanRequest["goal"];
+    if (!archetype || !trainingAge) return;
+    const safeArchetype = archetype as CreatePlanRequest["archetype"];
     const safeTrainingAge = trainingAge as CreatePlanRequest["training_age"];
     setLoading(true);
     setError(null);
@@ -56,12 +84,16 @@ export function CreatePlanForm({ accessToken }: Props) {
       const d = String(startDate.getDate()).padStart(2, "0");
       const startDateStr = `${y}-${m}-${d}`;
 
+      const selectedArchetype = ARCHETYPES.find(
+        (a) => a.value === safeArchetype,
+      );
       const task = await api.plans.create(accessToken, {
-        goal: safeGoal,
-        title: title || `${safeGoal.replace("_", " ")} plan`,
+        archetype: safeArchetype,
+        title: title || `${selectedArchetype?.label ?? safeArchetype} plan`,
         start_date: startDateStr,
         weeks,
         training_age: safeTrainingAge,
+        days_per_week: 4,
       });
 
       const taskId = task.task_id;
@@ -100,24 +132,27 @@ export function CreatePlanForm({ accessToken }: Props) {
       {step === 1 && (
         <div>
           <h2 className="mb-4 font-mono text-sm font-semibold text-[var(--text)]">
-            step 1 — choose goal
+            step 1 — choose archetype
           </h2>
           <div className="grid grid-cols-2 gap-3">
-            {GOALS.map((g) => (
+            {ARCHETYPES.map((a) => (
               <button
-                key={g.value}
-                data-testid={`goal-${g.value}`}
+                key={a.value}
+                data-testid={`archetype-${a.value}`}
                 onClick={() => {
-                  setGoal(g.value);
+                  setArchetype(a.value);
                   setStep(2);
                 }}
                 className={`rounded-lg border p-4 text-left transition-colors ${
-                  goal === g.value
+                  archetype === a.value
                     ? "border-[var(--accent)] bg-[rgba(88,166,255,0.12)] text-[var(--text)]"
                     : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--muted)]"
                 }`}
               >
-                <p className="font-mono text-sm font-semibold">{g.label}</p>
+                <p className="font-mono text-sm font-semibold">{a.label}</p>
+                <p className="font-mono text-xs text-[var(--muted)] mt-1">
+                  {a.desc}
+                </p>
               </button>
             ))}
           </div>
@@ -137,7 +172,10 @@ export function CreatePlanForm({ accessToken }: Props) {
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={`${goal.replace("_", " ")} plan`}
+              placeholder={`${
+                ARCHETYPES.find((a) => a.value === archetype)?.label ??
+                archetype
+              } plan`}
               className="w-full rounded border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono text-sm text-[var(--text)] placeholder-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
             />
           </div>

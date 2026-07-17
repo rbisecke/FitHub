@@ -18,16 +18,17 @@ The app is invite-only and in active development. Use the "Request access" form 
 
 ## What it does
 
-| Theme                     | Details                                                                                                                                                                             |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Track**                 | `git commit -m` — NL input box parses free-text workout descriptions into structured sets; staged-changes panel for review before committing; RPE stepper                           |
-| **Training log**          | `git log --all` — short hash IDs, PR badges, benchmark / partner / AMRAP / EMOM / strength WOD support; tap any commit to expand full detail                                        |
-| **Load management**       | sRPE × duration perceived load; ACWR via EWMA; ATL/CTL/TSB; Hooper index check-ins; training balance breakdown by muscle group                                                      |
-| **Personal records**      | `git tag --list` — gold hero numbers at 42px, category pills, timeline rail; named-benchmark progress (e.g. Fran 4:47 → 3:48)                                                       |
-| **AI coach & planning**   | SSE streaming chat with session history; hybrid RAG (BM25 + pgvector RRF fusion); adaptive plan generator with deterministic ACWR/readiness triggers; injury train-around           |
-| **Admin & observability** | LLM cost dashboard; per-user token and cost breakdown by model/endpoint; error event log; API health metrics; access-request queue with approve/reject workflow from the login page |
-| **Data model depth**      | Poliquin 4-digit tempo notation; Epley e1RM cached at write time; VBT fields; wearable-ready schema; IDOR-safe team session consent model                                           |
-| **Engineering**           | Invite-only multi-user from day one; deterministic safety logic; 764 tests across four suites; openapi-typescript contract check in CI                                              |
+| Theme                     | Details                                                                                                                                                                                                                                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Track**                 | `git commit -m` — NL input box parses free-text workout descriptions into structured sets; staged-changes panel for review before committing; RPE stepper                                                                                                                                       |
+| **Training log**          | `git log --all` — short hash IDs, PR badges, benchmark / partner / AMRAP / EMOM / strength WOD support; tap any commit to expand full detail                                                                                                                                                    |
+| **Load management**       | sRPE × duration perceived load; ACWR via EWMA; ATL/CTL/TSB; Hooper index check-ins; training balance breakdown by muscle group                                                                                                                                                                  |
+| **Personal records**      | `git tag --list` — gold hero numbers at 42px, category pills, timeline rail; named-benchmark progress (e.g. Fran 4:47 → 3:48)                                                                                                                                                                   |
+| **AI coach & planning**   | SSE streaming chat with session history; hybrid RAG (BM25 + pgvector RRF fusion); adaptive plan generator with deterministic ACWR/readiness triggers; injury train-around; 5-step plan wizard (archetype, equipment, schedule, target movement, training age) with scaffold-first AI generation |
+| **Session execution**     | Live exercise logging during planned sessions — per-set reps and weight inputs, rest timer, AI-suggested exercise swaps from a curated substitutes catalog                                                                                                                                      |
+| **Admin & observability** | LLM cost dashboard; per-user token and cost breakdown by model/endpoint; error event log; API health metrics; access-request queue with approve/reject workflow from the login page                                                                                                             |
+| **Data model depth**      | Poliquin 4-digit tempo notation; Epley e1RM cached at write time; VBT fields; wearable-ready schema; IDOR-safe team session consent model                                                                                                                                                       |
+| **Engineering**           | Invite-only multi-user from day one; deterministic safety logic; 1,467 tests across four suites; openapi-typescript contract check in CI                                                                                                                                                        |
 
 ---
 
@@ -68,6 +69,22 @@ The app is invite-only and in active development. Use the "Request access" form 
     <td align="center"><sub><strong>Records</strong> &mdash; <code>git tag --list</code></sub></td>
     <td align="center"><sub><strong>Profile</strong></sub></td>
   </tr>
+  <tr>
+    <td><img src="screenshots/readme/revamp-plan-wizard.png" alt="Plan Wizard"></td>
+    <td><img src="screenshots/readme/revamp-plan-detail.png" alt="Plan Detail"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><strong>Plan Wizard</strong> &mdash; 5-step AI plan generator</sub></td>
+    <td align="center"><sub><strong>Plan Detail</strong> &mdash; timeline, volume, session list</sub></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/readme/revamp-session-execute.png" alt="Session Execution"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><strong>Session Execution</strong> &mdash; live set logging + exercise swap</sub></td>
+    <td></td>
+  </tr>
 </table>
 
 ---
@@ -102,7 +119,7 @@ The frontend calls FastAPI exclusively. Supabase handles auth (magic-link + Goog
 | Database | Supabase Postgres + pgvector, RLS on every table                                 |
 | Auth     | Supabase magic-link + Google OAuth, ES256 JWT via JWKS                           |
 | AI       | Claude Haiku 4.5 via Instructor, SSE streaming, hybrid RAG (BM25 + pgvector RRF) |
-| Testing  | pytest (426), pgTAP RLS (52), Playwright E2E (96), Vitest unit (190)             |
+| Testing  | pytest (732), pgTAP RLS (52), Playwright E2E (151), Vitest unit (532)            |
 | CI       | GitHub Actions: lint, typecheck, test, contract drift, security audit            |
 | Hosting  | Railway (API) · Vercel (web) · Supabase (DB / auth)                              |
 
@@ -118,7 +135,7 @@ The core principle: **safety-critical logic is deterministic Python; the LLM gen
 
 **Streaming coach** — SSE endpoint with persistent session history. Retrieval combines BM25 keyword search and pgvector cosine similarity with Reciprocal Rank Fusion. Sources include CrossFit Level 1 programming standards, coaching notes, and session history. Context is XML-delimited before injection to mitigate prompt injection.
 
-**Adaptive plan generator** — returns HTTP 202 immediately and exposes a polling URL (async task pattern). Inputs are structured: Epley 1RM estimates, current ACWR, and Hooper readiness score. Output is validated against the sports-science knowledge base before persisting.
+**Adaptive plan generator** — returns HTTP 202 immediately and exposes a polling URL (async task pattern). Uses a scaffold-first approach: a deterministic layer builds the full session/movement/set skeleton based on archetype constraints and equipment availability, then the LLM fills in coaching notes and micro-adjustments. Inputs are structured: archetype, equipment preset, target movement (with Epley 1RM or prerequisite ladder), training age, program duration, and current ACWR/Hooper readiness score. Output is validated against the sports-science knowledge base before persisting. Archetype-specific prompts route to different instruction sets; model selection adapts to archetype complexity.
 
 **Adaptation engine** — deterministic triggers fire when ACWR >1.5, readiness <0.4, consecutive missed sessions, or RPE drift exceeds threshold. When a trigger fires, it is passed to the LLM with full context to generate a rationale. The LLM does not decide _whether_ to adapt.
 
@@ -202,10 +219,10 @@ FitHub has four test suites and passes strict static analysis. pgTAP is worth hi
 
 | Suite              | Tool        | Count | Covers                                                                     |
 | ------------------ | ----------- | ----- | -------------------------------------------------------------------------- |
-| Unit + integration | pytest      | 426   | API routes, repositories, AI stubs, rate limiting, auth, admin portal      |
+| Unit + integration | pytest      | 732   | API routes, repositories, AI stubs, rate limiting, auth, admin portal      |
 | DB isolation       | pgTAP       | 52    | RLS policies on every table, cross-user data isolation                     |
-| Browser E2E        | Playwright  | 96    | Auth flow, workout CRUD, coach chat, plan generation, login page, admin UI |
-| Unit (frontend)    | Vitest      | 190   | Utility functions, hooks, API client, component logic                      |
+| Browser E2E        | Playwright  | 151   | Auth flow, workout CRUD, coach chat, plan generation, login page, admin UI |
+| Unit (frontend)    | Vitest      | 532   | Utility functions, hooks, API client, component logic                      |
 | Static analysis    | mypy + ruff | —     | Strict mypy, zero `Any` in models, ruff format                             |
 
 ```bash
@@ -240,7 +257,7 @@ Dependabot keeps Actions SHAs current monthly and pip/npm dependencies weekly.
 
 ## Status & roadmap
 
-The design system revamp shipped in full — 13 scopes across every page and route, including the new `/track` NL workout entry flow, git-graph brand mark, Archivo Black headings, JetBrains Mono data font, and green accent (`#4ADE80`) throughout. The injury-aware coach feature shipped: 21 body regions, 3-state status lifecycle, prompt context injection, and the deterministic `modify-workout` endpoint. The admin portal is now live with LLM cost tracking, error event log, and API health dashboard. The login page was redesigned with an in-app "Request access" form; submitted requests flow into the admin access-request queue for approve/reject review. Deployment to Railway + Vercel + Supabase production is the current milestone.
+The design system revamp shipped in full — 13 scopes across every page and route, Archivo Black headings, JetBrains Mono data font, and green accent throughout. The injury-aware coach feature shipped: 21 body regions, 3-state status lifecycle, deterministic `modify-workout` endpoint. The admin portal is live with LLM cost tracking, error event log, and API health dashboard. The login page was redesigned with an in-page "Request access" form. **Programming Flexibility** shipped: 5-step plan creation wizard, scaffold-first AI plan generator with 7 archetypes, plan detail page (mesocycle progress, timeline rail, weekly volume sparklines, session list), live session execution with per-set logging and rest timer, and AI-suggested exercise swap. Deployment to Railway + Vercel + Supabase production is the current milestone.
 
 Near-term:
 

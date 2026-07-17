@@ -45,7 +45,8 @@ apps/api/app/
 ├── ai/               # LLM integration — coach, parser, plan generator
 │   ├── coach.py      # Streaming coach endpoint logic
 │   ├── parser.py     # NL workout parser (Instructor + structured output)
-│   ├── planner.py    # Adaptive plan generator
+│   ├── plan_scaffold.py  # Deterministic plan skeleton (archetype + equipment constraints)
+│   ├── plan_generator.py # LLM fill layer (coaching notes, micro-adjustments)
 │   ├── prompts.py    # All prompt templates (extracted from routers)
 │   ├── retrieval.py  # BM25 + pgvector hybrid RAG
 │   └── safety.py     # Safety classifier, red-flag detection
@@ -73,6 +74,10 @@ apps/web/app/
 │   ├── log/
 │   ├── coach/
 │   ├── plans/
+│   │   ├── [id]/
+│   │   │   ├── sessions/[sessionId]/execute/   # live session execution
+│   │   │   └── adaptations/
+│   │   └── new/                               # plan creation wizard
 │   ├── records/
 │   ├── analytics/
 │   └── profile/
@@ -125,19 +130,27 @@ The invite-only gate is enforced at two layers. The `before_user_created` Supaba
 
 ## Where things happen (quick reference)
 
-| Thing                         | Where to look                                                   |
-| ----------------------------- | --------------------------------------------------------------- |
-| Auth session validation       | `apps/api/app/dependencies/common.py` → `get_current_user`      |
-| Workout CRUD                  | `apps/api/app/routers/workouts.py` + `repositories/workouts.py` |
-| Load calculation (ACWR, sRPE) | `apps/api/app/engine/acwr.py`                                   |
-| AI coach streaming            | `apps/api/app/ai/coach.py` + `apps/api/app/routers/coach.py`    |
-| NL workout parser             | `apps/api/app/ai/parser.py`                                     |
-| Adaptive plan generator       | `apps/api/app/ai/planner.py`                                    |
-| Injury train-around           | `apps/api/app/engine/injury.py` (deterministic — no LLM)        |
-| Safety classifier             | `apps/api/app/ai/safety.py`                                     |
-| RLS policy tests              | `supabase/tests/`                                               |
-| OpenAPI → TypeScript types    | `packages/shared/` + `pnpm generate-types`                      |
-| Admin portal                  | `apps/web/app/admin/` + `apps/api/app/routers/admin.py`         |
+| Thing                         | Where to look                                                       |
+| ----------------------------- | ------------------------------------------------------------------- |
+| Auth session validation       | `apps/api/app/dependencies/common.py` → `get_current_user`          |
+| Workout CRUD                  | `apps/api/app/routers/workouts.py` + `repositories/workouts.py`     |
+| Load calculation (ACWR, sRPE) | `apps/api/app/engine/acwr.py`                                       |
+| AI coach streaming            | `apps/api/app/ai/coach.py` + `apps/api/app/routers/coach.py`        |
+| NL workout parser             | `apps/api/app/ai/parser.py`                                         |
+| Adaptive plan generator       | `apps/api/app/ai/planner.py`                                        |
+| Injury train-around           | `apps/api/app/engine/injury.py` (deterministic — no LLM)            |
+| Safety classifier             | `apps/api/app/ai/safety.py`                                         |
+| RLS policy tests              | `supabase/tests/`                                                   |
+| OpenAPI → TypeScript types    | `packages/shared/` + `pnpm generate-types`                          |
+| Admin portal                  | `apps/web/app/admin/` + `apps/api/app/routers/admin.py`             |
+| Plan wizard (5-step)          | `apps/web/app/(app)/plans/new/` + `components/plans/wizard/`        |
+| Plan detail (timeline, etc.)  | `apps/web/app/(app)/plans/[id]/` + `components/plans/`              |
+| Session execution + set log   | `apps/web/app/(app)/plans/[id]/sessions/[sessionId]/execute/`       |
+| Exercise swap sheet           | `apps/web/components/plans/ExerciseSwapSheet.tsx`                   |
+| Next session card             | `apps/web/components/dashboard/NextSessionCard.tsx`                 |
+| Plan scaffold (deterministic) | `apps/api/app/ai/plan_scaffold.py`                                  |
+| Plan AI fill (LLM)            | `apps/api/app/ai/plan_generator.py`                                 |
+| Movement substitutes          | `apps/api/app/routers/plans.py` → `GET /movements/{id}/substitutes` |
 
 ---
 

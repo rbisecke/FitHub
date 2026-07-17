@@ -721,6 +721,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/movements/{movement_id}/substitutes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Movement Substitutes
+     * @description Return up to 20 movements with the same movement_pattern that fit the equipment list.
+     */
+    get: operations["get_movement_substitutes_api_v1_movements__movement_id__substitutes_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/profile/search": {
     parameters: {
       query?: never;
@@ -948,6 +968,23 @@ export interface paths {
     put?: never;
     /** Revise Plan */
     post: operations["revise_plan_api_v1_plans__plan_id__revise_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/plans/{plan_id}/sessions/{session_id}/complete": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Complete Session */
+    post: operations["complete_session_api_v1_plans__plan_id__sessions__session_id__complete_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1616,6 +1653,13 @@ export interface components {
        */
       created_at: string;
     };
+    /** CompleteSessionRequest */
+    CompleteSessionRequest: {
+      /** Logged Sets */
+      logged_sets?: components["schemas"]["LoggedSet"][];
+      /** Bodyweight Kg */
+      bodyweight_kg?: number | string | null;
+    };
     /** ConnectResponse */
     ConnectResponse: {
       /** Token */
@@ -1696,10 +1740,17 @@ export interface components {
     /** CreatePlanRequest */
     CreatePlanRequest: {
       /**
-       * Goal
+       * Archetype
        * @enum {string}
        */
-      goal: "general_fitness" | "strength" | "endurance" | "competition_prep";
+      archetype:
+        | "general-crossfit"
+        | "strength-bias"
+        | "travel-minimal"
+        | "aerobic-base"
+        | "bodyweight-calisthenics"
+        | "skill-acquisition"
+        | "one-rm-peak";
       /** Title */
       title: string;
       /**
@@ -1714,6 +1765,16 @@ export interface components {
        * @enum {string}
        */
       training_age: "beginner" | "intermediate" | "advanced";
+      /** Equipment */
+      equipment?: string[];
+      /** Days Per Week */
+      days_per_week: number;
+      /** Target Movement Id */
+      target_movement_id?: string | null;
+      /** Max Duration Weeks */
+      max_duration_weeks?: number | null;
+      /** Current 1Rm Kg */
+      current_1rm_kg?: number | null;
     };
     /** CreateResultRequest */
     CreateResultRequest: {
@@ -2144,6 +2205,25 @@ export interface components {
         | "caution"
         | "overreaching";
     };
+    /**
+     * LoggedSet
+     * @description One completed set logged against a prescribed plan item during session execution.
+     */
+    LoggedSet: {
+      /**
+       * Planned Item Id
+       * Format: uuid
+       */
+      planned_item_id: string;
+      /** Movement Id */
+      movement_id?: string | null;
+      /** Load Kg */
+      load_kg?: number | string | null;
+      /** Reps */
+      reps?: number | null;
+      /** Rpe */
+      rpe?: number | string | null;
+    };
     /** MagicLinkResponse */
     MagicLinkResponse: {
       /** Link */
@@ -2167,7 +2247,13 @@ export interface components {
        * Phase
        * @enum {string}
        */
-      phase: "accumulation" | "intensification" | "deload" | "peak" | "test";
+      phase:
+        | "accumulation"
+        | "intensification"
+        | "realization"
+        | "deload"
+        | "peak"
+        | "test";
       /** Week Start */
       week_start: number;
       /** Week End */
@@ -2351,6 +2437,19 @@ export interface components {
       scaled: boolean;
       /** Notes */
       notes?: string | null;
+    };
+    /** MovementSubstituteOut */
+    MovementSubstituteOut: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      movement_pattern: components["schemas"]["MovementPattern"];
+      /** Equipment Required */
+      equipment_required: string[];
     };
     /** Notification */
     Notification: {
@@ -2598,10 +2697,17 @@ export interface components {
        */
       id: string;
       /**
-       * Goal
+       * Archetype
        * @enum {string}
        */
-      goal: "general_fitness" | "strength" | "endurance" | "competition_prep";
+      archetype:
+        | "general-crossfit"
+        | "strength-bias"
+        | "travel-minimal"
+        | "aerobic-base"
+        | "bodyweight-calisthenics"
+        | "skill-acquisition"
+        | "one-rm-peak";
       /** Title */
       title: string;
       /** Branch Name */
@@ -2626,11 +2732,20 @@ export interface components {
       /** Created At */
       created_at: string;
       /** Training Age */
-      training_age: ("beginner" | "intermediate" | "advanced") | null;
+      training_age?: ("beginner" | "intermediate" | "advanced") | null;
       /** Mesocycles */
       mesocycles: components["schemas"]["MesocycleOut"][];
       /** Sessions */
       sessions: components["schemas"]["PlannedSessionOut"][];
+      /** Generation Tier */
+      generation_tier?:
+        | ("ai" | "deterministic_substitution" | "static_fallback")
+        | null;
+      /**
+       * Corrections
+       * @default []
+       */
+      corrections: string[];
     };
     /** PlanRevisionRequest */
     PlanRevisionRequest: {
@@ -2645,10 +2760,17 @@ export interface components {
        */
       id: string;
       /**
-       * Goal
+       * Archetype
        * @enum {string}
        */
-      goal: "general_fitness" | "strength" | "endurance" | "competition_prep";
+      archetype:
+        | "general-crossfit"
+        | "strength-bias"
+        | "travel-minimal"
+        | "aerobic-base"
+        | "bodyweight-calisthenics"
+        | "skill-acquisition"
+        | "one-rm-peak";
       /** Title */
       title: string;
       /** Branch Name */
@@ -2672,6 +2794,8 @@ export interface components {
       end_date: string;
       /** Created At */
       created_at: string;
+      /** Training Age */
+      training_age?: ("beginner" | "intermediate" | "advanced") | null;
     };
     /** PlanTaskResponse */
     PlanTaskResponse: {
@@ -2686,6 +2810,15 @@ export interface components {
       plan_id?: string | null;
       /** Error */
       error?: string | null;
+      /** Generation Tier */
+      generation_tier?:
+        | ("ai" | "deterministic_substitution" | "static_fallback")
+        | null;
+      /**
+       * Corrections
+       * @default []
+       */
+      corrections: string[];
     };
     /** PlannedItemOut */
     PlannedItemOut: {
@@ -4662,6 +4795,39 @@ export interface operations {
       };
     };
   };
+  get_movement_substitutes_api_v1_movements__movement_id__substitutes_get: {
+    parameters: {
+      query?: {
+        equipment?: string[];
+      };
+      header?: never;
+      path: {
+        movement_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MovementSubstituteOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   search_users_api_v1_profile_search_get: {
     parameters: {
       query: {
@@ -5226,6 +5392,42 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PlanDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  complete_session_api_v1_plans__plan_id__sessions__session_id__complete_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        plan_id: string;
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CompleteSessionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlannedSessionOut"];
         };
       };
       /** @description Validation Error */

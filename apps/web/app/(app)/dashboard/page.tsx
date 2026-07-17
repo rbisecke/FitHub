@@ -22,6 +22,7 @@ import { HubGrid } from "@/components/dashboard/HubGrid";
 import { HooperCheckIn } from "@/components/dashboard/HooperCheckIn";
 import { TrainingPartnersSummary } from "@/components/dashboard/TrainingPartnersSummary";
 import { AdaptationBanner } from "@/components/dashboard/AdaptationBanner";
+import { NextSessionCard } from "@/components/dashboard/NextSessionCard";
 import type { PlanSummary } from "@/lib/api/plans";
 
 export default async function DashboardPage() {
@@ -282,6 +283,10 @@ export default async function DashboardPage() {
 
         {/* Right sidebar */}
         <div className="space-y-[18px]">
+          <NextSessionCard
+            accessToken={token}
+            activePlanId={activePlan?.id ?? null}
+          />
           <OpenPRsWidget
             goals={goals}
             prs={prs.slice(0, 3)}

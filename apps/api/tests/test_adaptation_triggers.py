@@ -19,9 +19,11 @@ async def test_detect_no_triggers_when_healthy() -> None:
         async with db.cursor() as cur:
             await cur.execute(
                 """
-                INSERT INTO plans (user_id, goal, title, start_date, end_date, branch_name, weeks)
-                VALUES (%s, 'general_fitness', 'Trigger Test', current_date, current_date + 56,
-                        'plan/trigger-test', 8)
+                INSERT INTO plans
+                    (user_id, archetype, title, start_date, end_date, branch_name, weeks)
+                VALUES
+                    (%s, 'general-crossfit', 'Trigger Test',
+                     current_date, current_date + 56, 'plan/trigger-test', 8)
                 RETURNING id::text
                 """,
                 [str(ALICE_ID)],
@@ -43,9 +45,11 @@ async def test_detect_low_readiness_trigger() -> None:
         async with db.cursor() as cur:
             await cur.execute(
                 """
-                INSERT INTO plans (user_id, goal, title, start_date, end_date, branch_name, weeks)
-                VALUES (%s, 'general_fitness', 'Readiness Test', current_date, current_date + 56,
-                        'plan/readiness-test', 8)
+                INSERT INTO plans
+                    (user_id, archetype, title, start_date, end_date, branch_name, weeks)
+                VALUES
+                    (%s, 'general-crossfit', 'Readiness Test',
+                     current_date, current_date + 56, 'plan/readiness-test', 8)
                 RETURNING id::text
                 """,
                 [str(ALICE_ID)],

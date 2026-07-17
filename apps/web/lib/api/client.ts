@@ -50,6 +50,8 @@ import type {
   UpdateInjuryStatusRequest,
   ModifyWorkoutResponse,
   CheckWodResponse,
+  MovementSubstituteOut,
+  CompleteSessionRequest,
 } from "./plans";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -201,6 +203,20 @@ export const api = {
         token,
         options?.signal ? { signal: options.signal } : undefined,
       ),
+    getSubstitutes: (
+      token: string,
+      movementId: string,
+      equipment: string[],
+      options?: { signal?: AbortSignal },
+    ) => {
+      const qs = new URLSearchParams();
+      for (const item of equipment) qs.append("equipment", item);
+      return apiFetch<MovementSubstituteOut[]>(
+        `/api/v1/movements/${movementId}/substitutes?${qs}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      );
+    },
   },
   analytics: {
     load: (token: string, days = 90) =>
@@ -473,13 +489,26 @@ export const api = {
     list: (token: string) => apiFetch<PlanSummary[]>("/api/v1/plans", token),
     get: (token: string, id: string) =>
       apiFetch<PlanDetail>(`/api/v1/plans/${id}`, token),
-    create: (token: string, body: CreatePlanRequest) =>
+    create: (
+      token: string,
+      body: CreatePlanRequest,
+      options?: { signal?: AbortSignal },
+    ) =>
       apiFetch<PlanTaskResponse>("/api/v1/plans", token, {
         method: "POST",
         body: JSON.stringify(body),
+        signal: options?.signal,
       }),
-    pollTask: (token: string, taskId: string) =>
-      apiFetch<PlanTaskResponse>(`/api/v1/plans/tasks/${taskId}`, token),
+    pollTask: (
+      token: string,
+      taskId: string,
+      options?: { signal?: AbortSignal },
+    ) =>
+      apiFetch<PlanTaskResponse>(
+        `/api/v1/plans/tasks/${taskId}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     today: (
       token: string,
       planId: string,
@@ -495,6 +524,36 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ feedback }),
       }),
+    getNextSession: async (
+      token: string,
+      planId: string,
+      options?: { signal?: AbortSignal },
+    ): Promise<PlannedSessionOut | null> => {
+      try {
+        return await apiFetch<PlannedSessionOut>(
+          `/api/v1/plans/${planId}/next-session`,
+          token,
+          options?.signal ? { signal: options.signal } : undefined,
+        );
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      }
+    },
+    completeSession: (
+      token: string,
+      planId: string,
+      sessionId: string,
+      body: CompleteSessionRequest,
+    ) =>
+      apiFetch<PlannedSessionOut>(
+        `/api/v1/plans/${planId}/sessions/${sessionId}/complete`,
+        token,
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        },
+      ),
   },
   adaptations: {
     list: (token: string, planId: string, options?: { signal?: AbortSignal }) =>
@@ -689,6 +748,11 @@ export function createApiClient(token: string) {
         movementIds: string[],
         options?: { signal?: AbortSignal },
       ) => api.movements.personalRecordsBatch(token, movementIds, options),
+      getSubstitutes: (
+        movementId: string,
+        equipment: string[],
+        options?: { signal?: AbortSignal },
+      ) => api.movements.getSubstitutes(token, movementId, equipment, options),
     },
     analytics: {
       load: (days?: number) => api.analytics.load(token, days),
@@ -709,13 +773,23 @@ export function createApiClient(token: string) {
     plans: {
       list: () => api.plans.list(token),
       get: (id: string) => api.plans.get(token, id),
-      create: (body: Parameters<typeof api.plans.create>[1]) =>
-        api.plans.create(token, body),
-      pollTask: (taskId: string) => api.plans.pollTask(token, taskId),
+      create: (
+        body: Parameters<typeof api.plans.create>[1],
+        options?: { signal?: AbortSignal },
+      ) => api.plans.create(token, body, options),
+      pollTask: (taskId: string, options?: { signal?: AbortSignal }) =>
+        api.plans.pollTask(token, taskId, options),
       today: (planId: string, options?: { signal?: AbortSignal }) =>
         api.plans.today(token, planId, options),
       revise: (planId: string, feedback: string) =>
         api.plans.revise(token, planId, feedback),
+      getNextSession: (planId: string, options?: { signal?: AbortSignal }) =>
+        api.plans.getNextSession(token, planId, options),
+      completeSession: (
+        planId: string,
+        sessionId: string,
+        body: Parameters<typeof api.plans.completeSession>[3],
+      ) => api.plans.completeSession(token, planId, sessionId, body),
     },
     adaptations: {
       list: (planId: string, options?: { signal?: AbortSignal }) =>

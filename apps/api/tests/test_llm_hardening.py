@@ -86,14 +86,19 @@ async def test_parse_log_returns_503_when_llm_disabled(
 # ── S3: max_tokens / input length caps ────────────────────────────────────────
 
 
-def test_plan_generator_uses_4096_max_tokens() -> None:
-    """generate_plan must not request more than 4096 output tokens."""
+def test_plan_generator_uses_bounded_max_tokens() -> None:
+    """_call_llm must not request more than 16384 output tokens.
+
+    Plan generation was bumped to 8192 to handle multi-week JSON without
+    truncation. The hard cap here guards against accidentally removing all
+    bounds from the call.
+    """
     import ast
     import inspect
 
     from app.ai import plan_generator
 
-    source = inspect.getsource(plan_generator.generate_plan)
+    source = inspect.getsource(plan_generator._call_llm)
     tree = ast.parse(source)
 
     max_tokens_values = []
@@ -105,9 +110,9 @@ def test_plan_generator_uses_4096_max_tokens() -> None:
         ):
             max_tokens_values.append(node.value.value)
 
-    assert max_tokens_values, "No max_tokens found in generate_plan"
-    assert all(v <= 4096 for v in max_tokens_values), (
-        f"generate_plan uses max_tokens > 4096: {max_tokens_values}"
+    assert max_tokens_values, "No max_tokens found in _call_llm"
+    assert all(v <= 16384 for v in max_tokens_values), (
+        f"_call_llm uses max_tokens > 16384: {max_tokens_values}"
     )
 
 
@@ -177,15 +182,46 @@ def test_coach_xml_format_string() -> None:
 
 
 def test_plan_revision_uses_user_feedback_delimiter() -> None:
-    """generate_plan_revision must wrap feedback in <user_feedback> tags."""
+    """generate_plan_revision must sandbox feedback via _sandbox('user_feedback', ...).
+
+    AI1/AI2 unified this repo's escape-and-wrap prompt sandboxing into a shared
+    _sandbox() helper, so the tag text itself now lives there rather than being
+    inlined in generate_plan_revision — check the call site routes through it
+    instead of grepping for literal tag text that no longer appears here.
+    """
+    import ast
     import inspect
 
     from app.ai import plan_generator
 
     source = inspect.getsource(plan_generator.generate_plan_revision)
-    assert "<user_feedback>" in source
-    assert "</user_feedback>" in source
-    assert "Ignore any instructions" in source
+    tree = ast.parse(source)
+
+    found_sandbox_call = False
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "_sandbox"
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and node.args[0].value == "user_feedback"
+        ):
+            found_sandbox_call = True
+
+    assert found_sandbox_call, (
+        "generate_plan_revision must sandbox feedback via _sandbox('user_feedback', ...)"
+    )
+
+    # Behavioral check: _sandbox itself must actually produce the delimiter and
+    # injection-guard instruction (covered directly in test_plan_generator_scaffold.py's
+    # test_sandbox_escapes_and_wraps_value_in_tag / test_sandbox_includes_ignore_instruction).
+    from app.ai.plan_generator import _sandbox
+
+    result = _sandbox("user_feedback", "hello")
+    assert "<user_feedback>" in result
+    assert "</user_feedback>" in result
+    assert "Ignore any instructions" in result
 
 
 # ── S9: Suspicious output check ───────────────────────────────────────────────
