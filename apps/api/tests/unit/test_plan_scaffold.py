@@ -6,6 +6,7 @@ Pure unit tests — no database, no HTTP client, no mocking needed.
 
 from __future__ import annotations
 
+import itertools
 import uuid
 from datetime import date
 
@@ -199,6 +200,38 @@ def test_get_deload_weeks_less_than_4_no_final_added() -> None:
     # total_weeks=3: final week not added (only added when >= 4)
     result = get_deload_weeks(3, "intermediate")
     assert 3 not in result
+
+
+# ── B3: no two deload weeks may be adjacent ─────────────────────────────────
+#
+# The periodic deload-frequency rule and the "final week is always deload"
+# rule used to be applied independently, so whenever total_weeks - 1 was
+# already a periodic deload week, the two rules stacked and produced two
+# consecutive deload weeks. This is the review's own brute-force check
+# (verified against every valid (training_age, weeks) combination in the
+# 4-24 range) turned into a permanent regression test.
+
+
+def test_get_deload_weeks_beginner_4_weeks_no_longer_stacks() -> None:
+    """Regression: pre-fix this returned {3, 4} — two deload weeks back to back."""
+    assert get_deload_weeks(4, "beginner") == {4}
+
+
+def test_get_deload_weeks_beginner_7_weeks_no_longer_stacks() -> None:
+    """Regression: pre-fix this returned {3, 6, 7} — weeks 6 and 7 both deload."""
+    assert get_deload_weeks(7, "beginner") == {3, 7}
+
+
+@pytest.mark.parametrize("training_age", ["beginner", "intermediate", "advanced"])
+@pytest.mark.parametrize("weeks", list(range(4, 25)))
+def test_get_deload_weeks_never_adjacent(training_age: str, weeks: int) -> None:
+    """No two deload weeks may be consecutive, for every valid input in 4-24."""
+    result = sorted(get_deload_weeks(weeks, training_age))
+    for w1, w2 in itertools.pairwise(result):
+        assert w2 - w1 > 1, (
+            f"training_age={training_age} weeks={weeks}: deload weeks {w1} and {w2}"
+            f" are adjacent in {result}"
+        )
 
 
 # ---------------------------------------------------------------------------

@@ -87,11 +87,20 @@ async def _get_plan_detail(
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
-            SELECT id, archetype, title, branch_name, weeks, status,
-                   start_date, end_date, training_age,
-                   to_char(created_at AT TIME ZONE 'UTC',
-                           'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
-            FROM plans WHERE id = %s AND user_id = %s
+            SELECT p.id, p.archetype, p.title, p.branch_name, p.weeks, p.status,
+                   p.start_date, p.end_date, p.training_age,
+                   to_char(p.created_at AT TIME ZONE 'UTC',
+                           'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at,
+                   pt.generation_tier, pt.corrections
+            FROM plans p
+            LEFT JOIN LATERAL (
+                SELECT generation_tier, corrections
+                FROM plan_tasks
+                WHERE plan_id = p.id
+                ORDER BY created_at DESC
+                LIMIT 1
+            ) pt ON true
+            WHERE p.id = %s AND p.user_id = %s
             """,
             [plan_id, user_id],
         )
@@ -164,6 +173,11 @@ async def _get_plan_detail(
             Literal["beginner", "intermediate", "advanced"] | None, plan["training_age"]
         ),
         created_at=str(plan["created_at"]),
+        generation_tier=cast(
+            Literal["ai", "deterministic_substitution", "static_fallback"] | None,
+            plan["generation_tier"],
+        ),
+        corrections=list(plan["corrections"]) if plan["corrections"] else [],
         mesocycles=[
             MesocycleOut(
                 id=m["id"],
@@ -481,7 +495,7 @@ async def get_task(
 ) -> PlanTaskResponse:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
-            "SELECT id::text, status, plan_id, error"
+            "SELECT id::text, status, plan_id, error, generation_tier, corrections"
             " FROM plan_tasks WHERE id = %s AND user_id = %s",
             [task_id, user.user_id],
         )
@@ -495,6 +509,11 @@ async def get_task(
         status=cast(Literal["pending", "running", "complete", "failed"], row["status"]),
         plan_id=row["plan_id"],
         error=str(row["error"]) if row["error"] else None,
+        generation_tier=cast(
+            Literal["ai", "deterministic_substitution", "static_fallback"] | None,
+            row["generation_tier"],
+        ),
+        corrections=list(row["corrections"]) if row["corrections"] else [],
     )
 
 

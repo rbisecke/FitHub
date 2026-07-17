@@ -8537,6 +8537,30 @@
             },
             "type": "array",
             "title": "Sessions"
+          },
+          "generation_tier": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "ai",
+                  "deterministic_substitution",
+                  "static_fallback"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generation Tier"
+          },
+          "corrections": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Corrections",
+            "default": []
           }
         },
         "type": "object",
@@ -8694,6 +8718,30 @@
               }
             ],
             "title": "Error"
+          },
+          "generation_tier": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "ai",
+                  "deterministic_substitution",
+                  "static_fallback"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generation Tier"
+          },
+          "corrections": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Corrections",
+            "default": []
           }
         },
         "type": "object",

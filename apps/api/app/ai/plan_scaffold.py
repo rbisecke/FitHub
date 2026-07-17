@@ -319,11 +319,19 @@ def get_deload_weeks(total_weeks: int, training_age: str) -> set[int]:
 
     Beginners deload every 3rd week; intermediates every 4th; advanced every 5th.
     The final week is always a deload when total_weeks >= 4.
+
+    The periodic rule and the final-week rule can independently land on the
+    same two adjacent weeks (e.g. beginner + 7 weeks: periodic hits week 6,
+    final-week rule adds week 7 — two deload weeks back to back). See B3.
+    When that happens, the final-week rule wins (it's the more important
+    invariant) and the periodic deload immediately before it is dropped.
     """
     freq = {"beginner": 3, "intermediate": 4, "advanced": 5}.get(training_age, 4)
     deloads = {w for w in range(freq, total_weeks + 1, freq)}
     if total_weeks >= 4:
         deloads.add(total_weeks)
+    if total_weeks in deloads and (total_weeks - 1) in deloads:
+        deloads.discard(total_weeks - 1)
     return deloads
 
 
