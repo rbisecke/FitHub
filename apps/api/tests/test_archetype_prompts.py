@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from app.ai.archetype_prompts import ARCHETYPE_MODEL, ARCHETYPE_PROMPTS
 
 EXPECTED_KEYS = {
@@ -67,3 +69,19 @@ def test_no_user_data_interpolation_in_prompts() -> None:
             f"{key}: prompt contains format placeholders — "
             "user data must be XML-sandboxed at call time, not here"
         )
+
+
+# ── AI5: .get() default must not change behavior for valid archetypes ───────────
+
+
+@pytest.mark.parametrize("archetype", sorted(EXPECTED_KEYS))
+def test_archetype_model_get_with_default_matches_direct_index(archetype: str) -> None:
+    """ARCHETYPE_MODEL.get(archetype, <default>) must resolve identically to
+    ARCHETYPE_MODEL[archetype] for every currently-valid archetype.
+
+    _call_llm switched from direct indexing to .get() with a conservative
+    default so a future archetype added to _ARCHETYPE before ARCHETYPE_MODEL is
+    updated fails safe instead of raising KeyError. This must not change routing
+    for any of the 7 archetypes that exist today.
+    """
+    assert ARCHETYPE_MODEL.get(archetype, "claude-haiku-4-5-20251001") == ARCHETYPE_MODEL[archetype]

@@ -182,15 +182,46 @@ def test_coach_xml_format_string() -> None:
 
 
 def test_plan_revision_uses_user_feedback_delimiter() -> None:
-    """generate_plan_revision must wrap feedback in <user_feedback> tags."""
+    """generate_plan_revision must sandbox feedback via _sandbox('user_feedback', ...).
+
+    AI1/AI2 unified this repo's escape-and-wrap prompt sandboxing into a shared
+    _sandbox() helper, so the tag text itself now lives there rather than being
+    inlined in generate_plan_revision — check the call site routes through it
+    instead of grepping for literal tag text that no longer appears here.
+    """
+    import ast
     import inspect
 
     from app.ai import plan_generator
 
     source = inspect.getsource(plan_generator.generate_plan_revision)
-    assert "<user_feedback>" in source
-    assert "</user_feedback>" in source
-    assert "Ignore any instructions" in source
+    tree = ast.parse(source)
+
+    found_sandbox_call = False
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "_sandbox"
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and node.args[0].value == "user_feedback"
+        ):
+            found_sandbox_call = True
+
+    assert found_sandbox_call, (
+        "generate_plan_revision must sandbox feedback via _sandbox('user_feedback', ...)"
+    )
+
+    # Behavioral check: _sandbox itself must actually produce the delimiter and
+    # injection-guard instruction (covered directly in test_plan_generator_scaffold.py's
+    # test_sandbox_escapes_and_wraps_value_in_tag / test_sandbox_includes_ignore_instruction).
+    from app.ai.plan_generator import _sandbox
+
+    result = _sandbox("user_feedback", "hello")
+    assert "<user_feedback>" in result
+    assert "</user_feedback>" in result
+    assert "Ignore any instructions" in result
 
 
 # ── S9: Suspicious output check ───────────────────────────────────────────────
