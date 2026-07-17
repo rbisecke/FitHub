@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import { X, List } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -10,8 +17,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import type { PlannedSessionOut, PlannedItemOut } from "@/lib/api/plans";
-import type { PlanDetail } from "@/lib/api/plans";
+import type {
+  PlannedSessionOut,
+  PlannedItemOut,
+  PlanDetail,
+  CompleteSessionRequest,
+  LoggedSetPayload,
+} from "@/lib/api/plans";
+import { api } from "@/lib/api/client";
 import { ExerciseCard } from "./ExerciseCard";
 import { RestTimer } from "./RestTimer";
 import { ExerciseSwapSheet } from "./ExerciseSwapSheet";
@@ -31,6 +44,14 @@ export interface LoggedSet {
 
 type Phase = "idle" | "exercising" | "resting" | "swapping" | "complete";
 
+// A confirmed exercise substitution — both the substitute's id (needed to
+// resolve movement_id in the completion payload, C4) and its name (needed to
+// resolve what's rendered/logged for the rest of the exercise, C3).
+interface SwapEntry {
+  movementId: string;
+  movementName: string;
+}
+
 interface ExecutionState {
   phase: Phase;
   exerciseIndex: number;
@@ -39,7 +60,7 @@ interface ExecutionState {
   restTotalSeconds: number;
   restPaused: boolean;
   loggedSets: LoggedSet[];
-  swappedExercises: Record<string, string>;
+  swappedExercises: Record<string, SwapEntry>;
   swapItemId: string | null;
   lastLoadMap: Map<string, number>; // itemId → last logged kg
   substituteError: string | null;
@@ -56,6 +77,7 @@ type Action =
       restSeconds: number;
       isLastSet: boolean;
       isLastExercise: boolean;
+      totalItems: number;
     }
   | { type: "REST_TICK"; secondsLeft: number }
   | { type: "REST_COMPLETE" }
@@ -68,6 +90,7 @@ type Action =
       type: "CONFIRM_SWAP";
       originalItemId: string;
       substituteMovementId: string;
+      substituteMovementName: string;
     }
   | { type: "SET_LOAD_MAP"; map: Map<string, number> }
   | { type: "SET_SUBSTITUTE_ERROR"; message: string | null };
@@ -81,7 +104,9 @@ function advanceExercise(
 ): ExecutionState {
   const nextExercise = state.exerciseIndex + 1;
   if (nextExercise >= totalItems) {
-    return { ...state, phase: "complete" };
+    // S1 — terminal transition: exerciseIndex must reach totalItems so the
+    // completion screen's progress header reads the exact total, not one short.
+    return { ...state, exerciseIndex: totalItems, phase: "complete" };
   }
   return {
     ...state,
@@ -118,6 +143,9 @@ function reducer(state: ExecutionState, action: Action): ExecutionState {
           ...state,
           loggedSets: updatedSets,
           lastLoadMap: updatedLoadMap,
+          // S1 — terminal transition: reach totalItems, same fix as advanceExercise's
+          // terminal branch, so the completion screen doesn't undercount by one.
+          exerciseIndex: action.totalItems,
           phase: "complete",
         };
       }
@@ -177,7 +205,10 @@ function reducer(state: ExecutionState, action: Action): ExecutionState {
         swapItemId: null,
         swappedExercises: {
           ...state.swappedExercises,
-          [action.originalItemId]: action.substituteMovementId,
+          [action.originalItemId]: {
+            movementId: action.substituteMovementId,
+            movementName: action.substituteMovementName,
+          },
         },
       };
 
@@ -218,17 +249,26 @@ function getRestSeconds(archetype: string): number {
 
 const LS_PREFIX = "fithub:lastload:";
 
-function getLastLoadFromStorage(movementId: string): number | null {
+// S2 — keyed by normalized movement name, not planned_items.id. Each week's
+// plan generates fresh planned_items rows with new ids, so an id-keyed cache
+// never matches across weeks; the movement name is the only value stable
+// enough to recur. Minimal fix — the ideal fix is a stable movement_id on
+// PlannedItemOut, which is a backend contract change out of scope here.
+function normalizeMovementKey(movementName: string): string {
+  return movementName.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function getLastLoadFromStorage(movementKey: string): number | null {
   if (typeof window === "undefined") return null;
-  const val = localStorage.getItem(`${LS_PREFIX}${movementId}`);
+  const val = localStorage.getItem(`${LS_PREFIX}${movementKey}`);
   if (val === null) return null;
   const parsed = parseFloat(val);
   return isNaN(parsed) ? null : parsed;
 }
 
-function saveLastLoadToStorage(movementId: string, kg: number) {
+function saveLastLoadToStorage(movementKey: string, kg: number) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(`${LS_PREFIX}${movementId}`, String(kg));
+  localStorage.setItem(`${LS_PREFIX}${movementKey}`, String(kg));
 }
 
 // ---------------------------------------------------------------------------
@@ -271,9 +311,26 @@ export function SessionExecutionView({
 
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  // Current item
-  const currentItem: PlannedItemOut | undefined =
+  // Current item — C3: resolve through swappedExercises so a confirmed swap
+  // changes what's actually shown and logged for the rest of that exercise,
+  // not just what's recorded in state. baseItem.id is preserved as the
+  // logged/displayed item's id (it's the planned_items row id the backend
+  // validates logged_sets against); only movement_name changes for display,
+  // with the substitute's movement id resolved separately at payload-build
+  // time in handleFinish (see toLoggedSetPayload below).
+  const baseItem: PlannedItemOut | undefined =
     session.items[state.exerciseIndex];
+  const activeSwap = baseItem ? state.swappedExercises[baseItem.id] : undefined;
+  // Memoized so identity is stable across renders when neither baseItem nor
+  // activeSwap changed — otherwise every render would produce a fresh object
+  // and defeat the useCallback memoization of the handlers below.
+  const currentItem: PlannedItemOut | undefined = useMemo(
+    () =>
+      baseItem && activeSwap
+        ? { ...baseItem, movement_name: activeSwap.movementName }
+        : baseItem,
+    [baseItem, activeSwap],
+  );
   const totalSets = currentItem?.sets ?? 1;
   const totalItems = session.items.length;
 
@@ -281,7 +338,9 @@ export function SessionExecutionView({
   useEffect(() => {
     const map = new Map<string, number>();
     for (const item of session.items) {
-      const stored = getLastLoadFromStorage(item.id);
+      const stored = getLastLoadFromStorage(
+        normalizeMovementKey(item.movement_name),
+      );
       if (stored !== null) {
         map.set(item.id, stored);
       } else if (item.load_kg !== null) {
@@ -300,9 +359,14 @@ export function SessionExecutionView({
   const handleLogSet = useCallback(
     (kg: number | null, reps: number, rpe?: number) => {
       if (!currentItem) return;
-      // Save to localStorage for next session pre-population
+      // Save to localStorage for next session pre-population — keyed by the
+      // movement actually being logged (post-swap name, per C3), so a swap
+      // taken this session still pre-populates correctly next time (S2).
       if (kg !== null) {
-        saveLastLoadToStorage(currentItem.id, kg);
+        saveLastLoadToStorage(
+          normalizeMovementKey(currentItem.movement_name),
+          kg,
+        );
       }
 
       const isLastSet = state.setIndex >= totalSets - 1;
@@ -317,6 +381,7 @@ export function SessionExecutionView({
         restSeconds,
         isLastSet,
         isLastExercise,
+        totalItems,
       });
     },
     [
@@ -358,24 +423,70 @@ export function SessionExecutionView({
     dispatch({ type: "CLOSE_SWAP" });
   }, []);
 
-  // Second arg (substituteMovementName) is not needed in the state machine but
-  // is part of ExerciseSwapSheet's onSwap contract for future callers.
+  // C3 — both the substitute's id and name are recorded: the name drives what
+  // ExerciseCard/SetLogger render for the rest of this exercise, the id
+  // resolves movement_id in the completion payload (see toLoggedSetPayload).
   const handleConfirmSwap = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    (substituteMovementId: string, _substituteMovementName?: string) => {
+    (substituteMovementId: string, substituteMovementName: string) => {
       if (!currentItem) return;
       dispatch({
         type: "CONFIRM_SWAP",
         originalItemId: currentItem.id,
         substituteMovementId,
+        substituteMovementName,
       });
     },
     [currentItem],
   );
 
-  const handleFinish = useCallback(() => {
-    router.push(`/plans/${plan.id}`);
-  }, [router, plan.id]);
+  // C4 — persist the session before navigating away. S4 — submittingRef is a
+  // synchronous guard checked before the first state update, so a rapid
+  // double-tap on "push to plan" can't fire two completion requests (the
+  // `finishing` state alone would not catch this: it's only committed on the
+  // next render, after a second click may have already re-entered).
+  const submittingRef = useRef(false);
+  const [finishing, setFinishing] = useState(false);
+  const [finishError, setFinishError] = useState<string | null>(null);
+
+  const handleFinish = useCallback(async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setFinishing(true);
+    setFinishError(null);
+
+    // Resolve each logged set's movement_id through swappedExercises (C3) —
+    // planned_item_id always stays the base planned_items row id (what the
+    // backend validates against); movement_id reflects the substitute, if any.
+    const loggedSetsPayload: LoggedSetPayload[] = state.loggedSets.map((s) => ({
+      planned_item_id: s.itemId,
+      movement_id: state.swappedExercises[s.itemId]?.movementId ?? null,
+      load_kg: s.loadKg,
+      reps: s.reps,
+      rpe: s.rpe,
+    }));
+    const body: CompleteSessionRequest = {
+      logged_sets: loggedSetsPayload,
+      bodyweight_kg: null,
+    };
+
+    try {
+      await api.plans.completeSession(accessToken, plan.id, session.id, body);
+      router.push(`/plans/${plan.id}`);
+    } catch {
+      setFinishError(
+        "Couldn't save your session — check your connection and try again.",
+      );
+      submittingRef.current = false;
+      setFinishing(false);
+    }
+  }, [
+    accessToken,
+    plan.id,
+    session.id,
+    state.loggedSets,
+    state.swappedExercises,
+    router,
+  ]);
 
   // Progress bar (exercises completed / total)
   const progressPct =
@@ -632,10 +743,21 @@ export function SessionExecutionView({
 
               <button
                 onClick={handleFinish}
-                className="min-h-[56px] w-full rounded-2xl bg-[var(--accent)] font-sans text-[16px] font-semibold text-[var(--bg)] transition-opacity hover:opacity-90"
+                disabled={finishing}
+                aria-busy={finishing}
+                className="min-h-[56px] w-full rounded-2xl bg-[var(--accent)] font-sans text-[16px] font-semibold text-[var(--bg)] transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                push to plan →
+                {finishing ? "pushing…" : "push to plan →"}
               </button>
+
+              {finishError && (
+                <p
+                  className="font-sans text-[13px] text-[var(--red)] text-center"
+                  role="alert"
+                >
+                  {finishError}
+                </p>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -677,8 +799,14 @@ export function SessionExecutionView({
               const itemSets = state.loggedSets.filter(
                 (s) => s.itemId === item.id,
               );
+              // S5 — the "current" highlight previously disappeared during the
+              // resting phase since only "exercising" was checked; extend it so
+              // the highlight persists through rest, aligned with S1's fixed
+              // exerciseIndex accounting (which is already forward-looking
+              // during a rest between exercises).
               const isCurrent =
-                idx === state.exerciseIndex && state.phase === "exercising";
+                idx === state.exerciseIndex &&
+                (state.phase === "exercising" || state.phase === "resting");
               const isDone = itemSets.length >= (item.sets ?? 1);
 
               return (

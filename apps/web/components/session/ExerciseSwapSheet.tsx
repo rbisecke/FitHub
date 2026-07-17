@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Sheet,
   SheetContent,
@@ -83,6 +83,13 @@ export function ExerciseSwapSheet({
   // user taps "Use this instead" for the first time.
   const [pending, setPending] = useState<SubstituteOption | null>(null);
 
+  // S4 — synchronous guard against a rapid double-tap on "Confirm";
+  // confirmingRef is checked before any state update, so a second click that
+  // fires before the first render commits (and before the sheet closes)
+  // still can't fire onSwap twice.
+  const confirmingRef = useRef(false);
+  const [confirming, setConfirming] = useState(false);
+
   // Fetch trigger — incrementing this reruns the effect (retry).
   const [fetchKey, setFetchKey] = useState(0);
 
@@ -103,6 +110,8 @@ export function ExerciseSwapSheet({
       setLoading(true);
       setError(null);
       setPending(null);
+      confirmingRef.current = false;
+      setConfirming(false);
     });
 
     api.movements
@@ -152,6 +161,9 @@ export function ExerciseSwapSheet({
 
   function handleConfirm() {
     if (!pending) return;
+    if (confirmingRef.current) return;
+    confirmingRef.current = true;
+    setConfirming(true);
     onSwap(pending.movementId, pending.movementName);
     setPending(null);
     onClose();
@@ -244,13 +256,16 @@ export function ExerciseSwapSheet({
               <div className="flex gap-2">
                 <button
                   onClick={handleConfirm}
-                  className="flex-1 min-h-[44px] rounded-lg bg-[var(--accent)] font-sans text-[12px] font-bold text-[var(--bg)] transition-opacity hover:opacity-90"
+                  disabled={confirming}
+                  aria-busy={confirming}
+                  className="flex-1 min-h-[44px] rounded-lg bg-[var(--accent)] font-sans text-[12px] font-bold text-[var(--bg)] transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Confirm
+                  {confirming ? "Confirming…" : "Confirm"}
                 </button>
                 <button
                   onClick={handleCancelConfirm}
-                  className="flex-1 min-h-[44px] rounded-lg border border-[var(--border)] font-sans text-[12px] text-[var(--text)] transition-colors hover:border-[var(--accent)]"
+                  disabled={confirming}
+                  className="flex-1 min-h-[44px] rounded-lg border border-[var(--border)] font-sans text-[12px] text-[var(--text)] transition-colors hover:border-[var(--accent)] disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>

@@ -629,6 +629,20 @@ test.describe.serial("Session execution", () => {
     // At least one set must have been logged (the count is shown).
     const setsLogged = page.locator("text=/\\d+ sets logged/");
     await expect(setsLogged).toBeVisible({ timeout: 3_000 });
+
+    // S1 — the persistent progress header must read the exact total on the
+    // completion screen, not one short (the seeded session has 2 exercises;
+    // this previously read "1/2 exercises · 50%" once done).
+    await expect(page.getByLabel("Session progress")).toHaveAttribute(
+      "aria-valuenow",
+      "100",
+    );
+    await expect(page.locator("text=/^2\\/2 exercises$/")).toBeVisible({
+      timeout: 3_000,
+    });
+    await expect(page.locator("text=/^100%$/")).toBeVisible({
+      timeout: 3_000,
+    });
   });
 
   // ── 5. Exercise swap — happy path ─────────────────────────────────────────
@@ -686,18 +700,32 @@ test.describe.serial("Session execution", () => {
     await expect(page.getByRole("button", { name: /commit set/i })).toBeVisible(
       { timeout: 5_000 },
     );
-
-    // The state machine recorded the swap (swappedExercises map updated).
-    // The ExerciseCard still shows the original movement_name from the session data
-    // (the swap only records the new movement ID in state; the display name comes
-    // from the item's movement_name which is server-provided). Confirm the sheet
-    // closed cleanly and the phase is back to "exercising".
     await expect(
       page.getByRole("heading", { name: /^Swap /i }),
     ).not.toBeVisible({ timeout: 3_000 });
 
-    // The exercise card is still visible.
-    await expect(exerciseHeading).toBeVisible({ timeout: 3_000 });
+    // C3 — a confirmed swap must actually change what's shown, not just what's
+    // recorded in state. The exercise heading now reads the substitute's name.
+    await expect(exerciseHeading).toHaveText(/Dumbbell Romanian Deadlift/i, {
+      timeout: 3_000,
+    });
+    const nameAfterSwap = (await exerciseHeading.textContent()) ?? "";
+    expect(nameAfterSwap).not.toBe(originalName);
+
+    // C3 — logging a set for this exercise after the swap must be associated
+    // with the substitute's movement, not the original. Commit a set and
+    // confirm the swap survives (the card keeps showing the substitute, not
+    // reverting to the original movement) for the rest of this exercise.
+    await page.getByLabel("Load weight in kilograms").fill("20");
+    await page.getByLabel("Reps completed").fill("10");
+    await page.getByRole("button", { name: /commit set/i }).click();
+    await expect(page.getByRole("button", { name: /skip rest/i })).toBeVisible({
+      timeout: 5_000,
+    });
+    await page.getByRole("button", { name: /skip rest/i }).click();
+    await expect(exerciseHeading).toHaveText(/Dumbbell Romanian Deadlift/i, {
+      timeout: 5_000,
+    });
   });
 
   // ── 6. Swap abort ─────────────────────────────────────────────────────────
@@ -750,5 +778,94 @@ test.describe.serial("Session execution", () => {
     await expect(
       page.getByRole("dialog", { name: /confirm exercise swap/i }),
     ).not.toBeVisible();
+  });
+
+  // ── 7. Finish session — persists to the backend (C4) ─────────────────────
+  //
+  // None of tests 1-6 ever tap "push to plan", so the seeded session is still
+  // untouched server-side (status "prescribed") going into this test. This is
+  // the direct regression test for C4: before the fix, handleFinish only
+  // called router.push — no request ever reached the backend, so a page
+  // refresh mid-workout silently lost the entire logged session. Verified
+  // here via a follow-up API call (not just DOM state), matching the design
+  // doc's validation note.
+
+  test("finish session: persists logged sets, session shows completed via a follow-up API call", async ({
+    page,
+  }) => {
+    await stubSubstitutesEmpty(page);
+    await gotoExecutePage(page, planId, sessionId);
+
+    await page.getByRole("button", { name: /begin session/i }).click();
+
+    // Drive through every exercise+set, logging a real weight/reps each time
+    // so there is something meaningful to verify server-side afterward.
+    let iterations = 0;
+    while (iterations < 100) {
+      iterations++;
+
+      const commitBtn = page.getByRole("button", { name: /commit set/i });
+      const skipRestBtn = page.getByRole("button", { name: /skip rest/i });
+      const sessionComplete = page.getByRole("heading", {
+        name: /session committed/i,
+      });
+
+      const [hasCommit, hasSkip, hasDone] = await Promise.all([
+        commitBtn.isVisible().catch(() => false),
+        skipRestBtn.isVisible().catch(() => false),
+        sessionComplete.isVisible().catch(() => false),
+      ]);
+
+      if (hasDone) break;
+
+      if (hasCommit) {
+        await page.getByLabel("Load weight in kilograms").fill("42.5");
+        await page.getByLabel("Reps completed").fill("6");
+        await commitBtn.click();
+      } else if (hasSkip) {
+        await skipRestBtn.click();
+      } else {
+        await page.waitForTimeout(200);
+      }
+    }
+
+    await expect(
+      page.getByRole("heading", { name: /session committed/i }),
+    ).toBeVisible({ timeout: 10_000 });
+
+    // C4 — tap "push to plan" to persist via the new completion endpoint, and
+    // confirm we navigate away (which only happens on a successful response).
+    await page.getByRole("button", { name: /push to plan/i }).click();
+    await page.waitForURL(new RegExp(`/plans/${planId}$`), {
+      timeout: 15_000,
+    });
+
+    // Follow-up API call — the session must now show as completed
+    // server-side, and the logged sets must be visible (not lost to a page
+    // refresh or closed tab, which is exactly the bug C4 fixes).
+    const planRes = await fetch(`${API_URL}/api/v1/plans/${planId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(planRes.ok).toBe(true);
+    const plan = (await planRes.json()) as {
+      sessions: Array<{ id: string; status: string }>;
+    };
+    const completedSession = plan.sessions.find((s) => s.id === sessionId);
+    expect(completedSession?.status).toBe("completed");
+
+    // The logged sets are visible via the workouts list — the completion
+    // endpoint creates one workout + one result row per logged set.
+    const workoutsRes = await fetch(`${API_URL}/api/v1/workouts?limit=10`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(workoutsRes.ok).toBe(true);
+    const workoutsBody = (await workoutsRes.json()) as {
+      items: Array<{ title: string | null; result_count: number }>;
+    };
+    const sessionWorkout = workoutsBody.items.find(
+      (w) => w.title === "Session A — Lower Body",
+    );
+    expect(sessionWorkout).toBeDefined();
+    expect(sessionWorkout?.result_count).toBeGreaterThan(0);
   });
 });

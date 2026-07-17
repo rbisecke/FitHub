@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 
 interface SetLoggerProps {
   setIndex: number;
@@ -30,6 +30,12 @@ export function SetLogger({
   const [showRpe, setShowRpe] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // S4 — synchronous guard against a rapid double-tap on "commit set";
+  // submittingRef is checked before any state update so a second click that
+  // fires before the first render commits still can't re-enter.
+  const submittingRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
+
   const step = 2.5;
 
   const handleDecrement = useCallback(() => {
@@ -57,12 +63,18 @@ export function SetLogger({
   );
 
   const handleCommit = useCallback(async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
     try {
       setError(null);
       const loadKg = prescribedKg === null && kg === 0 ? null : kg;
       onLog(loadKg, reps, rpe ?? undefined);
     } catch {
       setError("Failed to log set. Try again.");
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
   }, [kg, reps, rpe, prescribedKg, onLog]);
 
@@ -73,7 +85,7 @@ export function SetLogger({
         <div className="flex gap-1.5" role="group" aria-label="Set progress">
           {Array.from({ length: totalSets }, (_, i) => (
             <div
-              key={i}
+              key={`set-${i}-of-${totalSets}`}
               className="h-2 w-6 rounded-sm"
               style={{
                 background:
@@ -169,7 +181,9 @@ export function SetLogger({
       {/* commit set — primary CTA */}
       <button
         onClick={handleCommit}
-        className="min-h-[56px] w-full rounded-2xl bg-[var(--accent)] font-sans text-[16px] font-semibold text-[var(--bg)] transition-opacity hover:opacity-90 active:scale-[0.98]"
+        disabled={submitting}
+        aria-busy={submitting}
+        className="min-h-[56px] w-full rounded-2xl bg-[var(--accent)] font-sans text-[16px] font-semibold text-[var(--bg)] transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
         aria-label={`Commit set ${setIndex + 1} of ${totalSets}`}
       >
         commit set

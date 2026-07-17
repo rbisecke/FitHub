@@ -29,20 +29,47 @@ export function RestTimer({
   onTogglePause,
 }: RestTimerProps) {
   const prefersReducedMotion = useReducedMotion();
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Countdown interval
+  // S3 — anchor the countdown to a wall-clock target timestamp computed once
+  // per mount (a fresh rest period always remounts this component — see
+  // SessionExecutionView's AnimatePresence keying) instead of re-deriving
+  // from secondsLeft each tick. The previous version depended on
+  // [secondsLeft, paused, onTick], so every tick tore down and recreated the
+  // interval — each cycle actually took 1000ms + render overhead, drifting
+  // measurably over a multi-minute rest.
+  //
+  // targetRef starts null (pure at render time — Date.now() is only ever
+  // called inside the effect below, both for the initial mount anchor and
+  // for a pause→resume re-anchor) rather than computed inline in useRef's
+  // initializer, which React's purity rules disallow.
+  const targetRef = useRef<number | null>(null);
+  // Tracks whether the *previous* render was paused, so a pause→resume
+  // transition re-anchors the target from the retained secondsLeft instead
+  // of reusing the stale mount-time target.
+  const wasPausedRef = useRef(paused);
+
   useEffect(() => {
-    if (paused || secondsLeft <= 0) return;
+    if (paused) {
+      wasPausedRef.current = true;
+      return;
+    }
+    if (targetRef.current === null || wasPausedRef.current) {
+      targetRef.current = Date.now() + secondsLeft * 1000;
+      wasPausedRef.current = false;
+    }
 
-    intervalRef.current = setInterval(() => {
-      onTick(secondsLeft - 1);
+    const id = setInterval(() => {
+      if (targetRef.current === null) return;
+      const remaining = Math.round((targetRef.current - Date.now()) / 1000);
+      onTick(Math.max(0, remaining));
     }, 1000);
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [secondsLeft, paused, onTick]);
+    return () => clearInterval(id);
+    // secondsLeft intentionally omitted — the interval must not be recreated
+    // every tick. It's only read on entry to this effect (mount, or a
+    // pause→resume transition), both handled above via targetRef/wasPausedRef.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paused, onTick]);
 
   // Auto-complete when timer hits 0
   useEffect(() => {
