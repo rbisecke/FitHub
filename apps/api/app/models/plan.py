@@ -6,6 +6,7 @@ import logging
 import uuid
 from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
@@ -141,6 +142,21 @@ class PlanRevisionDiff(BaseModel):
 
 class PlanRevisionRequest(BaseModel):
     feedback: str = Field(..., min_length=5, max_length=500)
+
+
+class LoggedSet(BaseModel):
+    """One completed set logged against a prescribed plan item during session execution."""
+
+    planned_item_id: uuid.UUID
+    movement_id: uuid.UUID | None = None
+    load_kg: Decimal | None = None
+    reps: int | None = None
+    rpe: Decimal | None = Field(default=None, ge=0, le=10)
+
+
+class CompleteSessionRequest(BaseModel):
+    logged_sets: list[LoggedSet] = Field(default_factory=list, max_length=200)
+    bodyweight_kg: Decimal | None = Field(default=None, gt=0, le=600)
 
 
 # ── Deterministic scaffold dataclasses ────────────────────────────────────────

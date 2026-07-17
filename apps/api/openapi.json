@@ -2977,6 +2977,74 @@
         }
       }
     },
+    "/api/v1/plans/{plan_id}/sessions/{session_id}/complete": {
+      "post": {
+        "tags": [
+          "plans"
+        ],
+        "summary": "Complete Session",
+        "operationId": "complete_session_api_v1_plans__plan_id__sessions__session_id__complete_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Plan Id"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlannedSessionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/plans/{plan_id}/adaptations/detect": {
       "post": {
         "tags": [
@@ -4983,6 +5051,37 @@
         ],
         "title": "CoachSession"
       },
+      "CompleteSessionRequest": {
+        "properties": {
+          "logged_sets": {
+            "items": {
+              "$ref": "#/components/schemas/LoggedSet"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Logged Sets"
+          },
+          "bodyweight_kg": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 600.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bodyweight Kg"
+          }
+        },
+        "type": "object",
+        "title": "CompleteSessionRequest"
+      },
       "ConnectResponse": {
         "properties": {
           "token": {
@@ -6790,6 +6889,76 @@
           "acwr_zone"
         ],
         "title": "LoadModelResponse"
+      },
+      "LoggedSet": {
+        "properties": {
+          "planned_item_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Planned Item Id"
+          },
+          "movement_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Movement Id"
+          },
+          "load_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Kg"
+          },
+          "reps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reps"
+          },
+          "rpe": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpe"
+          }
+        },
+        "type": "object",
+        "required": [
+          "planned_item_id"
+        ],
+        "title": "LoggedSet",
+        "description": "One completed set logged against a prescribed plan item during session execution."
       },
       "MagicLinkResponse": {
         "properties": {
