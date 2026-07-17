@@ -528,9 +528,14 @@ async def _call_llm(
 
     recent_sessions = cast(list[object], history.get("recent_sessions", []))
     movement_freq = cast(dict[str, object], history.get("movement_frequency", {}))
+    # AI1: movement names in movement_frequency are sourced from movements.name
+    # (user-controlled, no character restriction), so they must be escaped
+    # individually before joining into the prompt — same second-order injection
+    # threat as the movement_pool loop above.
+    top_movements = [html.escape(str(k)) for k in list(movement_freq.keys())[:5]]
     history_summary = (
         f"Recent sessions (last 6 weeks): {len(recent_sessions)} logged. "
-        f"Top movements: {list(movement_freq.keys())[:5]}."
+        f"Top movements: {top_movements}."
     )
     readiness = history.get("readiness_trend")
     if readiness:
@@ -567,7 +572,7 @@ async def _call_llm(
             llm.client.chat.completions.create(
                 model=model,
                 max_tokens=8192,
-                max_retries=2,  # AI5: explicit cap, matching this repo's documented convention
+                max_retries=3,  # AI5: explicit cap, matching this repo's documented convention
                 extra_body={"options": {"num_ctx": 16384}},
                 messages=messages,  # type: ignore[arg-type]
                 response_model=ConstrainedPlanFill,

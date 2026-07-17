@@ -89,6 +89,52 @@ async def test_call_llm_escapes_injection_in_title_and_movement_pool(
     assert _INJECTION not in prompt_text, "raw closing tag must never reach the prompt unescaped"
 
 
+@pytest.mark.asyncio
+async def test_call_llm_escapes_injection_in_history_movement_frequency(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AI1 (third site): movement_frequency keys in the user's training history are
+    also sourced from movements.name (user-controlled), so history_summary must
+    escape them before they reach the prompt — same threat as the movement_pool
+    loop and _format_sessions_for_prompt, just a call site those fixes missed.
+    """
+    monkeypatch.setenv("STUB_LLM", "false")
+
+    req = _make_req()
+    scaffold = build_scaffold(req)
+    movements = _make_movements(["Back Squat"])
+    history: dict[str, Any] = {
+        "recent_sessions": [],
+        "movement_frequency": {_INJECTION: 3},
+    }
+
+    captured: dict[str, Any] = {}
+
+    def _fake_create(**kwargs: Any) -> Any:  # noqa: ANN401
+        captured["messages"] = kwargs["messages"]
+
+        async def _coro() -> PlanFill:
+            return PlanFill(archetype=req.archetype, weeks=[])
+
+        return _coro()
+
+    fake_llm = MagicMock()
+    fake_llm.client.chat.completions.create = _fake_create
+
+    async def fake_call_llm(coro: Any, **kwargs: Any) -> Any:  # noqa: ANN401
+        return await coro
+
+    with (
+        patch("app.ai.client.get_client", return_value=fake_llm),
+        patch("app.ai.errors.call_llm", fake_call_llm),
+    ):
+        await _call_llm(req, scaffold, movements, history)
+
+    prompt_text = json.dumps(captured["messages"], default=str)
+    assert "&lt;/user_input&gt;" in prompt_text, "escaped injection payload must reach the prompt"
+    assert _INJECTION not in prompt_text, "raw closing tag must never reach the prompt unescaped"
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
