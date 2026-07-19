@@ -274,17 +274,29 @@ async def _apply_session_patch(
     user_id: str,
     db: psycopg.AsyncConnection[object],
 ) -> None:
-    """Update title/notes and replace items for a single prescribed session."""
+    """Update title/notes/status and replace items for a single prescribed session."""
     async with db.cursor() as cur:
-        if patch.new_title is not None or patch.new_notes is not None:
+        if (
+            patch.new_title is not None
+            or patch.new_notes is not None
+            or patch.new_status is not None
+        ):
             await cur.execute(
                 """
                 UPDATE planned_sessions SET
                     title = COALESCE(%s, title),
-                    notes = COALESCE(%s, notes)
+                    notes = COALESCE(%s, notes),
+                    status = COALESCE(%s, status)
                 WHERE id = %s::uuid AND plan_id = %s::uuid AND user_id = %s::uuid
                 """,
-                [patch.new_title, patch.new_notes, patch.session_id, plan_id, user_id],
+                [
+                    patch.new_title,
+                    patch.new_notes,
+                    patch.new_status,
+                    patch.session_id,
+                    plan_id,
+                    user_id,
+                ],
             )
         if patch.modified_items:
             await cur.execute(

@@ -20,7 +20,8 @@ from app.models.adaptation import (
     RejectAdaptationRequest,
     TriggerOut,
 )
-from app.routers.plans import _load_prescribed_sessions
+from app.models.plan import PlannedItemPatch, SessionPatch
+from app.routers.plans import _apply_session_patch, _load_prescribed_sessions
 
 router = APIRouter(prefix="/api/v1", tags=["adaptations"])
 
@@ -59,6 +60,41 @@ def _row_to_out(r: dict[str, object]) -> AdaptationOut:
         proposed_at=cast(datetime | None, r["proposed_at"]),
         merged_at=cast(datetime | None, r["merged_at"]),
         rejected_at=cast(datetime | None, r["rejected_at"]),
+    )
+
+
+def _diff_to_session_patch(diff: dict[str, object]) -> SessionPatch:
+    """Reconstruct a SessionPatch from a stored diff_json entry for merge to apply.
+
+    Each item_change's `new_*` fields ARE the item's new state (see
+    app.ai.adaptation._build_item_changes) — a `removed` entry is dropped
+    entirely rather than turned into a PlannedItemPatch, which is exactly what
+    _apply_session_patch's full-replace semantics need: the surviving
+    modified_items list becomes the session's complete new item set.
+    """
+    item_changes = cast(list[dict[str, object]], diff.get("item_changes") or [])
+    modified_items = [
+        PlannedItemPatch(
+            item_id=cast(str | None, ic.get("item_id")),
+            movement_name=str(ic["movement_name"]),
+            sets=cast(int | None, ic.get("new_sets")),
+            reps=cast(str | None, ic.get("new_reps")),
+            load_pct_1rm=cast(float | None, ic.get("new_load_pct_1rm")),
+            load_kg=cast(float | None, ic.get("new_load_kg")),
+            notes=cast(str | None, ic.get("new_notes")),
+            item_order=int(str(ic.get("item_order") or 0)),
+        )
+        for ic in item_changes
+        if not ic.get("removed")
+    ]
+    change = str(diff.get("change", ""))
+    return SessionPatch(
+        session_id=str(diff["session_id"]),
+        modified_items=modified_items,
+        # 'skip' has no dedicated item-level representation (per ADAPTATION_SYSTEM,
+        # the LLM leaves modified_items empty for it) — the session is marked
+        # skipped instead of having its prescribed items destroyed.
+        new_status="skipped" if change == "skip" else None,
     )
 
 
@@ -180,26 +216,39 @@ async def merge_adaptation(
 ) -> AdaptationOut:
     # Single atomic UPDATE with status guard — eliminates the SELECT+UPDATE TOCTOU race.
     # If no row is returned, a follow-up SELECT distinguishes 404 from 409.
-    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-        await cur.execute(
-            f"""
-            UPDATE adaptations
-            SET status = 'merged', merged_at = now()
-            WHERE id = %s::uuid AND user_id = %s AND status = 'proposed'
-            RETURNING {_SELECT_COLS}
-            """,
-            [str(adaptation_id), user.user_id],
-        )
-        updated = await cur.fetchone()
-
-        if updated is None:
+    # The status flip and every session-patch write happen in the SAME transaction
+    # (a savepoint over the request-scoped connection), so a failure applying any
+    # patch rolls back the status flip too — merge must never report 'merged' while
+    # leaving the plan's sessions unchanged (the bug this whole endpoint existed to fix).
+    async with db.transaction():
+        async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
             await cur.execute(
-                "SELECT id FROM adaptations WHERE id = %s::uuid AND user_id = %s",
+                f"""
+                UPDATE adaptations
+                SET status = 'merged', merged_at = now()
+                WHERE id = %s::uuid AND user_id = %s AND status = 'proposed'
+                RETURNING {_SELECT_COLS}
+                """,
                 [str(adaptation_id), user.user_id],
             )
-            if await cur.fetchone() is None:
-                raise HTTPException(status_code=404, detail="Adaptation not found")
-            raise HTTPException(status_code=409, detail="Adaptation is not in proposed state")
+            updated = await cur.fetchone()
+
+            if updated is None:
+                await cur.execute(
+                    "SELECT id FROM adaptations WHERE id = %s::uuid AND user_id = %s",
+                    [str(adaptation_id), user.user_id],
+                )
+                if await cur.fetchone() is None:
+                    raise HTTPException(status_code=404, detail="Adaptation not found")
+                raise HTTPException(status_code=409, detail="Adaptation is not in proposed state")
+
+        plan_id = str(updated["plan_id"])
+        raw_diff = cast(list[object], updated["diff_json"] or [])
+        for entry in raw_diff:
+            if not isinstance(entry, dict):
+                continue
+            patch = _diff_to_session_patch(cast(dict[str, object], entry))
+            await _apply_session_patch(patch, plan_id, str(user.user_id), db)
 
     return _row_to_out(updated)
 

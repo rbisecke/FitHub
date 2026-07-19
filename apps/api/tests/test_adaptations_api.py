@@ -208,6 +208,123 @@ async def _seed_adaptation_with_diff(plan_id: str, diff_json: list[dict[str, obj
 
 
 @pytest.mark.asyncio
+async def test_merge_rewrites_planned_items(alice_client: AsyncClient) -> None:
+    """BG-01: merging an adaptation must actually patch planned_items, not just flip status."""
+    plan_id = await _make_plan(alice_client)
+    session, items = await _first_prescribed_session_with_items(plan_id)
+    assert items, "seeded plan session must have at least one item to diff"
+
+    diff_json = _rich_diff_json(session, items, new_load_pct_1rm=50.0)
+    adaptation_id = await _seed_adaptation_with_diff(plan_id, diff_json)
+
+    r = await alice_client.post(f"/api/v1/adaptations/{adaptation_id}/merge")
+    assert r.status_code == 200
+    assert r.json()["status"] == "merged"
+
+    async with (
+        await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn,
+        conn.cursor(row_factory=psycopg.rows.dict_row) as cur,
+    ):
+        await cur.execute(
+            "SELECT movement_name, load_pct_1rm::float AS load_pct_1rm"
+            " FROM planned_items WHERE session_id = %s::uuid ORDER BY item_order",
+            [session["id"]],
+        )
+        rewritten = await cur.fetchall()
+
+    assert len(rewritten) == len(items), "unchanged items must be preserved, not dropped"
+    assert rewritten[0]["movement_name"] == items[0]["movement_name"]
+    assert rewritten[0]["load_pct_1rm"] == 50.0, "the changed item's new load% must be persisted"
+    if len(items) > 1:
+        assert rewritten[1]["load_pct_1rm"] == items[1]["load_pct_1rm"], (
+            "unchanged context-row items must keep their original values"
+        )
+
+
+@pytest.mark.asyncio
+async def test_merge_with_no_diff_is_status_only_no_op(alice_client: AsyncClient) -> None:
+    """An empty-diff ('no-op suggestion') adaptation merges cleanly with nothing to rewrite."""
+    plan_id = await _make_plan(alice_client)
+    adaptation_id = await _seed_adaptation(plan_id)  # no diff_json column set -> NULL
+
+    r = await alice_client.post(f"/api/v1/adaptations/{adaptation_id}/merge")
+    assert r.status_code == 200
+    assert r.json()["status"] == "merged"
+    assert r.json()["diff_json"] == []
+
+
+@pytest.mark.asyncio
+async def test_merge_skip_change_marks_session_skipped(alice_client: AsyncClient) -> None:
+    """BG-01: a 'skip' change type marks the session skipped without touching its items."""
+    plan_id = await _make_plan(alice_client)
+    session, items = await _first_prescribed_session_with_items(plan_id)
+
+    diff_json = [
+        {
+            "session_id": session["id"],
+            "session_title": session["title"],
+            "scheduled_date": None,
+            "change": "skip",
+            "load_pct_delta": None,
+            "volume_delta_sets": None,
+            "notes": "Skip this session — readiness too low.",
+            "item_changes": [],
+        }
+    ]
+    adaptation_id = await _seed_adaptation_with_diff(plan_id, diff_json)
+
+    r = await alice_client.post(f"/api/v1/adaptations/{adaptation_id}/merge")
+    assert r.status_code == 200
+
+    async with (
+        await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn,
+        conn.cursor(row_factory=psycopg.rows.dict_row) as cur,
+    ):
+        await cur.execute(
+            "SELECT status FROM planned_sessions WHERE id = %s::uuid", [session["id"]]
+        )
+        row = await cur.fetchone()
+        assert row is not None
+        assert row["status"] == "skipped"
+
+        await cur.execute(
+            "SELECT count(*) AS n FROM planned_items WHERE session_id = %s::uuid", [session["id"]]
+        )
+        count_row = await cur.fetchone()
+        assert count_row is not None
+        assert count_row["n"] == len(items), "skip must not delete the session's prescribed items"
+
+
+@pytest.mark.asyncio
+async def test_merge_idor_does_not_rewrite_other_users_plan(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """Bob cannot use his own merge call to rewrite Alice's plan sessions."""
+    plan_id = await _make_plan(alice_client)
+    session, items = await _first_prescribed_session_with_items(plan_id)
+    diff_json = _rich_diff_json(session, items, new_load_pct_1rm=10.0)
+    adaptation_id = await _seed_adaptation_with_diff(plan_id, diff_json)
+
+    r = await bob_client.post(f"/api/v1/adaptations/{adaptation_id}/merge")
+    assert r.status_code == 404
+
+    async with (
+        await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn,
+        conn.cursor(row_factory=psycopg.rows.dict_row) as cur,
+    ):
+        await cur.execute(
+            "SELECT load_pct_1rm::float AS load_pct_1rm FROM planned_items"
+            " WHERE session_id = %s::uuid ORDER BY item_order LIMIT 1",
+            [session["id"]],
+        )
+        row = await cur.fetchone()
+        assert row is not None
+        assert row["load_pct_1rm"] == items[0]["load_pct_1rm"], (
+            "a rejected (404) merge attempt must never touch the plan's items"
+        )
+
+
+@pytest.mark.asyncio
 async def test_diff_json_round_trips_rich_shape(alice_client: AsyncClient) -> None:
     """BG-02: the new per-session/per-item diff_json shape survives the DB round trip
     through AdaptationOut without a Pydantic validation error."""
