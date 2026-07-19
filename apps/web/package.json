@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
+    "@fithub/shared": "workspace:*",
     "@hookform/resolvers": "^4.1.3",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
