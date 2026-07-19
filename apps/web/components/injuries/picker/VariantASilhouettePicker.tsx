@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useReducedMotion } from "motion/react";
+import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { BodyRegion } from "./taxonomy";
 import {
@@ -65,6 +66,11 @@ export function VariantASilhouettePicker({
   alreadyLoggedError = false,
 }: VariantAPickerProps) {
   const prefersReducedMotion = useReducedMotion() ?? false;
+  // Region `<path id>`s are literal enum values (05 §1.1 asset spec), so
+  // front+back must never both be mounted at once — CSS-hiding one via
+  // `md:hidden` while still rendering it would duplicate every id in the DOM.
+  // Conditionally mounting only the active layout keeps ids unique.
+  const isMobile = useIsMobile(768);
   const [side, setSide] = useState<Side>("front");
   const [tier, setTier] = useState<Tier>("standard");
   const [pulsingRegions, setPulsingRegions] = useState<BodyRegion[]>([]);
@@ -143,22 +149,23 @@ export function VariantASilhouettePicker({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <ToggleGroup
-          value={[side]}
-          onValueChange={(vals) => {
-            const next = vals[0];
-            if (next === "front" || next === "back") setSide(next);
-          }}
-          className="md:hidden"
-          aria-label="Front or back view"
-        >
-          <ToggleGroupItem value="front" aria-label="Front view">
-            Front
-          </ToggleGroupItem>
-          <ToggleGroupItem value="back" aria-label="Back view">
-            Back
-          </ToggleGroupItem>
-        </ToggleGroup>
+        {isMobile && (
+          <ToggleGroup
+            value={[side]}
+            onValueChange={(vals) => {
+              const next = vals[0];
+              if (next === "front" || next === "back") setSide(next);
+            }}
+            aria-label="Front or back view"
+          >
+            <ToggleGroupItem value="front" aria-label="Front view">
+              Front
+            </ToggleGroupItem>
+            <ToggleGroupItem value="back" aria-label="Back view">
+              Back
+            </ToggleGroupItem>
+          </ToggleGroup>
+        )}
         <ToggleGroup
           value={[tier]}
           onValueChange={(vals) => {
@@ -193,12 +200,16 @@ export function VariantASilhouettePicker({
           prefersReducedMotion ? "" : "picker-crossfade"
         }`}
       >
-        {/* Mobile: only the active side. Desktop: both, side by side. */}
-        <div className="md:hidden">{renderSilhouette(side)}</div>
-        <div className="hidden md:flex md:gap-10">
-          {renderSilhouette("front")}
-          {renderSilhouette("back")}
-        </div>
+        {/* Mobile: only the active side. Desktop: both, side by side. Only
+            one layout is ever mounted — see the isMobile comment above. */}
+        {isMobile ? (
+          renderSilhouette(side)
+        ) : (
+          <div className="flex gap-10">
+            {renderSilhouette("front")}
+            {renderSilhouette("back")}
+          </div>
+        )}
       </div>
       <style>{`
         @keyframes picker-crossfade-kf {
