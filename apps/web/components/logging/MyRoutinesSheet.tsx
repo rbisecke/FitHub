@@ -120,7 +120,7 @@ export function MyRoutinesSheet({
                   type="button"
                   onClick={() => rename(r.id)}
                   className="rounded-[6px] px-3 font-sans text-[13px] font-semibold"
-                  style={{ background: "var(--accent)", color: "#fff" }}
+                  style={{ background: "var(--accent)", color: "var(--bg)" }}
                 >
                   Save
                 </button>

@@ -20,6 +20,10 @@ MAX_ROUTINES = 100
 _MOVEMENTS_FETCH_LIMIT = MAX_ROUTINES * MAX_ROUTINE_MOVEMENTS * 2
 
 
+class RoutineLimitExceeded(Exception):
+    """Raised when a user has already reached MAX_ROUTINES saved routines."""
+
+
 async def _load_movements(
     cur: psycopg.AsyncCursor[dict[str, Any]],
     *,
@@ -120,6 +124,16 @@ async def create_routine(
 ) -> SavedRoutine:
     routine_id = uuid.uuid4()
     async with conn.transaction(), conn.cursor(row_factory=dict_row) as cur:
+        # Enforce MAX_ROUTINES at write time — the list query's LIMIT alone only
+        # hides the overflow rows from GET /routines, it doesn't stop them from
+        # silently accumulating past the cap.
+        await cur.execute(
+            "SELECT COUNT(*) AS n FROM public.saved_routines WHERE user_id = %s",
+            [user_id],
+        )
+        count_row = await cur.fetchone()
+        if count_row is not None and count_row["n"] >= MAX_ROUTINES:
+            raise RoutineLimitExceeded(MAX_ROUTINES)
         # New routines sort to the end: max(display_order) + 1.
         await cur.execute(
             """
@@ -194,15 +208,31 @@ async def reorder_routines(
     user_id: uuid.UUID,
     routine_ids: list[uuid.UUID],
 ) -> list[SavedRoutine]:
-    """Set display_order to match the given id order. Ids not owned by the user
-    are ignored (the user_id-scoped UPDATE simply matches no row)."""
-    async with conn.transaction(), conn.cursor() as cur:
+    """Set display_order to match the given id order. A partial routine_ids list
+    is allowed: the listed routines come first in the given order, and any of the
+    user's routines left unlisted keep their existing relative order, appended
+    after — so a partial reorder always produces one clean total order instead of
+    letting unlisted rows' old display_order collide or interleave with the new
+    values. Ids not owned by the user are ignored."""
+    async with conn.transaction(), conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT id FROM public.saved_routines
+            WHERE  user_id = %s
+            ORDER  BY display_order, created_at
+            """,
+            [user_id],
+        )
+        existing_ids = [row["id"] for row in await cur.fetchall()]
+        reordered = [rid for rid in routine_ids if rid in existing_ids]
+        reordered_set = set(reordered)
+        full_order = reordered + [rid for rid in existing_ids if rid not in reordered_set]
         await cur.executemany(
             """
             UPDATE public.saved_routines
             SET    display_order = %s, updated_at = now()
             WHERE  id = %s AND user_id = %s
             """,
-            [(order, rid, user_id) for order, rid in enumerate(routine_ids)],
+            [(order, rid, user_id) for order, rid in enumerate(full_order)],
         )
     return await list_routines(conn, user_id=user_id)

@@ -11,6 +11,7 @@ import {
   normalizeTimeInput,
   toKg,
   localDateKey,
+  parseLocalDate,
   formatResultValue,
   type DisplayUnits,
 } from "@/lib/units";
@@ -84,7 +85,10 @@ export function EditWorkoutForm({
     try {
       await client.workouts.patch(workout.id, {
         title: title.trim() || null,
-        performed_at: `${performedAt}T00:00:00`,
+        // performed_at is a timestamptz — encode the chosen calendar day as
+        // local midnight's true UTC instant (explicit offset), not a naive
+        // string the backend would read back as UTC and shift a day.
+        performed_at: parseLocalDate(performedAt).toISOString(),
         session_type: sessionType || null,
         workout_format: format || null,
         session_rpe: sessionRpe.trim() === "" ? null : Number(sessionRpe),

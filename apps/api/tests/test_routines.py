@@ -101,6 +101,27 @@ async def test_reorder_routines(alice_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_partial_reorder_appends_unlisted_routines_after(
+    alice_client: AsyncClient,
+) -> None:
+    """A reorder call naming only some of the user's routines must not leave the
+    unlisted ones colliding with the newly assigned display_order values."""
+    a = (await alice_client.post("/api/v1/routines", json={"name": "A"})).json()["id"]
+    await alice_client.post("/api/v1/routines", json={"name": "B"})
+    c = (await alice_client.post("/api/v1/routines", json={"name": "C"})).json()["id"]
+    await alice_client.post("/api/v1/routines", json={"name": "D"})
+
+    # Only reorder C, A — B and D are left unlisted and must keep their relative
+    # order (B before D), appended after the two that were explicitly moved.
+    r = await alice_client.put("/api/v1/routines/reorder", json={"routine_ids": [c, a]})
+    assert r.status_code == 200
+    assert [x["name"] for x in r.json()] == ["C", "A", "B", "D"]
+
+    listed = (await alice_client.get("/api/v1/routines")).json()
+    assert [x["name"] for x in listed] == ["C", "A", "B", "D"]
+
+
+@pytest.mark.asyncio
 async def test_other_user_cannot_read_routine(
     alice_client: AsyncClient, bob_client: AsyncClient
 ) -> None:
@@ -166,3 +187,28 @@ async def test_unknown_movement_id_is_400(alice_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_get_unknown_routine_404(alice_client: AsyncClient) -> None:
     assert (await alice_client.get(f"/api/v1/routines/{uuid.uuid4()}")).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_routine_limit_is_enforced_at_create(
+    alice_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """MAX_ROUTINES must be checked on INSERT, not just applied as a list LIMIT —
+    otherwise routines past the cap accumulate silently and just stop appearing
+    in GET /routines instead of being rejected."""
+    import app.repositories.routines as routines_repo
+    import app.routers.routines as routines_router
+
+    monkeypatch.setattr(routines_repo, "MAX_ROUTINES", 2)
+    monkeypatch.setattr(routines_router, "MAX_ROUTINES", 2)
+
+    assert (await alice_client.post("/api/v1/routines", json={"name": "A"})).status_code == 201
+    assert (await alice_client.post("/api/v1/routines", json={"name": "B"})).status_code == 201
+
+    r = await alice_client.post("/api/v1/routines", json={"name": "C"})
+    assert r.status_code == 409
+    assert "2" in r.json()["detail"]
+
+    # The rejected routine must not have been partially inserted.
+    listed = (await alice_client.get("/api/v1/routines")).json()
+    assert [x["name"] for x in listed] == ["A", "B"]

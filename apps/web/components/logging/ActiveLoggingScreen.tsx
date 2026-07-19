@@ -325,7 +325,7 @@ export function ActiveLoggingScreen({
           type="button"
           onClick={() => setSheet("chooser")}
           aria-label="Logging options"
-          className="flex h-11 w-9 items-center justify-center font-data text-[18px]"
+          className="flex h-11 w-11 items-center justify-center font-data text-[18px]"
           style={{ color: "var(--muted)" }}
         >
           ⊕
@@ -335,7 +335,7 @@ export function ActiveLoggingScreen({
           onClick={commit}
           disabled={commitState === "saving"}
           className="rounded-[8px] px-4 py-2 font-sans text-[13px] font-semibold disabled:opacity-60"
-          style={{ background: "var(--accent)", color: "#fff" }}
+          style={{ background: "var(--accent)", color: "var(--bg)" }}
         >
           {commitState === "saving" ? "Saving…" : "Commit"}
         </button>
@@ -552,7 +552,7 @@ export function ActiveLoggingScreen({
               type="button"
               onClick={() => router.push("/today")}
               className="flex-1 rounded-[8px] py-2.5 font-sans text-[14px] font-semibold"
-              style={{ background: "var(--red)", color: "#fff" }}
+              style={{ background: "var(--red)", color: "var(--bg)" }}
             >
               Discard
             </button>
@@ -589,7 +589,7 @@ export function ActiveLoggingScreen({
             type="button"
             onClick={saveRoutine}
             className="w-full rounded-[8px] py-2.5 font-sans text-[14px] font-semibold"
-            style={{ background: "var(--accent)", color: "#fff" }}
+            style={{ background: "var(--accent)", color: "var(--bg)" }}
           >
             Save routine
           </button>

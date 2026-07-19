@@ -26,7 +26,7 @@ export function SessionMetadata({
   const chip = (active: boolean) => ({
     background: active ? "var(--accent)" : "var(--surface)",
     border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
-    color: active ? "#fff" : "var(--muted)",
+    color: active ? "var(--bg)" : "var(--muted)",
   });
 
   const field = (

@@ -100,6 +100,32 @@ describe("local-date-parts handling", () => {
   it("zero-pads single-digit months and days", () => {
     expect(localDateKey("2025-01-05")).toBe("2025-01-05");
   });
+
+  it("resolves a tz-aware timestamp's true local day, not its UTC day (regression: performed_at is a real timestamptz)", () => {
+    const originalTz = process.env.TZ;
+    process.env.TZ = "Pacific/Kiritimati"; // UTC+14
+    try {
+      // 2025-03-15T23:30:00-05:00 is 2025-03-16T04:30:00 UTC, which is
+      // 2025-03-16T18:30 local in UTC+14 — the local day is the 16th, even
+      // though the string's own date digits (and a naive slice(0, 10)) say 15.
+      expect(localDateKey("2025-03-15T23:30:00-05:00")).toBe("2025-03-16");
+    } finally {
+      process.env.TZ = originalTz;
+    }
+  });
+
+  it("resolves the local day backward across the UTC boundary too", () => {
+    const originalTz = process.env.TZ;
+    process.env.TZ = "Etc/GMT+12"; // UTC-12
+    try {
+      // 2025-03-15T01:00:00+05:00 is 2025-03-14T20:00:00 UTC, which is
+      // 2025-03-14T08:00 local in UTC-12 — the local day is the 14th, not the
+      // 15th a naive slice(0, 10) of the input string would report.
+      expect(localDateKey("2025-03-15T01:00:00+05:00")).toBe("2025-03-14");
+    } finally {
+      process.env.TZ = originalTz;
+    }
+  });
 });
 
 function makeResult(overrides: Partial<Result>): Result {

@@ -56,7 +56,7 @@ async def get_movement_by_slug(
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             "SELECT * FROM public.movements WHERE slug = %s LIMIT 1",
-            [slug],
+            [slug.strip().lower()],
         )
         row = await cur.fetchone()
     return Movement(**row) if row else None

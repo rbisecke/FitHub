@@ -55,7 +55,7 @@ export function TemplatesStart({
         type="button"
         onClick={onPickMovement}
         className="w-full rounded-[10px] py-3 font-sans text-[14px] font-semibold"
-        style={{ background: "var(--accent)", color: "#fff" }}
+        style={{ background: "var(--accent)", color: "var(--bg)" }}
       >
         Start empty
       </button>

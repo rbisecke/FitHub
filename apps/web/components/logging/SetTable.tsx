@@ -166,7 +166,7 @@ export function SetTable({
                   border: `1.5px solid ${
                     set.completed ? "var(--green)" : "var(--border)"
                   }`,
-                  color: set.completed ? "#fff" : "var(--muted)",
+                  color: set.completed ? "var(--bg)" : "var(--muted)",
                   transition: prefersReducedMotion
                     ? "none"
                     : "background-color 120ms, border-color 120ms",

@@ -14,6 +14,8 @@ from app.models.routine import (
     SavedRoutine,
 )
 from app.repositories.routines import (
+    MAX_ROUTINES,
+    RoutineLimitExceeded,
     create_routine,
     delete_routine,
     get_routine,
@@ -40,6 +42,11 @@ async def create_routine_route(
 ) -> SavedRoutine:
     try:
         return await create_routine(conn, user_id=user.user_id, req=req)
+    except RoutineLimitExceeded:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"You've reached the {MAX_ROUTINES}-routine limit. Delete one to add another.",
+        ) from None
     except pg_errors.ForeignKeyViolation:
         # A movement_id that doesn't exist in the catalog — a client input error,
         # surfaced as 400 rather than a scrubbed 500.

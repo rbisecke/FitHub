@@ -190,7 +190,7 @@ export function MovementSearchSheet({
                 border: `1px solid ${
                   active ? "var(--accent)" : "var(--border)"
                 }`,
-                color: active ? "#fff" : "var(--muted)",
+                color: active ? "var(--bg)" : "var(--muted)",
               }}
             >
               {mod}

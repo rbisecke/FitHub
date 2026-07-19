@@ -98,13 +98,26 @@ export function formatErgPace(
 }
 
 // ---------------------------------------------------------------------------
-// Local-date-parts handling (01 §12; project frontend rule). `performed_at` is
-// sent as local midnight with no tz suffix — parse it from local parts, never
-// `new Date(iso)` (which reads a date-only string as UTC and shifts the day).
+// Local-date-parts handling (01 §12; project frontend rule). `performed_at`
+// (and similar) is a genuine `timestamptz`, serialized with an explicit UTC
+// offset — resolving its LOCAL calendar day requires letting the Date
+// constructor parse the real instant, then reading it back through local
+// getters. A bare date-only string (no offset) has no timezone info to
+// resolve, so `new Date(dateOnlyString)` would misread it as UTC midnight and
+// shift the day in negative-offset zones — those are instead built directly
+// from their local parts, never routed through the Date constructor.
 // ---------------------------------------------------------------------------
 
-/** Parse a date or date-time string to a local `Date` at local midnight of its calendar day. */
+const HAS_TZ_OFFSET = /(Z|[+-]\d{2}:?\d{2})$/;
+
+/** Parse a date or date-time string to a local `Date` at its true local calendar day. */
 export function parseLocalDate(value: string): Date {
+  if (HAS_TZ_OFFSET.test(value)) {
+    // A real instant (e.g. a `timestamptz` serialized with an explicit
+    // offset) — the Date constructor resolves it correctly; callers read the
+    // local calendar day back out via getFullYear/getMonth/getDate.
+    return new Date(value);
+  }
   const datePart = value.slice(0, 10);
   const [y, m, d] = datePart.split("-").map(Number) as [number, number, number];
   return new Date(y, m - 1, d);

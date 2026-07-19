@@ -116,7 +116,7 @@ export function QuickLogSheet({
         onClick={handleLog}
         disabled={saving}
         className="w-full rounded-[8px] py-2.5 font-sans text-[14px] font-semibold disabled:opacity-60"
-        style={{ background: "var(--accent)", color: "#fff" }}
+        style={{ background: "var(--accent)", color: "var(--bg)" }}
       >
         {saving ? "Logging…" : "Log"}
       </button>

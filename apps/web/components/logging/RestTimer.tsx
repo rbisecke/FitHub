@@ -96,7 +96,7 @@ export function RestTimer({ timer }: { timer: RestTimerApi }) {
           type="button"
           onClick={() => setExpanded(false)}
           aria-label="Collapse rest timer"
-          className="flex h-9 items-center px-2 font-data text-[12px]"
+          className="flex h-11 items-center px-2 font-data text-[12px]"
           style={{ color: "var(--muted)" }}
         >
           collapse
@@ -146,7 +146,7 @@ export function RestTimer({ timer }: { timer: RestTimerApi }) {
                   border: `1px solid ${
                     timer.duration === p ? "var(--accent)" : "var(--border)"
                   }`,
-                  color: timer.duration === p ? "#fff" : "var(--muted)",
+                  color: timer.duration === p ? "var(--bg)" : "var(--muted)",
                 }}
               >
                 {fmt(p)}
@@ -158,7 +158,7 @@ export function RestTimer({ timer }: { timer: RestTimerApi }) {
               type="button"
               onClick={() => timer.setDuration(Math.max(5, timer.duration - 5))}
               aria-label="Decrease rest by 5 seconds"
-              className="h-9 w-9 rounded-[6px] font-data text-[14px]"
+              className="h-11 w-11 rounded-[6px] font-data text-[14px]"
               style={{
                 border: "1px solid var(--border)",
                 color: "var(--text)",
@@ -170,7 +170,7 @@ export function RestTimer({ timer }: { timer: RestTimerApi }) {
               type="button"
               onClick={() => timer.setDuration(timer.duration + 5)}
               aria-label="Increase rest by 5 seconds"
-              className="h-9 w-9 rounded-[6px] font-data text-[14px]"
+              className="h-11 w-11 rounded-[6px] font-data text-[14px]"
               style={{
                 border: "1px solid var(--border)",
                 color: "var(--text)",
@@ -182,7 +182,7 @@ export function RestTimer({ timer }: { timer: RestTimerApi }) {
               type="button"
               onClick={() => timer.start()}
               className="ml-auto rounded-[6px] px-4 py-2 font-data text-[12px]"
-              style={{ background: "var(--accent)", color: "#fff" }}
+              style={{ background: "var(--accent)", color: "var(--bg)" }}
             >
               Start
             </button>

@@ -70,6 +70,28 @@ async def test_get_movement_by_slug(alice_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_movement_by_slug_is_case_and_whitespace_insensitive(
+    alice_client: AsyncClient,
+) -> None:
+    uid = uuid.uuid4().hex[:8]
+    slug = f"slug-case-{uid}"
+    create = await alice_client.post(
+        "/api/v1/movements",
+        json={
+            "name": f"Slug Case {uid}",
+            "slug": slug,
+            "base_movement": "X",
+            "modality": "strength",
+        },
+    )
+    assert create.status_code == 201
+
+    r = await alice_client.get(f"/api/v1/movements/by-slug/{slug.upper()}")
+    assert r.status_code == 200
+    assert r.json()["slug"] == slug
+
+
+@pytest.mark.asyncio
 async def test_get_movement_by_slug_not_found(alice_client: AsyncClient) -> None:
     r = await alice_client.get("/api/v1/movements/by-slug/does-not-exist-xyz")
     assert r.status_code == 404

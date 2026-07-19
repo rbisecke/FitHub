@@ -126,7 +126,7 @@ export function MovementEntryCard({
           type="button"
           onClick={onRemove}
           aria-label={`Remove ${displayName}`}
-          className="flex h-8 w-8 items-center justify-center font-data text-[16px]"
+          className="flex h-11 w-11 items-center justify-center font-data text-[16px]"
           style={{ color: "var(--muted)" }}
         >
           ⋯
@@ -157,7 +157,7 @@ export function MovementEntryCard({
                 className="px-2.5 py-1 font-data text-[10px] uppercase tracking-wide"
                 style={{
                   background: active ? "var(--accent)" : "transparent",
-                  color: active ? "#fff" : "var(--muted)",
+                  color: active ? "var(--bg)" : "var(--muted)",
                 }}
               >
                 {label}

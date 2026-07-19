@@ -523,11 +523,13 @@ function buildResult(entry: ParsedEntry, index: number): CreateResultBody {
   }
 }
 
-/** Local midnight ISO with no tz suffix (project date rule) for performed_at. */
+/**
+ * ISO instant for local midnight of today. `performed_at` is a genuine
+ * `timestamptz`, so this must carry an explicit offset (via `toISOString`) —
+ * a naive "no tz suffix" string would be read back as UTC midnight by the
+ * backend and shift the day in negative-offset zones.
+ */
 function localMidnightIso(): string {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}T00:00:00`;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString();
 }

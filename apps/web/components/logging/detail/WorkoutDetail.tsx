@@ -284,7 +284,7 @@ export function WorkoutDetail({
               className="flex-1 rounded-[8px] py-2.5 font-sans text-[14px] font-semibold"
               style={{
                 background: "var(--red)",
-                color: "#fff",
+                color: "var(--bg)",
                 opacity: deleting ? 0.7 : 1,
               }}
             >
