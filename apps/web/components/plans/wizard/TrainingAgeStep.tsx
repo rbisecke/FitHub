@@ -181,9 +181,30 @@ export function TrainingAgeStep({
           </p>
         )}
         {titleDirty && (
-          <p className="font-mono text-xs" style={{ color: "var(--muted)" }}>
-            custom title
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="font-mono text-xs" style={{ color: "var(--amber)" }}>
+              custom title
+            </p>
+            <button
+              type="button"
+              data-testid="reset-title-btn"
+              onClick={() => {
+                setCustomTitle(null);
+                onTitleChange("");
+              }}
+              className="font-mono text-xs underline-offset-2 hover:underline"
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--accent)",
+                cursor: "pointer",
+                padding: 0,
+                minHeight: "44px",
+              }}
+            >
+              ↺ use suggested
+            </button>
+          </div>
         )}
       </div>
 

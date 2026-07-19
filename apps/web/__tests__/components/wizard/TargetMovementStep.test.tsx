@@ -9,10 +9,14 @@ import type { WizardState, PrerequisiteStatus } from "@/lib/types/plans";
 // Mock api.movements.search
 // ---------------------------------------------------------------------------
 const mockSearch = vi.fn();
+const mockPersonalRecords = vi.fn().mockResolvedValue([]);
 vi.mock("@/lib/api/client", () => ({
   api: {
     movements: {
       search: (...args: unknown[]) => mockSearch(...args),
+    },
+    analytics: {
+      personalRecords: (...args: unknown[]) => mockPersonalRecords(...args),
     },
   },
 }));
@@ -26,15 +30,20 @@ function makeState(overrides: Partial<WizardState> = {}): WizardState {
     archetype: "skill-acquisition",
     selectedPresets: new Set(),
     daysPerWeek: 4,
+    startDate: "2026-07-20",
     targetMovementId: null,
     targetMovementName: null,
     current1rmKg: null,
+    current1rmSource: null,
     trainingAge: null,
     maxDurationWeeks: null,
     customTitle: null,
     isSubmitting: false,
     error: null,
     planId: null,
+    taskStatus: null,
+    rateLimited: false,
+    timedOut: false,
     ...overrides,
   };
 }

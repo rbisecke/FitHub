@@ -21,15 +21,20 @@ function makeState(overrides: Partial<WizardState> = {}): WizardState {
     archetype: "general-crossfit",
     selectedPresets: new Set(),
     daysPerWeek: 4,
+    startDate: "2026-07-20",
     targetMovementId: null,
     targetMovementName: null,
     current1rmKg: null,
+    current1rmSource: null,
     trainingAge: null,
     maxDurationWeeks: null,
     customTitle: null,
     isSubmitting: false,
     error: null,
     planId: null,
+    taskStatus: null,
+    rateLimited: false,
+    timedOut: false,
     ...overrides,
   };
 }
@@ -41,6 +46,7 @@ describe("ScheduleStep — days control", () => {
         state={makeState()}
         onDaysChange={() => {}}
         onDurationChange={() => {}}
+        onStartDateChange={() => {}}
         onNext={() => {}}
       />,
     );
@@ -58,6 +64,7 @@ describe("ScheduleStep — days control", () => {
         state={makeState()}
         onDaysChange={onDaysChange}
         onDurationChange={() => {}}
+        onStartDateChange={() => {}}
         onNext={() => {}}
       />,
     );
@@ -77,6 +84,7 @@ describe("ScheduleStep — days control", () => {
         state={makeState({ daysPerWeek: 5 })}
         onDaysChange={() => {}}
         onDurationChange={() => {}}
+        onStartDateChange={() => {}}
         onNext={() => {}}
       />,
     );
@@ -96,6 +104,7 @@ describe("ScheduleStep — weeks conditional label", () => {
         state={makeState({ archetype: "skill-acquisition" })}
         onDaysChange={() => {}}
         onDurationChange={() => {}}
+        onStartDateChange={() => {}}
         onNext={() => {}}
       />,
     );
@@ -114,6 +123,7 @@ describe("ScheduleStep — weeks conditional label", () => {
         state={makeState({ archetype: "general-crossfit" })}
         onDaysChange={() => {}}
         onDurationChange={() => {}}
+        onStartDateChange={() => {}}
         onNext={() => {}}
       />,
     );
@@ -134,6 +144,7 @@ describe("ScheduleStep — weeks default", () => {
         state={makeState({ maxDurationWeeks: null })}
         onDaysChange={() => {}}
         onDurationChange={() => {}}
+        onStartDateChange={() => {}}
         onNext={() => {}}
       />,
     );
@@ -152,6 +163,7 @@ describe("ScheduleStep — weeks default", () => {
         state={makeState()}
         onDaysChange={() => {}}
         onDurationChange={onDurationChange}
+        onStartDateChange={() => {}}
         onNext={() => {}}
       />,
     );

@@ -1,6 +1,7 @@
 "use client";
 
 import type { WizardState } from "@/lib/types/plans";
+import { todayLocalDateString } from "@/lib/plans/dates";
 
 const DAYS_OPTIONS = [2, 3, 4, 5, 6] as const;
 const WEEKS_OPTIONS = [4, 8, 12, 16, 20, 24] as const;
@@ -9,6 +10,7 @@ interface ScheduleStepProps {
   state: WizardState;
   onDaysChange: (days: number) => void;
   onDurationChange: (weeks: number) => void;
+  onStartDateChange: (isoDate: string) => void;
   onNext: () => void;
   headingRef?: React.RefObject<HTMLHeadingElement | null>;
 }
@@ -17,6 +19,7 @@ export function ScheduleStep({
   state,
   onDaysChange,
   onDurationChange,
+  onStartDateChange,
   onNext,
   headingRef,
 }: ScheduleStepProps) {
@@ -52,6 +55,40 @@ export function ScheduleStep({
       >
         step 3 &mdash; schedule
       </h2>
+
+      {/* Start date */}
+      <div>
+        <label
+          htmlFor="plan-start-date"
+          style={{
+            fontSize: "0.875rem",
+            fontWeight: 600,
+            color: "var(--text)",
+            marginBottom: "8px",
+            display: "block",
+          }}
+        >
+          Start date
+        </label>
+        <input
+          id="plan-start-date"
+          type="date"
+          data-testid="start-date-input"
+          value={state.startDate}
+          min={todayLocalDateString()}
+          onChange={(e) => {
+            if (e.target.value) onStartDateChange(e.target.value);
+          }}
+          className="rounded font-mono text-sm tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          style={{
+            border: "1px solid var(--border)",
+            backgroundColor: "var(--surface)",
+            color: "var(--text)",
+            padding: "8px 12px",
+            minHeight: "44px",
+          }}
+        />
+      </div>
 
       {/* Days per week */}
       <fieldset style={{ border: "none", padding: 0, margin: 0 }}>

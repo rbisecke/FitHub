@@ -8,6 +8,7 @@ import { EquipmentStep } from "@/components/plans/wizard/EquipmentStep";
 import { ScheduleStep } from "@/components/plans/wizard/ScheduleStep";
 import { TargetMovementStep } from "@/components/plans/wizard/TargetMovementStep";
 import { TrainingAgeStep } from "@/components/plans/wizard/TrainingAgeStep";
+import { PlanGenerationScreen } from "@/components/plans/PlanGenerationScreen";
 import type { ArchetypeSlug, EquipmentPreset } from "@/lib/types/plans";
 
 // Archetypes that include a target-movement step (step index 3).
@@ -158,7 +159,7 @@ export function CreatePlanWizard({ accessToken }: Props) {
   useEffect(() => {
     if (state.planId && !redirectedRef.current) {
       redirectedRef.current = true;
-      router.push(`/plans/${state.planId}`);
+      router.push(`/plan/${state.planId}`);
     }
   }, [state.planId, router]);
 
@@ -208,6 +209,21 @@ export function CreatePlanWizard({ accessToken }: Props) {
 
   function handleSubmit() {
     wizard.submit(accessToken);
+  }
+
+  // Once submit fires, the generation state replaces the wizard entirely
+  // (02 §3 — "the wizard is unmounted"), including the failed/rate-limited/
+  // timed-out terminal states. "Try again" (wizard.retry) returns here with
+  // every prior input still intact, since none of the wizard's own state was
+  // touched by submit().
+  const showGeneration =
+    state.isSubmitting ||
+    state.error !== null ||
+    state.rateLimited ||
+    state.timedOut;
+
+  if (showGeneration) {
+    return <PlanGenerationScreen state={state} onRetry={wizard.retry} />;
   }
 
   return (
@@ -285,6 +301,7 @@ export function CreatePlanWizard({ accessToken }: Props) {
               headingRef={headingRef}
               onDaysChange={wizard.setDaysPerWeek}
               onDurationChange={wizard.setMaxDuration}
+              onStartDateChange={wizard.setStartDate}
               onNext={wizard.goNext}
             />
             <div className="flex gap-3">
@@ -314,7 +331,7 @@ export function CreatePlanWizard({ accessToken }: Props) {
             accessToken={accessToken}
             headingRef={headingRef}
             onSelect={wizard.setTargetMovement}
-            on1rmChange={(kg) => wizard.set1rm(kg)}
+            on1rmChange={(kg, source) => wizard.set1rm(kg, source)}
             onNext={wizard.goNext}
             onBack={wizard.goPrev}
           />
@@ -322,6 +339,11 @@ export function CreatePlanWizard({ accessToken }: Props) {
 
         {state.step === 4 && (
           <>
+            {/* isSubmitting/error are always false/null here — showGeneration
+                above intercepts the render the instant either becomes truthy
+                and swaps in PlanGenerationScreen instead. Passed through
+                anyway so TrainingAgeStep's own submitting/error UI stays
+                correct if ever rendered standalone (e.g. in tests). */}
             <TrainingAgeStep
               state={state}
               headingRef={headingRef}

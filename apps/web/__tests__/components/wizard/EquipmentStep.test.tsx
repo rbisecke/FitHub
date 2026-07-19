@@ -14,15 +14,20 @@ function makeState(
     archetype: "general-crossfit",
     selectedPresets,
     daysPerWeek: 4,
+    startDate: "2026-07-20",
     targetMovementId: null,
     targetMovementName: null,
     current1rmKg: null,
+    current1rmSource: null,
     trainingAge: null,
     maxDurationWeeks: null,
     customTitle: null,
     isSubmitting: false,
     error: null,
     planId: null,
+    taskStatus: null,
+    rateLimited: false,
+    timedOut: false,
   };
 }
 
