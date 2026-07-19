@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ArchetypeSlug, WizardState } from "@/lib/types/plans";
+import { ARCHETYPE_LABEL } from "@/lib/plans/archetypes";
 
 // Archetypes that carry a specific program-type tag badge.
 const ARCHETYPE_TAG: Partial<Record<ArchetypeSlug, string>> = {
@@ -20,51 +21,45 @@ const ARCHETYPE_TAG: Partial<Record<ArchetypeSlug, string>> = {
   "bodyweight-calisthenics": "locks equipment",
 };
 
+// Display names come from the shared ARCHETYPE_LABEL map (lib/plans/archetypes)
+// so the wizard and the plan header never disagree about an archetype's name.
 const ARCHETYPES: {
   slug: ArchetypeSlug;
-  name: string;
   Icon: LucideIcon;
   desc: string;
 }[] = [
   {
     slug: "general-crossfit",
-    name: "General CrossFit",
     Icon: Zap,
     desc: "Balanced GPP: mixed-modal metcons, gymnastics, and barbell work across all energy systems.",
   },
   {
     slug: "strength-bias",
-    name: "Strength Bias",
     Icon: Dumbbell,
     desc: "Squat/hinge/press cycles with conditioning as accessory — adds barbell strength while staying fit.",
   },
   {
     slug: "travel-minimal",
-    name: "Travel Minimal",
     Icon: Luggage,
     desc: "Bodyweight and minimal-equipment sessions when you're away from the gym.",
   },
   {
     slug: "aerobic-base",
-    name: "Aerobic Base",
     Icon: Wind,
     desc: "Aerobic engine focus: longer aerobic pieces, interval work, and monostructural capacity.",
   },
   {
     slug: "bodyweight-calisthenics",
-    name: "Bodyweight",
     Icon: PersonStanding,
     desc: "Structured progressions on rings, bars, and floor — no barbell required.",
   },
   {
     slug: "skill-acquisition",
-    name: "Skill Acquisition",
     Icon: Target,
     desc: "Step-by-step prerequisite ladder for a complex movement you don't have yet.",
   },
   {
     slug: "one-rm-peak",
-    name: "1RM Peak",
     Icon: TrendingUp,
     desc: "Periodised wave loading toward a single target lift PR on a specific date.",
   },
@@ -94,9 +89,10 @@ export function ArchetypeStep({ state, onSelect, headingRef }: Props) {
         role="radiogroup"
         aria-label="Training archetype"
       >
-        {ARCHETYPES.map(({ slug, name, Icon, desc }) => {
+        {ARCHETYPES.map(({ slug, Icon, desc }) => {
           const isSelected = state.archetype === slug;
           const tag = ARCHETYPE_TAG[slug];
+          const name = ARCHETYPE_LABEL[slug];
           return (
             <button
               key={slug}

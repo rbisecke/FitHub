@@ -25,15 +25,23 @@ export function todayLocalDateString(): string {
   return localDateString(new Date());
 }
 
+// Calendar-day difference between two local dates, DST-safe. Subtracting
+// local Date objects directly and dividing by a fixed 24h-in-ms constant
+// undercounts across a DST transition (a "day" can be 23 or 25 real hours);
+// converting each date's Y/M/D triple to a UTC-anchored timestamp first
+// sidesteps the DST shift entirely — every "day" is exactly 24h in UTC.
+function calendarDayDiff(from: Date, to: Date): number {
+  const utcFrom = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
+  const utcTo = Date.UTC(to.getFullYear(), to.getMonth(), to.getDate());
+  return Math.round((utcTo - utcFrom) / (1000 * 60 * 60 * 24));
+}
+
 /** 1-indexed plan week containing a given local date-only string. */
 export function weekNumberForDate(
   scheduledDate: string,
   planStart: Date,
 ): number {
-  const d = parseLocalDate(scheduledDate);
-  const dayDiff = Math.floor(
-    (d.getTime() - planStart.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  const dayDiff = calendarDayDiff(planStart, parseLocalDate(scheduledDate));
   return Math.max(1, Math.floor(dayDiff / 7) + 1);
 }
 
