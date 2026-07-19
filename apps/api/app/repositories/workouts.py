@@ -85,9 +85,9 @@ _INSERT_RESULT_SQL = """
          set_index, order_index, is_pr, notes, variant_annotation,
          implement, tempo, side,
          rpe, rpe_target, rir, rest_s,
-         mean_velocity_ms, peak_velocity_ms, estimated_1rm_kg)
+         mean_velocity_ms, peak_velocity_ms, estimated_1rm_kg, scaled)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 """
 
 
@@ -123,6 +123,7 @@ def _result_row(user_id: uuid.UUID, workout_id: uuid.UUID, r: CreateResultReques
         r.mean_velocity_ms,
         r.peak_velocity_ms,
         _epley_1rm(r.load_kg, r.reps),
+        r.scaled,
     ]
 
 

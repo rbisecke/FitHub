@@ -814,6 +814,60 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/routines": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Routines Route */
+    get: operations["list_routines_route_api_v1_routines_get"];
+    put?: never;
+    /** Create Routine Route */
+    post: operations["create_routine_route_api_v1_routines_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/routines/reorder": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Reorder Routines Route */
+    put: operations["reorder_routines_route_api_v1_routines_reorder_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/routines/{routine_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Routine Route */
+    get: operations["get_routine_route_api_v1_routines__routine_id__get"];
+    put?: never;
+    post?: never;
+    /** Delete Routine Route */
+    delete: operations["delete_routine_route_api_v1_routines__routine_id__delete"];
+    options?: never;
+    head?: never;
+    /** Patch Routine Route */
+    patch: operations["patch_routine_route_api_v1_routines__routine_id__patch"];
+    trace?: never;
+  };
   "/api/v1/workouts": {
     parameters: {
       query?: never;
@@ -1840,6 +1894,18 @@ export interface components {
       mean_velocity_ms?: number | string | null;
       /** Peak Velocity Ms */
       peak_velocity_ms?: number | string | null;
+      /**
+       * Scaled
+       * @default false
+       */
+      scaled: boolean;
+    };
+    /** CreateSavedRoutineRequest */
+    CreateSavedRoutineRequest: {
+      /** Name */
+      name: string;
+      /** Movements */
+      movements?: components["schemas"]["RoutineMovementInput"][];
     };
     /** CreateTeamSessionRequest */
     CreateTeamSessionRequest: {
@@ -2599,6 +2665,11 @@ export interface components {
           )[]
         | null;
     };
+    /** PatchSavedRoutineRequest */
+    PatchSavedRoutineRequest: {
+      /** Name */
+      name: string;
+    };
     /** PatchTeamSessionRequest */
     PatchTeamSessionRequest: {
       /** Name */
@@ -2991,6 +3062,11 @@ export interface components {
       /** Rejection Reason */
       rejection_reason?: string | null;
     };
+    /** ReorderRoutinesRequest */
+    ReorderRoutinesRequest: {
+      /** Routine Ids */
+      routine_ids: string[];
+    };
     /** ReportInjuryRequest */
     ReportInjuryRequest: {
       body_region: components["schemas"]["BodyRegion"];
@@ -3076,6 +3152,11 @@ export interface components {
       /** Estimated 1Rm Kg */
       estimated_1rm_kg: string | null;
       /**
+       * Scaled
+       * @default false
+       */
+      scaled: boolean;
+      /**
        * Created At
        * Format: date-time
        */
@@ -3104,6 +3185,72 @@ export interface components {
     RoleSuggestionsResponse: {
       /** Suggestions */
       suggestions: string[];
+    };
+    /**
+     * RoutineMovement
+     * @description One movement reference in a saved routine, as returned to the client.
+     */
+    RoutineMovement: {
+      /**
+       * Movement Id
+       * Format: uuid
+       */
+      movement_id: string;
+      /** Movement Name */
+      movement_name?: string | null;
+      /** Implement */
+      implement?: string | null;
+      /** Side */
+      side?: string | null;
+      /** Position */
+      position: number;
+    };
+    /**
+     * RoutineMovementInput
+     * @description One movement reference in a routine, as submitted by the client.
+     *
+     *     Position is derived from list order on the server, not sent by the client,
+     *     so the ordered movement list is authoritative and gap-free.
+     */
+    RoutineMovementInput: {
+      /**
+       * Movement Id
+       * Format: uuid
+       */
+      movement_id: string;
+      /** Implement */
+      implement?: string | null;
+      /** Side */
+      side?: string | null;
+    };
+    /** SavedRoutine */
+    SavedRoutine: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * User Id
+       * Format: uuid
+       */
+      user_id: string;
+      /** Name */
+      name: string;
+      /** Display Order */
+      display_order: number;
+      /** Movements */
+      movements?: components["schemas"]["RoutineMovement"][];
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
     };
     /**
      * ScoringType
@@ -5020,6 +5167,187 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PinnedMovement"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_routines_route_api_v1_routines_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SavedRoutine"][];
+        };
+      };
+    };
+  };
+  create_routine_route_api_v1_routines_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateSavedRoutineRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SavedRoutine"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reorder_routines_route_api_v1_routines_reorder_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReorderRoutinesRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SavedRoutine"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_routine_route_api_v1_routines__routine_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        routine_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SavedRoutine"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_routine_route_api_v1_routines__routine_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        routine_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  patch_routine_route_api_v1_routines__routine_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        routine_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PatchSavedRoutineRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SavedRoutine"];
         };
       };
       /** @description Validation Error */

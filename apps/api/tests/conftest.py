@@ -158,6 +158,12 @@ async def _clean_data() -> AsyncGenerator[None]:
             "DELETE FROM public.workouts WHERE user_id = ANY(%s::uuid[])",
             [[str(ALICE_ID), str(BOB_ID)]],
         )
+        # Saved routines cascade to saved_routine_movements; delete before
+        # movements so a dangling routine header never survives a test.
+        await conn.execute(
+            "DELETE FROM public.saved_routines WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
         await conn.execute(
             "DELETE FROM public.movements WHERE created_by = ANY(%s::uuid[])",
             [[str(ALICE_ID), str(BOB_ID)]],
