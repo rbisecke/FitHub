@@ -7,13 +7,17 @@ const PUBLIC_PATHS = ["/login", "/auth"];
 function isPublic(pathname: string): boolean {
   // API routes return JSON and must not receive HTML redirects.
   if (pathname.startsWith("/api/")) return true;
-  // Effort-0 design-system scaffold routes (/dev/*) are dev-only and unauthenticated.
+  // Effort-0/1 redesign scaffold routes are dev-only and unauthenticated so the
+  // design system (/dev/*) and the nav shell (/preview/*) can be exercised signed-out.
   // NODE_ENV is inlined by Next at build, so this branch is dead-code-eliminated in any
-  // production build — the bypass cannot execute there, where /dev/* stays auth-gated.
-  // Exact-segment match so sibling routes (/devices, /developer) are never swept in.
+  // production build — the bypass cannot execute there, where these routes stay
+  // auth-gated. Exact-segment match so siblings (/devices, /previewer) aren't swept in.
   if (
     process.env.NODE_ENV !== "production" &&
-    (pathname === "/dev" || pathname.startsWith("/dev/"))
+    (pathname === "/dev" ||
+      pathname.startsWith("/dev/") ||
+      pathname === "/preview" ||
+      pathname.startsWith("/preview/"))
   ) {
     return true;
   }
