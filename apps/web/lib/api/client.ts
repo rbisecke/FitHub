@@ -173,6 +173,16 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    getBySlug: (
+      token: string,
+      slug: string,
+      options?: { signal?: AbortSignal },
+    ) =>
+      apiFetch<Movement>(
+        `/api/v1/movements/by-slug/${encodeURIComponent(slug)}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     lastResult: (
       token: string,
       movementId: string,
@@ -828,6 +838,8 @@ export function createApiClient(token: string) {
       ) => api.movements.search(token, params, options),
       create: (body: Parameters<typeof api.movements.create>[1]) =>
         api.movements.create(token, body),
+      getBySlug: (slug: string, options?: { signal?: AbortSignal }) =>
+        api.movements.getBySlug(token, slug, options),
       lastResult: (
         movementId: string,
         params?: Parameters<typeof api.movements.lastResult>[2],
