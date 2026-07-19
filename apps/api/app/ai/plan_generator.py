@@ -335,7 +335,7 @@ async def build_user_history(
     return history
 
 
-async def _resolve_target_skill_slug(
+async def resolve_target_skill_slug(
     db: psycopg.AsyncConnection[object],
     target_movement_id: object,
 ) -> str:
@@ -1224,7 +1224,7 @@ async def run_plan_generation(
                 # B1: target_movement_id is a movement UUID; SKILL_PREREQUISITES is keyed
                 # by slug, so resolve one to the other before calling build_user_history_skill
                 # — passing the UUID directly meant the prerequisite chain never matched.
-                target_slug = await _resolve_target_skill_slug(
+                target_slug = await resolve_target_skill_slug(
                     db, req_data.get("target_movement_id")
                 )
                 history = await build_user_history_skill(user_id, db, target_slug)

@@ -2134,6 +2134,55 @@
         }
       }
     },
+    "/api/v1/movements/{movement_id}/skill-context": {
+      "get": {
+        "tags": [
+          "movements"
+        ],
+        "summary": "Get Skill Context",
+        "description": "Return the athlete's real, history-aware prerequisite chain for a target skill.\n\nPowers the plan wizard's skill-acquisition ladder preview (design spec \u00a710):\nresolves movement_id -> skill slug -> SKILL_PREREQUISITES chain, then\ndetermines confirmed_prerequisites/current_entry_point from the caller's own\nlast-90-days logged movements (build_user_history_skill is already\nuser_id-scoped, so this never leaks another athlete's training history).\n\n404 only when movement_id doesn't reference a real movement. When the\nmovement is real but has no defined prerequisite chain, this returns 200\nwith available=False rather than a 404 \u2014 no chain is an expected, common\nstate (most movements aren't tracked skills), not an error.",
+        "operationId": "get_skill_context_api_v1_movements__movement_id__skill_context_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "movement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Movement Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillContextOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/profile/search": {
       "get": {
         "tags": [
@@ -10590,6 +10639,56 @@
         },
         "type": "object",
         "title": "SetPinnedMovementsRequest"
+      },
+      "SkillContextOut": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "target_skill": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Skill"
+          },
+          "prerequisite_chain": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Prerequisite Chain"
+          },
+          "confirmed_prerequisites": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Confirmed Prerequisites"
+          },
+          "current_entry_point": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Entry Point"
+          }
+        },
+        "type": "object",
+        "required": [
+          "available"
+        ],
+        "title": "SkillContextOut",
+        "description": "The real, history-aware skill-prerequisite chain for a target movement.\n\n`available` is False when the movement has no defined prerequisite chain\n(its slug isn't a SKILL_PREREQUISITES key) \u2014 a legitimate, expected state\nfor most movements, not an error. In that case every other field is empty/\nnull and the frontend renders \"No prerequisite ladder for this skill\"\nrather than an empty ladder."
       },
       "SubmitAccessRequestResponse": {
         "properties": {

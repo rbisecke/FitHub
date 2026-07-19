@@ -382,3 +382,118 @@ async def test_last_result_user_scoped(alice_client: AsyncClient, bob_client: As
     # Bob has no history for that movement — must get 404, not Alice's data
     r = await bob_client.get(f"/api/v1/movements/{movement_id}/last-result")
     assert r.status_code == 404
+
+
+# ── /api/v1/movements/{movement_id}/skill-context (BG-27) ─────────────────────
+
+
+async def _movement_id_by_slug(client: AsyncClient, slug: str) -> str:
+    r = await client.get(f"/api/v1/movements/by-slug/{slug}")
+    assert r.status_code == 200, f"seed data must include movement slug={slug!r}"
+    return str(r.json()["id"])
+
+
+@pytest.mark.asyncio
+async def test_skill_context_requires_auth(anon_client: AsyncClient) -> None:
+    r = await anon_client.get(f"/api/v1/movements/{uuid.uuid4()}/skill-context")
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_skill_context_movement_not_found(alice_client: AsyncClient) -> None:
+    r = await alice_client.get(f"/api/v1/movements/{uuid.uuid4()}/skill-context")
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_skill_context_no_chain_for_untracked_skill(alice_client: AsyncClient) -> None:
+    """A movement whose slug isn't a SKILL_PREREQUISITES key returns 200/available=False."""
+    uid = uuid.uuid4().hex[:8]
+    mv = await alice_client.post(
+        "/api/v1/movements",
+        json={
+            "name": f"Untracked Move {uid}",
+            "slug": f"untracked-move-{uid}",
+            "base_movement": "Untracked",
+            "modality": "strength",
+        },
+    )
+    assert mv.status_code == 201
+    movement_id = mv.json()["id"]
+
+    r = await alice_client.get(f"/api/v1/movements/{movement_id}/skill-context")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["available"] is False
+    assert body["target_skill"] is None
+    assert body["prerequisite_chain"] == []
+    assert body["confirmed_prerequisites"] == []
+    assert body["current_entry_point"] is None
+
+
+@pytest.mark.asyncio
+async def test_skill_context_happy_path_no_history(alice_client: AsyncClient) -> None:
+    """With no logged history, the chain is returned with the athlete at its start."""
+    movement_id = await _movement_id_by_slug(alice_client, "bar-muscle-up")
+
+    r = await alice_client.get(f"/api/v1/movements/{movement_id}/skill-context")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["available"] is True
+    assert body["target_skill"] == "bar-muscle-up"
+    assert body["prerequisite_chain"] == [
+        "Strict Pull-Up",
+        "Chest-to-Bar Pull-Up",
+        "Kipping Pull-Up",
+        "Kipping Chest-to-Bar Pull-Up",
+        "Bar Muscle-Up",
+    ]
+    assert body["confirmed_prerequisites"] == []
+    assert body["current_entry_point"] == "Strict Pull-Up"
+
+
+@pytest.mark.asyncio
+async def test_skill_context_reflects_logged_prerequisite(alice_client: AsyncClient) -> None:
+    """Logging the first prerequisite advances current_entry_point to the next rung."""
+    bmu_id = await _movement_id_by_slug(alice_client, "bar-muscle-up")
+    pullup_id = await _movement_id_by_slug(alice_client, "strict-pull-up")
+
+    w = await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2026-07-01T08:00:00Z",
+            "results": [{"movement_id": pullup_id, "result_type": "reps", "reps": 8}],
+        },
+    )
+    assert w.status_code == 201
+
+    r = await alice_client.get(f"/api/v1/movements/{bmu_id}/skill-context")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["confirmed_prerequisites"] == ["Strict Pull-Up"]
+    assert body["current_entry_point"] == "Chest-to-Bar Pull-Up"
+
+
+@pytest.mark.asyncio
+async def test_skill_context_idor_scoped_to_caller(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """Bob's confirmed_prerequisites must never reflect Alice's logged history."""
+    bmu_id = await _movement_id_by_slug(alice_client, "bar-muscle-up")
+    pullup_id = await _movement_id_by_slug(alice_client, "strict-pull-up")
+
+    w = await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2026-07-01T08:00:00Z",
+            "results": [{"movement_id": pullup_id, "result_type": "reps", "reps": 8}],
+        },
+    )
+    assert w.status_code == 201
+
+    r = await bob_client.get(f"/api/v1/movements/{bmu_id}/skill-context")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["available"] is True
+    assert body["confirmed_prerequisites"] == []
+    assert body["current_entry_point"] == "Strict Pull-Up"

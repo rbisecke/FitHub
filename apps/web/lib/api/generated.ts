@@ -769,6 +769,37 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/movements/{movement_id}/skill-context": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Skill Context
+     * @description Return the athlete's real, history-aware prerequisite chain for a target skill.
+     *
+     *     Powers the plan wizard's skill-acquisition ladder preview (design spec §10):
+     *     resolves movement_id -> skill slug -> SKILL_PREREQUISITES chain, then
+     *     determines confirmed_prerequisites/current_entry_point from the caller's own
+     *     last-90-days logged movements (build_user_history_skill is already
+     *     user_id-scoped, so this never leaks another athlete's training history).
+     *
+     *     404 only when movement_id doesn't reference a real movement. When the
+     *     movement is real but has no defined prerequisite chain, this returns 200
+     *     with available=False rather than a 404 — no chain is an expected, common
+     *     state (most movements aren't tracked skills), not an error.
+     */
+    get: operations["get_skill_context_api_v1_movements__movement_id__skill_context_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/profile/search": {
     parameters: {
       query?: never;
@@ -3421,6 +3452,28 @@ export interface components {
       /** Movement Ids */
       movement_ids?: string[];
     };
+    /**
+     * SkillContextOut
+     * @description The real, history-aware skill-prerequisite chain for a target movement.
+     *
+     *     `available` is False when the movement has no defined prerequisite chain
+     *     (its slug isn't a SKILL_PREREQUISITES key) — a legitimate, expected state
+     *     for most movements, not an error. In that case every other field is empty/
+     *     null and the frontend renders "No prerequisite ladder for this skill"
+     *     rather than an empty ladder.
+     */
+    SkillContextOut: {
+      /** Available */
+      available: boolean;
+      /** Target Skill */
+      target_skill?: string | null;
+      /** Prerequisite Chain */
+      prerequisite_chain?: string[];
+      /** Confirmed Prerequisites */
+      confirmed_prerequisites?: string[];
+      /** Current Entry Point */
+      current_entry_point?: string | null;
+    };
     /** SubmitAccessRequestResponse */
     SubmitAccessRequestResponse: {
       /**
@@ -5181,6 +5234,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["MovementSubstituteOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_skill_context_api_v1_movements__movement_id__skill_context_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        movement_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SkillContextOut"];
         };
       };
       /** @description Validation Error */

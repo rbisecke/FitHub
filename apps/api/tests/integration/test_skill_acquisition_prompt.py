@@ -25,7 +25,7 @@ import psycopg
 import pytest
 
 from app.ai.movement_enum import PlanFill
-from app.ai.plan_generator import _call_llm, _resolve_target_skill_slug
+from app.ai.plan_generator import _call_llm, resolve_target_skill_slug
 from app.ai.plan_scaffold import build_scaffold
 from app.ai.skill_prerequisites import SKILL_PREREQUISITES, build_user_history_skill
 from app.models.plan import CreatePlanRequest
@@ -48,7 +48,7 @@ async def test_resolve_target_skill_slug_matches_skill_prerequisites_key() -> No
     """The resolved slug must be usable as a SKILL_PREREQUISITES key."""
     async with await psycopg.AsyncConnection.connect(TEST_DB_DSN) as conn:
         movement_id = await _bar_muscle_up_id(conn)
-        slug = await _resolve_target_skill_slug(conn, movement_id)
+        slug = await resolve_target_skill_slug(conn, movement_id)
 
     assert slug == "bar-muscle-up"
     assert slug in SKILL_PREREQUISITES
@@ -57,8 +57,8 @@ async def test_resolve_target_skill_slug_matches_skill_prerequisites_key() -> No
 @pytest.mark.asyncio
 async def test_resolve_target_skill_slug_returns_empty_for_falsy_id() -> None:
     async with await psycopg.AsyncConnection.connect(TEST_DB_DSN) as conn:
-        assert await _resolve_target_skill_slug(conn, None) == ""
-        assert await _resolve_target_skill_slug(conn, "") == ""
+        assert await resolve_target_skill_slug(conn, None) == ""
+        assert await resolve_target_skill_slug(conn, "") == ""
 
 
 @pytest.mark.asyncio
@@ -71,7 +71,7 @@ async def test_skill_acquisition_prompt_contains_prerequisite_chain() -> None:
     """
     async with await psycopg.AsyncConnection.connect(TEST_DB_DSN) as conn:
         movement_id = await _bar_muscle_up_id(conn)
-        slug = await _resolve_target_skill_slug(conn, movement_id)
+        slug = await resolve_target_skill_slug(conn, movement_id)
         history = await build_user_history_skill(str(ALICE_ID), conn, slug)
 
     assert "skill_context" in history

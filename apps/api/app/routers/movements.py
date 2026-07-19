@@ -16,6 +16,7 @@ from app.models.movement import (
     MovementPattern,
     MovementSubstituteOut,
     PersonalRecordResult,
+    SkillContextOut,
 )
 from app.repositories.movements import (
     create_movement,
@@ -194,3 +195,43 @@ async def get_movement_substitutes(
         )
         for r in rows
     ]
+
+
+@router.get("/{movement_id}/skill-context", response_model=SkillContextOut)
+async def get_skill_context(
+    movement_id: uuid.UUID,
+    user: Auth,
+    conn: DBConn,
+) -> SkillContextOut:
+    """Return the athlete's real, history-aware prerequisite chain for a target skill.
+
+    Powers the plan wizard's skill-acquisition ladder preview (design spec §10):
+    resolves movement_id -> skill slug -> SKILL_PREREQUISITES chain, then
+    determines confirmed_prerequisites/current_entry_point from the caller's own
+    last-90-days logged movements (build_user_history_skill is already
+    user_id-scoped, so this never leaks another athlete's training history).
+
+    404 only when movement_id doesn't reference a real movement. When the
+    movement is real but has no defined prerequisite chain, this returns 200
+    with available=False rather than a 404 — no chain is an expected, common
+    state (most movements aren't tracked skills), not an error.
+    """
+    from app.ai.plan_generator import resolve_target_skill_slug  # noqa: PLC0415
+    from app.ai.skill_prerequisites import build_user_history_skill  # noqa: PLC0415
+
+    slug = await resolve_target_skill_slug(conn, str(movement_id))
+    if not slug:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movement not found")
+
+    history = await build_user_history_skill(str(user.user_id), conn, slug)
+    skill_context = history.get("skill_context")
+    if not isinstance(skill_context, dict):
+        return SkillContextOut(available=False)
+
+    return SkillContextOut(
+        available=True,
+        target_skill=str(skill_context["target_skill"]),
+        prerequisite_chain=list(skill_context["prerequisite_chain"]),
+        confirmed_prerequisites=list(skill_context["confirmed_prerequisites"]),
+        current_entry_point=str(skill_context["current_entry_point"]),
+    )

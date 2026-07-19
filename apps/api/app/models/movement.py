@@ -118,3 +118,20 @@ class MovementSubstituteOut(BaseModel):
     name: str
     movement_pattern: MovementPattern
     equipment_required: list[str]
+
+
+class SkillContextOut(BaseModel):
+    """The real, history-aware skill-prerequisite chain for a target movement.
+
+    `available` is False when the movement has no defined prerequisite chain
+    (its slug isn't a SKILL_PREREQUISITES key) — a legitimate, expected state
+    for most movements, not an error. In that case every other field is empty/
+    null and the frontend renders "No prerequisite ladder for this skill"
+    rather than an empty ladder.
+    """
+
+    available: bool
+    target_skill: str | None = None
+    prerequisite_chain: list[str] = Field(default_factory=list)
+    confirmed_prerequisites: list[str] = Field(default_factory=list)
+    current_entry_point: str | None = None
