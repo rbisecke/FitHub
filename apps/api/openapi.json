@@ -7981,6 +7981,50 @@
               }
             ],
             "title": "Training Since"
+          },
+          "primary_goal": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "build_strength",
+                  "gain_muscle",
+                  "lose_weight",
+                  "improve_conditioning",
+                  "compete",
+                  "return_from_break",
+                  "general_fitness"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Goal"
+          },
+          "equipment_access": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "barbell",
+                    "dumbbells",
+                    "kettlebells",
+                    "rig_pull_up",
+                    "rower_erg",
+                    "machines",
+                    "none"
+                  ]
+                },
+                "type": "array",
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equipment Access"
           }
         },
         "type": "object",
@@ -10413,6 +10457,49 @@
               }
             ],
             "title": "Training Since"
+          },
+          "primary_goal": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "build_strength",
+                  "gain_muscle",
+                  "lose_weight",
+                  "improve_conditioning",
+                  "compete",
+                  "return_from_break",
+                  "general_fitness"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Goal"
+          },
+          "equipment_access": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "barbell",
+                    "dumbbells",
+                    "kettlebells",
+                    "rig_pull_up",
+                    "rower_erg",
+                    "machines",
+                    "none"
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equipment Access"
           }
         },
         "type": "object",

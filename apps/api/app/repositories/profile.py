@@ -39,6 +39,8 @@ async def get_profile(
                 p.distance_unit,
                 p.training_level,
                 p.training_since::text   AS training_since,
+                p.primary_goal,
+                p.equipment_access,
                 p.avatar_url             AS db_avatar_url,
                 (
                     SELECT performed_at::date::text
@@ -72,6 +74,8 @@ async def get_profile(
         distance_unit=row["distance_unit"],
         training_level=row["training_level"],
         training_since=row["training_since"],
+        primary_goal=row["primary_goal"],
+        equipment_access=row["equipment_access"],
     )
 
 
@@ -194,6 +198,10 @@ async def patch_profile(
         updates["training_level"] = patch.training_level
     if patch.training_since is not None:
         updates["training_since"] = patch.training_since.isoformat()
+    if patch.primary_goal is not None:
+        updates["primary_goal"] = patch.primary_goal
+    if patch.equipment_access is not None:
+        updates["equipment_access"] = patch.equipment_access
 
     if updates:
         set_clause = ", ".join(f"{col} = %s" for col in updates)

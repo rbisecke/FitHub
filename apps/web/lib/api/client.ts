@@ -407,6 +407,8 @@ export const api = {
           | "distance_unit"
           | "training_level"
           | "training_since"
+          | "primary_goal"
+          | "equipment_access"
         >
       >,
     ) =>

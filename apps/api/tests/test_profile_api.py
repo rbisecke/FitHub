@@ -86,6 +86,65 @@ async def test_patch_profile_no_fields_is_noop(alice_client: AsyncClient) -> Non
 
 
 @pytest.mark.asyncio
+async def test_get_profile_exposes_goal_and_equipment_fields(
+    alice_client: AsyncClient,
+) -> None:
+    """New onboarding/AI-input fields are present (null for a fresh profile)."""
+    r = await alice_client.get("/api/v1/profile")
+    assert r.status_code == 200
+    body = r.json()
+    assert "primary_goal" in body
+    assert "equipment_access" in body
+
+
+@pytest.mark.asyncio
+async def test_patch_profile_primary_goal(alice_client: AsyncClient) -> None:
+    r = await alice_client.patch("/api/v1/profile", json={"primary_goal": "build_strength"})
+    assert r.status_code == 200
+    assert r.json()["primary_goal"] == "build_strength"
+
+    r2 = await alice_client.get("/api/v1/profile")
+    assert r2.json()["primary_goal"] == "build_strength"
+
+
+@pytest.mark.asyncio
+async def test_patch_profile_rejects_unknown_goal(alice_client: AsyncClient) -> None:
+    r = await alice_client.patch("/api/v1/profile", json={"primary_goal": "get_swole"})
+    assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_patch_profile_equipment_access(alice_client: AsyncClient) -> None:
+    r = await alice_client.patch(
+        "/api/v1/profile", json={"equipment_access": ["barbell", "dumbbells"]}
+    )
+    assert r.status_code == 200
+    assert r.json()["equipment_access"] == ["barbell", "dumbbells"]
+
+    r2 = await alice_client.get("/api/v1/profile")
+    assert r2.json()["equipment_access"] == ["barbell", "dumbbells"]
+
+
+@pytest.mark.asyncio
+async def test_patch_profile_equipment_none_is_exclusive(alice_client: AsyncClient) -> None:
+    """'none' (bodyweight only) cannot be combined with real equipment."""
+    r = await alice_client.patch("/api/v1/profile", json={"equipment_access": ["none", "barbell"]})
+    assert r.status_code == 422
+
+    # 'none' alone is valid.
+    r2 = await alice_client.patch("/api/v1/profile", json={"equipment_access": ["none"]})
+    assert r2.status_code == 200
+    assert r2.json()["equipment_access"] == ["none"]
+
+
+@pytest.mark.asyncio
+async def test_patch_profile_equipment_empty_rejected(alice_client: AsyncClient) -> None:
+    """An empty array is not a valid answer — NULL means unanswered instead."""
+    r = await alice_client.patch("/api/v1/profile", json={"equipment_access": []})
+    assert r.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_add_training_partner_requires_auth(anon_client: AsyncClient) -> None:
     r = await anon_client.post("/api/v1/training-partners", json={"email": "bob@test.local"})
     assert r.status_code == 401

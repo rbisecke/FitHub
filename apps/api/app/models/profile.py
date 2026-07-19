@@ -4,9 +4,37 @@ import datetime
 import uuid
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.models.movement import Modality
+
+# Finite value sets shared by UserProfile (read) and PatchProfileRequest (write).
+PrimaryGoal = Literal[
+    "build_strength",
+    "gain_muscle",
+    "lose_weight",
+    "improve_conditioning",
+    "compete",
+    "return_from_break",
+    "general_fitness",
+]
+
+EquipmentAccess = Literal[
+    "barbell",
+    "dumbbells",
+    "kettlebells",
+    "rig_pull_up",
+    "rower_erg",
+    "machines",
+    "none",
+]
+
+
+def _validate_equipment(value: list[EquipmentAccess] | None) -> list[EquipmentAccess] | None:
+    """'none' (bodyweight only) is mutually exclusive with real equipment."""
+    if value is not None and "none" in value and len(value) > 1:
+        raise ValueError("'none' cannot be combined with other equipment")
+    return value
 
 
 class UserProfile(BaseModel):
@@ -29,6 +57,8 @@ class UserProfile(BaseModel):
         Literal["recreational", "intermediate", "competitive", "masters", "elite"] | None
     ) = None
     training_since: str | None = None  # 'YYYY-MM-DD'
+    primary_goal: PrimaryGoal | None = None
+    equipment_access: list[EquipmentAccess] | None = None
 
 
 class ProfileStats(BaseModel):
@@ -54,6 +84,14 @@ class PatchProfileRequest(BaseModel):
         Literal["recreational", "intermediate", "competitive", "masters", "elite"] | None
     ) = None
     training_since: datetime.date | None = None
+    primary_goal: PrimaryGoal | None = None
+    # min_length keeps [] out: NULL means "unanswered", not "empty selection".
+    equipment_access: list[EquipmentAccess] | None = Field(default=None, min_length=1)
+
+    @field_validator("equipment_access")
+    @classmethod
+    def _check_equipment(cls, value: list[EquipmentAccess] | None) -> list[EquipmentAccess] | None:
+        return _validate_equipment(value)
 
 
 class PinnedMovement(BaseModel):
