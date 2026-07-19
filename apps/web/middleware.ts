@@ -7,6 +7,11 @@ const PUBLIC_PATHS = ["/login", "/auth"];
 function isPublic(pathname: string): boolean {
   // API routes return JSON and must not receive HTML redirects.
   if (pathname.startsWith("/api/")) return true;
+  // Effort-0 design-system scaffold routes (/dev/*) are dev-only and unauthenticated;
+  // they never resolve in production so this bypass cannot expose anything there.
+  if (process.env.NODE_ENV !== "production" && pathname.startsWith("/dev")) {
+    return true;
+  }
   return PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 }
 
