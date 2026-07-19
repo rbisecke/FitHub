@@ -19,8 +19,8 @@ import { ShellTopBar } from "./shell-top-bar";
  * open/closed default is read from the `sidebar_state` cookie so the first server
  * paint matches the user's last choice (no expand/collapse flash).
  *
- * `isAdmin` gates the Admin nav item; in this signed-out preview shell it is passed
- * in by the route layout (real allowlist gating lands with auth in Effort 2).
+ * `isAdmin` gates the Admin nav item; it is passed in by the route layout (currently a
+ * placeholder value there — real allowlist gating lands with auth in Effort 2).
  */
 export async function AppShell({
   children,

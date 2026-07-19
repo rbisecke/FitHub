@@ -7,17 +7,15 @@ const PUBLIC_PATHS = ["/login", "/auth"];
 function isPublic(pathname: string): boolean {
   // API routes return JSON and must not receive HTML redirects.
   if (pathname.startsWith("/api/")) return true;
-  // Effort-0/1 redesign scaffold routes are dev-only and unauthenticated so the
-  // design system (/dev/*) and the nav shell (/preview/*) can be exercised signed-out.
-  // NODE_ENV is inlined by Next at build, so this branch is dead-code-eliminated in any
-  // production build — the bypass cannot execute there, where these routes stay
-  // auth-gated. Exact-segment match so siblings (/devices, /previewer) aren't swept in.
+  // Effort-0 design-system scaffold routes (/dev/*) are dev-only and unauthenticated so
+  // the primitives/token pages can be exercised signed-out. NODE_ENV is inlined by Next
+  // at build, so this branch is dead-code-eliminated in any production build — the bypass
+  // cannot execute there, where these routes stay auth-gated. Exact-segment match so
+  // siblings (/devices) aren't swept in. (The nav shell used to be bypassed here under a
+  // /preview prefix; it now lives at bare, normally auth-gated paths.)
   if (
     process.env.NODE_ENV !== "production" &&
-    (pathname === "/dev" ||
-      pathname.startsWith("/dev/") ||
-      pathname === "/preview" ||
-      pathname.startsWith("/preview/"))
+    (pathname === "/dev" || pathname.startsWith("/dev/"))
   ) {
     return true;
   }
@@ -62,11 +60,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Authenticated users visiting /login are sent straight to the dashboard.
+  // Authenticated users visiting /login are sent straight to the home shell.
   if (user && request.nextUrl.pathname.startsWith("/login")) {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/dashboard";
-    return NextResponse.redirect(dashboardUrl);
+    const homeUrl = request.nextUrl.clone();
+    homeUrl.pathname = "/today";
+    return NextResponse.redirect(homeUrl);
   }
 
   return response;

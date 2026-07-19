@@ -19,20 +19,17 @@ import type { LucideIcon } from "lucide-react";
  * the desktop `Sidebar` (primary 5 + divider + secondary 5), and active-route
  * matching all read from this list.
  *
- * ROUTE MOUNT NOTE: the redesigned shell is built alongside the still-live legacy
- * app (the `(app)`/`(admin)` route groups), which already own bare `/coach`,
- * `/injuries`, `/integrations`, `/profile`, and `/admin`. Next.js forbids two
- * `page.tsx` resolving the same path, so the redesign is mounted under the
- * `SHELL_BASE` prefix until the final cutover Effort removes the legacy routes.
- * At cutover, set `SHELL_BASE = ""` and every link resolves to the bare `00` Part 4
- * path with no other change.
+ * ROUTE MOUNT NOTE: the redesigned shell now lives at bare paths (`/today`, `/log`,
+ * … `/admin`) inside the `(shell)` route group. This was the cutover from the earlier
+ * `/preview/*` staging prefix: on this isolated redesign branch the new shell replaces
+ * the legacy `(app)`/`(admin)` routes outright as each domain is rebuilt, so a segment
+ * name here is the whole href.
  */
-export const SHELL_BASE = "/preview";
 
 export type NavTier = "primary" | "secondary";
 
 export interface NavItem {
-  /** Stable id + active-match key — the path segment after `SHELL_BASE`. */
+  /** Stable id + active-match key — the bare route's path segment. */
   segment: string;
   /** Human label shown in the tab bar / sidebar. */
   label: string;
@@ -42,9 +39,9 @@ export interface NavItem {
   adminGated?: boolean;
 }
 
-/** Build a routable href for a nav item, honoring the shell prefix. */
+/** Build a routable href for a nav item — the bare `/segment` path. */
 export function navHref(segment: string): string {
-  return `${SHELL_BASE}/${segment}`;
+  return `/${segment}`;
 }
 
 /** Ordered nav model — primary five first, then the secondary five. */
