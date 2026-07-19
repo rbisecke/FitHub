@@ -29,13 +29,11 @@ const OPTIONS: {
     subtitle: "A single best-effort attempt",
     glyph: "★",
   },
-  // AI natural-language parse (01 §10) ships in the second half of this Effort.
   {
     mode: "describe",
     title: "Describe it",
     subtitle: "Type it out, let AI parse it",
     glyph: "✎",
-    soon: true,
   },
 ];
 

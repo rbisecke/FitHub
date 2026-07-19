@@ -304,7 +304,8 @@ export function ActiveLoggingScreen({
   function handleChoose(mode: LogEntryMode) {
     if (mode === "quick") setSheet("quick");
     else if (mode === "tag") setSheet("tag");
-    else setSheet(null); // "commit" stays here; "describe" (§10) is second-half scope
+    else if (mode === "describe") router.push("/log/describe");
+    else setSheet(null); // "commit" stays here
   }
 
   return (

@@ -2,6 +2,7 @@
 
 import type { DraftEntry, DraftSet, SetTableVariant } from "./types";
 import { SetTable } from "./SetTable";
+import { CardioConversionChip } from "./CardioConversionChip";
 
 /**
  * One movement entry (01 §2.4): name (implement baked in), attribute chips, an
@@ -167,6 +168,14 @@ export function MovementEntryCard({
           })}
         </div>
       </div>
+
+      {/* Substitute-cardio chip (§11): only on mono_structural running-equivalent
+          entries. The chip self-hides when the name isn't running-equivalent. */}
+      {entry.movement.modality === "mono_structural" && (
+        <div className="mb-2">
+          <CardioConversionChip movementName={entry.movement.name} />
+        </div>
+      )}
 
       <SetTable
         entry={entry}
