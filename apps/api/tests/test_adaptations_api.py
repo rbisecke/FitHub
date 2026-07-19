@@ -254,6 +254,35 @@ async def test_merge_with_no_diff_is_status_only_no_op(alice_client: AsyncClient
 
 
 @pytest.mark.asyncio
+async def test_merge_malformed_diff_json_fails_clean_not_500_with_raw_trace(
+    alice_client: AsyncClient,
+) -> None:
+    """A diff_json entry missing a required field (e.g. a hand-edited/corrupted row)
+    must fail with a clean, generic error — never an unhandled KeyError whose raw
+    trace reaches the client — and must not leave the adaptation stuck 'merged'
+    with nothing applied."""
+    plan_id = await _make_plan(alice_client)
+    malformed_diff = [{"session_title": "Missing session_id and other required fields"}]
+    adaptation_id = await _seed_adaptation_with_diff(plan_id, malformed_diff)
+
+    r = await alice_client.post(f"/api/v1/adaptations/{adaptation_id}/merge")
+    assert r.status_code == 500
+    assert "traceback" not in r.text.lower()
+    assert "keyerror" not in r.text.lower()
+
+    async with (
+        await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn,
+        conn.cursor(row_factory=psycopg.rows.dict_row) as cur,
+    ):
+        await cur.execute("SELECT status FROM adaptations WHERE id = %s::uuid", [adaptation_id])
+        row = await cur.fetchone()
+        assert row is not None
+        assert row["status"] == "proposed", (
+            "a merge that fails validation must roll back the status flip too"
+        )
+
+
+@pytest.mark.asyncio
 async def test_merge_skip_change_marks_session_skipped(alice_client: AsyncClient) -> None:
     """BG-01: a 'skip' change type marks the session skipped without touching its items."""
     plan_id = await _make_plan(alice_client)

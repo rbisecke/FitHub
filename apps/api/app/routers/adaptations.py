@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import datetime
 from typing import Literal, cast
@@ -10,11 +11,13 @@ from typing import Literal, cast
 import psycopg
 import psycopg.rows
 from fastapi import APIRouter, HTTPException, Request, status
+from pydantic import ValidationError
 
 from app.dependencies.common import Auth, DBConn
 from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.adaptation import (
     AdaptationOut,
+    AdaptationSessionDiff,
     AdjustAdaptationRequest,
     DetectTriggersResponse,
     RejectAdaptationRequest,
@@ -22,6 +25,8 @@ from app.models.adaptation import (
 )
 from app.models.plan import PlannedItemPatch, SessionPatch
 from app.routers.plans import _apply_session_patch, _load_prescribed_sessions
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["adaptations"])
 
@@ -63,38 +68,39 @@ def _row_to_out(r: dict[str, object]) -> AdaptationOut:
     )
 
 
-def _diff_to_session_patch(diff: dict[str, object]) -> SessionPatch:
-    """Reconstruct a SessionPatch from a stored diff_json entry for merge to apply.
+def _diff_to_session_patch(diff: AdaptationSessionDiff) -> SessionPatch:
+    """Reconstruct a SessionPatch from a validated diff_json entry for merge to apply.
 
     Each item_change's `new_*` fields ARE the item's new state (see
     app.ai.adaptation._build_item_changes) — a `removed` entry is dropped
     entirely rather than turned into a PlannedItemPatch, which is exactly what
     _apply_session_patch's full-replace semantics need: the surviving
-    modified_items list becomes the session's complete new item set.
+    modified_items list becomes the session's complete new item set. Typed
+    attribute access (not dict.get on raw JSONB) means a future
+    AdaptationItemChange field rename is a mypy error here, not a silently
+    dropped value at merge time.
     """
-    item_changes = cast(list[dict[str, object]], diff.get("item_changes") or [])
     modified_items = [
         PlannedItemPatch(
-            item_id=cast(str | None, ic.get("item_id")),
-            movement_name=str(ic["movement_name"]),
-            sets=cast(int | None, ic.get("new_sets")),
-            reps=cast(str | None, ic.get("new_reps")),
-            load_pct_1rm=cast(float | None, ic.get("new_load_pct_1rm")),
-            load_kg=cast(float | None, ic.get("new_load_kg")),
-            notes=cast(str | None, ic.get("new_notes")),
-            item_order=int(str(ic.get("item_order") or 0)),
+            item_id=ic.item_id,
+            movement_name=ic.movement_name,
+            sets=ic.new_sets,
+            reps=ic.new_reps,
+            load_pct_1rm=ic.new_load_pct_1rm,
+            load_kg=ic.new_load_kg,
+            notes=ic.new_notes,
+            item_order=ic.item_order,
         )
-        for ic in item_changes
-        if not ic.get("removed")
+        for ic in diff.item_changes
+        if not ic.removed
     ]
-    change = str(diff.get("change", ""))
     return SessionPatch(
-        session_id=str(diff["session_id"]),
+        session_id=diff.session_id,
         modified_items=modified_items,
         # 'skip' has no dedicated item-level representation (per ADAPTATION_SYSTEM,
         # the LLM leaves modified_items empty for it) — the session is marked
         # skipped instead of having its prescribed items destroyed.
-        new_status="skipped" if change == "skip" else None,
+        new_status="skipped" if diff.change == "skip" else None,
     )
 
 
@@ -242,15 +248,23 @@ async def merge_adaptation(
                     raise HTTPException(status_code=404, detail="Adaptation not found")
                 raise HTTPException(status_code=409, detail="Adaptation is not in proposed state")
 
+        # Validate the stored diff_json through the same typed model the API
+        # returns, so a malformed or unexpectedly-shaped row 500s cleanly here
+        # instead of raising an unguarded KeyError mid-transaction.
+        try:
+            merged_out = _row_to_out(updated)
+        except ValidationError:
+            log.exception("adaptation %s has malformed diff_json", adaptation_id)
+            raise HTTPException(
+                status_code=500, detail="Internal error. Please try again."
+            ) from None
+
         plan_id = str(updated["plan_id"])
-        raw_diff = cast(list[object], updated["diff_json"] or [])
-        for entry in raw_diff:
-            if not isinstance(entry, dict):
-                continue
-            patch = _diff_to_session_patch(cast(dict[str, object], entry))
+        for session_diff in merged_out.diff_json:
+            patch = _diff_to_session_patch(session_diff)
             await _apply_session_patch(patch, plan_id, str(user.user_id), db)
 
-    return _row_to_out(updated)
+    return merged_out
 
 
 @router.post("/adaptations/{adaptation_id}/reject", response_model=AdaptationOut)

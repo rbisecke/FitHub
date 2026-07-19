@@ -159,6 +159,25 @@ def _num(value: object) -> float | None:
     return float(cast(float, value)) if value is not None else None
 
 
+def _old_item_fields(
+    old_item: dict[str, object] | None,
+) -> tuple[int | None, str | None, float | None, float | None, str | None]:
+    """Extract (sets, reps, load_pct_1rm, load_kg, notes) from a DB item row.
+
+    Shared by both passes of _build_item_changes (matched items and removed
+    items) so the same null-handling and casts can't drift between them.
+    """
+    if old_item is None:
+        return None, None, None, None, None
+    return (
+        cast(int | None, old_item.get("sets")),
+        str(old_item["reps"]) if old_item.get("reps") is not None else None,
+        _num(old_item.get("load_pct_1rm")),
+        _num(old_item.get("load_kg")),
+        cast(str | None, old_item.get("notes")),
+    )
+
+
 def _build_item_changes(
     old_items: list[dict[str, object]],
     new_items: list[PlannedItemPatch],
@@ -192,11 +211,7 @@ def _build_item_changes(
         if old_item is not None and new_item.item_id is not None:
             matched_old_ids.add(new_item.item_id)
 
-        old_sets = cast(int | None, old_item.get("sets")) if old_item else None
-        old_reps = str(old_item["reps"]) if old_item and old_item.get("reps") is not None else None
-        old_load_pct = _num(old_item.get("load_pct_1rm")) if old_item else None
-        old_load_kg = _num(old_item.get("load_kg")) if old_item else None
-        old_notes = cast(str | None, old_item.get("notes")) if old_item else None
+        old_sets, old_reps, old_load_pct, old_load_kg, old_notes = _old_item_fields(old_item)
 
         changed = (
             old_item is None
@@ -230,16 +245,17 @@ def _build_item_changes(
     for old_id, old_item in old_by_id.items():
         if old_id in matched_old_ids:
             continue
+        old_sets, old_reps, old_load_pct, old_load_kg, old_notes = _old_item_fields(old_item)
         changes.append(
             AdaptationItemChange(
                 item_id=old_id,
                 movement_name=str(old_item.get("movement_name", "Movement")),
                 item_order=int(str(old_item.get("item_order") or 0)),
-                old_sets=cast(int | None, old_item.get("sets")),
-                old_reps=str(old_item["reps"]) if old_item.get("reps") is not None else None,
-                old_load_pct_1rm=_num(old_item.get("load_pct_1rm")),
-                old_load_kg=_num(old_item.get("load_kg")),
-                old_notes=cast(str | None, old_item.get("notes")),
+                old_sets=old_sets,
+                old_reps=old_reps,
+                old_load_pct_1rm=old_load_pct,
+                old_load_kg=old_load_kg,
+                old_notes=old_notes,
                 new_sets=None,
                 new_reps=None,
                 new_load_pct_1rm=None,
