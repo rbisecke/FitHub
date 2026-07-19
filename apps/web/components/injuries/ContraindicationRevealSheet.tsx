@@ -20,10 +20,14 @@ export function ContraindicationRevealSheet({
   movementName: string;
   drivenBy: string[];
   substitutions: string[];
+  /** Omit (or the badge passes `undefined` under a session-wide referral
+   * block) to show substitutions read-only — swapping doesn't clear a
+   * referral pause, so the action shouldn't look available. */
   onSwap?: (substitution: string) => void;
   onClose: () => void;
 }) {
   const deduped = Array.from(new Set(substitutions));
+  const swappable = Boolean(onSwap);
 
   return (
     <SheetOverlay title={movementName} onClose={onClose} maxHeight="70dvh">
@@ -37,6 +41,13 @@ export function ContraindicationRevealSheet({
           </p>
           <RegionChipStrip regions={drivenBy} />
         </div>
+
+        {!swappable && (
+          <p className="font-sans text-[12px]" style={{ color: "var(--red)" }}>
+            This session is paused for professional clearance — swapping a
+            movement doesn&apos;t lift the pause.
+          </p>
+        )}
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">
@@ -67,7 +78,7 @@ export function ContraindicationRevealSheet({
             >
               No substitute — ask your coach.
             </p>
-          ) : (
+          ) : swappable ? (
             <ul className="flex flex-col gap-2">
               {deduped.map((sub) => (
                 <li key={sub}>
@@ -89,6 +100,22 @@ export function ContraindicationRevealSheet({
                       Swap in
                     </span>
                   </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {deduped.map((sub) => (
+                <li
+                  key={sub}
+                  className="flex min-h-11 w-full items-center rounded-[8px] px-3 py-2 font-sans text-[13px]"
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    color: "var(--muted)",
+                  }}
+                >
+                  {formatLabel(sub)}
                 </li>
               ))}
             </ul>

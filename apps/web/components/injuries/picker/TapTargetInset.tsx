@@ -100,8 +100,12 @@ export function TapTargetInset({
         <button
           type="button"
           onClick={onClose}
-          className="mt-3 min-h-11 w-full rounded-[8px] font-sans text-[13px]"
-          style={{ color: "var(--muted)" }}
+          className="mt-3 min-h-11 w-full rounded-[8px] px-3 py-2 font-sans text-[13px] font-medium"
+          style={{
+            background: "var(--bg)",
+            border: "1px solid var(--border)",
+            color: "var(--muted)",
+          }}
         >
           Cancel
         </button>

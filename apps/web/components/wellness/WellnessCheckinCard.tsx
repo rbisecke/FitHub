@@ -23,32 +23,38 @@ const DIMENSIONS: {
   label: string;
   anchorLow: string;
   anchorHigh: string;
-  reversedHint?: string;
+  /** Which direction reads as better — shown as a small badge on every
+   * dimension (not just sleep) so a scan across all four doesn't default to
+   * "pick high numbers everywhere," which would be wrong for three of them. */
+  directionHint: string;
 }[] = [
   {
     key: "sleep",
     label: "Sleep",
     anchorLow: "Poor",
     anchorHigh: "Great",
-    reversedHint: "higher = better",
+    directionHint: "higher = better",
   },
   {
     key: "stress",
     label: "Stress",
     anchorLow: "None/Low",
     anchorHigh: "Severe",
+    directionHint: "lower = better",
   },
   {
     key: "fatigue",
     label: "Fatigue",
     anchorLow: "None/Low",
     anchorHigh: "Severe",
+    directionHint: "lower = better",
   },
   {
     key: "soreness",
     label: "Soreness",
     anchorLow: "None/Low",
     anchorHigh: "Severe",
+    directionHint: "lower = better",
   },
 ];
 
@@ -264,7 +270,7 @@ export function WellnessCheckinCard({
               label={d.label}
               anchorLow={d.anchorLow}
               anchorHigh={d.anchorHigh}
-              reversedHint={d.reversedHint}
+              directionHint={d.directionHint}
               value={values[d.key]}
               touched={touched[d.key]}
               onChange={(v) => setDimension(d.key, v)}

@@ -150,7 +150,7 @@ export function InjuryListScreen({
             className="flex h-11 items-center rounded-[8px] px-3 font-sans text-[13px] font-semibold"
             style={{ background: "var(--accent)", color: "var(--bg)" }}
           >
-            Report injury
+            Report an injury
           </button>
         </div>
       </div>

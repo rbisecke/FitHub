@@ -98,28 +98,51 @@ export function InjuryReportResult({
                 No specific movements on file for this region — consult a coach.
               </p>
             ) : (
-              <ul className="flex flex-col gap-1">
-                {contraindicated.map((name) => {
-                  const hasSub = substitutions.includes(name);
-                  return (
-                    <li
-                      key={name}
-                      className="font-sans text-[13px]"
-                      style={{ color: "var(--text)" }}
-                    >
-                      {formatLabel(name)}
-                      {!hasSub && (
-                        <span
-                          className="ml-1 font-sans text-[11px]"
-                          style={{ color: "var(--muted)" }}
-                        >
-                          — no substitution on file, ask your coach
-                        </span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+              (() => {
+                const missingSub = contraindicated.filter(
+                  (name) => !substitutions.includes(name),
+                );
+                // When every movement lacks a substitute, the per-row note
+                // just repeats verbatim down the whole list — say it once
+                // above instead of n times. When it's a genuine mix, the
+                // per-row note is the useful signal (which ones don't have
+                // one), so it stays inline there.
+                const allMissing = missingSub.length === contraindicated.length;
+                return (
+                  <>
+                    {allMissing && (
+                      <p
+                        className="mb-1.5 font-sans text-[12px]"
+                        style={{ color: "var(--muted)" }}
+                      >
+                        No substitutions on file for these — ask your coach.
+                      </p>
+                    )}
+                    <ul className="flex flex-col gap-1">
+                      {contraindicated.map((name) => {
+                        const hasSub = substitutions.includes(name);
+                        return (
+                          <li
+                            key={name}
+                            className="font-sans text-[13px]"
+                            style={{ color: "var(--text)" }}
+                          >
+                            {formatLabel(name)}
+                            {!hasSub && !allMissing && (
+                              <span
+                                className="ml-1 font-sans text-[11px]"
+                                style={{ color: "var(--muted)" }}
+                              >
+                                — no substitution on file, ask your coach
+                              </span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </>
+                );
+              })()
             )}
           </div>
         </>

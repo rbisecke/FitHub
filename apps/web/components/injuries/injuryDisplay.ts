@@ -1,9 +1,19 @@
 import type { InjuryOut } from "@/lib/api/plans";
 
 export type StatusTone = "red" | "amber" | "chronic";
+/**
+ * Icon key, deliberately a finer grain than `tone` — `active` (amber) and
+ * `cleared_with_restrictions` share the amber token per 05 §2's spec, but an
+ * identical icon on top of identical color would leave only the text label
+ * to tell them apart. A distinct icon per status (independent of the shared
+ * color) keeps the three-redundant-signals rule meaningful even where two
+ * statuses intentionally share a tint.
+ */
+export type StatusIcon = "alert" | "shieldAlert" | "shieldCheck" | "lock";
 
 export interface StatusMeta {
   tone: StatusTone;
+  icon: StatusIcon;
   /** CSS custom-property value, e.g. "var(--red)". */
   color: string;
   label: string;
@@ -23,11 +33,13 @@ export function injuryStatusMeta(injury: InjuryOut): StatusMeta {
       return severe
         ? {
             tone: "red",
+            icon: "alert",
             color: "var(--red)",
             label: "Active — filtering workouts.",
           }
         : {
             tone: "amber",
+            icon: "shieldAlert",
             color: "var(--amber)",
             label: "Active — filtering workouts.",
           };
@@ -35,18 +47,25 @@ export function injuryStatusMeta(injury: InjuryOut): StatusMeta {
     case "cleared_with_restrictions":
       return {
         tone: "amber",
+        icon: "shieldCheck",
         color: "var(--amber)",
         label: "Cleared with restrictions.",
       };
     case "permanent":
       return {
         tone: "chronic",
+        icon: "lock",
         color: "var(--chronic)",
         label: "Permanent — always filtered.",
       };
     case "resolved":
     default:
-      return { tone: "chronic", color: "var(--muted)", label: "Resolved." };
+      return {
+        tone: "chronic",
+        icon: "lock",
+        color: "var(--muted)",
+        label: "Resolved.",
+      };
   }
 }
 

@@ -29,7 +29,7 @@ export function DiscreteStopControl({
   touched,
   onChange,
   disabled,
-  reversedHint,
+  directionHint,
 }: {
   dimension: WellnessDimension;
   label: string;
@@ -39,8 +39,10 @@ export function DiscreteStopControl({
   touched: boolean;
   onChange: (value: number) => void;
   disabled?: boolean;
-  /** Shown next to the label for the one dimension that runs opposite the rest. */
-  reversedHint?: string;
+  /** Which direction reads as better, e.g. "lower = better" — shown on
+   * every dimension so a scan across the row doesn't default to picking
+   * high numbers everywhere (only sleep runs the opposite direction). */
+  directionHint: string;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -51,18 +53,16 @@ export function DiscreteStopControl({
         >
           {label}
         </span>
-        {reversedHint && (
-          <span
-            className="rounded-full px-1.5 py-0.5 font-sans text-[10px] font-medium"
-            style={{
-              background: "var(--surface)",
-              color: "var(--accent)",
-              border: "1px solid var(--border)",
-            }}
-          >
-            {reversedHint}
-          </span>
-        )}
+        <span
+          className="rounded-full px-1.5 py-0.5 font-sans text-[10px] font-medium"
+          style={{
+            background: "var(--surface)",
+            color: "var(--accent)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          {directionHint}
+        </span>
       </div>
       {/* Anchors render on their own row, not beside the buttons — 7 fixed
           44px touch targets (7*44 + 6*4px gaps = 332px) plus two w-14 side

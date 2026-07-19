@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -22,6 +22,7 @@ import {
 import { BodySilhouette } from "./BodySilhouette";
 import { TapTargetInset } from "./TapTargetInset";
 import { RegionSearchList } from "./RegionSearchList";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Tier = "standard" | "detailed";
 export type AlreadyLoggedRegion = { region: BodyRegion; count: number };
@@ -71,6 +72,17 @@ export function VariantASilhouettePicker({
   // `md:hidden` while still rendering it would duplicate every id in the DOM.
   // Conditionally mounting only the active layout keeps ids unique.
   const isMobile = useIsMobile(768);
+  // useIsMobile always reports `false` on the very first client render (to
+  // match the SSR snapshot and avoid a hydration mismatch), correcting to the
+  // real value a moment later — without gating on mount, that first render
+  // briefly shows the desktop side-by-side layout even on a real mobile
+  // viewport, with sub-44px tap targets, until the correction lands.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // Deferred into a microtask so no setState runs synchronously during the
+    // effect body (react-hooks/set-state-in-effect).
+    Promise.resolve().then(() => setMounted(true));
+  }, []);
   const [side, setSide] = useState<Side>("front");
   const [tier, setTier] = useState<Tier>("standard");
   const [pulsingRegions, setPulsingRegions] = useState<BodyRegion[]>([]);
@@ -149,7 +161,7 @@ export function VariantASilhouettePicker({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        {isMobile && (
+        {mounted && isMobile && (
           <ToggleGroup
             value={[side]}
             onValueChange={(vals) => {
@@ -158,12 +170,23 @@ export function VariantASilhouettePicker({
             }}
             aria-label="Front or back view"
           >
-            <ToggleGroupItem value="front" aria-label="Front view">
-              Front
-            </ToggleGroupItem>
-            <ToggleGroupItem value="back" aria-label="Back view">
-              Back
-            </ToggleGroupItem>
+            {(["front", "back"] as const).map((v) => (
+              <ToggleGroupItem
+                key={v}
+                value={v}
+                aria-label={v === "front" ? "Front view" : "Back view"}
+                className="min-h-11 rounded-[8px] px-3 font-sans text-[13px]"
+                style={{
+                  background: side === v ? "var(--accent)" : "var(--bg)",
+                  color: side === v ? "var(--bg)" : "var(--text)",
+                  border: `1px solid ${
+                    side === v ? "var(--accent)" : "var(--border)"
+                  }`,
+                }}
+              >
+                {v === "front" ? "Front" : "Back"}
+              </ToggleGroupItem>
+            ))}
           </ToggleGroup>
         )}
         <ToggleGroup
@@ -174,12 +197,23 @@ export function VariantASilhouettePicker({
           }}
           aria-label="Standard or detailed region tier"
         >
-          <ToggleGroupItem value="standard" aria-label="Standard tier">
-            Standard
-          </ToggleGroupItem>
-          <ToggleGroupItem value="detailed" aria-label="Detailed tier">
-            Detailed
-          </ToggleGroupItem>
+          {(["standard", "detailed"] as const).map((v) => (
+            <ToggleGroupItem
+              key={v}
+              value={v}
+              aria-label={v === "standard" ? "Standard tier" : "Detailed tier"}
+              className="min-h-11 rounded-[8px] px-3 font-sans text-[13px]"
+              style={{
+                background: tier === v ? "var(--accent)" : "var(--bg)",
+                color: tier === v ? "var(--bg)" : "var(--text)",
+                border: `1px solid ${
+                  tier === v ? "var(--accent)" : "var(--border)"
+                }`,
+              }}
+            >
+              {v === "standard" ? "Standard" : "Detailed"}
+            </ToggleGroupItem>
+          ))}
         </ToggleGroup>
       </div>
 
@@ -201,8 +235,12 @@ export function VariantASilhouettePicker({
         }`}
       >
         {/* Mobile: only the active side. Desktop: both, side by side. Only
-            one layout is ever mounted — see the isMobile comment above. */}
-        {isMobile ? (
+            one layout is ever mounted — see the isMobile comment above. Until
+            `mounted`, the real viewport isn't known yet — show a skeleton
+            instead of guessing, so we never paint the wrong layout. */}
+        {!mounted ? (
+          <Skeleton className="aspect-[2/5] w-full max-w-[280px]" />
+        ) : isMobile ? (
           renderSilhouette(side)
         ) : (
           <div className="flex gap-10">

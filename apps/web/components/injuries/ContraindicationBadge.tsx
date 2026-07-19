@@ -18,12 +18,22 @@ export function ContraindicationBadge({
   drivenBy,
   substitutions,
   onSwap,
+  sessionBlocked = false,
 }: {
   movementName: string;
   flagged: boolean;
   drivenBy: string[];
   substitutions: string[];
   onSwap?: (substitution: string) => void;
+  /**
+   * True when a referral-flagged active injury has paused the whole session
+   * (05 §5.1: "every movement is marked blocked... not just its region").
+   * A swap doesn't clear that pause, so the badge reads as non-actionable
+   * and dims — tapping still opens the reveal sheet for context, but the
+   * "Modify" framing (which implies swapping unblocks the movement) is
+   * replaced with "Blocked".
+   */
+  sessionBlocked?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -40,16 +50,24 @@ export function ContraindicationBadge({
           }
         }}
         aria-label={
-          flagged ? `${movementName} — flagged, view details` : movementName
+          flagged
+            ? `${movementName} — ${
+                sessionBlocked ? "blocked" : "flagged"
+              }, view details`
+            : movementName
         }
         className="flex min-h-11 w-full items-center justify-between gap-2 rounded-[8px] px-3 py-2"
         style={
           flagged
             ? {
-                background: "color-mix(in srgb, var(--amber) 12%, var(--bg))",
-                border:
-                  "1px solid color-mix(in srgb, var(--amber) 45%, var(--border))",
+                background: `color-mix(in srgb, var(--amber) ${
+                  sessionBlocked ? 6 : 12
+                }%, var(--bg))`,
+                border: `1px solid color-mix(in srgb, var(--amber) ${
+                  sessionBlocked ? 25 : 45
+                }%, var(--border))`,
                 cursor: "pointer",
+                opacity: sessionBlocked ? 0.7 : 1,
               }
             : { background: "var(--bg)", border: "1px solid var(--border)" }
         }
@@ -63,10 +81,18 @@ export function ContraindicationBadge({
         {flagged && (
           <span
             className="flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-sans text-[11px] font-semibold"
-            style={{ background: "var(--amber)", color: "var(--bg)" }}
+            style={
+              sessionBlocked
+                ? {
+                    background: "transparent",
+                    color: "var(--muted)",
+                    border: "1px solid var(--border)",
+                  }
+                : { background: "var(--amber)", color: "var(--bg)" }
+            }
           >
             <TriangleAlert size={12} aria-hidden="true" />
-            Modify
+            {sessionBlocked ? "Blocked" : "Modify"}
           </span>
         )}
       </div>
@@ -76,7 +102,7 @@ export function ContraindicationBadge({
           movementName={movementName}
           drivenBy={drivenBy}
           substitutions={substitutions}
-          onSwap={onSwap}
+          onSwap={sessionBlocked ? undefined : onSwap}
           onClose={() => setOpen(false)}
         />
       )}

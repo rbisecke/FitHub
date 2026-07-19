@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Lock, ShieldAlert, Siren } from "lucide-react";
+import {
+  AlertTriangle,
+  Lock,
+  ShieldAlert,
+  ShieldCheck,
+  Siren,
+} from "lucide-react";
 import type { InjuryOut } from "@/lib/api/plans";
 import { RegionGlyph } from "@/components/injuries/RegionGlyph";
 import { regionLabel } from "@/components/injuries/RegionChipStrip";
@@ -11,9 +17,10 @@ import {
 } from "@/components/injuries/injuryDisplay";
 
 const STATUS_ICON = {
-  red: AlertTriangle,
-  amber: ShieldAlert,
-  chronic: Lock,
+  alert: AlertTriangle,
+  shieldAlert: ShieldAlert,
+  shieldCheck: ShieldCheck,
+  lock: Lock,
 } as const;
 
 function painTint(painLevel: number): string {
@@ -37,7 +44,7 @@ export function InjuryCard({
 }) {
   const [notesExpanded, setNotesExpanded] = useState(false);
   const meta = injuryStatusMeta(injury);
-  const Icon = STATUS_ICON[meta.tone];
+  const Icon = STATUS_ICON[meta.icon];
   const noteText = injury.restriction_notes || injury.notes || "";
   const truncated = noteText.length > 140 && !notesExpanded;
 

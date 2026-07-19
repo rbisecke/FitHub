@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Lock, ShieldAlert, Siren } from "lucide-react";
+import {
+  AlertTriangle,
+  Lock,
+  ShieldAlert,
+  ShieldCheck,
+  Siren,
+} from "lucide-react";
 import type { InjuryOut } from "@/lib/api/plans";
 import type { ApiClient } from "@/lib/api/client";
 import { SheetOverlay } from "@/components/logging/SheetOverlay";
@@ -18,9 +24,10 @@ import {
 } from "@/components/injuries/injuryStatusTransitions";
 
 const STATUS_ICON = {
-  red: AlertTriangle,
-  amber: ShieldAlert,
-  chronic: Lock,
+  alert: AlertTriangle,
+  shieldAlert: ShieldAlert,
+  shieldCheck: ShieldCheck,
+  lock: Lock,
 } as const;
 
 const NOTES_MAX = 1000;
@@ -62,7 +69,7 @@ export function InjuryDetailSheet({
   const [confirmResolveOpen, setConfirmResolveOpen] = useState(false);
 
   const meta = injuryStatusMeta(injury);
-  const Icon = STATUS_ICON[meta.tone];
+  const Icon = STATUS_ICON[meta.icon];
   const transitions = allowedTransitions(injury.status);
   const notesEditable = restrictionNotesEditable(injury.status);
   const notesChanged = notesDraft !== (injury.restriction_notes ?? "");
