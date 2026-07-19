@@ -13,6 +13,14 @@ export type CreateWorkoutBody = components["schemas"]["CreateWorkoutRequest"];
 export type CreateResultBody = components["schemas"]["CreateResultRequest"];
 export type CreateMovementBody = components["schemas"]["CreateMovementRequest"];
 
+// Saved routines (BG-24) — named workout templates (movements only, no results).
+export type SavedRoutine = components["schemas"]["SavedRoutine"];
+export type RoutineMovement = components["schemas"]["RoutineMovement"];
+export type RoutineMovementInput =
+  components["schemas"]["RoutineMovementInput"];
+export type CreateSavedRoutineBody =
+  components["schemas"]["CreateSavedRoutineRequest"];
+
 export type LoadModelResponse = components["schemas"]["LoadModelResponse"];
 export type DailyLoadPoint = components["schemas"]["DailyLoadPoint"];
 export type PersonalRecord = components["schemas"]["PersonalRecord"];

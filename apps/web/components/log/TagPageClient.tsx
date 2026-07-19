@@ -245,6 +245,7 @@ export function TagPageClient({
         order_index: 0,
         is_pr: false,
         pace_distance_m: 500,
+        scaled: false,
       };
 
       const body = {

@@ -10,6 +10,8 @@ import type {
   Movement,
   Workout,
   WorkoutListResponse,
+  SavedRoutine,
+  CreateSavedRoutineBody,
   CreateWorkoutBody,
   CreateMovementBody,
   ParseNLResponse,
@@ -165,6 +167,7 @@ export const api = {
       token: string,
       movementId: string,
       params?: { implement?: string; side?: string },
+      options?: { signal?: AbortSignal },
     ) => {
       const qs = new URLSearchParams();
       if (params?.implement) qs.set("implement", params.implement);
@@ -175,12 +178,14 @@ export const api = {
           query ? `?${query}` : ""
         }`,
         token,
+        options?.signal ? { signal: options.signal } : undefined,
       );
     },
     personalRecord: (
       token: string,
       movementId: string,
       params?: { implement?: string; side?: string },
+      options?: { signal?: AbortSignal },
     ) => {
       const qs = new URLSearchParams();
       if (params?.implement) qs.set("implement", params.implement);
@@ -191,6 +196,7 @@ export const api = {
           query ? `?${query}` : ""
         }`,
         token,
+        options?.signal ? { signal: options.signal } : undefined,
       );
     },
     personalRecordsBatch: (
@@ -217,6 +223,37 @@ export const api = {
         options?.signal ? { signal: options.signal } : undefined,
       );
     },
+  },
+  routines: {
+    list: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<SavedRoutine[]>(
+        "/api/v1/routines",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
+    get: (token: string, id: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<SavedRoutine>(
+        `/api/v1/routines/${id}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
+    create: (token: string, body: CreateSavedRoutineBody) =>
+      apiFetch<SavedRoutine>("/api/v1/routines", token, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    rename: (token: string, id: string, name: string) =>
+      apiFetch<SavedRoutine>(`/api/v1/routines/${id}`, token, {
+        method: "PATCH",
+        body: JSON.stringify({ name }),
+      }),
+    del: (token: string, id: string) =>
+      apiFetch<void>(`/api/v1/routines/${id}`, token, { method: "DELETE" }),
+    reorder: (token: string, routineIds: string[]) =>
+      apiFetch<SavedRoutine[]>("/api/v1/routines/reorder", token, {
+        method: "PUT",
+        body: JSON.stringify({ routine_ids: routineIds }),
+      }),
   },
   analytics: {
     load: (token: string, days = 90) =>
@@ -747,18 +784,22 @@ export function createApiClient(token: string) {
       parseNl: (text: string) => api.workouts.parseNl(token, text),
     },
     movements: {
-      search: (params: Parameters<typeof api.movements.search>[1]) =>
-        api.movements.search(token, params),
+      search: (
+        params: Parameters<typeof api.movements.search>[1],
+        options?: { signal?: AbortSignal },
+      ) => api.movements.search(token, params, options),
       create: (body: Parameters<typeof api.movements.create>[1]) =>
         api.movements.create(token, body),
       lastResult: (
         movementId: string,
         params?: Parameters<typeof api.movements.lastResult>[2],
-      ) => api.movements.lastResult(token, movementId, params),
+        options?: { signal?: AbortSignal },
+      ) => api.movements.lastResult(token, movementId, params, options),
       personalRecord: (
         movementId: string,
         params?: Parameters<typeof api.movements.personalRecord>[2],
-      ) => api.movements.personalRecord(token, movementId, params),
+        options?: { signal?: AbortSignal },
+      ) => api.movements.personalRecord(token, movementId, params, options),
       personalRecordsBatch: (
         movementIds: string[],
         options?: { signal?: AbortSignal },
@@ -855,6 +896,19 @@ export function createApiClient(token: string) {
       modifyWorkout: (sessionId: string) =>
         api.coach.modifyWorkout(token, sessionId),
       checkWod: (wodText: string) => api.coach.checkWod(token, wodText),
+    },
+    routines: {
+      list: (options?: { signal?: AbortSignal }) =>
+        api.routines.list(token, options),
+      get: (id: string, options?: { signal?: AbortSignal }) =>
+        api.routines.get(token, id, options),
+      create: (body: CreateSavedRoutineBody) =>
+        api.routines.create(token, body),
+      rename: (id: string, name: string) =>
+        api.routines.rename(token, id, name),
+      del: (id: string) => api.routines.del(token, id),
+      reorder: (routineIds: string[]) =>
+        api.routines.reorder(token, routineIds),
     },
     trainingPartners: () => api.trainingPartners(token),
     addTrainingPartner: (email: string) => api.addTrainingPartner(token, email),
