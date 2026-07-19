@@ -1341,7 +1341,7 @@ export interface components {
        */
       email: string;
       /** Name */
-      name: string;
+      name?: string | null;
       /** Motivation */
       motivation: string;
     };
