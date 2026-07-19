@@ -42,7 +42,12 @@ function ToggleGroup({
       data-orientation={orientation}
       style={{ "--gap": spacing } as React.CSSProperties}
       className={cn(
-        "group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch",
+        // Tailwind v4's nested-function arbitrary value `gap-[--spacing(var(--gap))]`
+        // (shadcn's stock template) corrupts the generated CSS in this project's
+        // pipeline — see the Effort 0 fix commit. `--gap` is a plain spacing-scale
+        // step (e.g. 2), so `calc(var(--gap)*0.25rem)` reproduces the same output
+        // (Tailwind v4's default --spacing unit is 0.25rem) without the nested call.
+        "group/toggle-group flex w-fit flex-row items-center gap-[calc(var(--gap)*0.25rem)] rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch",
         className,
       )}
       {...props}
