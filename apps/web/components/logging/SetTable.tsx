@@ -71,13 +71,13 @@ export function SetTable({
     <div data-testid={`set-table-variant-${variant}`}>
       {/* Header labels */}
       <div
-        className="flex items-center gap-1.5 px-1 pb-1 font-data text-[10px] uppercase tracking-wide"
+        className="flex items-center gap-1 px-1 pb-1 font-data text-[10px] uppercase tracking-wide"
         style={{ color: "var(--muted)" }}
       >
         <span className="w-5 shrink-0 text-center">Set</span>
-        {variant === "B" && <span className="w-[50px] shrink-0">Prev</span>}
+        {variant === "B" && <span className="w-[58px] shrink-0">Prev</span>}
         {cols.map((c) => (
-          <span key={c.key} className="flex-1 text-right">
+          <span key={c.key} className="min-w-[3.25rem] flex-1 text-right">
             {c.label}
           </span>
         ))}
@@ -96,7 +96,7 @@ export function SetTable({
           <div
             key={set.id}
             data-testid="set-row"
-            className="flex items-center gap-1.5 rounded-[6px] px-1 py-1"
+            className="flex items-center gap-1 rounded-[6px] px-1 py-1"
             style={{
               background: rowBg,
               // A PR keeps a --purple marker even after the row fills green on
@@ -116,13 +116,18 @@ export function SetTable({
               {set.isPr ? "★" : i + 1}
             </span>
 
-            {/* Variant B: dedicated Previous cell */}
+            {/* Variant B: dedicated Previous cell. `truncate` (not a bare
+                overflow-hidden) so a long value ellipsizes deliberately instead
+                of hard-clipping mid-glyph — the width is still sized for the
+                common case ("62.5 × 8"), truncation is a graceful fallback for
+                outliers (3-digit weight + 2-digit reps), not the normal path. */}
             {variant === "B" && (
               <button
                 type="button"
                 onClick={() => onCopyPrevious(set.id, i)}
                 disabled={!ghost}
-                className="w-[50px] shrink-0 overflow-hidden whitespace-nowrap text-left font-mono tabular-nums text-[11px] leading-tight disabled:cursor-default"
+                title={ghost || undefined}
+                className="w-[58px] shrink-0 truncate text-left font-mono tabular-nums text-[10px] leading-tight disabled:cursor-default"
                 style={{ color: ghost ? "var(--muted)" : "var(--border)" }}
                 aria-label={
                   ghost ? `Copy previous ${ghost}` : "No previous value"
@@ -146,7 +151,7 @@ export function SetTable({
                     placeholder={ghostForCol ?? c.placeholder}
                     aria-label={`Set ${i + 1} ${c.label}`}
                     className={`w-full rounded-[6px] py-1.5 text-right font-mono tabular-nums text-[14px] outline-none focus:ring-1 ${
-                      hasCalc ? "pl-6 pr-1.5" : "px-1.5"
+                      hasCalc ? "pl-6 pr-1" : "px-1"
                     }`}
                     style={{
                       background: "var(--bg)",
@@ -182,7 +187,7 @@ export function SetTable({
               onChange={(e) => onSetChange(set.id, "rpe", e.target.value)}
               placeholder="–"
               aria-label={`Set ${i + 1} RPE`}
-              className="w-9 shrink-0 rounded-[6px] px-1 py-1.5 text-center font-mono tabular-nums text-[12px] outline-none"
+              className="h-11 w-9 shrink-0 rounded-[6px] px-1 text-center font-mono tabular-nums text-[12px] outline-none"
               style={{
                 background: "var(--bg)",
                 border: "1px solid var(--border)",
