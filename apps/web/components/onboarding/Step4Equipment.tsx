@@ -67,7 +67,9 @@ export function Step4Equipment({ defaultValue = [], onNext }: Props) {
               onClick={() => toggle(value)}
               className="relative flex min-h-[68px] w-full items-center rounded-[14px] border px-[16px] py-[14px] text-left transition-colors hover:border-[var(--accent)]"
               style={{
-                background: active ? "rgba(88,166,255,0.1)" : "var(--card)",
+                background: active
+                  ? "color-mix(in srgb, var(--accent) 10%, transparent)"
+                  : "var(--card)",
                 borderColor: active ? "var(--accent)" : "var(--border)",
               }}
             >

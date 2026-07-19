@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import type {
@@ -72,6 +72,16 @@ export function OnboardingWizard({ step, token, profile }: Props) {
     readStoredTrainingAge,
     getServerSnapshot,
   );
+
+  // Step 1 (Welcome) is the canonical fresh-start entry point for every run
+  // of the wizard. Clear any stale sessionStorage value on mount so a second
+  // user reusing the same tab/browser (e.g. logout then a different account
+  // signing in) never inherits a prior user's unsaved training-age answer.
+  useEffect(() => {
+    if (step === 1) {
+      window.sessionStorage.removeItem(TRAINING_AGE_STORAGE_KEY);
+    }
+  }, [step]);
 
   function goTo(s: number) {
     setError(null);

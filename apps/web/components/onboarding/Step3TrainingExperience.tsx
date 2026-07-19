@@ -59,7 +59,9 @@ export function Step3TrainingExperience({
               onClick={() => setSelected(value)}
               className="flex w-full items-center gap-[10px] rounded-[14px] border px-[18px] py-[16px] text-left transition-colors hover:border-[var(--accent)]"
               style={{
-                background: active ? "rgba(88,166,255,0.1)" : "var(--card)",
+                background: active
+                  ? "color-mix(in srgb, var(--accent) 10%, transparent)"
+                  : "var(--card)",
                 borderColor: active ? "var(--accent)" : "var(--border)",
               }}
             >
