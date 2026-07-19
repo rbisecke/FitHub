@@ -19,7 +19,7 @@ interface Props {
   onNext: (value: number) => void;
 }
 
-export function Step2Frequency({ defaultValue = 4, onNext }: Props) {
+export function Step5Frequency({ defaultValue = 4, onNext }: Props) {
   const [selected, setSelected] = useState<number>(
     closestOptionValue(defaultValue),
   );
@@ -49,7 +49,9 @@ export function Step2Frequency({ defaultValue = 4, onNext }: Props) {
               aria-pressed={active}
               className="flex w-full items-center gap-[10px] rounded-[14px] border px-[18px] py-[16px] text-left transition-colors hover:border-[var(--accent)]"
               style={{
-                background: active ? "rgba(74,222,128,0.05)" : "var(--card)",
+                background: active
+                  ? "color-mix(in srgb, var(--accent) 10%, transparent)"
+                  : "var(--card)",
                 borderColor: active ? "var(--accent)" : "var(--border)",
               }}
             >
@@ -71,7 +73,8 @@ export function Step2Frequency({ defaultValue = 4, onNext }: Props) {
                   <span
                     className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase"
                     style={{
-                      background: "rgba(74,222,128,0.15)",
+                      background:
+                        "color-mix(in srgb, var(--accent) 15%, transparent)",
                       color: "var(--accent)",
                     }}
                   >

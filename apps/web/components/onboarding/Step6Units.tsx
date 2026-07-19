@@ -34,7 +34,7 @@ function SegmentedControl<T extends string>({
             className="flex-1 rounded-[8px] px-4 py-[7px] text-[14px] font-semibold transition-all duration-150"
             style={{
               background: active ? "var(--accent)" : "transparent",
-              color: active ? "#0A0D12" : "var(--muted)",
+              color: active ? "var(--bg)" : "var(--muted)",
             }}
           >
             {labels[opt]}
@@ -57,7 +57,7 @@ const WEIGHT_LABELS: Record<WeightUnit, string> = { lb: "lb", kg: "kg" };
 const DIST_OPTIONS = ["mi", "km"] as const;
 const DIST_LABELS: Record<DistanceUnit, string> = { mi: "mi", km: "km" };
 
-export function Step3Units({
+export function Step6Units({
   defaultWeightUnit = "lb",
   defaultDistanceUnit = "mi",
   onNext,

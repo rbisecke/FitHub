@@ -1,32 +1,59 @@
-import { describe, it, expect } from "vitest";
-import { renderToStaticMarkup } from "react-dom/server";
-import { Step4FirstWorkout } from "@/components/onboarding/Step4FirstWorkout";
+// @vitest-environment jsdom
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { Step7FirstAction } from "@/components/onboarding/Step7FirstAction";
 
-describe("Step4FirstWorkout", () => {
+const pushMock = vi.fn();
+const patchMock = vi.fn().mockResolvedValue({});
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: pushMock }),
+}));
+
+vi.mock("@/lib/api/client", () => ({
+  api: { profile: { patch: (...args: unknown[]) => patchMock(...args) } },
+}));
+
+describe("Step7FirstAction", () => {
   const noop = () => {};
 
-  it("renders the $ git commit option linking to /log/new", () => {
-    const html = renderToStaticMarkup(<Step4FirstWorkout onSkip={noop} />);
-    expect(html).toContain("$ git commit");
-    expect(html).toContain("Log a workout");
-    expect(html).toContain('href="/log/new"');
+  it("renders the $ git commit option", () => {
+    render(<Step7FirstAction token="t" onSkip={noop} />);
+    expect(screen.getByText("$ git commit")).toBeDefined();
+    expect(screen.getByText("Log a workout")).toBeDefined();
   });
 
-  it("renders the $ git tag option linking to /log/tag", () => {
-    const html = renderToStaticMarkup(<Step4FirstWorkout onSkip={noop} />);
-    expect(html).toContain("$ git tag");
-    expect(html).toContain("Tag a PR");
-    expect(html).toContain('href="/log/tag"');
+  it("renders the $ git tag option", () => {
+    render(<Step7FirstAction token="t" onSkip={noop} />);
+    expect(screen.getByText("$ git tag")).toBeDefined();
+    expect(screen.getByText("Tag a PR")).toBeDefined();
   });
 
   it("renders a Skip for now button", () => {
-    const html = renderToStaticMarkup(<Step4FirstWorkout onSkip={noop} />);
-    expect(html).toContain("Skip for now");
+    render(<Step7FirstAction token="t" onSkip={noop} />);
+    expect(screen.getByText("Skip for now")).toBeDefined();
   });
 
-  it("renders both options at equal visual weight using flex-1", () => {
-    const html = renderToStaticMarkup(<Step4FirstWorkout onSkip={noop} />);
-    const flex1Count = (html.match(/flex-1/g) ?? []).length;
-    expect(flex1Count).toBeGreaterThanOrEqual(2);
+  it("best-effort completes onboarding then routes to /log/new on 'Log a workout'", async () => {
+    render(<Step7FirstAction token="t" onSkip={noop} />);
+    fireEvent.click(screen.getByLabelText("Log a full workout session"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/log/new"));
+    expect(patchMock).toHaveBeenCalledWith("t", { onboarding_completed: true });
+  });
+
+  it("best-effort completes onboarding then routes to /log/tag on 'Tag a PR'", async () => {
+    render(<Step7FirstAction token="t" onSkip={noop} />);
+    fireEvent.click(
+      screen.getByLabelText("Tag a personal record or milestone"),
+    );
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/log/tag"));
+    expect(patchMock).toHaveBeenCalledWith("t", { onboarding_completed: true });
+  });
+
+  it("navigates even when the best-effort patch fails", async () => {
+    patchMock.mockRejectedValueOnce(new Error("network error"));
+    render(<Step7FirstAction token="t" onSkip={noop} />);
+    fireEvent.click(screen.getByLabelText("Log a full workout session"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/log/new"));
   });
 });

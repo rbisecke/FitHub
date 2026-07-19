@@ -158,7 +158,7 @@ export function Step1Welcome({ onStart, onSkipAll }: Props) {
             onClick={onSkipAll}
             className="font-data inline-flex min-h-[44px] items-center px-4 text-[13px] text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
           >
-            Already training here? Sign in
+            Skip setup — take me to the app
           </button>
         </div>
       </div>
