@@ -56,7 +56,7 @@ function demoEntry(): DraftEntry {
     sets: [
       set("60", "8", { completed: true }),
       set("62.5", "5", { completed: true, isPr: true }),
-      set("62.5", ""),
+      set("", ""),
     ],
     previous: [
       { load: 60, reps: 8 },

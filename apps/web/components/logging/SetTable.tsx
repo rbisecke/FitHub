@@ -81,7 +81,7 @@ export function SetTable({
             {c.label}
           </span>
         ))}
-        <span className="w-9 shrink-0 text-right">RPE</span>
+        <span className="w-8 shrink-0 text-right">RPE</span>
         <span className="w-11 shrink-0 text-center">✓</span>
       </div>
 
@@ -151,7 +151,7 @@ export function SetTable({
                     placeholder={ghostForCol ?? c.placeholder}
                     aria-label={`Set ${i + 1} ${c.label}`}
                     className={`w-full rounded-[6px] py-1.5 text-right font-mono tabular-nums text-[14px] outline-none focus:ring-1 ${
-                      hasCalc ? "pl-6 pr-1" : "px-1"
+                      hasCalc ? "pl-5 pr-1" : "px-1"
                     }`}
                     style={{
                       background: "var(--bg)",
@@ -166,11 +166,11 @@ export function SetTable({
                       type="button"
                       onClick={() => onOpenCalculator(set.id)}
                       aria-label="Open plate calculator"
-                      className="absolute left-0 top-1/2 flex h-11 w-5 -translate-y-1/2 items-center justify-center"
+                      className="absolute left-0 top-1/2 flex h-11 w-4 -translate-y-1/2 items-center justify-center"
                       style={{ color: "var(--muted)" }}
                     >
                       <Calculator
-                        size={14}
+                        size={12}
                         strokeWidth={1.5}
                         aria-hidden="true"
                       />
@@ -187,7 +187,7 @@ export function SetTable({
               onChange={(e) => onSetChange(set.id, "rpe", e.target.value)}
               placeholder="–"
               aria-label={`Set ${i + 1} RPE`}
-              className="h-11 w-9 shrink-0 rounded-[6px] px-1 text-center font-mono tabular-nums text-[12px] outline-none"
+              className="h-11 w-8 shrink-0 rounded-[6px] px-1 text-center font-mono tabular-nums text-[12px] outline-none"
               style={{
                 background: "var(--bg)",
                 border: "1px solid var(--border)",
