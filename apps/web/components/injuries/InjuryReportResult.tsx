@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { BodyRegion } from "./picker/taxonomy";
 import { REGION_DISPLAY_NAME } from "./picker/taxonomy";
 import { ReferralVerdictCard } from "./ReferralVerdictCard";
+import { formatLabel } from "@/lib/display";
 
 export interface InjuryReportResultData {
   bodyRegion: BodyRegion;
@@ -66,7 +67,7 @@ export function InjuryReportResult({
                     className="font-sans text-[13px]"
                     style={{ color: "var(--text)" }}
                   >
-                    {name}
+                    {formatLabel(name)}
                   </li>
                 ))}
               </ul>
@@ -106,7 +107,7 @@ export function InjuryReportResult({
                       className="font-sans text-[13px]"
                       style={{ color: "var(--text)" }}
                     >
-                      {name}
+                      {formatLabel(name)}
                       {!hasSub && (
                         <span
                           className="ml-1 font-sans text-[11px]"

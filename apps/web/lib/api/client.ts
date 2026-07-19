@@ -697,7 +697,12 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    list: (token: string) => apiFetch<InjuryOut[]>("/api/v1/injuries", token),
+    list: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<InjuryOut[]>(
+        "/api/v1/injuries",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     updateStatus: (
       token: string,
       injuryId: string,
@@ -717,6 +722,7 @@ export const api = {
         fatigue: number;
         soreness: number;
       },
+      options?: { signal?: AbortSignal },
     ) =>
       apiFetch<{
         date: string;
@@ -728,8 +734,9 @@ export const api = {
       }>("/api/v1/wellness/checkin", token, {
         method: "POST",
         body: JSON.stringify(body),
+        signal: options?.signal,
       }),
-    today: (token: string) =>
+    today: (token: string, options?: { signal?: AbortSignal }) =>
       apiFetch<{
         submitted: boolean;
         checkin: {
@@ -740,7 +747,11 @@ export const api = {
           soreness: number;
           hooper_index: number;
         } | null;
-      }>("/api/v1/wellness/checkin/today", token),
+      }>(
+        "/api/v1/wellness/checkin/today",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
   },
   integrations: {
     list: (token: string, options?: { signal?: AbortSignal }) =>
@@ -918,11 +929,20 @@ export function createApiClient(token: string) {
     injuries: {
       report: (body: Parameters<typeof api.injuries.report>[1]) =>
         api.injuries.report(token, body),
-      list: () => api.injuries.list(token),
+      list: (options?: { signal?: AbortSignal }) =>
+        api.injuries.list(token, options),
       updateStatus: (
         injuryId: string,
         body: Parameters<typeof api.injuries.updateStatus>[2],
       ) => api.injuries.updateStatus(token, injuryId, body),
+    },
+    wellness: {
+      checkin: (
+        body: Parameters<typeof api.wellness.checkin>[1],
+        options?: { signal?: AbortSignal },
+      ) => api.wellness.checkin(token, body, options),
+      today: (options?: { signal?: AbortSignal }) =>
+        api.wellness.today(token, options),
     },
     profile: {
       get: () => api.profile.get(token),
