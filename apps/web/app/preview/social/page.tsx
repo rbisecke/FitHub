@@ -1,10 +1,21 @@
-import { PlaceholderScreen } from "@/components/shell/placeholder-screen";
+import { MixedThemePlaceholder } from "@/components/shell/placeholder-screen";
 
 export default function SocialPage() {
   return (
-    <PlaceholderScreen
+    <MixedThemePlaceholder
       title="Social"
-      subtitle="Team sessions, leaderboards, and training partners (Domain 06). Built in Effort 8."
+      screens={[
+        {
+          theme: "dark",
+          screen: "Live leaderboard · results reveal · session list",
+          note: "Glanceable/celebratory (Domain 06). Built in Effort 8.",
+        },
+        {
+          theme: "light",
+          screen: "Create/edit session · training-partners roster",
+          note: "Seated data entry (Domain 06). Built in Effort 8.",
+        },
+      ]}
     />
   );
 }

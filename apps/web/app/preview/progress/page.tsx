@@ -1,10 +1,21 @@
-import { PlaceholderScreen } from "@/components/shell/placeholder-screen";
+import { MixedThemePlaceholder } from "@/components/shell/placeholder-screen";
 
 export default function ProgressPage() {
   return (
-    <PlaceholderScreen
+    <MixedThemePlaceholder
       title="Progress"
-      subtitle="Records, analytics, streaks, and contribution graph (Domains 04 · 07). Built in Effort 6."
+      screens={[
+        {
+          theme: "dark",
+          screen: "Records home · readiness score · PR reveal · streaks",
+          note: "Glanceable/celebratory (Domains 04 · 07). Built in Effort 6.",
+        },
+        {
+          theme: "light",
+          screen: "Load-model · volume · training-balance · trend charts",
+          note: "Seated multi-series analysis (Domain 04). Built in Effort 6.",
+        },
+      ]}
     />
   );
 }
