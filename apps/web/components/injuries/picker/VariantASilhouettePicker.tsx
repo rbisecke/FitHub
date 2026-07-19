@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -88,6 +88,19 @@ export function VariantASilhouettePicker({
   const [pulsingRegions, setPulsingRegions] = useState<BodyRegion[]>([]);
   const [insetRegion, setInsetRegion] = useState<BodyRegion | null>(null);
   const [showSearch, setShowSearch] = useState(false);
+  // Explicitly `number` (not `ReturnType<typeof window.setTimeout>`) — with
+  // @types/node in scope, that resolves to Node's Timeout type even though
+  // `window.setTimeout` always returns a number in the browser.
+  const pulseTimeoutRef = useRef<number | null>(null);
+
+  // A second grouping tap before the first pulse finishes must not let the
+  // first timer clear pulsingRegions out from under the new one — always
+  // cancel any pending timer before scheduling the next, and on unmount.
+  useEffect(() => {
+    return () => {
+      if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current);
+    };
+  }, []);
 
   function handleTapGrouping(groupingId: string) {
     const shape = groupingShapesForSide(side).find((g) => g.id === groupingId);
@@ -97,7 +110,8 @@ export function VariantASilhouettePicker({
     );
     setTier("detailed");
     setPulsingRegions(toPulse);
-    window.setTimeout(
+    if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current);
+    pulseTimeoutRef.current = window.setTimeout(
       () => setPulsingRegions([]),
       prefersReducedMotion ? 1600 : 500,
     );

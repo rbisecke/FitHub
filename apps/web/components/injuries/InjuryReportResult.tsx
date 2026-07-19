@@ -24,13 +24,13 @@ export function InjuryReportResult({
 }: {
   result: InjuryReportResultData;
 }) {
-  const {
-    bodyRegion,
-    painLevel,
-    requiresReferral,
-    substitutions,
-    contraindicated,
-  } = result;
+  const { bodyRegion, painLevel, requiresReferral } = result;
+  // Deduped defensively, matching ContraindicationRevealSheet's handling of
+  // the same-shaped data — currently a no-op (the backend already dedupes
+  // substitutions and contraindicated is a curated static list), but keeps
+  // both components' posture consistent if that ever changes.
+  const substitutions = Array.from(new Set(result.substitutions));
+  const contraindicated = Array.from(new Set(result.contraindicated));
 
   return (
     <div
