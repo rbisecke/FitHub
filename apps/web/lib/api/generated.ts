@@ -1341,7 +1341,7 @@ export interface components {
        */
       email: string;
       /** Name */
-      name: string;
+      name?: string | null;
       /** Motivation */
       motivation: string;
     };
@@ -2574,6 +2574,30 @@ export interface components {
         | null;
       /** Training Since */
       training_since?: string | null;
+      /** Primary Goal */
+      primary_goal?:
+        | (
+            | "build_strength"
+            | "gain_muscle"
+            | "lose_weight"
+            | "improve_conditioning"
+            | "compete"
+            | "return_from_break"
+            | "general_fitness"
+          )
+        | null;
+      /** Equipment Access */
+      equipment_access?:
+        | (
+            | "barbell"
+            | "dumbbells"
+            | "kettlebells"
+            | "rig_pull_up"
+            | "rower_erg"
+            | "machines"
+            | "none"
+          )[]
+        | null;
     };
     /** PatchTeamSessionRequest */
     PatchTeamSessionRequest: {
@@ -3365,6 +3389,30 @@ export interface components {
         | null;
       /** Training Since */
       training_since?: string | null;
+      /** Primary Goal */
+      primary_goal?:
+        | (
+            | "build_strength"
+            | "gain_muscle"
+            | "lose_weight"
+            | "improve_conditioning"
+            | "compete"
+            | "return_from_break"
+            | "general_fitness"
+          )
+        | null;
+      /** Equipment Access */
+      equipment_access?:
+        | (
+            | "barbell"
+            | "dumbbells"
+            | "kettlebells"
+            | "rig_pull_up"
+            | "rower_erg"
+            | "machines"
+            | "none"
+          )[]
+        | null;
     };
     /** UserSearchResult */
     UserSearchResult: {

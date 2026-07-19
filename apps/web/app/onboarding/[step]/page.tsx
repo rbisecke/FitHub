@@ -11,7 +11,7 @@ export default async function OnboardingStepPage({ params }: Props) {
   const { step: stepStr } = await params;
   const stepNum = Number(stepStr);
 
-  if (!Number.isInteger(stepNum) || stepNum < 1 || stepNum > 5) {
+  if (!Number.isInteger(stepNum) || stepNum < 1 || stepNum > 8) {
     redirect("/onboarding/1");
   }
 
@@ -30,8 +30,8 @@ export default async function OnboardingStepPage({ params }: Props) {
     redirect("/login");
   }
 
-  // Users who've completed onboarding can only land on step 5 (summary)
-  if (profile.onboarding_completed && stepNum !== 5) {
+  // Users who've completed onboarding can only land on step 8 (summary)
+  if (profile.onboarding_completed && stepNum !== 8) {
     redirect("/dashboard");
   }
 

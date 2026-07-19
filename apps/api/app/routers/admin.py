@@ -105,7 +105,7 @@ async def submit_access_request(
             INSERT INTO access_requests (email, name, motivation)
             VALUES (%s, %s, %s)
             """,
-            [email, body.name, body.motivation],
+            [email, body.name or "", body.motivation],
         )
     except UniqueViolation:
         raise HTTPException(

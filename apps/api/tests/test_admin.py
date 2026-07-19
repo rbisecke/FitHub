@@ -70,6 +70,20 @@ async def test_access_request_submit(anon_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_access_request_submit_without_name(anon_client: AsyncClient) -> None:
+    """name is optional (design spec 08 §1) — omitting it must not 422."""
+    resp = await anon_client.post(
+        "/api/v1/access-requests",
+        json={
+            "email": "noname@test-admin.example",
+            "motivation": "I love fitness and forgot to type my name.",
+        },
+    )
+    assert resp.status_code == 201
+    assert resp.json()["status"] == "submitted"
+
+
+@pytest.mark.asyncio
 async def test_access_request_duplicate_within_24h(anon_client: AsyncClient) -> None:
     payload = {
         "email": "dup@test-admin.example",

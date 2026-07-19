@@ -11,7 +11,11 @@ from pydantic import BaseModel, EmailStr, Field
 
 class AccessRequestCreate(BaseModel):
     email: EmailStr = Field(max_length=254)
-    name: str = Field(max_length=200)
+    # Optional per design spec 08 §1 ("the UI does not require it though the
+    # model carries it") — the DB column is NOT NULL, so the router coalesces
+    # a missing name to "" rather than this model defaulting to "" itself,
+    # keeping the optionality visible in the request schema.
+    name: str | None = Field(default=None, max_length=200)
     motivation: str = Field(max_length=2000)
 
 

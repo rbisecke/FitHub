@@ -62,6 +62,13 @@ export type GraphColourMode = "intensity" | "volume";
 export type FrequencyTarget = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export type UserProfile = components["schemas"]["UserProfile"];
+// Primary training goal (single-select) and equipment access (multi-select) —
+// onboarding/AI-input fields. Derived from the generated schema so they stay in
+// sync with the backend Literal sets.
+export type PrimaryGoal = NonNullable<UserProfile["primary_goal"]>;
+export type EquipmentAccess = NonNullable<
+  NonNullable<UserProfile["equipment_access"]>[number]
+>;
 
 export function toWeightUnit(s: string | null | undefined): WeightUnit {
   return s === "lb" ? "lb" : "kg";
