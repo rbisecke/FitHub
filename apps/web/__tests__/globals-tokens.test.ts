@@ -24,8 +24,8 @@ describe("globals.css color & elevation tokens", () => {
     expect(css).toMatch(/--color-muted-strong:\s*var\(--muted-strong\)/);
   });
 
-  it("--purple is the correct violet (#8b5cf6), not aliased to blue", () => {
-    expect(css).toMatch(/--purple:\s*#8b5cf6/);
+  it("--purple is the finalized redesign violet (#bc8cff, 00 §3.0), not aliased to blue", () => {
+    expect(css).toMatch(/--purple:\s*#bc8cff/);
     expect(css).not.toMatch(/--purple:\s*#58a6ff/);
   });
 });

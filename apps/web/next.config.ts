@@ -43,6 +43,20 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
+  // SVGR pipeline (0.24, 09 §2). Next.js 16 runs Turbopack by default, so SVG→React
+  // conversion is wired through `turbopack.rules` — NOT the legacy webpack() loader
+  // block SVGR's own docs still show. Importing a `*.svg` yields a React component
+  // (`import Glyph from "./glyph.svg"` → `<Glyph />`). No source code imports SVGs as
+  // URLs today; public/ assets are still referenced by their `/path.svg` URL, which
+  // this module rule does not touch.
+  turbopack: {
+    rules: {
+      "*.svg": {
+        loaders: ["@svgr/webpack"],
+        as: "*.js",
+      },
+    },
+  },
   // Next.js's dev-tools indicator defaults to bottom-left, which sits
   // directly on top of AdminMobileTabBar's first tab (Metrics) on mobile
   // viewports, covering its label and shrinking its touch target below the
