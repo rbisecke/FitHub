@@ -14,7 +14,8 @@ const MODALITIES = [
   "plyometric",
 ] as const;
 
-function readRecent(): Movement[] {
+/** Read the local "recent movements" cache (last 8) — 01 §2.5. */
+export function readRecent(): Movement[] {
   try {
     const raw = localStorage.getItem(RECENT_KEY);
     return raw ? (JSON.parse(raw) as Movement[]).slice(0, 8) : [];
