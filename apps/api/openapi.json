@@ -2805,6 +2805,54 @@
         ]
       }
     },
+    "/api/v1/workouts/by-hash/{short_hash}": {
+      "get": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "Get Workout By Hash Route",
+        "description": "Resolve a workout by its cosmetic 8-hex short_hash (01 \u00a76 routing).",
+        "operationId": "get_workout_by_hash_route_api_v1_workouts_by_hash__short_hash__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "short_hash",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Short Hash"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Workout"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workouts/{workout_id}": {
       "get": {
         "tags": [

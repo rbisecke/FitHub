@@ -23,6 +23,7 @@ from app.repositories.workouts import (
     create_workout,
     delete_workout,
     get_workout,
+    get_workout_by_hash,
     list_workouts,
     patch_workout,
 )
@@ -75,6 +76,21 @@ async def parse_workout_nl(body: ParseNLRequest, user: Auth) -> ParseNLResponse:
     title = (parts[0].strip() if parts else text)[:80] or "Workout"
     notes = text if len(text) > len(title) else ""
     return ParseNLResponse(title=title, notes=notes)
+
+
+@router.get("/by-hash/{short_hash}", response_model=Workout)
+async def get_workout_by_hash_route(
+    user: Auth,
+    conn: DBConn,
+    short_hash: str,
+) -> Workout:
+    """Resolve a workout by its cosmetic 8-hex short_hash (01 §6 routing)."""
+    if not re.fullmatch(r"[0-9a-f]{8}", short_hash):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    workout = await get_workout_by_hash(conn, user_id=user.user_id, short_hash=short_hash)
+    if workout is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return workout
 
 
 @router.get("/{workout_id}", response_model=Workout)

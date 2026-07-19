@@ -325,6 +325,29 @@ async def get_workout(
     return Workout(**workout_row, results=[Result(**r) for r in result_rows])
 
 
+async def get_workout_by_hash(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    user_id: uuid.UUID,
+    short_hash: str,
+) -> Workout | None:
+    """Resolve a workout by its cosmetic 8-hex short_hash (01 §6 routing).
+
+    Queries the persisted ``short_hash`` column directly — the schema has a
+    ``UNIQUE (user_id, short_hash)`` index, so this is an exact, indexed lookup
+    that returns at most one row and needs no LIKE.
+    """
+    async with conn.cursor() as cur:
+        await cur.execute(
+            "SELECT id FROM public.workouts WHERE user_id = %s AND short_hash = %s",
+            [user_id, short_hash],
+        )
+        row = await cur.fetchone()
+    if row is None:
+        return None
+    return await get_workout(conn, user_id=user_id, workout_id=row[0])
+
+
 async def patch_workout(
     conn: psycopg.AsyncConnection[Any],
     *,
