@@ -188,6 +188,7 @@ export function WorkoutForm({
         order_index: i,
         pace_distance_m: 500,
         is_pr: false,
+        scaled: false,
       })),
     };
 

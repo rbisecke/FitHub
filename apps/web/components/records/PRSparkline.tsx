@@ -15,12 +15,19 @@ import type { E1RMPoint } from "@/lib/api";
 interface Props {
   points: E1RMPoint[];
   weightUnit?: string;
+  /** Series/tooltip label — defaults to "e1RM"; callers plotting another metric
+      (e.g. the movement-detail Heaviest Weight toggle) pass their own. */
+  metricLabel?: string;
 }
 
-export function PRSparkline({ points, weightUnit = "kg" }: Props) {
+export function PRSparkline({
+  points,
+  weightUnit = "kg",
+  metricLabel = "e1RM",
+}: Props) {
   const isImperial = weightUnit === "lb";
   if (points.length < 2) {
-    return <ChartEmpty className="mt-1" message="Not enough PR history yet" />;
+    return <ChartEmpty className="mt-1" message="Not enough history yet" />;
   }
 
   const data = points.map((p) => ({
@@ -29,7 +36,7 @@ export function PRSparkline({ points, weightUnit = "kg" }: Props) {
   }));
 
   return (
-    <div aria-label="PR progression chart" role="img">
+    <div aria-label={`${metricLabel} progression chart`} role="img">
       <ResponsiveContainer width="100%" height={60}>
         <LineChart
           data={data}
@@ -56,9 +63,9 @@ export function PRSparkline({ points, weightUnit = "kg" }: Props) {
                     isImperial
                       ? `${Math.round(value * 2.20462)} lb`
                       : `${value.toFixed(1)} kg`,
-                    "e1RM",
+                    metricLabel,
                   ]
-                : [String(value), "e1RM"]
+                : [String(value), metricLabel]
             }
           />
           <Line

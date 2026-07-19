@@ -770,6 +770,7 @@
           "analytics"
         ],
         "summary": "Movement Trend",
+        "description": "Single-movement e1RM trend, optionally scoped to (implement, side).\n\nThe movement-detail Charts tab shares one ``(implement, side)`` key across\nits History/Charts/Records views (01 \u00a79.1); passing those params re-scopes\nthe trend to that combination. Omitting them returns the all-variants trend.",
         "operationId": "movement_trend_api_v1_analytics_movement_trend__movement_id__get",
         "security": [
           {
@@ -785,6 +786,38 @@
               "type": "string",
               "format": "uuid",
               "title": "Movement Id"
+            }
+          },
+          {
+            "name": "implement",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Implement"
+            }
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Side"
             }
           }
         ],
@@ -822,7 +855,7 @@
           "analytics"
         ],
         "summary": "Movement History",
-        "description": "Full logged-set history for one movement, newest-first.\n\nUsed by the /records/[movementId] detail page to populate the set log\ntable. Returns an empty list (not 404) when no sets have been logged.",
+        "description": "Full logged-set history for one movement, newest-first.\n\nUsed by the movement-detail History tab to populate the set log table.\nOptionally scoped to an ``(implement, side)`` combination (01 \u00a79.1).\nReturns an empty list (not 404) when no sets have been logged.",
         "operationId": "movement_history_api_v1_analytics_movement_history__movement_id__get",
         "security": [
           {
@@ -838,6 +871,38 @@
               "type": "string",
               "format": "uuid",
               "title": "Movement Id"
+            }
+          },
+          {
+            "name": "implement",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Implement"
+            }
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Side"
             }
           }
         ],
@@ -1718,6 +1783,54 @@
         }
       }
     },
+    "/api/v1/movements/by-slug/{slug}": {
+      "get": {
+        "tags": [
+          "movements"
+        ],
+        "summary": "Get Movement By Slug Route",
+        "description": "Resolve a movement by its unique slug (01 \u00a79 movement-detail routing).",
+        "operationId": "get_movement_by_slug_route_api_v1_movements_by_slug__slug__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Movement"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/movements/personal-records": {
       "get": {
         "tags": [
@@ -2249,6 +2362,273 @@
         ]
       }
     },
+    "/api/v1/routines": {
+      "get": {
+        "tags": [
+          "routines"
+        ],
+        "summary": "List Routines Route",
+        "operationId": "list_routines_route_api_v1_routines_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SavedRoutine"
+                  },
+                  "type": "array",
+                  "title": "Response List Routines Route Api V1 Routines Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "routines"
+        ],
+        "summary": "Create Routine Route",
+        "operationId": "create_routine_route_api_v1_routines_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSavedRoutineRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedRoutine"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/routines/reorder": {
+      "put": {
+        "tags": [
+          "routines"
+        ],
+        "summary": "Reorder Routines Route",
+        "operationId": "reorder_routines_route_api_v1_routines_reorder_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderRoutinesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SavedRoutine"
+                  },
+                  "type": "array",
+                  "title": "Response Reorder Routines Route Api V1 Routines Reorder Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/routines/{routine_id}": {
+      "get": {
+        "tags": [
+          "routines"
+        ],
+        "summary": "Get Routine Route",
+        "operationId": "get_routine_route_api_v1_routines__routine_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Routine Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedRoutine"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "routines"
+        ],
+        "summary": "Patch Routine Route",
+        "operationId": "patch_routine_route_api_v1_routines__routine_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Routine Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchSavedRoutineRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedRoutine"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "routines"
+        ],
+        "summary": "Delete Routine Route",
+        "operationId": "delete_routine_route_api_v1_routines__routine_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Routine Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workouts": {
       "get": {
         "tags": [
@@ -2471,6 +2851,54 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/api/v1/workouts/by-hash/{short_hash}": {
+      "get": {
+        "tags": [
+          "workouts"
+        ],
+        "summary": "Get Workout By Hash Route",
+        "description": "Resolve a workout by its cosmetic 8-hex short_hash (01 \u00a76 routing).",
+        "operationId": "get_workout_by_hash_route_api_v1_workouts_by_hash__short_hash__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "short_hash",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Short Hash"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Workout"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/workouts/{workout_id}": {
@@ -5807,6 +6235,11 @@
               }
             ],
             "title": "Peak Velocity Ms"
+          },
+          "scaled": {
+            "type": "boolean",
+            "title": "Scaled",
+            "default": false
           }
         },
         "type": "object",
@@ -5814,6 +6247,29 @@
           "result_type"
         ],
         "title": "CreateResultRequest"
+      },
+      "CreateSavedRoutineRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "movements": {
+            "items": {
+              "$ref": "#/components/schemas/RoutineMovementInput"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Movements"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CreateSavedRoutineRequest"
       },
       "CreateTeamSessionRequest": {
         "properties": {
@@ -8036,6 +8492,21 @@
         "type": "object",
         "title": "PatchProfileRequest"
       },
+      "PatchSavedRoutineRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "PatchSavedRoutineRequest"
+      },
       "PatchTeamSessionRequest": {
         "properties": {
           "name": {
@@ -9221,6 +9692,25 @@
         "type": "object",
         "title": "RejectAdaptationRequest"
       },
+      "ReorderRoutinesRequest": {
+        "properties": {
+          "routine_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Routine Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "routine_ids"
+        ],
+        "title": "ReorderRoutinesRequest"
+      },
       "ReportInjuryRequest": {
         "properties": {
           "body_region": {
@@ -9584,6 +10074,11 @@
             ],
             "title": "Estimated 1Rm Kg"
           },
+          "scaled": {
+            "type": "boolean",
+            "title": "Scaled",
+            "default": false
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -9663,6 +10158,147 @@
           "suggestions"
         ],
         "title": "RoleSuggestionsResponse"
+      },
+      "RoutineMovement": {
+        "properties": {
+          "movement_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Movement Id"
+          },
+          "movement_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Movement Name"
+          },
+          "implement": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implement"
+          },
+          "side": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Side"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          }
+        },
+        "type": "object",
+        "required": [
+          "movement_id",
+          "position"
+        ],
+        "title": "RoutineMovement",
+        "description": "One movement reference in a saved routine, as returned to the client."
+      },
+      "RoutineMovementInput": {
+        "properties": {
+          "movement_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Movement Id"
+          },
+          "implement": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implement"
+          },
+          "side": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Side"
+          }
+        },
+        "type": "object",
+        "required": [
+          "movement_id"
+        ],
+        "title": "RoutineMovementInput",
+        "description": "One movement reference in a routine, as submitted by the client.\n\nPosition is derived from list order on the server, not sent by the client,\nso the ordered movement list is authoritative and gap-free."
+      },
+      "SavedRoutine": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order"
+          },
+          "movements": {
+            "items": {
+              "$ref": "#/components/schemas/RoutineMovement"
+            },
+            "type": "array",
+            "title": "Movements"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "name",
+          "display_order",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SavedRoutine"
       },
       "ScoringType": {
         "type": "string",

@@ -10,6 +10,8 @@ import type {
   Movement,
   Workout,
   WorkoutListResponse,
+  SavedRoutine,
+  CreateSavedRoutineBody,
   CreateWorkoutBody,
   CreateMovementBody,
   ParseNLResponse,
@@ -127,6 +129,16 @@ export const api = {
         token,
         options?.signal ? { signal: options.signal } : undefined,
       ),
+    getByHash: (
+      token: string,
+      shortHash: string,
+      options?: { signal?: AbortSignal },
+    ) =>
+      apiFetch<Workout>(
+        `/api/v1/workouts/by-hash/${shortHash}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     patch: (token: string, id: string, body: Partial<CreateWorkoutBody>) =>
       apiFetch<Workout>(`/api/v1/workouts/${id}`, token, {
         method: "PATCH",
@@ -161,10 +173,21 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    getBySlug: (
+      token: string,
+      slug: string,
+      options?: { signal?: AbortSignal },
+    ) =>
+      apiFetch<Movement>(
+        `/api/v1/movements/by-slug/${encodeURIComponent(slug)}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     lastResult: (
       token: string,
       movementId: string,
       params?: { implement?: string; side?: string },
+      options?: { signal?: AbortSignal },
     ) => {
       const qs = new URLSearchParams();
       if (params?.implement) qs.set("implement", params.implement);
@@ -175,12 +198,14 @@ export const api = {
           query ? `?${query}` : ""
         }`,
         token,
+        options?.signal ? { signal: options.signal } : undefined,
       );
     },
     personalRecord: (
       token: string,
       movementId: string,
       params?: { implement?: string; side?: string },
+      options?: { signal?: AbortSignal },
     ) => {
       const qs = new URLSearchParams();
       if (params?.implement) qs.set("implement", params.implement);
@@ -191,6 +216,7 @@ export const api = {
           query ? `?${query}` : ""
         }`,
         token,
+        options?.signal ? { signal: options.signal } : undefined,
       );
     },
     personalRecordsBatch: (
@@ -218,6 +244,37 @@ export const api = {
       );
     },
   },
+  routines: {
+    list: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<SavedRoutine[]>(
+        "/api/v1/routines",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
+    get: (token: string, id: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<SavedRoutine>(
+        `/api/v1/routines/${id}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
+    create: (token: string, body: CreateSavedRoutineBody) =>
+      apiFetch<SavedRoutine>("/api/v1/routines", token, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    rename: (token: string, id: string, name: string) =>
+      apiFetch<SavedRoutine>(`/api/v1/routines/${id}`, token, {
+        method: "PATCH",
+        body: JSON.stringify({ name }),
+      }),
+    del: (token: string, id: string) =>
+      apiFetch<void>(`/api/v1/routines/${id}`, token, { method: "DELETE" }),
+    reorder: (token: string, routineIds: string[]) =>
+      apiFetch<SavedRoutine[]>("/api/v1/routines/reorder", token, {
+        method: "PUT",
+        body: JSON.stringify({ routine_ids: routineIds }),
+      }),
+  },
   analytics: {
     load: (token: string, days = 90) =>
       apiFetch<LoadModelResponse>(`/api/v1/analytics/load?days=${days}`, token),
@@ -227,16 +284,42 @@ export const api = {
         token,
         options?.signal ? { signal: options.signal } : undefined,
       ),
-    movementTrend: (token: string, movementId: string) =>
-      apiFetch<E1RMPoint[]>(
-        `/api/v1/analytics/movement-trend/${movementId}`,
+    movementTrend: (
+      token: string,
+      movementId: string,
+      params?: { implement?: string; side?: string },
+      options?: { signal?: AbortSignal },
+    ) => {
+      const qs = new URLSearchParams();
+      if (params?.implement) qs.set("implement", params.implement);
+      if (params?.side) qs.set("side", params.side);
+      const query = qs.toString();
+      return apiFetch<E1RMPoint[]>(
+        `/api/v1/analytics/movement-trend/${movementId}${
+          query ? `?${query}` : ""
+        }`,
         token,
-      ),
-    movementHistory: (token: string, movementId: string) =>
-      apiFetch<MovementHistoryEntry[]>(
-        `/api/v1/analytics/movement-history/${movementId}`,
+        options?.signal ? { signal: options.signal } : undefined,
+      );
+    },
+    movementHistory: (
+      token: string,
+      movementId: string,
+      params?: { implement?: string; side?: string },
+      options?: { signal?: AbortSignal },
+    ) => {
+      const qs = new URLSearchParams();
+      if (params?.implement) qs.set("implement", params.implement);
+      if (params?.side) qs.set("side", params.side);
+      const query = qs.toString();
+      return apiFetch<MovementHistoryEntry[]>(
+        `/api/v1/analytics/movement-history/${movementId}${
+          query ? `?${query}` : ""
+        }`,
         token,
-      ),
+        options?.signal ? { signal: options.signal } : undefined,
+      );
+    },
     volumeTrend: (token: string, weeks = 12) =>
       apiFetch<VolumeTrendResponse>(
         `/api/v1/analytics/volume-trend?weeks=${weeks}`,
@@ -741,24 +824,32 @@ export function createApiClient(token: string) {
         api.workouts.create(token, body),
       get: (id: string, options?: { signal?: AbortSignal }) =>
         api.workouts.get(token, id, options),
+      getByHash: (shortHash: string, options?: { signal?: AbortSignal }) =>
+        api.workouts.getByHash(token, shortHash, options),
       patch: (id: string, body: Parameters<typeof api.workouts.patch>[2]) =>
         api.workouts.patch(token, id, body),
       del: (id: string) => api.workouts.del(token, id),
       parseNl: (text: string) => api.workouts.parseNl(token, text),
     },
     movements: {
-      search: (params: Parameters<typeof api.movements.search>[1]) =>
-        api.movements.search(token, params),
+      search: (
+        params: Parameters<typeof api.movements.search>[1],
+        options?: { signal?: AbortSignal },
+      ) => api.movements.search(token, params, options),
       create: (body: Parameters<typeof api.movements.create>[1]) =>
         api.movements.create(token, body),
+      getBySlug: (slug: string, options?: { signal?: AbortSignal }) =>
+        api.movements.getBySlug(token, slug, options),
       lastResult: (
         movementId: string,
         params?: Parameters<typeof api.movements.lastResult>[2],
-      ) => api.movements.lastResult(token, movementId, params),
+        options?: { signal?: AbortSignal },
+      ) => api.movements.lastResult(token, movementId, params, options),
       personalRecord: (
         movementId: string,
         params?: Parameters<typeof api.movements.personalRecord>[2],
-      ) => api.movements.personalRecord(token, movementId, params),
+        options?: { signal?: AbortSignal },
+      ) => api.movements.personalRecord(token, movementId, params, options),
       personalRecordsBatch: (
         movementIds: string[],
         options?: { signal?: AbortSignal },
@@ -773,10 +864,16 @@ export function createApiClient(token: string) {
       load: (days?: number) => api.analytics.load(token, days),
       personalRecords: (options?: { signal?: AbortSignal }) =>
         api.analytics.personalRecords(token, options),
-      movementTrend: (movementId: string) =>
-        api.analytics.movementTrend(token, movementId),
-      movementHistory: (movementId: string) =>
-        api.analytics.movementHistory(token, movementId),
+      movementTrend: (
+        movementId: string,
+        params?: Parameters<typeof api.analytics.movementTrend>[2],
+        options?: { signal?: AbortSignal },
+      ) => api.analytics.movementTrend(token, movementId, params, options),
+      movementHistory: (
+        movementId: string,
+        params?: Parameters<typeof api.analytics.movementHistory>[2],
+        options?: { signal?: AbortSignal },
+      ) => api.analytics.movementHistory(token, movementId, params, options),
       volumeTrend: (weeks?: number) => api.analytics.volumeTrend(token, weeks),
       readiness: () => api.analytics.readiness(token),
       trainingBalance: (days?: number) =>
@@ -855,6 +952,19 @@ export function createApiClient(token: string) {
       modifyWorkout: (sessionId: string) =>
         api.coach.modifyWorkout(token, sessionId),
       checkWod: (wodText: string) => api.coach.checkWod(token, wodText),
+    },
+    routines: {
+      list: (options?: { signal?: AbortSignal }) =>
+        api.routines.list(token, options),
+      get: (id: string, options?: { signal?: AbortSignal }) =>
+        api.routines.get(token, id, options),
+      create: (body: CreateSavedRoutineBody) =>
+        api.routines.create(token, body),
+      rename: (id: string, name: string) =>
+        api.routines.rename(token, id, name),
+      del: (id: string) => api.routines.del(token, id),
+      reorder: (routineIds: string[]) =>
+        api.routines.reorder(token, routineIds),
     },
     trainingPartners: () => api.trainingPartners(token),
     addTrainingPartner: (email: string) => api.addTrainingPartner(token, email),

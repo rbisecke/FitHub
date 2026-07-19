@@ -85,9 +85,9 @@ _INSERT_RESULT_SQL = """
          set_index, order_index, is_pr, notes, variant_annotation,
          implement, tempo, side,
          rpe, rpe_target, rir, rest_s,
-         mean_velocity_ms, peak_velocity_ms, estimated_1rm_kg)
+         mean_velocity_ms, peak_velocity_ms, estimated_1rm_kg, scaled)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 """
 
 
@@ -123,6 +123,7 @@ def _result_row(user_id: uuid.UUID, workout_id: uuid.UUID, r: CreateResultReques
         r.mean_velocity_ms,
         r.peak_velocity_ms,
         _epley_1rm(r.load_kg, r.reps),
+        r.scaled,
     ]
 
 
@@ -322,6 +323,29 @@ async def get_workout(
         result_rows = await cur.fetchall()
 
     return Workout(**workout_row, results=[Result(**r) for r in result_rows])
+
+
+async def get_workout_by_hash(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    user_id: uuid.UUID,
+    short_hash: str,
+) -> Workout | None:
+    """Resolve a workout by its cosmetic 8-hex short_hash (01 §6 routing).
+
+    Queries the persisted ``short_hash`` column directly — the schema has a
+    ``UNIQUE (user_id, short_hash)`` index, so this is an exact, indexed lookup
+    that returns at most one row and needs no LIKE.
+    """
+    async with conn.cursor() as cur:
+        await cur.execute(
+            "SELECT id FROM public.workouts WHERE user_id = %s AND short_hash = %s",
+            [user_id, short_hash],
+        )
+        row = await cur.fetchone()
+    if row is None:
+        return None
+    return await get_workout(conn, user_id=user_id, workout_id=row[0])
 
 
 async def patch_workout(

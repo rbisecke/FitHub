@@ -76,6 +76,43 @@ async def test_get_workout_idor_returns_404(
 
 
 @pytest.mark.asyncio
+async def test_get_workout_by_hash(alice_client: AsyncClient) -> None:
+    create = await alice_client.post("/api/v1/workouts", json=_WORKOUT)
+    assert create.status_code == 201
+    body = create.json()
+    short_hash = body["short_hash"]
+
+    r = await alice_client.get(f"/api/v1/workouts/by-hash/{short_hash}")
+    assert r.status_code == 200
+    assert r.json()["id"] == body["id"]
+
+
+@pytest.mark.asyncio
+async def test_get_workout_by_hash_bad_shape_returns_404(alice_client: AsyncClient) -> None:
+    """Non-8-hex short_hash inputs are rejected before any DB lookup."""
+    r = await alice_client.get("/api/v1/workouts/by-hash/not-hex")
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_get_workout_by_hash_idor_returns_404(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """Bob cannot resolve Alice's workout by its short_hash."""
+    create = await alice_client.post("/api/v1/workouts", json=_WORKOUT)
+    short_hash = create.json()["short_hash"]
+
+    r = await bob_client.get(f"/api/v1/workouts/by-hash/{short_hash}")
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_get_workout_by_hash_requires_auth(anon_client: AsyncClient) -> None:
+    r = await anon_client.get("/api/v1/workouts/by-hash/a1b2c3d4")
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_patch_workout(alice_client: AsyncClient) -> None:
     create = await alice_client.post("/api/v1/workouts", json=_WORKOUT)
     assert create.status_code == 201

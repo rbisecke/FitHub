@@ -20,6 +20,7 @@ from app.models.movement import (
 from app.repositories.movements import (
     create_movement,
     get_last_result_for_movement,
+    get_movement_by_slug,
     get_personal_record,
     get_personal_records_batch,
     search_movements,
@@ -37,6 +38,19 @@ async def list_movements(
     limit: int = Query(default=50, ge=1, le=100),
 ) -> list[Movement]:
     return await search_movements(conn, query=query, modality=modality, limit=limit)
+
+
+@router.get("/by-slug/{slug}", response_model=Movement)
+async def get_movement_by_slug_route(
+    user: Auth,
+    conn: DBConn,
+    slug: str,
+) -> Movement:
+    """Resolve a movement by its unique slug (01 §9 movement-detail routing)."""
+    movement = await get_movement_by_slug(conn, slug=slug)
+    if movement is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return movement
 
 
 @router.post("", response_model=Movement, status_code=status.HTTP_201_CREATED)

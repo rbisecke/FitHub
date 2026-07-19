@@ -61,6 +61,7 @@ class Result(BaseModel):
     mean_velocity_ms: Decimal | None
     peak_velocity_ms: Decimal | None
     estimated_1rm_kg: Decimal | None
+    scaled: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -93,3 +94,6 @@ class CreateResultRequest(BaseModel):
     rest_s: int | None = Field(default=None, ge=0)
     mean_velocity_ms: Decimal | None = Field(default=None, ge=0)
     peak_velocity_ms: Decimal | None = Field(default=None, ge=0)
+    # Rx'd (false) vs Scaled (true). The AI parser already emits this; a
+    # manually-logged set sets it via the Rx'd/Scaled entry toggle (01 §2.7).
+    scaled: bool = False

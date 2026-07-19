@@ -193,6 +193,7 @@ export function LogPageClient({
           {
             movement_id: mobileSelectedMovement.movement_id,
             result_type: rt,
+            scaled: false,
             load_kg: rt === "weight" ? Number(mobileValue) : undefined,
             reps: rt === "reps" ? parseInt(mobileValue, 10) : undefined,
             time_s:
@@ -236,6 +237,7 @@ export function LogPageClient({
         entry.sets.map((set, setIdx) => ({
           movement_id: entry.movement_id ?? undefined,
           result_type: entry.result_type,
+          scaled: false,
           load_kg: set.load_kg ? Number(set.load_kg) : undefined,
           reps: set.reps ? parseInt(set.reps, 10) : undefined,
           time_s: set.time_text

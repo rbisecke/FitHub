@@ -213,3 +213,99 @@ async def test_movement_history_returns_sets_newest_first(alice_client: AsyncCli
     pr_rows = [e for e in entries if e["is_pr"]]
     assert len(pr_rows) == 1
     assert pr_rows[0]["load_kg"] == pytest.approx(100.0)
+
+
+@pytest.mark.asyncio
+async def test_movement_history_scoped_by_implement(alice_client: AsyncClient) -> None:
+    """The (movement, implement, side) key isolates variant history (01 §9.1, BG-26)."""
+    movement_id = await _create_movement(alice_client, "Bench Scope Test")
+    barbell = {
+        **_SQUAT_RESULT,
+        "movement_id": movement_id,
+        "load_kg": 100.0,
+        "implement": "barbell",
+    }
+    dumbbell = {
+        **_SQUAT_RESULT,
+        "movement_id": movement_id,
+        "load_kg": 40.0,
+        "implement": "dumbbell",
+    }
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2024-01-10T12:00:00Z",
+            "results": [barbell, {**dumbbell, "order_index": 1}],
+        },
+    )
+
+    unscoped = await alice_client.get(f"/api/v1/analytics/movement-history/{movement_id}")
+    assert len(unscoped.json()) == 2
+
+    scoped = await alice_client.get(
+        f"/api/v1/analytics/movement-history/{movement_id}",
+        params={"implement": "dumbbell"},
+    )
+    assert scoped.status_code == 200
+    rows = scoped.json()
+    assert len(rows) == 1
+    assert rows[0]["load_kg"] == pytest.approx(40.0)
+
+
+@pytest.mark.asyncio
+async def test_movement_history_scoped_by_side(alice_client: AsyncClient) -> None:
+    """The `side` dimension isolates unilateral variant history (01 §9.1, BG-26)."""
+    movement_id = await _create_movement(alice_client, "Lunge Side Test")
+    left = {**_SQUAT_RESULT, "movement_id": movement_id, "load_kg": 30.0, "side": "left"}
+    right = {**_SQUAT_RESULT, "movement_id": movement_id, "load_kg": 35.0, "side": "right"}
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2024-01-10T12:00:00Z",
+            "results": [left, {**right, "order_index": 1}],
+        },
+    )
+
+    scoped = await alice_client.get(
+        f"/api/v1/analytics/movement-history/{movement_id}",
+        params={"side": "right"},
+    )
+    assert scoped.status_code == 200
+    rows = scoped.json()
+    assert len(rows) == 1
+    assert rows[0]["load_kg"] == pytest.approx(35.0)
+
+
+@pytest.mark.asyncio
+async def test_movement_trend_scoped_by_implement(alice_client: AsyncClient) -> None:
+    """Trend re-scopes to the selected implement (01 §9.1, BG-26)."""
+    movement_id = await _create_movement(alice_client, "Press Scope Test")
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2024-01-10T12:00:00Z",
+            "results": [
+                {
+                    **_SQUAT_RESULT,
+                    "movement_id": movement_id,
+                    "load_kg": 60.0,
+                    "implement": "barbell",
+                },
+                {
+                    **_SQUAT_RESULT,
+                    "movement_id": movement_id,
+                    "load_kg": 24.0,
+                    "implement": "dumbbell",
+                    "order_index": 1,
+                },
+            ],
+        },
+    )
+
+    scoped = await alice_client.get(
+        f"/api/v1/analytics/movement-trend/{movement_id}",
+        params={"implement": "barbell"},
+    )
+    assert scoped.status_code == 200
+    points = scoped.json()
+    assert len(points) == 1

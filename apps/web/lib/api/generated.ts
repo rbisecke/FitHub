@@ -324,7 +324,14 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Movement Trend */
+    /**
+     * Movement Trend
+     * @description Single-movement e1RM trend, optionally scoped to (implement, side).
+     *
+     *     The movement-detail Charts tab shares one ``(implement, side)`` key across
+     *     its History/Charts/Records views (01 §9.1); passing those params re-scopes
+     *     the trend to that combination. Omitting them returns the all-variants trend.
+     */
     get: operations["movement_trend_api_v1_analytics_movement_trend__movement_id__get"];
     put?: never;
     post?: never;
@@ -345,8 +352,9 @@ export interface paths {
      * Movement History
      * @description Full logged-set history for one movement, newest-first.
      *
-     *     Used by the /records/[movementId] detail page to populate the set log
-     *     table. Returns an empty list (not 404) when no sets have been logged.
+     *     Used by the movement-detail History tab to populate the set log table.
+     *     Optionally scoped to an ``(implement, side)`` combination (01 §9.1).
+     *     Returns an empty list (not 404) when no sets have been logged.
      */
     get: operations["movement_history_api_v1_analytics_movement_history__movement_id__get"];
     put?: never;
@@ -670,6 +678,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/movements/by-slug/{slug}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Movement By Slug Route
+     * @description Resolve a movement by its unique slug (01 §9 movement-detail routing).
+     */
+    get: operations["get_movement_by_slug_route_api_v1_movements_by_slug__slug__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/movements/personal-records": {
     parameters: {
       query?: never;
@@ -814,6 +842,60 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/routines": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Routines Route */
+    get: operations["list_routines_route_api_v1_routines_get"];
+    put?: never;
+    /** Create Routine Route */
+    post: operations["create_routine_route_api_v1_routines_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/routines/reorder": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Reorder Routines Route */
+    put: operations["reorder_routines_route_api_v1_routines_reorder_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/routines/{routine_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Routine Route */
+    get: operations["get_routine_route_api_v1_routines__routine_id__get"];
+    put?: never;
+    post?: never;
+    /** Delete Routine Route */
+    delete: operations["delete_routine_route_api_v1_routines__routine_id__delete"];
+    options?: never;
+    head?: never;
+    /** Patch Routine Route */
+    patch: operations["patch_routine_route_api_v1_routines__routine_id__patch"];
+    trace?: never;
+  };
   "/api/v1/workouts": {
     parameters: {
       query?: never;
@@ -846,6 +928,26 @@ export interface paths {
      * @description Minimal NL workout parser — extracts title from free-form text.
      */
     post: operations["parse_workout_nl_api_v1_workouts_parse_nl_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/workouts/by-hash/{short_hash}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Workout By Hash Route
+     * @description Resolve a workout by its cosmetic 8-hex short_hash (01 §6 routing).
+     */
+    get: operations["get_workout_by_hash_route_api_v1_workouts_by_hash__short_hash__get"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -1840,6 +1942,18 @@ export interface components {
       mean_velocity_ms?: number | string | null;
       /** Peak Velocity Ms */
       peak_velocity_ms?: number | string | null;
+      /**
+       * Scaled
+       * @default false
+       */
+      scaled: boolean;
+    };
+    /** CreateSavedRoutineRequest */
+    CreateSavedRoutineRequest: {
+      /** Name */
+      name: string;
+      /** Movements */
+      movements?: components["schemas"]["RoutineMovementInput"][];
     };
     /** CreateTeamSessionRequest */
     CreateTeamSessionRequest: {
@@ -2599,6 +2713,11 @@ export interface components {
           )[]
         | null;
     };
+    /** PatchSavedRoutineRequest */
+    PatchSavedRoutineRequest: {
+      /** Name */
+      name: string;
+    };
     /** PatchTeamSessionRequest */
     PatchTeamSessionRequest: {
       /** Name */
@@ -2991,6 +3110,11 @@ export interface components {
       /** Rejection Reason */
       rejection_reason?: string | null;
     };
+    /** ReorderRoutinesRequest */
+    ReorderRoutinesRequest: {
+      /** Routine Ids */
+      routine_ids: string[];
+    };
     /** ReportInjuryRequest */
     ReportInjuryRequest: {
       body_region: components["schemas"]["BodyRegion"];
@@ -3076,6 +3200,11 @@ export interface components {
       /** Estimated 1Rm Kg */
       estimated_1rm_kg: string | null;
       /**
+       * Scaled
+       * @default false
+       */
+      scaled: boolean;
+      /**
        * Created At
        * Format: date-time
        */
@@ -3104,6 +3233,72 @@ export interface components {
     RoleSuggestionsResponse: {
       /** Suggestions */
       suggestions: string[];
+    };
+    /**
+     * RoutineMovement
+     * @description One movement reference in a saved routine, as returned to the client.
+     */
+    RoutineMovement: {
+      /**
+       * Movement Id
+       * Format: uuid
+       */
+      movement_id: string;
+      /** Movement Name */
+      movement_name?: string | null;
+      /** Implement */
+      implement?: string | null;
+      /** Side */
+      side?: string | null;
+      /** Position */
+      position: number;
+    };
+    /**
+     * RoutineMovementInput
+     * @description One movement reference in a routine, as submitted by the client.
+     *
+     *     Position is derived from list order on the server, not sent by the client,
+     *     so the ordered movement list is authoritative and gap-free.
+     */
+    RoutineMovementInput: {
+      /**
+       * Movement Id
+       * Format: uuid
+       */
+      movement_id: string;
+      /** Implement */
+      implement?: string | null;
+      /** Side */
+      side?: string | null;
+    };
+    /** SavedRoutine */
+    SavedRoutine: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * User Id
+       * Format: uuid
+       */
+      user_id: string;
+      /** Name */
+      name: string;
+      /** Display Order */
+      display_order: number;
+      /** Movements */
+      movements?: components["schemas"]["RoutineMovement"][];
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
     };
     /**
      * ScoringType
@@ -4143,7 +4338,10 @@ export interface operations {
   };
   movement_trend_api_v1_analytics_movement_trend__movement_id__get: {
     parameters: {
-      query?: never;
+      query?: {
+        implement?: string | null;
+        side?: string | null;
+      };
       header?: never;
       path: {
         movement_id: string;
@@ -4174,7 +4372,10 @@ export interface operations {
   };
   movement_history_api_v1_analytics_movement_history__movement_id__get: {
     parameters: {
-      query?: never;
+      query?: {
+        implement?: string | null;
+        side?: string | null;
+      };
       header?: never;
       path: {
         movement_id: string;
@@ -4740,6 +4941,37 @@ export interface operations {
       };
     };
   };
+  get_movement_by_slug_route_api_v1_movements_by_slug__slug__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Movement"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   get_personal_records_batch_route_api_v1_movements_personal_records_get: {
     parameters: {
       query: {
@@ -5033,6 +5265,187 @@ export interface operations {
       };
     };
   };
+  list_routines_route_api_v1_routines_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SavedRoutine"][];
+        };
+      };
+    };
+  };
+  create_routine_route_api_v1_routines_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateSavedRoutineRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SavedRoutine"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reorder_routines_route_api_v1_routines_reorder_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReorderRoutinesRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SavedRoutine"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_routine_route_api_v1_routines__routine_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        routine_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SavedRoutine"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_routine_route_api_v1_routines__routine_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        routine_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  patch_routine_route_api_v1_routines__routine_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        routine_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PatchSavedRoutineRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SavedRoutine"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   list_workouts_route_api_v1_workouts_get: {
     parameters: {
       query?: {
@@ -5122,6 +5535,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ParseNLResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_workout_by_hash_route_api_v1_workouts_by_hash__short_hash__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        short_hash: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Workout"];
         };
       };
       /** @description Validation Error */

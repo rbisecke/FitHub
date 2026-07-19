@@ -100,8 +100,16 @@ async def movement_trend(
     movement_id: uuid.UUID,
     user: Auth,
     conn: DBConn,
+    implement: str | None = Query(default=None),
+    side: str | None = Query(default=None),
 ) -> list[E1RMPoint]:
-    rows = await get_movement_trend(conn, user.user_id, movement_id)
+    """Single-movement e1RM trend, optionally scoped to (implement, side).
+
+    The movement-detail Charts tab shares one ``(implement, side)`` key across
+    its History/Charts/Records views (01 §9.1); passing those params re-scopes
+    the trend to that combination. Omitting them returns the all-variants trend.
+    """
+    rows = await get_movement_trend(conn, user.user_id, movement_id, implement, side)
     return [E1RMPoint(**r) for r in rows]
 
 
@@ -110,13 +118,16 @@ async def movement_history(
     movement_id: uuid.UUID,
     user: Auth,
     conn: DBConn,
+    implement: str | None = Query(default=None),
+    side: str | None = Query(default=None),
 ) -> list[MovementHistoryEntry]:
     """Full logged-set history for one movement, newest-first.
 
-    Used by the /records/[movementId] detail page to populate the set log
-    table. Returns an empty list (not 404) when no sets have been logged.
+    Used by the movement-detail History tab to populate the set log table.
+    Optionally scoped to an ``(implement, side)`` combination (01 §9.1).
+    Returns an empty list (not 404) when no sets have been logged.
     """
-    rows = await get_movement_history(conn, user.user_id, movement_id)
+    rows = await get_movement_history(conn, user.user_id, movement_id, implement, side)
     return [MovementHistoryEntry(**r) for r in rows]
 
 
