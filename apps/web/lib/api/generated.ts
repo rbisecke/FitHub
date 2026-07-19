@@ -324,7 +324,14 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Movement Trend */
+    /**
+     * Movement Trend
+     * @description Single-movement e1RM trend, optionally scoped to (implement, side).
+     *
+     *     The movement-detail Charts tab shares one ``(implement, side)`` key across
+     *     its History/Charts/Records views (01 §9.1); passing those params re-scopes
+     *     the trend to that combination. Omitting them returns the all-variants trend.
+     */
     get: operations["movement_trend_api_v1_analytics_movement_trend__movement_id__get"];
     put?: never;
     post?: never;
@@ -345,8 +352,9 @@ export interface paths {
      * Movement History
      * @description Full logged-set history for one movement, newest-first.
      *
-     *     Used by the /records/[movementId] detail page to populate the set log
-     *     table. Returns an empty list (not 404) when no sets have been logged.
+     *     Used by the movement-detail History tab to populate the set log table.
+     *     Optionally scoped to an ``(implement, side)`` combination (01 §9.1).
+     *     Returns an empty list (not 404) when no sets have been logged.
      */
     get: operations["movement_history_api_v1_analytics_movement_history__movement_id__get"];
     put?: never;
@@ -4290,7 +4298,10 @@ export interface operations {
   };
   movement_trend_api_v1_analytics_movement_trend__movement_id__get: {
     parameters: {
-      query?: never;
+      query?: {
+        implement?: string | null;
+        side?: string | null;
+      };
       header?: never;
       path: {
         movement_id: string;
@@ -4321,7 +4332,10 @@ export interface operations {
   };
   movement_history_api_v1_analytics_movement_history__movement_id__get: {
     parameters: {
-      query?: never;
+      query?: {
+        implement?: string | null;
+        side?: string | null;
+      };
       header?: never;
       path: {
         movement_id: string;

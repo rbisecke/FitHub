@@ -770,6 +770,7 @@
           "analytics"
         ],
         "summary": "Movement Trend",
+        "description": "Single-movement e1RM trend, optionally scoped to (implement, side).\n\nThe movement-detail Charts tab shares one ``(implement, side)`` key across\nits History/Charts/Records views (01 \u00a79.1); passing those params re-scopes\nthe trend to that combination. Omitting them returns the all-variants trend.",
         "operationId": "movement_trend_api_v1_analytics_movement_trend__movement_id__get",
         "security": [
           {
@@ -785,6 +786,38 @@
               "type": "string",
               "format": "uuid",
               "title": "Movement Id"
+            }
+          },
+          {
+            "name": "implement",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Implement"
+            }
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Side"
             }
           }
         ],
@@ -822,7 +855,7 @@
           "analytics"
         ],
         "summary": "Movement History",
-        "description": "Full logged-set history for one movement, newest-first.\n\nUsed by the /records/[movementId] detail page to populate the set log\ntable. Returns an empty list (not 404) when no sets have been logged.",
+        "description": "Full logged-set history for one movement, newest-first.\n\nUsed by the movement-detail History tab to populate the set log table.\nOptionally scoped to an ``(implement, side)`` combination (01 \u00a79.1).\nReturns an empty list (not 404) when no sets have been logged.",
         "operationId": "movement_history_api_v1_analytics_movement_history__movement_id__get",
         "security": [
           {
@@ -838,6 +871,38 @@
               "type": "string",
               "format": "uuid",
               "title": "Movement Id"
+            }
+          },
+          {
+            "name": "implement",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Implement"
+            }
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Side"
             }
           }
         ],

@@ -209,14 +209,40 @@ async def get_personal_records(
     return rows
 
 
+def _scope_clause(
+    implement: str | None,
+    side: str | None,
+    params: list[Any],
+) -> str:
+    """Append optional (implement, side) filters (01 §9.1, BG-26).
+
+    The movement-detail trend/history views are scoped by the shared
+    ``(movement, implement, side)`` key, mirroring the last-result /
+    personal-record endpoints. A ``None`` value means "don't filter on this
+    dimension" so the unscoped callers behave exactly as before.
+    """
+    extra = ""
+    if implement is not None:
+        extra += " AND r.implement = %s"
+        params.append(implement)
+    if side is not None:
+        extra += " AND r.side = %s"
+        params.append(side)
+    return extra
+
+
 async def get_movement_trend(
     conn: psycopg.AsyncConnection[Any],
     user_id: uuid.UUID,
     movement_id: uuid.UUID,
+    implement: str | None = None,
+    side: str | None = None,
 ) -> list[dict[str, Any]]:
+    params: list[Any] = [user_id, user_id, movement_id]
+    scope = _scope_clause(implement, side, params)
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
-            """
+            f"""
             SELECT
                 w.performed_at::date         AS day,
                 r.estimated_1rm_kg::float    AS estimated_1rm_kg,
@@ -227,10 +253,11 @@ async def get_movement_trend(
               AND r.user_id            = %s
               AND r.movement_id        = %s
               AND r.estimated_1rm_kg IS NOT NULL
+              {scope}
             ORDER BY w.performed_at ASC
             LIMIT 200
             """,
-            (user_id, user_id, movement_id),
+            params,
         )
         return await cur.fetchall()
 
@@ -239,15 +266,20 @@ async def get_movement_history(
     conn: psycopg.AsyncConnection[Any],
     user_id: uuid.UUID,
     movement_id: uuid.UUID,
+    implement: str | None = None,
+    side: str | None = None,
 ) -> list[dict[str, Any]]:
     """Return full logged-set history for one movement, newest first.
 
     Used by the movement detail page to populate the set log table. Marks
     each row as is_pr=True when its e1RM equals the user's all-time best.
+    Optionally scoped to an ``(implement, side)`` combination (01 §9.1).
     """
+    params: list[Any] = [user_id, user_id, movement_id]
+    scope = _scope_clause(implement, side, params)
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
-            """
+            f"""
             SELECT
                 w.performed_at::date         AS date,
                 r.load_kg::float             AS load_kg,
@@ -261,10 +293,11 @@ async def get_movement_history(
               AND r.user_id         = %s
               AND r.movement_id     = %s
               AND r.estimated_1rm_kg IS NOT NULL
+              {scope}
             ORDER BY w.performed_at DESC
             LIMIT 200
             """,
-            (user_id, user_id, movement_id),
+            params,
         )
         rows = await cur.fetchall()
 
