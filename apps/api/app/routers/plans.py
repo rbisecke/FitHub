@@ -227,7 +227,12 @@ async def _load_prescribed_sessions(
     user_id: str,
     db: psycopg.AsyncConnection[object],
 ) -> list[dict[str, object]]:
-    """Return prescribed sessions with items for the revision prompt."""
+    """Return prescribed sessions with items for the revision/adaptation prompts.
+
+    Includes load_pct_1rm/load_kg/item notes (not just movement_name/sets/reps)
+    so callers building a before/after diff (adaptation generation) have the
+    full old-side state available without a second query.
+    """
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
@@ -240,6 +245,9 @@ async def _load_prescribed_sessions(
                                'movement_name', pi.movement_name,
                                'sets', pi.sets,
                                'reps', pi.reps,
+                               'load_pct_1rm', pi.load_pct_1rm::float,
+                               'load_kg', pi.load_kg::float,
+                               'notes', pi.notes,
                                'item_order', pi.item_order
                            ) ORDER BY pi.item_order
                        ) FILTER (WHERE pi.id IS NOT NULL),

@@ -20,6 +20,7 @@ from app.models.adaptation import (
     RejectAdaptationRequest,
     TriggerOut,
 )
+from app.routers.plans import _load_prescribed_sessions
 
 router = APIRouter(prefix="/api/v1", tags=["adaptations"])
 
@@ -53,7 +54,7 @@ def _row_to_out(r: dict[str, object]) -> AdaptationOut:
         status=cast(Literal["proposed", "merged", "rejected"], r["status"]),
         rationale=str(r["rationale"]) if r["rationale"] else None,
         rejection_reason=str(r["rejection_reason"]) if r.get("rejection_reason") else None,
-        diff_json=r["diff_json"],
+        diff_json=cast(list[object], r["diff_json"]) if r["diff_json"] else [],
         stub=bool(r["stub"]),
         proposed_at=cast(datetime | None, r["proposed_at"]),
         merged_at=cast(datetime | None, r["merged_at"]),
@@ -93,13 +94,20 @@ async def detect_plan_adaptations(
         for t in raw_triggers
     ]
 
+    # Load real prescribed sessions once — every trigger's adaptation proposal
+    # is generated against the same current plan state (BG-02: previously an
+    # empty list was passed here, so diff_json had no session_id/item detail).
+    affected_sessions = (
+        await _load_prescribed_sessions(str(plan_id), str(user.user_id), db) if raw_triggers else []
+    )
+
     # Generate all adaptation results before opening the transaction so LLM
     # calls don't hold a DB transaction open.
     adaptation_results: list[tuple[dict[str, object], dict[str, object]]] = []
     for trigger in raw_triggers:
         result = await generate_adaptation(
             {"trigger_type": trigger["type"], "trigger_data": trigger["data"]},
-            [],
+            affected_sessions,
         )
         adaptation_results.append((trigger, result))
 
@@ -270,10 +278,14 @@ async def adjust_adaptation(
         "trigger_data": existing["trigger_data"] or {},
     }
 
+    # Load real prescribed sessions for the revised proposal — same BG-02 fix
+    # as detect_plan_adaptations; previously an empty list was passed here.
+    affected_sessions = await _load_prescribed_sessions(plan_id, str(user.user_id), db)
+
     # Generate revised adaptation (outside the transaction)
     result = await generate_adaptation(
         trigger,
-        [],
+        affected_sessions,
         rejection_context=body.feedback,
         prior_rationale=prior_rationale,
     )

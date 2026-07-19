@@ -4768,6 +4768,156 @@
         ],
         "title": "AccessRequestRow"
       },
+      "AdaptationItemChange": {
+        "properties": {
+          "item_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Id"
+          },
+          "movement_name": {
+            "type": "string",
+            "title": "Movement Name"
+          },
+          "item_order": {
+            "type": "integer",
+            "title": "Item Order",
+            "default": 0
+          },
+          "old_sets": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old Sets"
+          },
+          "old_reps": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old Reps"
+          },
+          "old_load_pct_1rm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old Load Pct 1Rm"
+          },
+          "old_load_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old Load Kg"
+          },
+          "old_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old Notes"
+          },
+          "new_sets": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Sets"
+          },
+          "new_reps": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Reps"
+          },
+          "new_load_pct_1rm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Load Pct 1Rm"
+          },
+          "new_load_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Load Kg"
+          },
+          "new_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Notes"
+          },
+          "changed": {
+            "type": "boolean",
+            "title": "Changed",
+            "default": true
+          },
+          "removed": {
+            "type": "boolean",
+            "title": "Removed",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "movement_name"
+        ],
+        "title": "AdaptationItemChange",
+        "description": "One reviewable row in a session's diff: an exercise that's added, removed, or modified.\n\nMirrors PlannedItemPatch's fields, doubled into an old/new pair so the frontend can\nrender a GitHub-style red(old)/green(new) row without a second fetch. `old_*` fields\nare all None when this item is newly introduced (a pure \"add\" row); `new_*` fields are\nall None when the item is being removed (a pure \"delete\" row) \u2014 `removed` disambiguates\nthat case from an item whose new state genuinely has every field null."
+      },
       "AdaptationOut": {
         "properties": {
           "id": {
@@ -4829,6 +4979,10 @@
             "title": "Rejection Reason"
           },
           "diff_json": {
+            "items": {
+              "$ref": "#/components/schemas/AdaptationSessionDiff"
+            },
+            "type": "array",
             "title": "Diff Json"
           },
           "stub": {
@@ -4883,6 +5037,82 @@
           "status"
         ],
         "title": "AdaptationOut"
+      },
+      "AdaptationSessionDiff": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "session_title": {
+            "type": "string",
+            "title": "Session Title"
+          },
+          "scheduled_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled Date"
+          },
+          "change": {
+            "type": "string",
+            "enum": [
+              "reduce_intensity",
+              "reduce_volume",
+              "swap_session",
+              "add_rest",
+              "skip"
+            ],
+            "title": "Change"
+          },
+          "load_pct_delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Pct Delta"
+          },
+          "volume_delta_sets": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume Delta Sets"
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes"
+          },
+          "item_changes": {
+            "items": {
+              "$ref": "#/components/schemas/AdaptationItemChange"
+            },
+            "type": "array",
+            "title": "Item Changes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "session_title",
+          "change",
+          "notes"
+        ],
+        "title": "AdaptationSessionDiff",
+        "description": "One session's proposed change, with per-item before/after detail.\n\n`session_id` is the stable key the frontend uses for \"Viewed\" checklist state\nand to apply the change at merge time. `load_pct_delta`/`volume_delta_sets` are\nsession-level aggregates (derived from item_changes) for the header magnitude bar;\nthe per-item detail in item_changes is the source of truth for the diff rows."
       },
       "AddInviteBody": {
         "properties": {

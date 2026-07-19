@@ -1487,6 +1487,57 @@ export interface components {
       /** Review Note */
       review_note: string | null;
     };
+    /**
+     * AdaptationItemChange
+     * @description One reviewable row in a session's diff: an exercise that's added, removed, or modified.
+     *
+     *     Mirrors PlannedItemPatch's fields, doubled into an old/new pair so the frontend can
+     *     render a GitHub-style red(old)/green(new) row without a second fetch. `old_*` fields
+     *     are all None when this item is newly introduced (a pure "add" row); `new_*` fields are
+     *     all None when the item is being removed (a pure "delete" row) — `removed` disambiguates
+     *     that case from an item whose new state genuinely has every field null.
+     */
+    AdaptationItemChange: {
+      /** Item Id */
+      item_id?: string | null;
+      /** Movement Name */
+      movement_name: string;
+      /**
+       * Item Order
+       * @default 0
+       */
+      item_order: number;
+      /** Old Sets */
+      old_sets?: number | null;
+      /** Old Reps */
+      old_reps?: string | null;
+      /** Old Load Pct 1Rm */
+      old_load_pct_1rm?: number | null;
+      /** Old Load Kg */
+      old_load_kg?: number | null;
+      /** Old Notes */
+      old_notes?: string | null;
+      /** New Sets */
+      new_sets?: number | null;
+      /** New Reps */
+      new_reps?: string | null;
+      /** New Load Pct 1Rm */
+      new_load_pct_1rm?: number | null;
+      /** New Load Kg */
+      new_load_kg?: number | null;
+      /** New Notes */
+      new_notes?: string | null;
+      /**
+       * Changed
+       * @default true
+       */
+      changed: boolean;
+      /**
+       * Removed
+       * @default false
+       */
+      removed: boolean;
+    };
     /** AdaptationOut */
     AdaptationOut: {
       /** Id */
@@ -1518,7 +1569,7 @@ export interface components {
       /** Rejection Reason */
       rejection_reason?: string | null;
       /** Diff Json */
-      diff_json?: unknown;
+      diff_json?: components["schemas"]["AdaptationSessionDiff"][];
       /**
        * Stub
        * @default false
@@ -1530,6 +1581,41 @@ export interface components {
       merged_at?: string | null;
       /** Rejected At */
       rejected_at?: string | null;
+    };
+    /**
+     * AdaptationSessionDiff
+     * @description One session's proposed change, with per-item before/after detail.
+     *
+     *     `session_id` is the stable key the frontend uses for "Viewed" checklist state
+     *     and to apply the change at merge time. `load_pct_delta`/`volume_delta_sets` are
+     *     session-level aggregates (derived from item_changes) for the header magnitude bar;
+     *     the per-item detail in item_changes is the source of truth for the diff rows.
+     */
+    AdaptationSessionDiff: {
+      /** Session Id */
+      session_id: string;
+      /** Session Title */
+      session_title: string;
+      /** Scheduled Date */
+      scheduled_date?: string | null;
+      /**
+       * Change
+       * @enum {string}
+       */
+      change:
+        | "reduce_intensity"
+        | "reduce_volume"
+        | "swap_session"
+        | "add_rest"
+        | "skip";
+      /** Load Pct Delta */
+      load_pct_delta?: number | null;
+      /** Volume Delta Sets */
+      volume_delta_sets?: number | null;
+      /** Notes */
+      notes: string;
+      /** Item Changes */
+      item_changes?: components["schemas"]["AdaptationItemChange"][];
     };
     /** AddInviteBody */
     AddInviteBody: {
