@@ -129,6 +129,16 @@ export const api = {
         token,
         options?.signal ? { signal: options.signal } : undefined,
       ),
+    getByHash: (
+      token: string,
+      shortHash: string,
+      options?: { signal?: AbortSignal },
+    ) =>
+      apiFetch<Workout>(
+        `/api/v1/workouts/by-hash/${shortHash}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     patch: (token: string, id: string, body: Partial<CreateWorkoutBody>) =>
       apiFetch<Workout>(`/api/v1/workouts/${id}`, token, {
         method: "PATCH",
@@ -264,16 +274,42 @@ export const api = {
         token,
         options?.signal ? { signal: options.signal } : undefined,
       ),
-    movementTrend: (token: string, movementId: string) =>
-      apiFetch<E1RMPoint[]>(
-        `/api/v1/analytics/movement-trend/${movementId}`,
+    movementTrend: (
+      token: string,
+      movementId: string,
+      params?: { implement?: string; side?: string },
+      options?: { signal?: AbortSignal },
+    ) => {
+      const qs = new URLSearchParams();
+      if (params?.implement) qs.set("implement", params.implement);
+      if (params?.side) qs.set("side", params.side);
+      const query = qs.toString();
+      return apiFetch<E1RMPoint[]>(
+        `/api/v1/analytics/movement-trend/${movementId}${
+          query ? `?${query}` : ""
+        }`,
         token,
-      ),
-    movementHistory: (token: string, movementId: string) =>
-      apiFetch<MovementHistoryEntry[]>(
-        `/api/v1/analytics/movement-history/${movementId}`,
+        options?.signal ? { signal: options.signal } : undefined,
+      );
+    },
+    movementHistory: (
+      token: string,
+      movementId: string,
+      params?: { implement?: string; side?: string },
+      options?: { signal?: AbortSignal },
+    ) => {
+      const qs = new URLSearchParams();
+      if (params?.implement) qs.set("implement", params.implement);
+      if (params?.side) qs.set("side", params.side);
+      const query = qs.toString();
+      return apiFetch<MovementHistoryEntry[]>(
+        `/api/v1/analytics/movement-history/${movementId}${
+          query ? `?${query}` : ""
+        }`,
         token,
-      ),
+        options?.signal ? { signal: options.signal } : undefined,
+      );
+    },
     volumeTrend: (token: string, weeks = 12) =>
       apiFetch<VolumeTrendResponse>(
         `/api/v1/analytics/volume-trend?weeks=${weeks}`,
@@ -778,6 +814,8 @@ export function createApiClient(token: string) {
         api.workouts.create(token, body),
       get: (id: string, options?: { signal?: AbortSignal }) =>
         api.workouts.get(token, id, options),
+      getByHash: (shortHash: string, options?: { signal?: AbortSignal }) =>
+        api.workouts.getByHash(token, shortHash, options),
       patch: (id: string, body: Parameters<typeof api.workouts.patch>[2]) =>
         api.workouts.patch(token, id, body),
       del: (id: string) => api.workouts.del(token, id),
@@ -814,10 +852,16 @@ export function createApiClient(token: string) {
       load: (days?: number) => api.analytics.load(token, days),
       personalRecords: (options?: { signal?: AbortSignal }) =>
         api.analytics.personalRecords(token, options),
-      movementTrend: (movementId: string) =>
-        api.analytics.movementTrend(token, movementId),
-      movementHistory: (movementId: string) =>
-        api.analytics.movementHistory(token, movementId),
+      movementTrend: (
+        movementId: string,
+        params?: Parameters<typeof api.analytics.movementTrend>[2],
+        options?: { signal?: AbortSignal },
+      ) => api.analytics.movementTrend(token, movementId, params, options),
+      movementHistory: (
+        movementId: string,
+        params?: Parameters<typeof api.analytics.movementHistory>[2],
+        options?: { signal?: AbortSignal },
+      ) => api.analytics.movementHistory(token, movementId, params, options),
       volumeTrend: (weeks?: number) => api.analytics.volumeTrend(token, weeks),
       readiness: () => api.analytics.readiness(token),
       trainingBalance: (days?: number) =>
