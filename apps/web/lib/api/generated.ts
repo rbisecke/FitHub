@@ -678,6 +678,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/movements/by-slug/{slug}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Movement By Slug Route
+     * @description Resolve a movement by its unique slug (01 §9 movement-detail routing).
+     */
+    get: operations["get_movement_by_slug_route_api_v1_movements_by_slug__slug__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/movements/personal-records": {
     parameters: {
       query?: never;
@@ -4903,6 +4923,37 @@ export interface operations {
     responses: {
       /** @description Successful Response */
       201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Movement"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_movement_by_slug_route_api_v1_movements_by_slug__slug__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
         headers: {
           [name: string]: unknown;
         };

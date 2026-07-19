@@ -43,6 +43,25 @@ async def search_movements(
     return [Movement(**r) for r in rows]
 
 
+async def get_movement_by_slug(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    slug: str,
+) -> Movement | None:
+    """Fetch one movement by its unique slug (01 §9 movement-detail routing).
+
+    Movements are a shared catalog (official + user-created), so this read is
+    not user-scoped, mirroring ``search_movements``. Slug is unique.
+    """
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            "SELECT * FROM public.movements WHERE slug = %s LIMIT 1",
+            [slug],
+        )
+        row = await cur.fetchone()
+    return Movement(**row) if row else None
+
+
 async def create_movement(
     conn: psycopg.AsyncConnection[Any],
     *,

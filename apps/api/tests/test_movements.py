@@ -50,6 +50,38 @@ async def test_create_custom_movement(alice_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_movement_by_slug(alice_client: AsyncClient) -> None:
+    uid = uuid.uuid4().hex[:8]
+    slug = f"slug-lookup-{uid}"
+    create = await alice_client.post(
+        "/api/v1/movements",
+        json={
+            "name": f"Slug Lookup {uid}",
+            "slug": slug,
+            "base_movement": "X",
+            "modality": "strength",
+        },
+    )
+    assert create.status_code == 201
+
+    r = await alice_client.get(f"/api/v1/movements/by-slug/{slug}")
+    assert r.status_code == 200
+    assert r.json()["slug"] == slug
+
+
+@pytest.mark.asyncio
+async def test_get_movement_by_slug_not_found(alice_client: AsyncClient) -> None:
+    r = await alice_client.get("/api/v1/movements/by-slug/does-not-exist-xyz")
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_get_movement_by_slug_requires_auth(anon_client: AsyncClient) -> None:
+    r = await anon_client.get("/api/v1/movements/by-slug/anything")
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_create_movement_with_new_fields(alice_client: AsyncClient) -> None:
     """New Phase 2 fields (tempo, pause_position, execution_style, etc.) round-trip correctly."""
     uid = uuid.uuid4().hex[:8]

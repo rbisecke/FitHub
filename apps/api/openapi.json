@@ -1783,6 +1783,54 @@
         }
       }
     },
+    "/api/v1/movements/by-slug/{slug}": {
+      "get": {
+        "tags": [
+          "movements"
+        ],
+        "summary": "Get Movement By Slug Route",
+        "description": "Resolve a movement by its unique slug (01 \u00a79 movement-detail routing).",
+        "operationId": "get_movement_by_slug_route_api_v1_movements_by_slug__slug__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Movement"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/movements/personal-records": {
       "get": {
         "tags": [
