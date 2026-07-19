@@ -48,6 +48,10 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  /* Elevation tiers + stronger muted, exposed as bg-surface-2/3, text-muted-strong. */
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-muted-strong: var(--muted-strong);
 
   /* Radius scale (0.5, 00 §3.5): 4px chips/badges · 6px buttons/inputs ·
      8px cards/sheets · full pills/avatars. */
@@ -90,6 +94,20 @@
   --silver: #c9d1d9;  /* Domain 06 podium 2nd */
   --bronze: #cd7f32;  /* Domain 06 podium 3rd */
   --frost: #a5d6ff;   /* Domain 07 streak-freeze protection — pale icy blue */
+
+  /* --- Identity-color palette (0.30, 00 §3.3, 06 §F2) --- 8 fixed saturated hues,
+     theme-invariant (not overridden in the light block below). The deterministic
+     identityColor() hash in @fithub/shared maps a person to one of these via a
+     `--identity-N` token name; the hex order mirrors that package's IDENTITY_COLOR_HEXES.
+     Monogram text is white on all eight (06 §F2). */
+  --identity-0: #f0553d;
+  --identity-1: #ff8c42;
+  --identity-2: #ec4899;
+  --identity-3: #d267f0;
+  --identity-4: #a371f7;
+  --identity-5: #2dd4bf;
+  --identity-6: #3fb950;
+  --identity-7: #a3e635;
 
   /* --- Elevation (0.6, 00 §3.5) --- Depth is a surface step (--bg → --surface)
      plus a 1px --border; drop-shadow is reserved for floating overlays only. */
