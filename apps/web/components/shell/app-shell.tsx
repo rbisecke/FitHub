@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { DesktopSidebar } from "./desktop-sidebar";
 import { MobileBottomNav } from "./mobile-bottom-nav";
+import { MobileTopBar } from "./mobile-top-bar";
 import { ShellTopBar } from "./shell-top-bar";
 
 /**
@@ -36,6 +37,7 @@ export async function AppShell({
     <SidebarProvider defaultOpen={defaultOpen}>
       <DesktopSidebar isAdmin={isAdmin} />
       <SidebarInset className="min-h-svh">
+        <MobileTopBar isAdmin={isAdmin} />
         <ShellTopBar />
         {/* SidebarInset is itself the page's single <main> landmark; this wrapper
             only carries the bottom padding that clears the mobile nav bar. */}

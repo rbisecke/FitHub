@@ -6,6 +6,7 @@ import { GitBranch } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import { PRIMARY_NAV, SECONDARY_NAV, navHref, type NavItem } from "./nav-items";
 import { isSegmentActive } from "./active-segment";
+import { AccountMenu } from "./account-menu";
 import { cn } from "@/lib/utils";
 
 /**
@@ -38,9 +40,15 @@ const ACTIVE_NAV_CLASS = cn(
  * Desktop navigation sidebar (Effort 1, step 1.4; `00` Part 4).
  *
  * The shadcn `Sidebar` primitive (Effort 0) composed with the real nav model:
- * the primary five pinned at the top, a divider, then the secondary five. Admin
- * is rendered only for allowlisted admin accounts. Collapses 256px → 64px
- * (icon-only, with tooltips); the mobile bottom-tab bar covers below `md:`.
+ * the primary five pinned at the top, a divider, then the secondary four (Social,
+ * Injuries, Integrations, Profile). Collapses 256px → 64px (icon-only, with
+ * tooltips); the mobile bottom-tab bar covers below `md:`.
+ *
+ * Admin is deliberately NOT a peer row here, even for admins — `08` §4 specifies
+ * the console entry lives in the "profile-icon / more menu" as a distinct mode
+ * SWITCH, not an ordinary nav destination (`AccountMenu` renders it, set apart
+ * with its own divider). Listing it twice (once as a sidebar tab, once as a
+ * switch) contradicted the switch framing, so it appears in exactly one place.
  */
 function NavRow({ item, pathname }: { item: NavItem; pathname: string }) {
   const Icon = item.icon;
@@ -67,7 +75,7 @@ function NavRow({ item, pathname }: { item: NavItem; pathname: string }) {
 
 export function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
-  const secondary = SECONDARY_NAV.filter((i) => !i.adminGated || isAdmin);
+  const secondary = SECONDARY_NAV.filter((i) => !i.adminGated);
 
   return (
     <Sidebar collapsible="icon">
@@ -104,6 +112,9 @@ export function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <AccountMenu isAdmin={isAdmin} showName />
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );
