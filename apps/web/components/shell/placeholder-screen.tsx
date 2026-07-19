@@ -26,7 +26,7 @@ export function PlaceholderScreen({
   children?: ReactNode;
 }) {
   const body = (
-    <div className="flex min-h-full flex-col gap-2 bg-background p-6 text-foreground">
+    <div className="flex min-h-svh flex-col gap-2 bg-background p-6 text-foreground">
       <h1 className="type-h1">{title}</h1>
       {subtitle ? (
         <p className="type-small text-muted-foreground">{subtitle}</p>
@@ -36,9 +36,5 @@ export function PlaceholderScreen({
   );
 
   if (!theme) return body;
-  return (
-    <ForcedTheme theme={theme} className="min-h-full">
-      {body}
-    </ForcedTheme>
-  );
+  return <ForcedTheme theme={theme}>{body}</ForcedTheme>;
 }
