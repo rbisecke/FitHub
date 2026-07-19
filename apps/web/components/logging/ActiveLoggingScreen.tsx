@@ -24,12 +24,7 @@ import {
   countSets,
   epley1rm,
 } from "./logBuild";
-import type {
-  DraftEntry,
-  DraftSession,
-  DraftSet,
-  SetTableVariant,
-} from "./types";
+import type { DraftEntry, DraftSession, DraftSet } from "./types";
 import { emptySet } from "./types";
 
 const MAX_ENTRIES = 10; // functional §2.1 hard cap
@@ -82,9 +77,6 @@ export function ActiveLoggingScreen({
   const [openedAt] = useState(() => Date.now());
 
   const [session, setSession] = useState<DraftSession>(EMPTY_SESSION);
-  // Default render is Variant A; the header toggle makes the open decision (§2.7)
-  // resolvable by comparing both at true 375px. One flag, one shared table.
-  const [variant, setVariant] = useState<SetTableVariant>("A");
   const [sheet, setSheet] = useState<
     | null
     | "search"
@@ -329,29 +321,6 @@ export function ActiveLoggingScreen({
           className="flex-1 bg-transparent font-sans text-[16px] font-semibold outline-none"
           style={{ color: "var(--text)" }}
         />
-        {/* A/B comparison toggle — the §2.7 open decision */}
-        <div
-          className="flex overflow-hidden rounded-[6px]"
-          style={{ border: "1px solid var(--border)" }}
-          role="group"
-          aria-label="Set table variant"
-        >
-          {(["A", "B"] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setVariant(v)}
-              aria-pressed={variant === v}
-              className="px-2 py-1.5 font-data text-[11px]"
-              style={{
-                background: variant === v ? "var(--accent)" : "transparent",
-                color: variant === v ? "#fff" : "var(--muted)",
-              }}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
         <button
           type="button"
           onClick={() => setSheet("chooser")}
@@ -449,7 +418,6 @@ export function ActiveLoggingScreen({
           <MovementEntryCard
             key={entry.id}
             entry={entry}
-            variant={variant}
             weightUnit={weightUnit}
             onSetChange={(setId, field, value) =>
               setSetField(entry.id, setId, field, value)

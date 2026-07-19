@@ -76,8 +76,6 @@ export interface DraftSession {
   entries: DraftEntry[];
 }
 
-export type SetTableVariant = "A" | "B";
-
 export function emptySet(): DraftSet {
   return {
     id: crypto.randomUUID(),

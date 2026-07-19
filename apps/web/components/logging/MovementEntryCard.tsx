@@ -1,6 +1,6 @@
 "use client";
 
-import type { DraftEntry, DraftSet, SetTableVariant } from "./types";
+import type { DraftEntry, DraftSet } from "./types";
 import { SetTable } from "./SetTable";
 import { CardioConversionChip } from "./CardioConversionChip";
 
@@ -12,7 +12,6 @@ import { CardioConversionChip } from "./CardioConversionChip";
 
 interface Props {
   entry: DraftEntry;
-  variant: SetTableVariant;
   weightUnit: string;
   onSetChange: (setId: string, field: keyof DraftSet, value: string) => void;
   onToggleComplete: (setId: string) => void;
@@ -84,7 +83,6 @@ function ContextLine({
 
 export function MovementEntryCard({
   entry,
-  variant,
   weightUnit,
   onSetChange,
   onToggleComplete,
@@ -179,7 +177,6 @@ export function MovementEntryCard({
 
       <SetTable
         entry={entry}
-        variant={variant}
         weightUnit={weightUnit}
         onSetChange={onSetChange}
         onToggleComplete={onToggleComplete}

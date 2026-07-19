@@ -2,32 +2,22 @@
 
 import { useReducedMotion } from "motion/react";
 import { Calculator } from "lucide-react";
-import type { DraftEntry, DraftSet, SetTableVariant } from "./types";
-import {
-  columnsFor,
-  isMultiSet,
-  previousValueFor,
-  type ColumnDef,
-} from "./resultColumns";
+import type { DraftEntry, DraftSet } from "./types";
+import { columnsFor, isMultiSet, previousValueFor } from "./resultColumns";
 
 /**
- * The set-entry table (01 §2.7). ONE component, two variants driven by a single
- * `variant` flag over shared data/logic — this is the deliberate OPEN DECISION
- * (§2.7) the human resolves by comparing both at true 375px:
+ * The set-entry table (01 §2.7) — Hevy-style ghosted-inline previous value:
+ * the previous session's value shows as a ghost placeholder inside the input
+ * itself, and "⟲" copies the whole previous set. (Resolved from the A/B
+ * comparison against a separate-Previous-column variant; A won.)
  *
- *   Variant A — Hevy ghosted-inline previous value (previous shown as ghost
- *     placeholder inside the input; "⟲" copies the whole previous set).
- *   Variant B — Strong literal separate "Previous" column (a discrete cell per
- *     row; "No Previous" for first-ever; tap the cell to copy).
- *
- * Both: completed set fills the whole row green (Bible 1.4); a PR row swaps the
+ * A completed set fills the whole row green (Bible 1.4); a PR row swaps the
  * set-number for a --purple medal and tints the row --purple (§2.11); checkmark
  * and calculator hit areas clear 44px (§2.8, §2.7A).
  */
 
 interface Props {
   entry: DraftEntry;
-  variant: SetTableVariant;
   weightUnit: string;
   onSetChange: (setId: string, field: keyof DraftSet, value: string) => void;
   onToggleComplete: (setId: string) => void;
@@ -36,22 +26,8 @@ interface Props {
   onOpenCalculator: (setId: string) => void;
 }
 
-function ghostSummary(
-  entry: DraftEntry,
-  setIndex: number,
-  cols: ColumnDef[],
-): string {
-  const prev = entry.previous[setIndex];
-  const parts = cols
-    .map((c) => previousValueFor(prev, c))
-    .filter((v): v is string => v != null);
-  if (parts.length === 0) return "";
-  return parts.join(" × ");
-}
-
 export function SetTable({
   entry,
-  variant,
   weightUnit,
   onSetChange,
   onToggleComplete,
@@ -68,14 +44,13 @@ export function SetTable({
     : "background-color 200ms cubic-bezier(0.2,0,0,1)";
 
   return (
-    <div data-testid={`set-table-variant-${variant}`}>
+    <div data-testid="set-table">
       {/* Header labels */}
       <div
         className="flex items-center gap-1 px-1 pb-1 font-data text-[10px] uppercase tracking-wide"
         style={{ color: "var(--muted)" }}
       >
         <span className="w-5 shrink-0 text-center">Set</span>
-        {variant === "B" && <span className="w-[58px] shrink-0">Prev</span>}
         {cols.map((c) => (
           <span key={c.key} className="min-w-[3.25rem] flex-1 text-right">
             {c.label}
@@ -91,7 +66,6 @@ export function SetTable({
           : set.isPr
             ? "color-mix(in srgb, var(--purple) 16%, var(--surface))"
             : "transparent";
-        const ghost = ghostSummary(entry, i, cols);
         return (
           <div
             key={set.id}
@@ -116,31 +90,9 @@ export function SetTable({
               {set.isPr ? "★" : i + 1}
             </span>
 
-            {/* Variant B: dedicated Previous cell. `truncate` (not a bare
-                overflow-hidden) so a long value ellipsizes deliberately instead
-                of hard-clipping mid-glyph — the width is still sized for the
-                common case ("62.5 × 8"), truncation is a graceful fallback for
-                outliers (3-digit weight + 2-digit reps), not the normal path. */}
-            {variant === "B" && (
-              <button
-                type="button"
-                onClick={() => onCopyPrevious(set.id, i)}
-                disabled={!ghost}
-                title={ghost || undefined}
-                className="w-[58px] shrink-0 truncate text-left font-mono tabular-nums text-[10px] leading-tight disabled:cursor-default"
-                style={{ color: ghost ? "var(--muted)" : "var(--border)" }}
-                aria-label={
-                  ghost ? `Copy previous ${ghost}` : "No previous value"
-                }
-              >
-                {ghost || "No Prev"}
-              </button>
-            )}
-
             {/* Editable input columns */}
             {cols.map((c) => {
-              const ghostForCol =
-                variant === "A" ? previousValueFor(entry.previous[i], c) : null;
+              const ghostForCol = previousValueFor(entry.previous[i], c);
               const hasCalc = showCalc && c.key === "load";
               return (
                 <div key={c.key} className="relative flex-1">
@@ -227,10 +179,10 @@ export function SetTable({
         );
       })}
 
-      {/* Variant A per-row copy-previous / add set */}
+      {/* Per-row copy-previous / add set */}
       {showAddSet && (
         <div className="mt-1 flex items-center gap-2 px-1">
-          {variant === "A" && entry.previous.length > 0 && (
+          {entry.previous.length > 0 && (
             <button
               type="button"
               onClick={() =>
