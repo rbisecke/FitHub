@@ -257,8 +257,12 @@ export const api = {
         token,
       ),
   },
-  trainingPartners: (token: string) =>
-    apiFetch<TrainingPartner[]>("/api/v1/training-partners", token),
+  trainingPartners: (token: string, options?: { signal?: AbortSignal }) =>
+    apiFetch<TrainingPartner[]>(
+      "/api/v1/training-partners",
+      token,
+      options?.signal ? { signal: options.signal } : undefined,
+    ),
   addTrainingPartner: (token: string, email: string) =>
     apiFetch<TrainingPartner>("/api/v1/training-partners", token, {
       method: "POST",
@@ -375,10 +379,11 @@ export const api = {
       }),
   },
   profiles: {
-    search: (token: string, q: string) =>
+    search: (token: string, q: string, options?: { signal?: AbortSignal }) =>
       apiFetch<UserSearchResult[]>(
         `/api/v1/profile/search?q=${encodeURIComponent(q)}`,
         token,
+        options?.signal ? { signal: options.signal } : undefined,
       ),
   },
   profile: {
@@ -388,8 +393,12 @@ export const api = {
         token,
         options?.signal ? { signal: options.signal } : undefined,
       ),
-    stats: (token: string) =>
-      apiFetch<ProfileStats>("/api/v1/profile/stats", token),
+    stats: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<ProfileStats>(
+        "/api/v1/profile/stats",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     patch: (
       token: string,
       body: Partial<
@@ -416,8 +425,12 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify(body),
       }),
-    getPinnedMovements: (token: string) =>
-      apiFetch<PinnedMovement[]>("/api/v1/profile/pinned-movements", token),
+    getPinnedMovements: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<PinnedMovement[]>(
+        "/api/v1/profile/pinned-movements",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     setPinnedMovements: (token: string, movementIds: string[]) =>
       apiFetch<PinnedMovement[]>("/api/v1/profile/pinned-movements", token, {
         method: "PUT",

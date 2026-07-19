@@ -61,7 +61,7 @@ export function ProfilePage({
     const controller = new AbortController();
     let cancelled = false;
     api.profile
-      .stats(token)
+      .stats(token, { signal: controller.signal })
       .then((s) => {
         if (!cancelled) setStats(s);
       })
@@ -81,7 +81,7 @@ export function ProfilePage({
     const controller = new AbortController();
     let cancelled = false;
     api.profile
-      .getPinnedMovements(token)
+      .getPinnedMovements(token, { signal: controller.signal })
       .then((p) => {
         if (!cancelled) setPins(p);
       })
@@ -104,7 +104,7 @@ export function ProfilePage({
     const controller = new AbortController();
     let cancelled = false;
     api
-      .trainingPartners(token)
+      .trainingPartners(token, { signal: controller.signal })
       .then((p) => {
         if (!cancelled) setPartners(p);
       })

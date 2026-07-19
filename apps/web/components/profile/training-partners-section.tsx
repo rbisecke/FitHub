@@ -174,7 +174,7 @@ function MemberSearch({ token }: { token: string }) {
     const timer = setTimeout(() => {
       if (!cancelled) setSearching(true);
       api.profiles
-        .search(token, query)
+        .search(token, query, { signal: controller.signal })
         .then((r) => {
           if (!cancelled) setRawResults(r);
         })
