@@ -20,6 +20,22 @@ from app.models.injury import BodyRegion, InjuryOut, ReportInjuryRequest, Update
 
 router = APIRouter(prefix="/api/v1/injuries", tags=["injuries"])
 
+# Server-side mirror of the allowed forward-only status transitions — the UI
+# can't produce an invalid transition, but a direct API call must not be able
+# to either. A status mapping to itself means "resend the same status to save
+# restriction_notes only" (cleared_with_restrictions, permanent). `permanent`
+# can still be resolved server-side (e.g. support/manual correction) even
+# though the UI doesn't expose that action per 05 §2.1's terminal-but-active
+# framing — see test_permanent_injury_can_be_resolved, an existing contract
+# this validation must not break. `resolved` has no outgoing transitions
+# (also enforced by the `status != 'resolved'` WHERE clause below).
+_ALLOWED_TRANSITIONS: dict[str, set[str]] = {
+    "active": {"cleared_with_restrictions", "permanent", "resolved"},
+    "cleared_with_restrictions": {"cleared_with_restrictions", "resolved"},
+    "permanent": {"permanent", "resolved"},
+    "resolved": set(),
+}
+
 _SELECT_COLS = """
     id::text, user_id, body_region, pain_level,
     mechanism, notes, active, requires_referral,
@@ -142,6 +158,13 @@ async def update_injury_status(
 
     if existing is None:
         raise HTTPException(status_code=404, detail="Injury not found")
+
+    current_status = str(existing.get("status") or "active")
+    if req.status not in _ALLOWED_TRANSITIONS.get(current_status, set()):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot move from '{current_status}' to '{req.status}'.",
+        )
 
     set_clauses = ["status = %s", "restriction_notes = %s"]
     params: list[object] = [req.status, req.restriction_notes]
