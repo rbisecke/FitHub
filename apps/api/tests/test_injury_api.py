@@ -263,6 +263,60 @@ async def test_update_injury_status_invalid_transition(alice_client: AsyncClient
 
 
 @pytest.mark.asyncio
+async def test_permanent_injury_cannot_be_cleared_with_restrictions(
+    alice_client: AsyncClient,
+) -> None:
+    """permanent is terminal-but-active (05 §2.1) — only resend-permanent
+    (notes-only save) and resolve are valid from it, never a step "back" to
+    cleared_with_restrictions."""
+    injury_id = await _create_injury(alice_client, body_region="lat")
+    await alice_client.patch(
+        f"/api/v1/injuries/{injury_id}/status",
+        json={"status": "permanent"},
+    )
+    r = await alice_client.patch(
+        f"/api/v1/injuries/{injury_id}/status",
+        json={"status": "cleared_with_restrictions"},
+    )
+    assert r.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_cleared_with_restrictions_cannot_become_permanent(
+    alice_client: AsyncClient,
+) -> None:
+    injury_id = await _create_injury(alice_client, body_region="calf")
+    await alice_client.patch(
+        f"/api/v1/injuries/{injury_id}/status",
+        json={"status": "cleared_with_restrictions"},
+    )
+    r = await alice_client.patch(
+        f"/api/v1/injuries/{injury_id}/status",
+        json={"status": "permanent"},
+    )
+    assert r.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_cleared_with_restrictions_notes_only_resave_allowed(
+    alice_client: AsyncClient,
+) -> None:
+    """Resending the SAME status is how the UI persists a restriction_notes
+    edit without changing the lifecycle stage — must stay a 200."""
+    injury_id = await _create_injury(alice_client, body_region="ankle")
+    await alice_client.patch(
+        f"/api/v1/injuries/{injury_id}/status",
+        json={"status": "cleared_with_restrictions", "restriction_notes": "v1"},
+    )
+    r = await alice_client.patch(
+        f"/api/v1/injuries/{injury_id}/status",
+        json={"status": "cleared_with_restrictions", "restriction_notes": "v2"},
+    )
+    assert r.status_code == 200
+    assert r.json()["restriction_notes"] == "v2"
+
+
+@pytest.mark.asyncio
 async def test_update_injury_status_permanent(alice_client: AsyncClient) -> None:
     injury_id = await _create_injury(alice_client, body_region="achilles")
     r = await alice_client.patch(

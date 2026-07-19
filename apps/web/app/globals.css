@@ -172,6 +172,7 @@
   --amber: #9a6700;
   --red: #cf222e;
   --purple: #8250df;
+  --chronic: #4b5583; /* Domain 05 permanent-injury status — slate-indigo, informational; darkened for light-surface contrast */
 
   /* Elevation tiers (light) */
   --surface-2: #ffffff;

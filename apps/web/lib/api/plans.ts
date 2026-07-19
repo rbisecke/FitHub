@@ -11,6 +11,7 @@ export type PlanTaskResponse = components["schemas"]["PlanTaskResponse"];
 export type CreatePlanRequest = components["schemas"]["CreatePlanRequest"];
 export type AdaptationOut = components["schemas"]["AdaptationOut"];
 export type InjuryOut = components["schemas"]["InjuryOut"];
+export type BodyRegion = components["schemas"]["BodyRegion"];
 export type DetectTriggersResponse =
   components["schemas"]["DetectTriggersResponse"];
 export type AdjustAdaptationRequest =
