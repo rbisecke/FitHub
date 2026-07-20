@@ -175,8 +175,14 @@ export function ExerciseSwapSheet({
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
+      {/* data-theme="light" is required here, not just at the page level:
+          shadcn's Sheet portals to document.body, which escapes the
+          execute route's ForcedTheme light wrapper — without this the
+          sheet renders in the app's ambient dark theme regardless of the
+          light page around it (02 §7's logging-exception theme). */}
       <SheetContent
         side="bottom"
+        data-theme="light"
         className="bg-[var(--surface)] border-t border-[var(--border)] rounded-t-2xl max-h-[75vh] overflow-y-auto pb-8"
       >
         {/* Drag handle */}

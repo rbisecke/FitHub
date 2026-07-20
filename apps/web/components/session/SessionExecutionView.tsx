@@ -856,10 +856,14 @@ export function SessionExecutionView({
         </AnimatePresence>
       </main>
 
-      {/* Session overview sheet */}
+      {/* Session overview sheet — data-theme="light" is required (not just
+          the page-level ForcedTheme): shadcn's Sheet portals to
+          document.body, escaping the light wrapper (02 §7 logging
+          exception is otherwise silently lost for anything in this sheet). */}
       <Sheet open={overviewOpen} onOpenChange={setOverviewOpen}>
         <SheetContent
           side="bottom"
+          data-theme="light"
           className="bg-[var(--surface)] border-t border-[var(--border)] rounded-t-2xl max-h-[70vh] overflow-y-auto pb-8"
         >
           <SheetHeader className="px-5 pt-4 pb-2">
