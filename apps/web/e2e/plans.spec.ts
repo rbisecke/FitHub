@@ -131,11 +131,14 @@ test.beforeAll(async () => {
   }
 });
 
-test("plans list page loads with empty state", async ({ page }) => {
+test("plan entry route redirects somewhere useful", async ({ page }) => {
   await loginAndSetSession(page);
-  await page.goto("http://localhost:3000/plans");
-  await expect(page).toHaveURL(/plans/);
-  // Either shows plans or shows empty state — just confirm page renders
+  await page.goto("http://localhost:3000/plan");
+  // /plan always redirects: to the active plan's overview, or to the
+  // generation wizard if there isn't one yet (02 §4 "Empty (no plan yet)").
+  await expect(page).toHaveURL(/\/plan\/(new|[0-9a-f-]+)$/, {
+    timeout: 10000,
+  });
   await expect(page.locator("body")).toBeVisible({ timeout: 10000 });
 });
 
@@ -153,20 +156,31 @@ test("plan API creates plan and returns detail", async ({ page }) => {
   expect(Array.isArray(plan["sessions"])).toBe(true);
 });
 
-test("plan detail page shows branch view", async ({ page }) => {
+test("plan detail page shows the overview header and a density-variant toggle", async ({
+  page,
+}) => {
   const token = await loginAndSetSession(page);
   const planId = LIVE_LLM ? sharedPlanId : await createPlanAndWait(token);
 
-  await page.goto(`http://localhost:3000/plans/${planId}`);
-  await expect(page.locator('[data-testid="plan-branch-view"]')).toBeVisible({
+  await page.goto(`http://localhost:3000/plan/${planId}`);
+
+  // Plan header: title + git-metadata row (branch name, archetype, status).
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
     timeout: 10000,
   });
+
+  // Variant A/B density toggle (Bible Open Decision #5 — both must exist).
   await expect(
-    page.locator('[data-testid="mesocycle-header"]').first(),
+    page.getByRole("tablist", { name: "Overview density" }),
   ).toBeVisible();
-  await expect(
-    page.locator('[data-testid="session-dot"]').first(),
-  ).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Simple" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Full" })).toBeVisible();
+
+  // Switching to Variant B renders its phase strip / date strip region.
+  await page.getByRole("tab", { name: "Full" }).click();
+  await expect(page.getByText("weekly volume")).toBeVisible({
+    timeout: 5000,
+  });
 });
 
 test("plan IDOR returns 404", async ({ page }) => {
@@ -183,53 +197,12 @@ test("unauthenticated plan list returns 401", async () => {
   expect(res.status).toBe(401);
 });
 
-test("plan detail page renders AI adaptations panel with proposed adaptation", async ({
-  page,
-}) => {
-  const token = await loginAndSetSession(page);
-  const planId = LIVE_LLM ? sharedPlanId : await createPlanAndWait(token);
+// AI-adaptations-panel and manual-revision-composer UI coverage moved to
+// the adaptation-review effort's own e2e suite (e2e/adaptations.spec.ts) —
+// this domain's rebuilt /plan/[id] only carries a layout slot for that
+// content (02 §8.2, §8.8), not the banner/panel/composer itself.
 
-  // Resolve the user_id for the adaptation seed.
-  const meRes = await fetch(`${API_URL}/me`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const { user_id: userId } = (await meRes.json()) as { user_id: string };
-
-  // Seed a proposed adaptation directly via the Supabase admin API.
-  // status defaults to "proposed" — AIAdaptationsPanel filters for this.
-  const seedRes = await fetch(`${SUPABASE_URL}/rest/v1/adaptations`, {
-    method: "POST",
-    headers: {
-      apikey: SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-    },
-    body: JSON.stringify({
-      plan_id: planId,
-      user_id: userId,
-      trigger_type: "low_readiness",
-      trigger_data: {},
-      rationale: "Fatigue markers elevated — consider reducing intensity.",
-    }),
-  });
-  if (!seedRes.ok) throw new Error(`seed adaptation failed: ${seedRes.status}`);
-
-  await page.goto(`http://localhost:3000/plans/${planId}`);
-  await expect(page.locator('[data-testid="plan-branch-view"]')).toBeVisible({
-    timeout: 10_000,
-  });
-
-  // The panel heading must be present.
-  await expect(page.getByText("AI Adaptations")).toBeVisible();
-
-  // The seeded trigger_type renders as "low readiness" (underscores replaced).
-  await expect(page.getByText("low readiness")).toBeVisible({
-    timeout: 5_000,
-  });
-});
-
-test.describe("plan revision", () => {
+test.describe("plan revision (API only — UI lives in a sibling effort)", () => {
   test("revise plan API returns updated plan detail", async ({ page }) => {
     const token = await loginAndSetSession(page);
     const planId = LIVE_LLM ? sharedPlanId : await createPlanAndWait(token);
@@ -264,50 +237,5 @@ test.describe("plan revision", () => {
       body: JSON.stringify({ feedback: "hi" }),
     });
     expect(res.status).toBe(422);
-  });
-
-  test("revise plan shows form in UI", async ({ page }) => {
-    const token = await loginAndSetSession(page);
-    const planId = LIVE_LLM ? sharedPlanId : await createPlanAndWait(token);
-
-    await page.goto(`http://localhost:3000/plans/${planId}`);
-    await expect(
-      page.locator('[data-testid="revision-feedback-input"]'),
-    ).toBeVisible({ timeout: 10000 });
-    await expect(
-      page.locator('[data-testid="revise-plan-submit"]'),
-    ).toBeVisible();
-    // Submit button disabled until feedback is long enough
-    await expect(
-      page.locator('[data-testid="revise-plan-submit"]'),
-    ).toBeDisabled();
-  });
-
-  test("revise plan UI submits and updates plan", async ({ page }) => {
-    const token = await loginAndSetSession(page);
-    const planId = LIVE_LLM ? sharedPlanId : await createPlanAndWait(token);
-
-    await page.goto(`http://localhost:3000/plans/${planId}`);
-    await expect(
-      page.locator('[data-testid="revision-feedback-input"]'),
-    ).toBeVisible({ timeout: 10000 });
-
-    await page.fill(
-      '[data-testid="revision-feedback-input"]',
-      "My knees have been bothering me — reduce squat volume please.",
-    );
-    await expect(
-      page.locator('[data-testid="revise-plan-submit"]'),
-    ).toBeEnabled();
-    await page.click('[data-testid="revise-plan-submit"]');
-
-    // Wait for success indicator or plan to remain visible
-    await expect(page.locator('[data-testid="plan-branch-view"]')).toBeVisible({
-      timeout: 15000,
-    });
-    // Feedback textarea should be cleared on success
-    await expect(
-      page.locator('[data-testid="revision-feedback-input"]'),
-    ).toHaveValue("");
   });
 });
