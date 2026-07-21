@@ -361,6 +361,87 @@ async def test_personal_records_batch_omits_non_pr_results(alice_client: AsyncCl
 
 
 @pytest.mark.asyncio
+async def test_personal_records_batch_scoped_by_variant(alice_client: AsyncClient) -> None:
+    """Barbell and dumbbell PRs for one movement return as separate rows (04 §2A, BG-23)."""
+    uid = uuid.uuid4().hex[:8]
+    mv = await alice_client.post("/api/v1/movements", json=_movement_payload(uid))
+    assert mv.status_code == 201
+    movement_id = mv.json()["id"]
+
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2026-06-01T08:00:00Z",
+            "results": [
+                {
+                    "movement_id": movement_id,
+                    "result_type": "weight",
+                    "load_kg": "100.0",
+                    "reps": 5,
+                    "implement": "barbell",
+                    "order_index": 0,
+                },
+                {
+                    "movement_id": movement_id,
+                    "result_type": "weight",
+                    "load_kg": "40.0",
+                    "reps": 5,
+                    "implement": "dumbbell",
+                    "order_index": 1,
+                },
+            ],
+        },
+    )
+
+    r = await alice_client.get(f"/api/v1/movements/personal-records?ids={movement_id}")
+    assert r.status_code == 200
+    prs = [row for row in r.json() if row["movement_id"] == movement_id]
+    assert len(prs) == 2
+    by_implement = {row["implement"]: row for row in prs}
+    assert set(by_implement) == {"barbell", "dumbbell"}
+    assert float(by_implement["barbell"]["load_kg"]) == pytest.approx(100.0)
+    assert float(by_implement["dumbbell"]["load_kg"]) == pytest.approx(40.0)
+
+
+@pytest.mark.asyncio
+async def test_personal_record_singular_returns_variant_fields(alice_client: AsyncClient) -> None:
+    """The singular /personal-record lookup reports which variant it matched (04 §2A, BG-23).
+
+    Regression guard: get_personal_record's SELECT previously omitted
+    implement/side, so PersonalRecordResult(**row) silently fell back to the
+    field defaults and every response reported implement=None, side=None
+    regardless of the actual matched row's variant.
+    """
+    uid = uuid.uuid4().hex[:8]
+    mv = await alice_client.post("/api/v1/movements", json=_movement_payload(uid))
+    assert mv.status_code == 201
+    movement_id = mv.json()["id"]
+
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2026-06-01T08:00:00Z",
+            "results": [
+                {
+                    "movement_id": movement_id,
+                    "result_type": "weight",
+                    "load_kg": "100.0",
+                    "reps": 5,
+                    "implement": "barbell",
+                }
+            ],
+        },
+    )
+
+    r = await alice_client.get(f"/api/v1/movements/{movement_id}/personal-record")
+    assert r.status_code == 200
+    body = r.json()
+    assert body is not None
+    assert body["implement"] == "barbell"
+    assert body["side"] is None
+
+
+@pytest.mark.asyncio
 async def test_last_result_user_scoped(alice_client: AsyncClient, bob_client: AsyncClient) -> None:
     uid = uuid.uuid4().hex[:8]
     mv = await alice_client.post("/api/v1/movements", json=_movement_payload(uid))

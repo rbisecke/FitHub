@@ -9228,6 +9228,28 @@
             "type": "string",
             "format": "date",
             "title": "Achieved At"
+          },
+          "implement": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implement"
+          },
+          "side": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Side"
           }
         },
         "type": "object",

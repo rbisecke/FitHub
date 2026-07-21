@@ -182,6 +182,8 @@ async def get_personal_record(
                 r.time_s,
                 r.distance_m,
                 r.estimated_1rm_kg,
+                r.implement,
+                r.side,
                 w.performed_at::date AS achieved_at
             FROM   public.results r
             JOIN   public.workouts w ON w.id = r.workout_id
@@ -206,10 +208,24 @@ async def get_personal_records_batch(
     user_id: uuid.UUID,
     movement_ids: list[uuid.UUID],
 ) -> list[PersonalRecordResult]:
+    """Return the best PR row per (movement, implement, side) variant.
+
+    A movement with multiple logged variants (e.g. barbell vs dumbbell bench
+    press) returns one row per variant, not one collapsed row (04 §2A,
+    BG-23) — mirrors the movement-detail PR lookup's existing scoping.
+    """
+    # Provable upper bound, not an empirical guess: results.implement has 8
+    # non-null CHECK values + NULL (9 states, 0048_add_implement_and_tempo_to_results),
+    # results.side has 3 non-null CHECK values + NULL (4 states,
+    # 0049_add_side_to_results) — so at most 9*4=36 variant rows can exist per
+    # movement_id. A flat cap here would silently drop whole trailing
+    # movement_ids (ORDER BY sorts by movement_id first), not just excess
+    # variants, so the bound must scale with the request instead.
+    limit = min(max(len(movement_ids), 1) * 36, 1000)
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT DISTINCT ON (r.movement_id)
+            SELECT DISTINCT ON (r.movement_id, r.implement, r.side)
                 r.movement_id,
                 r.result_type,
                 r.load_kg,
@@ -217,16 +233,18 @@ async def get_personal_records_batch(
                 r.time_s,
                 r.distance_m,
                 r.estimated_1rm_kg,
+                r.implement,
+                r.side,
                 w.performed_at::date AS achieved_at
             FROM   public.results r
             JOIN   public.workouts w ON w.id = r.workout_id
             WHERE  r.user_id      = %s
               AND  r.movement_id  = ANY(%s)
               AND  r.is_pr        = TRUE
-            ORDER  BY r.movement_id, r.estimated_1rm_kg DESC NULLS LAST
-            LIMIT 20
+            ORDER  BY r.movement_id, r.implement, r.side, r.estimated_1rm_kg DESC NULLS LAST
+            LIMIT %s
             """,
-            [user_id, list(movement_ids)],
+            [user_id, list(movement_ids), limit],
         )
         rows = await cur.fetchall()
     return [PersonalRecordResult(**r) for r in rows]
