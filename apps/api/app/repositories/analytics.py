@@ -107,11 +107,21 @@ async def get_load_series(
     return [r for r in result if r["day"] >= cutoff]
 
 
+def _variant_key(row: dict[str, Any]) -> tuple[str, str | None, str | None]:
+    """Composite (movement_id, implement, side) key a variant is scoped by (04 §2A, BG-23)."""
+    return (row["movement_id"], row.get("implement"), row.get("side"))
+
+
 async def _fetch_best_e1rms(
     conn: psycopg.AsyncConnection[Any],
     user_id: uuid.UUID,
 ) -> list[dict[str, Any]]:
-    """Return all-time best e1RM row per movement with delta vs previous best."""
+    """Return all-time best e1RM row per (movement, implement, side) variant.
+
+    A barbell PR and a dumbbell PR (or a left/right unilateral PR) are
+    different achievements and must not be collapsed into one row (04 §2A,
+    BG-23) — the delta vs previous best is likewise computed per variant.
+    """
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
@@ -119,6 +129,8 @@ async def _fetch_best_e1rms(
                 SELECT
                     r.movement_id,
                     m.name                    AS movement_name,
+                    r.implement,
+                    r.side,
                     r.estimated_1rm_kg::float AS estimated_1rm_kg,
                     w.performed_at::date      AS achieved_at,
                     w.id                      AS workout_id,
@@ -126,7 +138,7 @@ async def _fetch_best_e1rms(
                     r.reps,
                     r.time_s,
                     LAG(r.estimated_1rm_kg::float) OVER (
-                        PARTITION BY r.movement_id
+                        PARTITION BY r.movement_id, r.implement, r.side
                         ORDER BY r.estimated_1rm_kg ASC
                     ) AS prev_best_1rm_kg
                 FROM results r
@@ -135,13 +147,13 @@ async def _fetch_best_e1rms(
                 WHERE w.user_id = %s
                   AND r.estimated_1rm_kg IS NOT NULL
             )
-            SELECT DISTINCT ON (movement_id)
-                movement_id::text, movement_name,
+            SELECT DISTINCT ON (movement_id, implement, side)
+                movement_id::text, movement_name, implement, side,
                 estimated_1rm_kg AS best_1rm_kg,
                 achieved_at, workout_id::text,
                 load_kg, reps, time_s, prev_best_1rm_kg
             FROM ranked
-            ORDER BY movement_id, estimated_1rm_kg DESC
+            ORDER BY movement_id, implement, side, estimated_1rm_kg DESC
             LIMIT 500
             """,
             (user_id,),
@@ -158,18 +170,26 @@ async def _enrich_with_projections(
     user_id: uuid.UUID,
     rows: list[dict[str, Any]],
 ) -> None:
-    """Add OLS-projected strength fields to each row in place."""
+    """Add OLS-projected strength fields to each row in place.
+
+    Scoped per (movement, implement, side) variant (04 §2A, BG-23) — mixing
+    two variants' data points into one regression would produce a trend line
+    that is meaningless for either lift, not merely an imprecise one.
+    """
     movement_ids = [uuid.UUID(r["movement_id"]) for r in rows]
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT movement_id::text, day, estimated_1rm_kg
+            SELECT movement_id::text, implement, side, day, estimated_1rm_kg
             FROM (
                 SELECT r.movement_id,
+                       r.implement,
+                       r.side,
                        w.performed_at::date      AS day,
                        r.estimated_1rm_kg::float AS estimated_1rm_kg,
                        ROW_NUMBER() OVER (
-                           PARTITION BY r.movement_id ORDER BY w.performed_at ASC
+                           PARTITION BY r.movement_id, r.implement, r.side
+                           ORDER BY w.performed_at ASC
                        ) AS rn
                 FROM results r
                 JOIN workouts w ON r.workout_id = w.id
@@ -179,18 +199,18 @@ async def _enrich_with_projections(
                   AND w.performed_at >= NOW() - INTERVAL '5 years'
             ) sub
             WHERE rn <= 100
-            ORDER BY movement_id, day ASC
+            ORDER BY movement_id, implement, side, day ASC
             LIMIT 2000
             """,
             (user_id, movement_ids),
         )
         trend_rows = await cur.fetchall()
-    trends: dict[str, list[tuple[date, float]]] = defaultdict(list)
+    trends: dict[tuple[str, str | None, str | None], list[tuple[date, float]]] = defaultdict(list)
     for tr in trend_rows:
-        trends[tr["movement_id"]].append((tr["day"], tr["estimated_1rm_kg"]))
+        trends[_variant_key(tr)].append((tr["day"], tr["estimated_1rm_kg"]))
     today = date.today()
     for row in rows:
-        proj = project_e1rm(trends.get(row["movement_id"], []), today)
+        proj = project_e1rm(trends.get(_variant_key(row), []), today)
         row["current_e1rm_kg"] = proj.current_e1rm_kg
         row["next_pr_kg"] = proj.next_pr_kg
         row["next_pr_weeks"] = proj.next_pr_weeks
