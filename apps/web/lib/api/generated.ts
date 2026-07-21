@@ -1585,7 +1585,9 @@ export interface components {
         | "high_acwr"
         | "low_readiness"
         | "missed_session"
-        | "rpe_creep";
+        | "rpe_creep"
+        | "active_injury"
+        | "manual";
       /** Trigger Data */
       trigger_data: {
         [key: string]: unknown;
@@ -1594,7 +1596,7 @@ export interface components {
        * Status
        * @enum {string}
        */
-      status: "proposed" | "merged" | "rejected";
+      status: "proposed" | "merged" | "rejected" | "superseded";
       /** Rationale */
       rationale?: string | null;
       /** Rejection Reason */

@@ -8,6 +8,8 @@ const TRIGGER_LABELS: Record<string, string> = {
   low_readiness: "Low Readiness",
   missed_session: "Missed Sessions",
   rpe_creep: "RPE Creep",
+  active_injury: "Injury Update",
+  manual: "Manual Revision",
 };
 
 function triggerChipLabel(adaptation: AdaptationOut): string {

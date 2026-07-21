@@ -4987,7 +4987,9 @@
               "high_acwr",
               "low_readiness",
               "missed_session",
-              "rpe_creep"
+              "rpe_creep",
+              "active_injury",
+              "manual"
             ],
             "title": "Trigger Type"
           },
@@ -5001,7 +5003,8 @@
             "enum": [
               "proposed",
               "merged",
-              "rejected"
+              "rejected",
+              "superseded"
             ],
             "title": "Status"
           },

@@ -68,9 +68,11 @@ class AdaptationOut(BaseModel):
     id: str
     plan_id: str
     user_id: str
-    trigger_type: Literal["high_acwr", "low_readiness", "missed_session", "rpe_creep"]
+    trigger_type: Literal[
+        "high_acwr", "low_readiness", "missed_session", "rpe_creep", "active_injury", "manual"
+    ]
     trigger_data: dict[str, object]
-    status: Literal["proposed", "merged", "rejected"]
+    status: Literal["proposed", "merged", "rejected", "superseded"]
     rationale: str | None = None
     rejection_reason: str | None = None
     diff_json: list[AdaptationSessionDiff] = Field(default_factory=list)

@@ -67,6 +67,27 @@ async def test_list_adaptations_shows_seeded(alice_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_list_adaptations_after_manual_revision(alice_client: AsyncClient) -> None:
+    """A manual revision writes trigger_type='manual', status='merged' directly (see
+    routers/plans.py:revise_plan, which inserts this audit row unconditionally whenever
+    the plan has prescribed sessions, regardless of whether the diff is empty) — the
+    read path must accept every trigger_type/status the DB CHECK constraint allows, not
+    just the four AI-trigger values."""
+    plan_id = await _make_plan(alice_client)
+    r = await alice_client.post(
+        f"/api/v1/plans/{plan_id}/revise",
+        json={"feedback": "swap Thursday's metcon for a Zone 2 row"},
+    )
+    assert r.status_code == 200
+
+    r = await alice_client.get(f"/api/v1/plans/{plan_id}/adaptations")
+    assert r.status_code == 200
+    manual_rows = [a for a in r.json() if a["trigger_type"] == "manual"]
+    assert manual_rows, "expected the manual revision to have written an audit row"
+    assert all(a["status"] == "merged" for a in manual_rows)
+
+
+@pytest.mark.asyncio
 async def test_merge_adaptation(alice_client: AsyncClient) -> None:
     plan_id = await _make_plan(alice_client)
     adaptation_id = await _seed_adaptation(plan_id)
