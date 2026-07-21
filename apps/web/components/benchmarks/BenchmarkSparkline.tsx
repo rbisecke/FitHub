@@ -58,7 +58,7 @@ export function BenchmarkSparkline({
   return (
     <div className="w-full">
       <div className="flex items-center justify-end mb-0.5">
-        <span className="font-mono text-[9px] text-[var(--muted)]">
+        <span className="font-mono text-[10px] font-medium text-[var(--muted-strong)]">
           faster ↑
         </span>
       </div>
