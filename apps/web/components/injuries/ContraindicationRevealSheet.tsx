@@ -1,3 +1,4 @@
+import { Lock } from "lucide-react";
 import { SheetOverlay } from "@/components/logging/SheetOverlay";
 import { RegionChipStrip } from "@/components/injuries/RegionChipStrip";
 import { formatLabel } from "@/lib/display";
@@ -16,6 +17,8 @@ export function ContraindicationRevealSheet({
   substitutions,
   onSwap,
   onClose,
+  swapPending = false,
+  swapError = null,
 }: {
   movementName: string;
   drivenBy: string[];
@@ -25,6 +28,13 @@ export function ContraindicationRevealSheet({
    * referral pause, so the action shouldn't look available. */
   onSwap?: (substitution: string) => void;
   onClose: () => void;
+  /** True while the caller is resolving a tapped substitution — disables
+   * every "Swap in" action so a rapid double-tap can't race two lookups. */
+  swapPending?: boolean;
+  /** Rendered inline, near the substitution list, when the caller's swap
+   * attempt failed — this sheet's own opaque backdrop would otherwise hide
+   * any feedback rendered on the page behind it. */
+  swapError?: string | null;
 }) {
   const deduped = Array.from(new Set(substitutions));
   const swappable = Boolean(onSwap);
@@ -85,7 +95,8 @@ export function ContraindicationRevealSheet({
                   <button
                     type="button"
                     onClick={() => onSwap?.(sub)}
-                    className="flex min-h-11 w-full items-center justify-between gap-2 rounded-[8px] px-3 py-2 text-left font-sans text-[13px]"
+                    disabled={swapPending}
+                    className="flex min-h-11 w-full items-center justify-between gap-2 rounded-[8px] px-3 py-2 text-left font-sans text-[13px] disabled:cursor-not-allowed disabled:opacity-60"
                     style={{
                       background: "var(--surface)",
                       border: "1px solid var(--border)",
@@ -97,7 +108,7 @@ export function ContraindicationRevealSheet({
                       className="shrink-0 font-sans text-[12px] font-medium"
                       style={{ color: "var(--accent)" }}
                     >
-                      Swap in
+                      {swapPending ? "swapping…" : "Swap in"}
                     </span>
                   </button>
                 </li>
@@ -108,7 +119,7 @@ export function ContraindicationRevealSheet({
               {deduped.map((sub) => (
                 <li
                   key={sub}
-                  className="flex min-h-11 w-full items-center rounded-[8px] px-3 py-2 font-sans text-[13px]"
+                  className="flex min-h-11 w-full items-center justify-between gap-2 rounded-[8px] px-3 py-2 font-sans text-[13px]"
                   style={{
                     background: "var(--surface)",
                     border: "1px solid var(--border)",
@@ -116,9 +127,25 @@ export function ContraindicationRevealSheet({
                   }}
                 >
                   {formatLabel(sub)}
+                  <Lock
+                    size={12}
+                    aria-hidden="true"
+                    className="shrink-0"
+                    style={{ color: "var(--muted)" }}
+                  />
                 </li>
               ))}
             </ul>
+          )}
+
+          {swapError && (
+            <p
+              role="alert"
+              className="mt-2 font-sans text-[12px]"
+              style={{ color: "var(--red)" }}
+            >
+              {swapError}
+            </p>
           )}
         </div>
       </div>

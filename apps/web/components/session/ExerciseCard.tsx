@@ -17,6 +17,11 @@ interface ExerciseCardProps {
   // True while resolving the real movement id for the swap sheet (fix #1) —
   // disables the button so a second tap can't fire a duplicate lookup.
   swapDisabled?: boolean;
+  /** Set to the original prescribed movement name when a swap (either the
+   * mid-workout catalog swap or an injury-driven idle-preview swap) is
+   * active for this exercise — otherwise the swapped-in movement renders
+   * with no indication it isn't the original prescription. */
+  substitutedFrom?: string;
 }
 
 export function ExerciseCard({
@@ -29,6 +34,7 @@ export function ExerciseCard({
   onSwap,
   onSkip,
   swapDisabled = false,
+  substitutedFrom,
 }: ExerciseCardProps) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 flex flex-col gap-4">
@@ -47,6 +53,12 @@ export function ExerciseCard({
           >
             {item.movement_name}
           </h2>
+
+          {substitutedFrom && (
+            <p className="font-sans text-[12px] text-[var(--muted)]">
+              substituted from {substitutedFrom}
+            </p>
+          )}
 
           {/* Counter */}
           <p className="font-sans text-[12px] text-[var(--muted)]">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TriangleAlert } from "lucide-react";
+import { Ban, TriangleAlert } from "lucide-react";
 import { ContraindicationRevealSheet } from "@/components/injuries/ContraindicationRevealSheet";
 
 /**
@@ -19,6 +19,9 @@ export function ContraindicationBadge({
   substitutions,
   onSwap,
   sessionBlocked = false,
+  trailing,
+  swapPending = false,
+  swapError = null,
 }: {
   movementName: string;
   flagged: boolean;
@@ -34,6 +37,19 @@ export function ContraindicationBadge({
    * replaced with "Blocked".
    */
   sessionBlocked?: boolean;
+  /** Optional caller-supplied content rendered between the movement name and
+   * the flagged badge — e.g. a session-execution consumer's sets×reps
+   * readout, which this component has no opinion on. */
+  trailing?: React.ReactNode;
+  /** True while the caller is resolving a tapped substitution — disables the
+   * reveal sheet's "Swap in" actions so a rapid double-tap (same or a
+   * different substitute) can't fire concurrent, order-racing lookups. */
+  swapPending?: boolean;
+  /** Set by the caller when resolving/applying a swap fails — rendered
+   * inside the reveal sheet itself (not the caller's own page content,
+   * which sits behind the sheet's opaque backdrop and would be invisible
+   * while the sheet is open). */
+  swapError?: string | null;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -73,11 +89,12 @@ export function ContraindicationBadge({
         }
       >
         <span
-          className="font-sans text-[13px]"
+          className="min-w-0 flex-1 truncate font-sans text-[13px]"
           style={{ color: "var(--text)" }}
         >
           {movementName}
         </span>
+        {trailing}
         {flagged && (
           <span
             className="flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-sans text-[11px] font-semibold"
@@ -85,23 +102,33 @@ export function ContraindicationBadge({
               sessionBlocked
                 ? {
                     background: "transparent",
-                    color: "var(--muted)",
+                    // var(--muted) reads at ~2.5:1 against this near-white
+                    // row — below the 4.5:1 AA minimum for normal text.
+                    // var(--text) keeps the badge visually inert (neutral,
+                    // not amber-tinted like "Modify") while staying legible.
+                    color: "var(--text)",
                     border: "1px solid var(--border)",
                   }
                 : { background: "var(--amber)", color: "var(--bg)" }
             }
           >
-            <TriangleAlert size={12} aria-hidden="true" />
+            {sessionBlocked ? (
+              <Ban size={12} aria-hidden="true" />
+            ) : (
+              <TriangleAlert size={12} aria-hidden="true" />
+            )}
             {sessionBlocked ? "Blocked" : "Modify"}
           </span>
         )}
       </div>
 
-      {open && (
+      {open && flagged && (
         <ContraindicationRevealSheet
           movementName={movementName}
           drivenBy={drivenBy}
           substitutions={substitutions}
+          swapPending={swapPending}
+          swapError={swapError}
           onSwap={sessionBlocked ? undefined : onSwap}
           onClose={() => setOpen(false)}
         />

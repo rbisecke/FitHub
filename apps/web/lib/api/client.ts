@@ -583,10 +583,15 @@ export const api = {
           options?.signal ? { signal: options.signal } : undefined,
         ),
     },
-    modifyWorkout: (token: string, sessionId: string) =>
+    modifyWorkout: (
+      token: string,
+      sessionId: string,
+      options?: { signal?: AbortSignal },
+    ) =>
       apiFetch<ModifyWorkoutResponse>("/api/v1/coach/modify-workout", token, {
         method: "POST",
         body: JSON.stringify({ session_id: sessionId }),
+        signal: options?.signal,
       }),
     checkWod: (token: string, wodText: string) =>
       apiFetch<CheckWodResponse>("/api/v1/coach/check-wod", token, {
@@ -987,8 +992,8 @@ export function createApiClient(token: string) {
           options?: { limit?: number; signal?: AbortSignal },
         ) => api.coach.sessions.messages(token, sessionId, options),
       },
-      modifyWorkout: (sessionId: string) =>
-        api.coach.modifyWorkout(token, sessionId),
+      modifyWorkout: (sessionId: string, options?: { signal?: AbortSignal }) =>
+        api.coach.modifyWorkout(token, sessionId, options),
       checkWod: (wodText: string) => api.coach.checkWod(token, wodText),
     },
     routines: {

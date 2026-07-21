@@ -31,6 +31,16 @@ const searchMock = vi.fn().mockResolvedValue([
 ]);
 const getSubstitutesMock = vi.fn().mockResolvedValue([]);
 const completeSessionMock = vi.fn().mockResolvedValue({});
+// 05 §5.1's passive contraindication check — fetched on mount by every
+// SessionExecutionView render, unrelated to this file's swap-resolve
+// coverage. No active injuries, so it's a no-op for these tests.
+const modifyWorkoutMock = vi.fn().mockResolvedValue({
+  session_id: "session-1",
+  modifications: [],
+  safe_movements: [],
+  any_referral_required: false,
+  referral_regions: [],
+});
 
 vi.mock("@/lib/api/client", () => ({
   api: {
@@ -40,6 +50,9 @@ vi.mock("@/lib/api/client", () => ({
     },
     plans: {
       completeSession: (...args: unknown[]) => completeSessionMock(...args),
+    },
+    coach: {
+      modifyWorkout: (...args: unknown[]) => modifyWorkoutMock(...args),
     },
   },
 }));
