@@ -217,7 +217,16 @@ async def list_adaptations(
         )
         rows = await cur.fetchall()
 
-    return [_row_to_out(r) for r in rows]
+    out: list[AdaptationOut] = []
+    for r in rows:
+        try:
+            out.append(_row_to_out(r))
+        except ValidationError:
+            # A row from before diff_json's shape was extended (or any other
+            # malformed row) must not 500 the whole history list — skip it and
+            # log, same protection merge_adaptation already applies per-row.
+            log.exception("adaptation %s has malformed diff_json, skipping", r["id"])
+    return out
 
 
 @router.post("/adaptations/{adaptation_id}/merge", response_model=AdaptationOut)
@@ -268,6 +277,23 @@ async def merge_adaptation(
             ) from None
 
         plan_id = str(updated["plan_id"])
+
+        # Re-validate every diffed session is still prescribed, scoped to this plan,
+        # at merge time — not just when the proposal was generated. A session can be
+        # completed (or, in principle, moved) between propose and merge; applying a
+        # stale patch to a no-longer-prescribed session would delete/replace items
+        # under a session the athlete has already logged real results against
+        # (planned_items.id ON DELETE SET NULL on results.planned_item_id).
+        prescribed = await _load_prescribed_sessions(plan_id, str(user.user_id), db)
+        prescribed_ids = {str(s["id"]) for s in prescribed}
+        for session_diff in merged_out.diff_json:
+            if session_diff.session_id not in prescribed_ids:
+                raise HTTPException(
+                    status_code=409,
+                    detail="This plan changed since this suggestion was generated — "
+                    "re-check for changes",
+                )
+
         for session_diff in merged_out.diff_json:
             patch = _diff_to_session_patch(session_diff)
             await _apply_session_patch(patch, plan_id, str(user.user_id), db)

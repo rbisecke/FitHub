@@ -300,8 +300,14 @@ async def _apply_session_patch(
             )
         if patch.modified_items:
             await cur.execute(
-                "DELETE FROM planned_items WHERE session_id = %s::uuid AND user_id = %s::uuid",
-                [patch.session_id, user_id],
+                """
+                DELETE FROM planned_items
+                WHERE session_id = %s::uuid AND user_id = %s::uuid
+                  AND session_id IN (
+                      SELECT id FROM planned_sessions WHERE plan_id = %s::uuid
+                  )
+                """,
+                [patch.session_id, user_id, plan_id],
             )
             item_rows = [
                 (

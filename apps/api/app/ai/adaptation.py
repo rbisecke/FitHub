@@ -196,6 +196,17 @@ def _build_item_changes(
 
     old_by_id = {str(it["id"]): it for it in old_items if it.get("id")}
     matched_old_ids: set[str] = set()
+    changes = _matched_item_changes(new_items, old_by_id, matched_old_ids)
+    changes.extend(_removed_item_changes(old_by_id, matched_old_ids))
+    return changes
+
+
+def _matched_item_changes(
+    new_items: list[PlannedItemPatch],
+    old_by_id: dict[str, dict[str, object]],
+    matched_old_ids: set[str],
+) -> list[AdaptationItemChange]:
+    """Diff each proposed new item against its matching old item, if any."""
     changes: list[AdaptationItemChange] = []
 
     for new_item in new_items:
@@ -241,6 +252,15 @@ def _build_item_changes(
                 removed=False,
             )
         )
+    return changes
+
+
+def _removed_item_changes(
+    old_by_id: dict[str, dict[str, object]],
+    matched_old_ids: set[str],
+) -> list[AdaptationItemChange]:
+    """Any old item never claimed by a new item is a removal (full-replace semantics)."""
+    changes: list[AdaptationItemChange] = []
 
     for old_id, old_item in old_by_id.items():
         if old_id in matched_old_ids:
