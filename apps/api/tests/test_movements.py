@@ -465,6 +465,58 @@ async def test_last_result_user_scoped(alice_client: AsyncClient, bob_client: As
     assert r.status_code == 404
 
 
+@pytest.mark.asyncio
+async def test_personal_records_batch_user_scoped(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    uid = uuid.uuid4().hex[:8]
+    mv = await alice_client.post("/api/v1/movements", json=_movement_payload(uid))
+    assert mv.status_code == 201
+    movement_id = mv.json()["id"]
+
+    w = await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2026-06-01T08:00:00Z",
+            "results": [
+                {"movement_id": movement_id, "result_type": "weight", "load_kg": "90.0", "reps": 5}
+            ],
+        },
+    )
+    assert w.status_code == 201
+
+    # Bob has no history for this movement — the batch route must return an
+    # empty list for it, never Alice's PR.
+    r = await bob_client.get(f"/api/v1/movements/personal-records?ids={movement_id}")
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+@pytest.mark.asyncio
+async def test_personal_record_singular_user_scoped(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    uid = uuid.uuid4().hex[:8]
+    mv = await alice_client.post("/api/v1/movements", json=_movement_payload(uid))
+    assert mv.status_code == 201
+    movement_id = mv.json()["id"]
+
+    w = await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2026-06-01T08:00:00Z",
+            "results": [
+                {"movement_id": movement_id, "result_type": "weight", "load_kg": "90.0", "reps": 5}
+            ],
+        },
+    )
+    assert w.status_code == 201
+
+    r = await bob_client.get(f"/api/v1/movements/{movement_id}/personal-record")
+    assert r.status_code == 200
+    assert r.json() is None
+
+
 # ── /api/v1/movements/{movement_id}/skill-context (BG-27) ─────────────────────
 
 

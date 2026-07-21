@@ -305,6 +305,56 @@ async def test_prs_requires_auth(anon_client: AsyncClient) -> None:
     assert r.status_code == 401
 
 
+@pytest.mark.asyncio
+async def test_prs_user_scoped(alice_client: AsyncClient, bob_client: AsyncClient) -> None:
+    """Bob must never see Alice's PRs, even for a movement Alice created."""
+    movement_id = await _create_movement(alice_client, "Scoped PR Isolation Test")
+    result = {**_SQUAT_RESULT, "movement_id": movement_id}
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": "2024-01-10T12:00:00Z", "results": [result]},
+    )
+
+    r = await bob_client.get("/api/v1/analytics/personal-records")
+    assert r.status_code == 200
+    assert all(p["movement_name"] != "Scoped PR Isolation Test" for p in r.json())
+
+
+@pytest.mark.asyncio
+async def test_movement_trend_user_scoped(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """Bob querying Alice's movement_id gets his own (empty) trend, not hers."""
+    movement_id = await _create_movement(alice_client, "Scoped Trend Isolation Test")
+    for i, load in enumerate([80.0, 100.0, 110.0]):
+        result = {**_SQUAT_RESULT, "movement_id": movement_id, "load_kg": load}
+        await alice_client.post(
+            "/api/v1/workouts",
+            json={"performed_at": f"2024-0{i + 1}-10T12:00:00Z", "results": [result]},
+        )
+
+    r = await bob_client.get(f"/api/v1/analytics/movement-trend/{movement_id}")
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+@pytest.mark.asyncio
+async def test_movement_history_user_scoped(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """Bob querying Alice's movement_id gets his own (empty) history, not hers."""
+    movement_id = await _create_movement(alice_client, "Scoped History Isolation Test")
+    result = {**_SQUAT_RESULT, "movement_id": movement_id, "load_kg": 100.0}
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": "2024-01-10T12:00:00Z", "results": [result]},
+    )
+
+    r = await bob_client.get(f"/api/v1/analytics/movement-history/{movement_id}")
+    assert r.status_code == 200
+    assert r.json() == []
+
+
 # --- Strength intelligence fields ---
 
 
