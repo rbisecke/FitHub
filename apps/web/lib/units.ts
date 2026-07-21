@@ -123,13 +123,17 @@ export function parseLocalDate(value: string): Date {
   return new Date(y, m - 1, d);
 }
 
+/** Format a `Date`'s own local calendar day as "YYYY-MM-DD" — for a `Date` you already hold (e.g. built from local parts by a week/day-window generator), not for parsing a string (use `parseLocalDate`/`localDateKey` for that). */
+export function formatLocalDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 /** Build a "YYYY-MM-DD" key from a date/date-time string using its local calendar day. */
 export function localDateKey(value: string): string {
-  const dt = parseLocalDate(value);
-  const y = dt.getFullYear();
-  const m = String(dt.getMonth() + 1).padStart(2, "0");
-  const d = String(dt.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  return formatLocalDate(parseLocalDate(value));
 }
 
 // ---------------------------------------------------------------------------
