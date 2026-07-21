@@ -96,6 +96,12 @@ export function TrainingBalanceBars({ data }: Props) {
         {sorted.map((b) => {
           const pct = Math.round(b.volume_pct * 100);
           const barWidthPct = maxPct > 0 ? (b.volume_pct / maxPct) * 100 : 0;
+          // A category can legitimately have zero tagged volume THIS period
+          // while others in the same breakdown are nonzero (unlike the
+          // all-zero empty state above, handled by isZeroLoadBreakdown).
+          // Label it explicitly rather than a bare "0%", which otherwise
+          // reads identically to an untracked/no-data category.
+          const isZeroThisCategory = b.load_au === 0;
           return (
             <li key={b.category} className="flex flex-col gap-1">
               <div className="flex items-baseline justify-between">
@@ -103,7 +109,11 @@ export function TrainingBalanceBars({ data }: Props) {
                   {categoryLabel(b.category)}
                 </span>
                 <span className="font-mono text-xs tabular-nums text-[var(--muted)]">
-                  {pct}% · {Math.round(b.load_au).toLocaleString()} kg·reps
+                  {isZeroThisCategory
+                    ? "no volume this period"
+                    : `${pct}% · ${Math.round(
+                        b.load_au,
+                      ).toLocaleString()} kg·reps`}
                 </span>
               </div>
               <div

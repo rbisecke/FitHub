@@ -18,6 +18,18 @@ interface ContributorRowProps {
   present: boolean;
   subScore: number | null;
   rawLabel: string | null;
+  /**
+   * "unidirectional" (default): a plain 0-to-1 fill bar (ACWR, Sleep) — 0 is
+   * "worst," 1 is "best," so an empty-looking track only ever means "low."
+   * "diverging": a center-zero bar (TSB only) — 0.5 is neutral, fill grows
+   * outward from center toward whichever side the value sits on. Without
+   * this distinction TSB's own sub-score (which sits AT 0.5 → an empty
+   * unidirectional bar) reads identically to a genuinely absent "no data"
+   * row for a different contributor, even on a real, strongly negative TSB
+   * day (04 UI critique finding: "Form/TSB row visually indistinguishable
+   * from no-data").
+   */
+  variant?: "unidirectional" | "diverging";
 }
 
 function ContributorRow({
@@ -25,12 +37,21 @@ function ContributorRow({
   present,
   subScore,
   rawLabel,
+  variant = "unidirectional",
 }: ContributorRowProps) {
   // `subScore` is expected pre-clamped to [0, 1] by the caller — sleep's
   // sub-score is deliberately unclamped upstream (readiness-copy.ts), so
   // callers clamp once before passing it in here rather than this component
   // re-clamping on top of that.
   const pct = subScore != null ? subScore * 100 : 0;
+  const deviation = subScore != null ? subScore - 0.5 : 0;
+  const isNegative = deviation < 0;
+  // Amber for negative TSB, not red: a negative TSB during a training block
+  // is normal, non-alarming (functional doc's own framing) — red stays
+  // reserved for genuine danger states elsewhere in the domain (ACWR
+  // overreaching, the readiness arc's `fatigued` color).
+  const divergingColor = isNegative ? "var(--amber)" : "var(--green)";
+
   return (
     <li className="flex flex-col gap-1 py-2">
       <div className="flex items-baseline justify-between">
@@ -39,18 +60,41 @@ function ContributorRow({
           {present ? rawLabel : "no data"}
         </span>
       </div>
-      <div
-        className="h-1.5 w-full overflow-hidden rounded-full"
-        style={{ background: "var(--border)" }}
-        aria-hidden="true"
-      >
-        {present && (
+      {variant === "diverging" ? (
+        <div
+          className="relative h-1.5 w-full overflow-hidden rounded-full"
+          style={{ background: "var(--border)" }}
+          aria-hidden="true"
+        >
           <div
-            className="h-full rounded-full"
-            style={{ width: `${pct}%`, background: "var(--accent)" }}
+            className="absolute top-0 h-full w-px"
+            style={{ left: "50%", background: "var(--muted)" }}
           />
-        )}
-      </div>
+          {present && (
+            <div
+              className="absolute top-0 h-full rounded-full"
+              style={{
+                left: isNegative ? `${50 - Math.abs(deviation) * 100}%` : "50%",
+                width: `${Math.abs(deviation) * 100}%`,
+                background: divergingColor,
+              }}
+            />
+          )}
+        </div>
+      ) : (
+        <div
+          className="h-1.5 w-full overflow-hidden rounded-full"
+          style={{ background: "var(--border)" }}
+          aria-hidden="true"
+        >
+          {present && (
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${pct}%`, background: "var(--accent)" }}
+            />
+          )}
+        </div>
+      )}
     </li>
   );
 }
@@ -130,6 +174,7 @@ export function ReadinessExpanded({ data }: Props) {
             // by construction rather than as two independently-tracked
             // conditions.
             rawLabel={tsbSubScore != null ? data.tsb.toFixed(1) : null}
+            variant="diverging"
           />
           <ContributorRow
             label="Sleep (1–7 scale)"

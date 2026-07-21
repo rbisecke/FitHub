@@ -56,7 +56,7 @@ export function ReadinessDetailScreen({ accessToken }: Props) {
     <div className="mx-auto flex max-w-2xl flex-col gap-4 px-5 py-6">
       <Link
         href="/today"
-        className="font-mono text-sm text-[var(--muted)] hover:text-[var(--text)]"
+        className="-ml-2 flex min-h-11 w-fit items-center py-3 pr-3 pl-2 font-mono text-sm text-[var(--muted)] hover:text-[var(--text)]"
       >
         ← Back
       </Link>
@@ -94,7 +94,10 @@ export function ReadinessDetailScreen({ accessToken }: Props) {
 
       {data && (
         <>
-          <div className="flex flex-col gap-1">
+          {/* Centered, matching the resting-view arc's alignment (04 §Screen
+              5B) so the tap-to-expand transition reveals more content in
+              place rather than reflowing the score/verdict block itself. */}
+          <div className="flex flex-col items-center gap-1 text-center">
             <p className="font-mono text-[11px] tracking-[0.5px] text-[var(--muted)] uppercase">
               Readiness
             </p>

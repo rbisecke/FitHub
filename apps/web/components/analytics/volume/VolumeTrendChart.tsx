@@ -13,6 +13,8 @@ const HEIGHT = 220;
 const PAD_LEFT = 36;
 const PAD_BOTTOM = 24;
 const PAD_TOP = 12;
+/** Height of the hollow dashed "gap week" placeholder — deliberately taller than the 2px real-recorded-zero sliver so the two never read as the same thing at a glance. */
+const GAP_MARKER_HEIGHT = 14;
 
 // "all" intentionally reuses --accent with "skill" and "deload" — it never
 // co-occurs with per-type colors (the stacked chart always filters "all" out
@@ -99,10 +101,32 @@ export function VolumeTrendChart(props: Props) {
 
   return (
     <div className="w-full">
+      {/* Stacked view encodes session type as color — never color-alone
+          (accessibility, CLAUDE.md): a swatch+label legend makes the mapping
+          explicit for sighted users too, not just the sr-only table below. */}
+      {props.stacked && (
+        <div
+          className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1"
+          aria-hidden="true"
+        >
+          {props.views.map((v) => (
+            <span
+              key={v}
+              className="flex items-center gap-1.5 font-mono text-[10px] text-[var(--muted)]"
+            >
+              <span
+                className="inline-block h-2 w-2 rounded-full"
+                style={{ background: VIEW_COLOR[v] }}
+              />
+              {SESSION_TYPE_LABEL[v]}
+            </span>
+          ))}
+        </div>
+      )}
       <svg
         viewBox={`0 0 ${width} ${HEIGHT}`}
         aria-hidden="true"
-        className="w-full"
+        className="w-full font-mono"
         style={{ maxHeight: HEIGHT }}
       >
         {/* gridlines */}
@@ -135,18 +159,22 @@ export function VolumeTrendChart(props: Props) {
           props.bars.map((bar) => {
             const bx = x.scale(bar.weekStart);
             if (bar.value == null) {
-              // Gap: a hatched placeholder at the baseline, distinct from a
-              // real zero (04 §Screen 7 States, cross-screen edge case #6).
+              // Gap: a hollow dashed placeholder, distinct from a real zero
+              // (04 §Screen 7 States, cross-screen edge case #6). Deliberately
+              // taller than the 2px real-zero sliver below so it reads as "no
+              // data here" rather than disappearing at the baseline.
               return (
                 <rect
                   key={bar.weekStart}
                   x={bx}
-                  y={HEIGHT - PAD_BOTTOM - 3}
+                  y={HEIGHT - PAD_BOTTOM - GAP_MARKER_HEIGHT}
                   width={bandwidth}
-                  height={3}
+                  height={GAP_MARKER_HEIGHT}
+                  rx={2}
                   fill="none"
-                  stroke="var(--border)"
-                  strokeDasharray="2 2"
+                  stroke="var(--muted)"
+                  strokeWidth={1.5}
+                  strokeDasharray="3 3"
                 />
               );
             }
@@ -172,17 +200,20 @@ export function VolumeTrendChart(props: Props) {
             const bx = x.scale(bar.weekStart);
             if (!bar.segments) {
               // True gap: no rows at all this week (04 §Screen 7 States,
-              // cross-screen edge case #6).
+              // cross-screen edge case #6). Same taller hollow-dashed
+              // treatment as the non-stacked path, for the same reason.
               return (
                 <rect
                   key={bar.weekStart}
                   x={bx}
-                  y={HEIGHT - PAD_BOTTOM - 3}
+                  y={HEIGHT - PAD_BOTTOM - GAP_MARKER_HEIGHT}
                   width={bandwidth}
-                  height={3}
+                  height={GAP_MARKER_HEIGHT}
+                  rx={2}
                   fill="none"
-                  stroke="var(--border)"
-                  strokeDasharray="2 2"
+                  stroke="var(--muted)"
+                  strokeWidth={1.5}
+                  strokeDasharray="3 3"
                 />
               );
             }
