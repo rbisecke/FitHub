@@ -55,9 +55,30 @@ export function VariantB({
   const nowPct = scale(current);
   const nextPct = hasProjection ? scale(record.next_pr_kg!) : null;
 
+  // The spec's crowding thresholds only cover the now-vs-best pair, but a
+  // near-term projection (a small milestone just above peak) can land just
+  // as close to the (possibly-already-collapsed) now/best cluster, causing
+  // its label to overlap theirs. Apply the same 5kg stacking threshold to
+  // whichever of now/best the projection is nearest to, offsetting the
+  // projection's label onto its own row rather than overlapping.
+  const gapNextToNearest = hasProjection
+    ? Math.min(
+        Math.abs(record.next_pr_kg! - record.best_1rm_kg),
+        Math.abs(record.next_pr_kg! - current),
+      )
+    : Infinity;
+  const stackNext = hasProjection && gapNextToNearest <= 5;
+  // Reserve extra vertical room for the deepest stacked row actually in use
+  // (0 = no stacking, 1 = one extra row, 2 = the projection stacked below an
+  // already-stacked now/best pair) so a deeply-stacked label never clips.
+  const maxStackRow = stackNext ? (stackLabels ? 2 : 1) : stackLabels ? 1 : 0;
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative h-16 pt-6">
+      <div
+        className="relative pt-6"
+        style={{ height: `${64 + maxStackRow * 26}px` }}
+      >
         <div
           className="absolute inset-x-0 top-8 h-1 rounded-full"
           style={{ background: "var(--border)" }}
@@ -67,7 +88,7 @@ export function VariantB({
           <Marker
             pct={(bestPct + nowPct) / 2}
             fill="var(--purple)"
-            label="at your best (current ≈ best)"
+            label="at your best"
             value={formatWeight(record.best_1rm_kg, unit)}
           />
         ) : (
@@ -101,6 +122,8 @@ export function VariantB({
                 staleProjection ? " · stale" : ""
               }`}
               value={formatWeight(record.next_pr_kg!, unit)}
+              stacked={stackNext}
+              stackRow={stackLabels ? 2 : 1}
             />
           </div>
         )}
@@ -146,7 +169,7 @@ function Marker({
   label: string;
   value: string;
   stacked?: boolean;
-  stackRow?: 0 | 1;
+  stackRow?: number;
 }) {
   return (
     <div
@@ -163,7 +186,9 @@ function Marker({
       />
       <div
         className="mt-1 flex flex-col items-center whitespace-nowrap"
-        style={stacked && stackRow === 1 ? { marginTop: "14px" } : undefined}
+        style={
+          stacked && stackRow ? { marginTop: `${stackRow * 26}px` } : undefined
+        }
       >
         <span
           className="font-mono text-[11px] font-semibold tabular-nums"
