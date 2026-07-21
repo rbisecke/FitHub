@@ -68,7 +68,7 @@ def _row_to_out(r: dict[str, object]) -> AdaptationOut:
         status=cast(Literal["proposed", "merged", "rejected", "superseded"], r["status"]),
         rationale=str(r["rationale"]) if r["rationale"] else None,
         rejection_reason=str(r["rejection_reason"]) if r.get("rejection_reason") else None,
-        diff_json=cast(list[object], r["diff_json"]) if r["diff_json"] else [],
+        diff_json=cast(list[AdaptationSessionDiff], r["diff_json"]) if r["diff_json"] else [],
         stub=bool(r["stub"]),
         proposed_at=cast(datetime | None, r["proposed_at"]),
         merged_at=cast(datetime | None, r["merged_at"]),
