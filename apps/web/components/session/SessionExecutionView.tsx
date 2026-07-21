@@ -23,12 +23,15 @@ import type {
   PlanDetail,
   CompleteSessionRequest,
   LoggedSetPayload,
+  ModifyWorkoutResponse,
 } from "@/lib/api/plans";
 import type { Movement } from "@/lib/api";
 import { api } from "@/lib/api/client";
 import { ExerciseCard } from "./ExerciseCard";
 import { RestTimer } from "./RestTimer";
 import { ExerciseSwapSheet } from "./ExerciseSwapSheet";
+import { ContraindicationBadge } from "@/components/injuries/ContraindicationBadge";
+import { ReferralPausePanel } from "@/components/injuries/ReferralPausePanel";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -124,7 +127,13 @@ type Action =
       substituteMovementName: string;
     }
   | { type: "SET_LOAD_MAP"; map: Map<string, number> }
-  | { type: "SET_SUBSTITUTE_ERROR"; message: string | null };
+  | { type: "SET_SUBSTITUTE_ERROR"; message: string | null }
+  | {
+      type: "APPLY_INJURY_SWAP";
+      originalItemId: string;
+      substituteMovementId: string;
+      substituteMovementName: string;
+    };
 
 // afterRest: whether rest completes should advance exercise (true) or advance set (false)
 // We track this by storing nextExerciseIndex / nextSetIndex after LOG_SET.
@@ -260,6 +269,22 @@ function reducer(state: ExecutionState, action: Action): ExecutionState {
 
     case "SET_SUBSTITUTE_ERROR":
       return { ...state, substituteError: action.message };
+
+    // An injury-driven swap-in from the idle preview list (05 §5.1) — unlike
+    // CONFIRM_SWAP (which resolves the "swapping" bottom sheet opened mid-
+    // exercise), this must not change `phase`: it's applied before the
+    // session has even begun, so it stays on the idle screen.
+    case "APPLY_INJURY_SWAP":
+      return {
+        ...state,
+        swappedExercises: {
+          ...state.swappedExercises,
+          [action.originalItemId]: {
+            movementId: action.substituteMovementId,
+            movementName: action.substituteMovementName,
+          },
+        },
+      };
 
     default:
       return state;
@@ -399,6 +424,90 @@ export function SessionExecutionView({
     }
     dispatch({ type: "SET_LOAD_MAP", map });
   }, [session.items]);
+
+  // Passive contraindication check (05 §5.1) — computed live against the
+  // athlete's active injuries on every load, scoped to this session's real
+  // prescribed movements (not affected by any not-yet-applied client-side
+  // swap). Renders as a beat-later shimmer on the idle preview list, never a
+  // full-screen spinner gating the workout (05 §5.1's stated loading state);
+  // a failure fails open — the session still renders, safety checks just
+  // silently don't run, since there is no hard training-stop from this check
+  // failing (05 §5.1's stated error state).
+  const [injuryMods, setInjuryMods] = useState<ModifyWorkoutResponse | null>(
+    null,
+  );
+  const [injurySwapError, setInjurySwapError] = useState<string | null>(null);
+  const [injurySwapPending, setInjurySwapPending] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let cancelled = false;
+    api.coach
+      .modifyWorkout(accessToken, session.id, { signal: controller.signal })
+      .then((data) => {
+        if (!cancelled) setInjuryMods(data);
+      })
+      .catch(() => {
+        if (!cancelled && !controller.signal.aborted) setInjuryMods(null);
+      });
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [session.id, accessToken]);
+
+  const injuryModByMovement = useMemo(() => {
+    const map = new Map<
+      string,
+      { drivenBy: string[]; substitutions: string[] }
+    >();
+    for (const mod of injuryMods?.modifications ?? []) {
+      map.set(mod.original_movement, {
+        drivenBy: mod.driven_by,
+        substitutions: mod.substitutions,
+      });
+    }
+    return map;
+  }, [injuryMods]);
+  const anyReferralRequired = injuryMods?.any_referral_required ?? false;
+
+  // Resolves a curated injury-substitute movement NAME (from the reveal
+  // sheet's "swap in" action) to a real movements.id, then applies it via the
+  // same swappedExercises entry the mid-workout swap sheet writes — reusing
+  // Fix #1's catalog-lookup pattern above rather than a second mechanism.
+  const handleInjurySwap = useCallback(
+    async (itemId: string, substituteMovementName: string) => {
+      if (injurySwapPending) return; // guard against a rapid double-tap racing two lookups
+      setInjurySwapError(null);
+      setInjurySwapPending(true);
+      try {
+        const results = await api.movements.search(accessToken, {
+          q: substituteMovementName,
+          limit: 20,
+        });
+        const match = findExactMovementMatch(results, substituteMovementName);
+        if (!match) {
+          setInjurySwapError(
+            `Couldn't find "${substituteMovementName}" in the movement catalog — swap unavailable.`,
+          );
+          return;
+        }
+        dispatch({
+          type: "APPLY_INJURY_SWAP",
+          originalItemId: itemId,
+          substituteMovementId: match.id,
+          substituteMovementName: match.name,
+        });
+      } catch {
+        setInjurySwapError(
+          "Couldn't apply that swap — check your connection and try again.",
+        );
+      } finally {
+        setInjurySwapPending(false);
+      }
+    },
+    [accessToken, injurySwapPending],
+  );
 
   // Handlers
   const handleBegin = useCallback(() => {
@@ -685,31 +794,78 @@ export function SessionExecutionView({
                 </p>
               </div>
 
+              {/* Passive contraindication check (05 §5.1) — session-wide
+                  referral pause, if any active injury requires professional
+                  clearance. Persistent, not dismissible to clean, but still
+                  just a status panel on a screen the athlete opened. */}
+              {anyReferralRequired && (
+                <div className="w-full max-w-[320px]">
+                  <ReferralPausePanel
+                    regions={injuryMods?.referral_regions ?? []}
+                  />
+                </div>
+              )}
+
               <button
                 onClick={handleBegin}
-                className="min-h-[56px] w-full max-w-[320px] rounded-2xl bg-[var(--accent)] font-sans text-[16px] font-semibold text-[var(--bg)] transition-opacity hover:opacity-90"
+                disabled={anyReferralRequired}
+                aria-disabled={anyReferralRequired}
+                className="min-h-[56px] w-full max-w-[320px] rounded-2xl font-sans text-[16px] font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed"
+                style={
+                  anyReferralRequired
+                    ? {
+                        // A washed-out (opacity-reduced) accent blue reads
+                        // as "still clickable, just waiting," and its white
+                        // text drops well under WCAG AA against it — use a
+                        // conventional muted-disabled treatment instead
+                        // (var(--text) on var(--border) measures ~10.9:1).
+                        background: "var(--border)",
+                        color: "var(--text)",
+                      }
+                    : { background: "var(--accent)", color: "var(--bg)" }
+                }
               >
-                begin session
+                {anyReferralRequired
+                  ? "paused — see a professional"
+                  : "begin session"}
               </button>
 
-              {/* Preview list */}
+              {/* Preview list — each row doubles as the passive
+                  contraindication badge (05 §5.1) once a swap is applied
+                  through the reveal sheet, the swapped-in movement is what
+                  actually gets exercised (same swappedExercises entry the
+                  mid-workout swap sheet writes). */}
               <div className="w-full max-w-[320px] flex flex-col gap-2">
-                {session.items.map((item, idx) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
-                  >
-                    <span className="font-data tabular-nums text-[13px] text-[var(--muted)] w-5 text-right shrink-0">
-                      {idx + 1}
-                    </span>
-                    <span className="font-sans text-[13px] text-[var(--text)] flex-1 truncate">
-                      {item.movement_name}
-                    </span>
-                    <span className="font-data tabular-nums text-[12px] text-[var(--muted)] shrink-0">
-                      {item.sets ?? 1}×{item.reps ?? "?"}
-                    </span>
-                  </div>
-                ))}
+                {session.items.map((item, idx) => {
+                  const swap = state.swappedExercises[item.id];
+                  const effectiveName =
+                    swap?.movementName ?? item.movement_name;
+                  // A swapped-in movement is a curated-safe substitute by
+                  // construction — don't re-check it against the original
+                  // contraindication data, which is keyed by the prescribed
+                  // (pre-swap) movement name.
+                  const mod = swap
+                    ? undefined
+                    : injuryModByMovement.get(item.movement_name);
+                  return (
+                    <ContraindicationBadge
+                      key={item.id}
+                      movementName={effectiveName}
+                      flagged={Boolean(mod)}
+                      drivenBy={mod?.drivenBy ?? []}
+                      substitutions={mod?.substitutions ?? []}
+                      sessionBlocked={anyReferralRequired}
+                      onSwap={(sub) => void handleInjurySwap(item.id, sub)}
+                      swapPending={injurySwapPending}
+                      swapError={injurySwapError}
+                      trailing={
+                        <span className="font-data tabular-nums text-[12px] text-[var(--muted)] shrink-0">
+                          {idx + 1}. {item.sets ?? 1}×{item.reps ?? "?"}
+                        </span>
+                      }
+                    />
+                  );
+                })}
               </div>
             </motion.div>
           )}
@@ -733,6 +889,9 @@ export function SessionExecutionView({
                 onSwap={handleOpenSwap}
                 onSkip={handleSkipExercise}
                 swapDisabled={resolvingSwap}
+                substitutedFrom={
+                  activeSwap ? baseItem?.movement_name : undefined
+                }
               />
               {state.substituteError && (
                 <p

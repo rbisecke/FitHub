@@ -463,18 +463,14 @@ test.describe.serial("Session execution", () => {
       page.getByRole("button", { name: /begin session/i }),
     ).toBeVisible({ timeout: 10_000 });
 
-    // At least one exercise preview row is visible (the preview list below the CTA).
-    const previewItems = page.locator("main").getByRole("listitem").first();
-    // The preview is built with divs, not list items, so use a text that includes
-    // movement names — just verify the page has exercise text.
-    const exerciseText = page
-      .locator("main")
-      .locator(".rounded-xl.border")
-      .first();
-    await expect(exerciseText).toBeVisible({ timeout: 5_000 });
-
-    // Suppress unused variable warning.
-    void previewItems;
+    // At least one exercise preview row is visible (the preview list below
+    // the CTA) — each row is a ContraindicationBadge (05 §5.1's passive
+    // contraindication check), so assert on its visible movement-name text
+    // rather than a specific row-wrapper CSS class, which is that
+    // component's own styling concern, not this test's.
+    await expect(page.getByText("Back Squat", { exact: false })).toBeVisible({
+      timeout: 5_000,
+    });
   });
 
   // ── 2. Log a set ─────────────────────────────────────────────────────────

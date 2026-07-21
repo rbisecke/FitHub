@@ -218,6 +218,32 @@ async def test_modify_workout_referral_injury_flagged(alice_client: AsyncClient)
 
 
 @pytest.mark.asyncio
+async def test_modify_workout_matches_hyphenated_movement_name(
+    alice_client: AsyncClient,
+) -> None:
+    """Catalog movement names use hyphens as a word separator (e.g. "Pull-up"),
+    but CONTRAINDICATIONS/SUBSTITUTES keys are plain snake_case ("pull_up") —
+    the key normalization must convert both spaces AND hyphens to underscores,
+    or a hyphenated movement silently never matches its real contraindications."""
+    await alice_client.post(
+        "/api/v1/injuries",
+        json={"body_region": "shoulder", "pain_level": 5},
+    )
+    _, session_id = await _create_session_with_items(alice_client, ["Pull-up"])
+    r = await alice_client.post(
+        "/api/v1/coach/modify-workout",
+        json={"session_id": session_id},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    blocked = {m["original_movement"] for m in data["modifications"]}
+    assert "Pull-up" in blocked, "hyphenated movement name must still match its contraindication"
+    pullup_mod = next(m for m in data["modifications"] if m["original_movement"] == "Pull-up")
+    assert "shoulder" in pullup_mod["driven_by"]
+    assert len(pullup_mod["substitutions"]) > 0
+
+
+@pytest.mark.asyncio
 async def test_modify_workout_driven_by_lists_regions(alice_client: AsyncClient) -> None:
     # Two injuries both blocking deadlift (hamstring + lower_back)
     await alice_client.post(
