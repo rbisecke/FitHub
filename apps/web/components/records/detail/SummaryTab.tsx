@@ -19,9 +19,9 @@ const VARIANT_LABEL: Record<SummaryVariant, string> = {
 
 /**
  * Summary tab (design-spec 04 Screen 2A-2C) — the three-value composition.
- * Open Decision #6 is "build all, do not pick one": a dev-facing variant
- * switcher makes all three reachable from one screen for comparison, rather
- * than shipping only whichever was built last.
+ * Open Decision #6 is "build all, do not pick one": a permanent, user-facing
+ * variant switcher makes all three reachable from one screen, rather than
+ * shipping only whichever was built last.
  */
 export function SummaryTab({
   record,
@@ -43,7 +43,7 @@ export function SummaryTab({
     <div className="flex flex-col gap-4">
       <div
         role="group"
-        aria-label="Composition variant (dev preview)"
+        aria-label="Display style"
         className="flex w-fit gap-1 rounded-[8px] border border-[var(--border)] bg-[var(--card)] p-1"
       >
         {(["a", "b", "c"] as const).map((v) => (

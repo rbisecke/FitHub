@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { SrOnlyDataTable } from "@/components/analytics/SrOnlyDataTable";
+import { ChartDataTable } from "@/components/shared/chart-data-table";
 import { parseLocalDate } from "@/lib/units";
 import { formatWeight } from "@/lib/display";
 import type { WeightUnit } from "@/lib/records/prFormat";
@@ -307,17 +307,13 @@ export function MovementTrendChart({
         </div>
       )}
 
-      <SrOnlyDataTable
+      <ChartDataTable
         caption={`Estimated 1-rep-max history for ${record.movement_name}`}
-        rowKey={(p: E1RMPoint) => p.day}
-        columns={[
-          { header: "Date", cell: (p: E1RMPoint) => fmtFullDate(p.day) },
-          {
-            header: "Estimated 1RM",
-            cell: (p: E1RMPoint) => formatWeight(p.estimated_1rm_kg, unit),
-          },
-        ]}
-        rows={sorted}
+        columns={["Date", "Estimated 1RM"]}
+        rows={sorted.map((p: E1RMPoint) => [
+          fmtFullDate(p.day),
+          formatWeight(p.estimated_1rm_kg, unit),
+        ])}
       />
     </div>
   );
