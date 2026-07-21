@@ -53,7 +53,14 @@ async def _flag_prs(
     user_id: uuid.UUID,
     workout_id: uuid.UUID,
 ) -> None:
-    """Set is_pr = true on results in this workout that beat the user's prior best e1RM."""
+    """Set is_pr = true on results in this workout that beat the user's prior best e1RM.
+
+    Scoped per (movement, implement, side) variant (04 §2A, BG-23): a barbell
+    PR and a dumbbell PR are different achievements, so a heavier dumbbell
+    history must never suppress a fresh barbell PR (or vice versa). Both
+    columns are nullable, so the comparison uses ``IS NOT DISTINCT FROM``
+    rather than ``=`` — a NULL implement/side must match itself.
+    """
     await cur.execute(
         """
         UPDATE public.results AS r
@@ -68,6 +75,8 @@ async def _flag_prs(
                    FROM   public.results r2
                    WHERE  r2.user_id     = r.user_id
                      AND  r2.movement_id = r.movement_id
+                     AND  r2.implement IS NOT DISTINCT FROM r.implement
+                     AND  r2.side      IS NOT DISTINCT FROM r.side
                      AND  r2.workout_id != %s
                ),
                0

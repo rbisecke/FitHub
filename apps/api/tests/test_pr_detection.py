@@ -173,6 +173,90 @@ async def test_multiple_sets_same_workout_only_pr_beating_history(
 
 
 @pytest.mark.asyncio
+async def test_sub_variant_pr_flagged_despite_heavier_other_implement(
+    alice_client: AsyncClient,
+) -> None:
+    """A dumbbell PR must be flagged even though a heavier barbell result exists (04 §2A, BG-23).
+
+    Without variant scoping, ``_flag_prs`` compared only movement_id, so the
+    dumbbell result's e1RM would be measured against the barbell result's
+    much higher e1RM and never get flagged — even though it's this user's
+    first-ever dumbbell result for the movement.
+    """
+    m = await _create_movement(alice_client, "Bench Variant B2")
+
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2024-01-01T12:00:00Z",
+            "results": [{**_result(m, 100.0, 5), "implement": "barbell"}],
+        },
+    )
+
+    r = await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2024-01-10T12:00:00Z",
+            "results": [{**_result(m, 30.0, 5), "implement": "dumbbell"}],
+        },
+    )
+    assert r.status_code == 201
+    assert r.json()["results"][0]["is_pr"] is True
+
+
+@pytest.mark.asyncio
+async def test_sub_variant_pr_flagged_despite_heavier_other_side(
+    alice_client: AsyncClient,
+) -> None:
+    """A right-side PR must be flagged even though a heavier left-side result exists."""
+    m = await _create_movement(alice_client, "Lunge Variant B2")
+
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2024-01-01T12:00:00Z",
+            "results": [{**_result(m, 100.0, 5), "side": "left"}],
+        },
+    )
+
+    r = await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2024-01-10T12:00:00Z",
+            "results": [{**_result(m, 30.0, 5), "side": "right"}],
+        },
+    )
+    assert r.status_code == 201
+    assert r.json()["results"][0]["is_pr"] is True
+
+
+@pytest.mark.asyncio
+async def test_same_variant_still_suppressed_by_own_history(
+    alice_client: AsyncClient,
+) -> None:
+    """Variant scoping must not weaken same-variant PR suppression (regression guard)."""
+    m = await _create_movement(alice_client, "Front Squat Variant B2")
+
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2024-01-01T12:00:00Z",
+            "results": [{**_result(m, 100.0, 5), "implement": "barbell"}],
+        },
+    )
+
+    r = await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2024-01-10T12:00:00Z",
+            "results": [{**_result(m, 60.0, 5), "implement": "barbell"}],
+        },
+    )
+    assert r.status_code == 201
+    assert r.json()["results"][0]["is_pr"] is False
+
+
+@pytest.mark.asyncio
 async def test_personal_records_endpoint_returns_extended_fields(
     alice_client: AsyncClient,
 ) -> None:
