@@ -90,7 +90,7 @@ function VariantLine({
         label ? ` (${label})` : ""
       } detail`}
     >
-      {showName && (
+      {showName ? (
         <p
           className="truncate font-sans text-[13px]"
           style={{ color: "var(--text)" }}
@@ -105,6 +105,18 @@ function VariantLine({
             </span>
           )}
         </p>
+      ) : (
+        // Expanded variant rows omit the repeated movement name (the card
+        // header already shows it) but must still show which variant this
+        // row is — otherwise every row in the expanded list looks identical.
+        label && (
+          <p
+            className="font-sans text-[11px]"
+            style={{ color: "var(--muted)" }}
+          >
+            {label}
+          </p>
+        )
       )}
       <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <span
