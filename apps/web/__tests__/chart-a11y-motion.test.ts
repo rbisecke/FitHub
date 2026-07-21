@@ -13,26 +13,18 @@ function read(rel: string): string {
   );
 }
 
+// Every other pre-redesign recharts chart this guarded (ACWRChart, ACWRWidget,
+// VolumeChart, StrengthProgressSection, BenchmarkProgressSection,
+// ui/donut-chart) was deleted as confirmed-dead code once Effort 6
+// (Domain 04) replaced their only live route (/analytics).
 const ALL_CHARTS = [
-  "analytics/ACWRChart.tsx",
-  "analytics/ACWRWidget.tsx",
   "analytics/MovementTrendChart.tsx",
-  "analytics/VolumeChart.tsx",
-  "analytics/StrengthProgressSection.tsx",
-  "analytics/BenchmarkProgressSection.tsx",
   "records/PRSparkline.tsx",
   // TimelineView.tsx removed from chart guards — redesigned to plain HTML/SVG rail (no Recharts)
-  "ui/donut-chart.tsx",
 ];
 
 // Value-reading charts (not pure-decorative sparklines) get keyboard a11y.
-const VALUE_CHARTS = [
-  "analytics/ACWRChart.tsx",
-  "analytics/MovementTrendChart.tsx",
-  "analytics/VolumeChart.tsx",
-  "analytics/StrengthProgressSection.tsx",
-  "ui/donut-chart.tsx",
-];
+const VALUE_CHARTS = ["analytics/MovementTrendChart.tsx"];
 
 describe("chart accessibility + motion", () => {
   it("gates animation on every chart (reduced-motion or off)", () => {

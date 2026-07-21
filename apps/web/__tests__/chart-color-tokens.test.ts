@@ -7,16 +7,13 @@ import { describe, it, expect } from "vitest";
 // hardcoded hex, and never a hex --chart-* var wrapped in hsl() (invalid CSS,
 // which silently drops the stroke).
 const CHART_FILES = [
-  "analytics/ACWRChart.tsx",
-  "analytics/ACWRWidget.tsx",
   "analytics/MovementTrendChart.tsx",
-  "analytics/VolumeChart.tsx",
-  "analytics/StrengthProgressSection.tsx",
-  "analytics/BenchmarkProgressSection.tsx",
-  "analytics/TrainingBalanceSection.tsx",
   "records/PRSparkline.tsx",
   // TimelineView.tsx removed from chart guards — redesigned to plain HTML/SVG rail (no Recharts)
-  "ui/donut-chart.tsx",
+  // Every other pre-redesign recharts chart this guarded (ACWRChart, ACWRWidget,
+  // VolumeChart, StrengthProgressSection, BenchmarkProgressSection,
+  // TrainingBalanceSection, ui/donut-chart) was deleted as confirmed-dead code
+  // once Effort 6 (Domain 04) replaced their only live route (/analytics).
 ];
 
 const files = CHART_FILES.map((rel) => ({
