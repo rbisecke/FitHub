@@ -54,6 +54,7 @@ import type {
   CheckWodResponse,
   MovementSubstituteOut,
   CompleteSessionRequest,
+  SkillContextOut,
 } from "./plans";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -243,6 +244,16 @@ export const api = {
         options?.signal ? { signal: options.signal } : undefined,
       );
     },
+    skillContext: (
+      token: string,
+      movementId: string,
+      options?: { signal?: AbortSignal },
+    ) =>
+      apiFetch<SkillContextOut>(
+        `/api/v1/movements/${movementId}/skill-context`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
   },
   routines: {
     list: (token: string, options?: { signal?: AbortSignal }) =>
@@ -585,8 +596,12 @@ export const api = {
   },
   plans: {
     list: (token: string) => apiFetch<PlanSummary[]>("/api/v1/plans", token),
-    get: (token: string, id: string) =>
-      apiFetch<PlanDetail>(`/api/v1/plans/${id}`, token),
+    get: (token: string, id: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<PlanDetail>(
+        `/api/v1/plans/${id}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     create: (
       token: string,
       body: CreatePlanRequest,
@@ -870,6 +885,8 @@ export function createApiClient(token: string) {
         equipment: string[],
         options?: { signal?: AbortSignal },
       ) => api.movements.getSubstitutes(token, movementId, equipment, options),
+      skillContext: (movementId: string, options?: { signal?: AbortSignal }) =>
+        api.movements.skillContext(token, movementId, options),
     },
     analytics: {
       load: (days?: number) => api.analytics.load(token, days),
@@ -895,7 +912,8 @@ export function createApiClient(token: string) {
     },
     plans: {
       list: () => api.plans.list(token),
-      get: (id: string) => api.plans.get(token, id),
+      get: (id: string, options?: { signal?: AbortSignal }) =>
+        api.plans.get(token, id, options),
       create: (
         body: Parameters<typeof api.plans.create>[1],
         options?: { signal?: AbortSignal },

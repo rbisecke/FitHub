@@ -374,7 +374,7 @@ async function gotoExecutePage(
   planId: string,
   sessionId: string,
 ): Promise<void> {
-  const url = `/plans/${planId}/sessions/${sessionId}/execute`;
+  const url = `/plan/${planId}/sessions/${sessionId}/execute`;
   // Use "commit" (fires when the browser starts fetching the page) to avoid
   // timing out on Next.js server-component renders that call notFound()
   // mid-stream. After the initial navigation settles we do a hard reload
@@ -836,7 +836,7 @@ test.describe.serial("Session execution", () => {
     // C4 — tap "push to plan" to persist via the new completion endpoint, and
     // confirm we navigate away (which only happens on a successful response).
     await page.getByRole("button", { name: /push to plan/i }).click();
-    await page.waitForURL(new RegExp(`/plans/${planId}$`), {
+    await page.waitForURL(new RegExp(`/plan/${planId}$`), {
       timeout: 15_000,
     });
 

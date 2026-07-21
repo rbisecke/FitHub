@@ -229,7 +229,7 @@ async function mockMovementsSearch(
  */
 async function gotoWizard(page: Page): Promise<void> {
   // First navigation: let the server render the page.
-  await page.goto("/plans/new", { waitUntil: "domcontentloaded" });
+  await page.goto("/plan/new", { waitUntil: "domcontentloaded" });
 
   // Hard reload to flush any stale Turbopack chunks from the previous test.
   // This is safe to do unconditionally and ensures React event handlers attach.
@@ -340,7 +340,7 @@ test.describe.serial("Plan wizard", () => {
     await commitBtn.click();
 
     // Wait for redirect to the plan detail page.
-    await expect(page).toHaveURL(`/plans/${MOCK_PLAN_ID}`, { timeout: 15_000 });
+    await expect(page).toHaveURL(`/plan/${MOCK_PLAN_ID}`, { timeout: 15_000 });
 
     // Assert the POST body contained the expected fields.
     expect(captured.payload["archetype"]).toBe("general-crossfit");
@@ -413,7 +413,7 @@ test.describe.serial("Plan wizard", () => {
     await expect(commitBtn).toBeEnabled();
     await commitBtn.click();
 
-    await expect(page).toHaveURL(`/plans/${MOCK_PLAN_ID}`, { timeout: 15_000 });
+    await expect(page).toHaveURL(`/plan/${MOCK_PLAN_ID}`, { timeout: 15_000 });
 
     // target_movement_id must be present in the submitted payload.
     expect(captured.payload["archetype"]).toBe("skill-acquisition");
@@ -474,7 +474,7 @@ test.describe.serial("Plan wizard", () => {
     await expect(commitBtn).toBeEnabled();
     await commitBtn.click();
 
-    await expect(page).toHaveURL(`/plans/${MOCK_PLAN_ID}`, { timeout: 15_000 });
+    await expect(page).toHaveURL(`/plan/${MOCK_PLAN_ID}`, { timeout: 15_000 });
 
     expect(captured.payload["archetype"]).toBe("one-rm-peak");
     expect(captured.payload["target_movement_id"]).toBe("mv-snatch-01");
@@ -525,7 +525,7 @@ test.describe.serial("Plan wizard", () => {
     await page.locator('[data-testid="training-age-intermediate"]').click();
     await page.locator('[data-testid="commit-plan-btn"]').click();
 
-    await expect(page).toHaveURL(`/plans/${MOCK_PLAN_ID}`, { timeout: 15_000 });
+    await expect(page).toHaveURL(`/plan/${MOCK_PLAN_ID}`, { timeout: 15_000 });
 
     // Full Gym resolves to 10 tags — all should be present.
     const equipment = captured.payload["equipment"] as string[];
@@ -650,7 +650,7 @@ test.describe.serial("Plan wizard", () => {
     await expect(commitBtn).toBeEnabled();
     await commitBtn.click();
 
-    await expect(page).toHaveURL(`/plans/${MOCK_PLAN_ID}`, { timeout: 15_000 });
+    await expect(page).toHaveURL(`/plan/${MOCK_PLAN_ID}`, { timeout: 15_000 });
 
     // The created plan's title must match the edited value, not the
     // auto-generated "Intermediate CrossFit Program".
@@ -734,7 +734,7 @@ test.describe.serial("Plan wizard", () => {
     await expect(commitBtn).toBeEnabled();
     await commitBtn.click();
 
-    await expect(page).toHaveURL(`/plans/${MOCK_PLAN_ID}`, { timeout: 15_000 });
+    await expect(page).toHaveURL(`/plan/${MOCK_PLAN_ID}`, { timeout: 15_000 });
 
     expect(captured.payload["target_movement_id"]).toBe("mv-clean-01");
     expect(captured.payload["current_1rm_kg"]).toBeUndefined();

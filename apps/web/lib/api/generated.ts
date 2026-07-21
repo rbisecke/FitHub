@@ -769,6 +769,37 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/movements/{movement_id}/skill-context": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Skill Context
+     * @description Return the athlete's real, history-aware prerequisite chain for a target skill.
+     *
+     *     Powers the plan wizard's skill-acquisition ladder preview (design spec §10):
+     *     resolves movement_id -> skill slug -> SKILL_PREREQUISITES chain, then
+     *     determines confirmed_prerequisites/current_entry_point from the caller's own
+     *     last-90-days logged movements (build_user_history_skill is already
+     *     user_id-scoped, so this never leaks another athlete's training history).
+     *
+     *     404 only when movement_id doesn't reference a real movement. When the
+     *     movement is real but has no defined prerequisite chain, this returns 200
+     *     with available=False rather than a 404 — no chain is an expected, common
+     *     state (most movements aren't tracked skills), not an error.
+     */
+    get: operations["get_skill_context_api_v1_movements__movement_id__skill_context_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/profile/search": {
     parameters: {
       query?: never;
@@ -1487,6 +1518,57 @@ export interface components {
       /** Review Note */
       review_note: string | null;
     };
+    /**
+     * AdaptationItemChange
+     * @description One reviewable row in a session's diff: an exercise that's added, removed, or modified.
+     *
+     *     Mirrors PlannedItemPatch's fields, doubled into an old/new pair so the frontend can
+     *     render a GitHub-style red(old)/green(new) row without a second fetch. `old_*` fields
+     *     are all None when this item is newly introduced (a pure "add" row); `new_*` fields are
+     *     all None when the item is being removed (a pure "delete" row) — `removed` disambiguates
+     *     that case from an item whose new state genuinely has every field null.
+     */
+    AdaptationItemChange: {
+      /** Item Id */
+      item_id?: string | null;
+      /** Movement Name */
+      movement_name: string;
+      /**
+       * Item Order
+       * @default 0
+       */
+      item_order: number;
+      /** Old Sets */
+      old_sets?: number | null;
+      /** Old Reps */
+      old_reps?: string | null;
+      /** Old Load Pct 1Rm */
+      old_load_pct_1rm?: number | null;
+      /** Old Load Kg */
+      old_load_kg?: number | null;
+      /** Old Notes */
+      old_notes?: string | null;
+      /** New Sets */
+      new_sets?: number | null;
+      /** New Reps */
+      new_reps?: string | null;
+      /** New Load Pct 1Rm */
+      new_load_pct_1rm?: number | null;
+      /** New Load Kg */
+      new_load_kg?: number | null;
+      /** New Notes */
+      new_notes?: string | null;
+      /**
+       * Changed
+       * @default true
+       */
+      changed: boolean;
+      /**
+       * Removed
+       * @default false
+       */
+      removed: boolean;
+    };
     /** AdaptationOut */
     AdaptationOut: {
       /** Id */
@@ -1503,7 +1585,9 @@ export interface components {
         | "high_acwr"
         | "low_readiness"
         | "missed_session"
-        | "rpe_creep";
+        | "rpe_creep"
+        | "active_injury"
+        | "manual";
       /** Trigger Data */
       trigger_data: {
         [key: string]: unknown;
@@ -1512,13 +1596,13 @@ export interface components {
        * Status
        * @enum {string}
        */
-      status: "proposed" | "merged" | "rejected";
+      status: "proposed" | "merged" | "rejected" | "superseded";
       /** Rationale */
       rationale?: string | null;
       /** Rejection Reason */
       rejection_reason?: string | null;
       /** Diff Json */
-      diff_json?: unknown;
+      diff_json?: components["schemas"]["AdaptationSessionDiff"][];
       /**
        * Stub
        * @default false
@@ -1530,6 +1614,41 @@ export interface components {
       merged_at?: string | null;
       /** Rejected At */
       rejected_at?: string | null;
+    };
+    /**
+     * AdaptationSessionDiff
+     * @description One session's proposed change, with per-item before/after detail.
+     *
+     *     `session_id` is the stable key the frontend uses for "Viewed" checklist state
+     *     and to apply the change at merge time. `load_pct_delta`/`volume_delta_sets` are
+     *     session-level aggregates (derived from item_changes) for the header magnitude bar;
+     *     the per-item detail in item_changes is the source of truth for the diff rows.
+     */
+    AdaptationSessionDiff: {
+      /** Session Id */
+      session_id: string;
+      /** Session Title */
+      session_title: string;
+      /** Scheduled Date */
+      scheduled_date?: string | null;
+      /**
+       * Change
+       * @enum {string}
+       */
+      change:
+        | "reduce_intensity"
+        | "reduce_volume"
+        | "swap_session"
+        | "add_rest"
+        | "skip";
+      /** Load Pct Delta */
+      load_pct_delta?: number | null;
+      /** Volume Delta Sets */
+      volume_delta_sets?: number | null;
+      /** Notes */
+      notes: string;
+      /** Item Changes */
+      item_changes?: components["schemas"]["AdaptationItemChange"][];
     };
     /** AddInviteBody */
     AddInviteBody: {
@@ -3335,6 +3454,28 @@ export interface components {
       /** Movement Ids */
       movement_ids?: string[];
     };
+    /**
+     * SkillContextOut
+     * @description The real, history-aware skill-prerequisite chain for a target movement.
+     *
+     *     `available` is False when the movement has no defined prerequisite chain
+     *     (its slug isn't a SKILL_PREREQUISITES key) — a legitimate, expected state
+     *     for most movements, not an error. In that case every other field is empty/
+     *     null and the frontend renders "No prerequisite ladder for this skill"
+     *     rather than an empty ladder.
+     */
+    SkillContextOut: {
+      /** Available */
+      available: boolean;
+      /** Target Skill */
+      target_skill?: string | null;
+      /** Prerequisite Chain */
+      prerequisite_chain?: string[];
+      /** Confirmed Prerequisites */
+      confirmed_prerequisites?: string[];
+      /** Current Entry Point */
+      current_entry_point?: string | null;
+    };
     /** SubmitAccessRequestResponse */
     SubmitAccessRequestResponse: {
       /**
@@ -5095,6 +5236,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["MovementSubstituteOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_skill_context_api_v1_movements__movement_id__skill_context_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        movement_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SkillContextOut"];
         };
       };
       /** @description Validation Error */

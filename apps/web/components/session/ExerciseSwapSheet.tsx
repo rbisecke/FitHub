@@ -175,8 +175,14 @@ export function ExerciseSwapSheet({
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
+      {/* data-theme="light" is required here, not just at the page level:
+          shadcn's Sheet portals to document.body, which escapes the
+          execute route's ForcedTheme light wrapper — without this the
+          sheet renders in the app's ambient dark theme regardless of the
+          light page around it (02 §7's logging-exception theme). */}
       <SheetContent
         side="bottom"
+        data-theme="light"
         className="bg-[var(--surface)] border-t border-[var(--border)] rounded-t-2xl max-h-[75vh] overflow-y-auto pb-8"
       >
         {/* Drag handle */}
@@ -199,7 +205,7 @@ export function ExerciseSwapSheet({
             Swap {movementName}
           </SheetTitle>
           <p className="font-sans text-[13px] text-[var(--muted)] text-left">
-            Same movement pattern · your equipment
+            Alternatives · same movement pattern
           </p>
         </SheetHeader>
 
@@ -273,34 +279,22 @@ export function ExerciseSwapSheet({
             </div>
           )}
 
-          {/* Substitute cards */}
+          {/* Substitute cards — ordered alphabetically by the backend, not
+              by similarity (functional §9.2 note #8). No "best/closest
+              match" label is shown on the first card: that would claim a
+              ranking the endpoint doesn't actually compute (02 §7.3). */}
           {!loading &&
             !error &&
-            substitutes.map((sub, idx) => (
+            substitutes.map((sub) => (
               <div
                 key={sub.movementId}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 flex items-start gap-3"
               >
                 <div className="flex-1 min-w-0 flex flex-col gap-1">
-                  {/* Name row with optional badge */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-heading text-[15px] text-[var(--text)] leading-tight">
                       {sub.movementName}
                     </p>
-                    {idx === 0 && (
-                      <span
-                        className="font-sans text-[10px] font-semibold px-1.5 py-0.5 rounded border"
-                        style={{
-                          color: "var(--green)",
-                          background:
-                            "color-mix(in srgb, var(--green) 12%, transparent)",
-                          borderColor:
-                            "color-mix(in srgb, var(--green) 30%, transparent)",
-                        }}
-                      >
-                        closest match
-                      </span>
-                    )}
                   </div>
 
                   {/* Movement pattern note */}

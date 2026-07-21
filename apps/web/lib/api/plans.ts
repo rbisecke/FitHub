@@ -33,3 +33,10 @@ export type CompleteSessionRequest =
 export type LoggedSetPayload = NonNullable<
   CompleteSessionRequest["logged_sets"]
 >[number];
+export type AdaptationSessionDiff =
+  components["schemas"]["AdaptationSessionDiff"];
+export type AdaptationItemChange =
+  components["schemas"]["AdaptationItemChange"];
+export type RejectAdaptationRequest =
+  components["schemas"]["RejectAdaptationRequest"];
+export type SkillContextOut = components["schemas"]["SkillContextOut"];

@@ -227,7 +227,12 @@ async def _load_prescribed_sessions(
     user_id: str,
     db: psycopg.AsyncConnection[object],
 ) -> list[dict[str, object]]:
-    """Return prescribed sessions with items for the revision prompt."""
+    """Return prescribed sessions with items for the revision/adaptation prompts.
+
+    Includes load_pct_1rm/load_kg/item notes (not just movement_name/sets/reps)
+    so callers building a before/after diff (adaptation generation) have the
+    full old-side state available without a second query.
+    """
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
             """
@@ -240,6 +245,9 @@ async def _load_prescribed_sessions(
                                'movement_name', pi.movement_name,
                                'sets', pi.sets,
                                'reps', pi.reps,
+                               'load_pct_1rm', pi.load_pct_1rm::float,
+                               'load_kg', pi.load_kg::float,
+                               'notes', pi.notes,
                                'item_order', pi.item_order
                            ) ORDER BY pi.item_order
                        ) FILTER (WHERE pi.id IS NOT NULL),
@@ -266,22 +274,40 @@ async def _apply_session_patch(
     user_id: str,
     db: psycopg.AsyncConnection[object],
 ) -> None:
-    """Update title/notes and replace items for a single prescribed session."""
+    """Update title/notes/status and replace items for a single prescribed session."""
     async with db.cursor() as cur:
-        if patch.new_title is not None or patch.new_notes is not None:
+        if (
+            patch.new_title is not None
+            or patch.new_notes is not None
+            or patch.new_status is not None
+        ):
             await cur.execute(
                 """
                 UPDATE planned_sessions SET
                     title = COALESCE(%s, title),
-                    notes = COALESCE(%s, notes)
+                    notes = COALESCE(%s, notes),
+                    status = COALESCE(%s, status)
                 WHERE id = %s::uuid AND plan_id = %s::uuid AND user_id = %s::uuid
                 """,
-                [patch.new_title, patch.new_notes, patch.session_id, plan_id, user_id],
+                [
+                    patch.new_title,
+                    patch.new_notes,
+                    patch.new_status,
+                    patch.session_id,
+                    plan_id,
+                    user_id,
+                ],
             )
         if patch.modified_items:
             await cur.execute(
-                "DELETE FROM planned_items WHERE session_id = %s::uuid AND user_id = %s::uuid",
-                [patch.session_id, user_id],
+                """
+                DELETE FROM planned_items
+                WHERE session_id = %s::uuid AND user_id = %s::uuid
+                  AND session_id IN (
+                      SELECT id FROM planned_sessions WHERE plan_id = %s::uuid
+                  )
+                """,
+                [patch.session_id, user_id, plan_id],
             )
             item_rows = [
                 (

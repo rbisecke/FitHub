@@ -34,10 +34,14 @@ const STATUS_CONFIG: Record<
     nameBold: false,
   },
   target: {
-    dotColor: "var(--accent)",
+    // Fully-saturated purple — the one sanctioned non-coach use of purple in
+    // this domain (design spec §1.2, §10): a deliberately shared
+    // "achievement marker" meaning with Domain 04's PR moments, not a
+    // collision with the AI-coach identity (which is teal/cyan).
+    dotColor: "var(--purple)",
     icon: "⚑",
-    textColor: "var(--accent)",
-    nameColor: "var(--accent)",
+    textColor: "var(--purple)",
+    nameColor: "var(--purple)",
     nameBold: true,
   },
 };
@@ -63,8 +67,29 @@ export function PrerequisiteLadder({ items }: Props) {
               ? "goal"
               : "not yet found in logs";
 
+        // The "you are here" rung gets a full-row highlight (not just
+        // trailing text) so it's scannable without reading every line —
+        // and a distinct filled-dot icon when it's still a pending rung
+        // (the common case; the target rung keeps its flag icon even when
+        // it's also the current entry point, in the all-confirmed state).
+        const dotIcon =
+          item.isCurrent && item.status === "pending" ? "●" : cfg.icon;
+
         return (
-          <li key={item.movementId} className="flex items-start gap-2">
+          <li
+            key={item.movementId}
+            className="flex items-start gap-2 rounded-md"
+            style={{
+              background: item.isCurrent
+                ? "color-mix(in srgb, var(--amber) 12%, transparent)"
+                : "transparent",
+              borderLeft: item.isCurrent
+                ? "2px solid var(--amber)"
+                : "2px solid transparent",
+              padding: "4px 8px 4px 6px",
+              marginLeft: "-6px",
+            }}
+          >
             {/* Connector column */}
             <div
               className="flex flex-col items-center"
@@ -80,22 +105,29 @@ export function PrerequisiteLadder({ items }: Props) {
                   width: "16px",
                   height: "20px",
                   lineHeight: "20px",
-                  color: cfg.textColor,
+                  color:
+                    item.isCurrent && item.status === "pending"
+                      ? "var(--amber)"
+                      : cfg.textColor,
                   fontFamily: "var(--font-mono)",
                   fontSize: "0.8125rem",
                   fontWeight: 700,
                   border:
-                    item.status === "pending"
+                    item.status === "pending" && !item.isCurrent
                       ? `1px solid var(--border)`
                       : "none",
                   borderRadius: "50%",
                   background:
-                    item.status === "pending"
+                    item.status === "pending" && !item.isCurrent
                       ? "transparent"
-                      : `color-mix(in srgb, ${cfg.dotColor} 20%, transparent)`,
+                      : `color-mix(in srgb, ${
+                          item.isCurrent && item.status === "pending"
+                            ? "var(--amber)"
+                            : cfg.dotColor
+                        } 20%, transparent)`,
                 }}
               >
-                {cfg.icon}
+                {dotIcon}
               </span>
               {!isLast && (
                 <div
@@ -116,7 +148,7 @@ export function PrerequisiteLadder({ items }: Props) {
                 className="font-mono text-xs"
                 style={{
                   color: cfg.nameColor,
-                  fontWeight: cfg.nameBold ? 700 : 400,
+                  fontWeight: cfg.nameBold || item.isCurrent ? 700 : 400,
                 }}
               >
                 {item.movementName}
@@ -129,7 +161,18 @@ export function PrerequisiteLadder({ items }: Props) {
                   {item.status === "checked" ? "done" : "prerequisite"}
                 </span>
               )}
-              <span className="sr-only">{srLabel}</span>
+              {item.isCurrent && (
+                <span
+                  className="font-mono text-xs font-semibold"
+                  style={{ color: "var(--amber)", marginLeft: "6px" }}
+                >
+                  ← you are here
+                </span>
+              )}
+              <span className="sr-only">
+                {srLabel}
+                {item.isCurrent ? ", you are here" : ""}
+              </span>
             </div>
           </li>
         );

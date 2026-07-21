@@ -3,6 +3,7 @@
 import { ArrowLeftRight } from "lucide-react";
 import type { PlannedItemOut } from "@/lib/api/plans";
 import { SetLogger } from "./SetLogger";
+import { CardioConversionChip } from "@/components/logging/CardioConversionChip";
 
 interface ExerciseCardProps {
   item: PlannedItemOut;
@@ -58,6 +59,12 @@ export function ExerciseCard({
               {totalExercises}
             </span>
           </p>
+
+          {/* Cardio distance/calorie conversion (02 §7.4) — renders nothing
+              for a non-running movement. */}
+          <div>
+            <CardioConversionChip movementName={item.movement_name} />
+          </div>
         </div>
 
         {/* Swap button */}

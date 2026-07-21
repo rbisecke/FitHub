@@ -4,72 +4,37 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { api } from "@/lib/api/client";
 import type { WizardState, PrerequisiteStatus } from "@/lib/types/plans";
 import type { Movement } from "@/lib/api";
+import type { SkillContextOut } from "@/lib/api/plans";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PrerequisiteLadder } from "./PrerequisiteLadder";
 
-// ---------------------------------------------------------------------------
-// Static prerequisite chains — keyed by lowercase movement name.
-// The last entry in each array is the target movement itself (status: target).
-// Earlier entries are prerequisites in ascending difficulty order.
-// ---------------------------------------------------------------------------
-const SKILL_PREREQS: Record<string, string[]> = {
-  "muscle-up": ["Pull-up", "Dip", "Kipping Swing", "Muscle-up"],
-  "bar muscle-up": [
-    "Pull-up",
-    "Chest-to-Bar Pull-up",
-    "Kipping Pull-up",
-    "Bar Muscle-up",
-  ],
-  "ring muscle-up": ["Pull-up", "Ring Dip", "Kipping Swing", "Ring Muscle-up"],
-  "handstand push-up": [
-    "Pike Push-up",
-    "Handstand Hold",
-    "Kipping HSPU",
-    "Handstand Push-up",
-  ],
-  "handstand walk": ["Handstand Hold", "Handstand Push-up", "Handstand Walk"],
-  "pistol squat": [
-    "Air Squat",
-    "Bulgarian Split Squat",
-    "Assisted Pistol Squat",
-    "Pistol Squat",
-  ],
-  "double under": ["Single Under", "Double Under"],
-  "toes-to-bar": ["Hanging Knee Raise", "Hanging Leg Raise", "Toes-to-Bar"],
-  snatch: ["Overhead Squat", "Hang Power Snatch", "Power Snatch", "Snatch"],
-  "clean and jerk": [
-    "Front Squat",
-    "Hang Power Clean",
-    "Power Clean",
-    "Clean and Jerk",
-  ],
-  "ring dip": ["Push-up", "Dip", "Ring Push-up", "Ring Dip"],
-  "l-sit": ["Hollow Body Hold", "Tuck L-Sit", "L-Sit"],
-};
-
-function getPrerequisites(movementName: string): PrerequisiteStatus[] {
-  const key = movementName.toLowerCase();
-
-  // Try an exact match first, then a substring match.
-  let chain: string[] | undefined = SKILL_PREREQS[key];
-  if (!chain) {
-    for (const [k, v] of Object.entries(SKILL_PREREQS)) {
-      if (key.includes(k) || k.includes(key)) {
-        chain = v;
-        break;
-      }
-    }
-  }
-
-  if (!chain) {
-    // No chain — just show the movement itself as the target.
-    return [{ movementId: "target", movementName, status: "target" }];
-  }
-
-  return chain.map((name, i) => ({
-    movementId: `prereq-${i}`,
-    movementName: name,
-    status: i === chain!.length - 1 ? "target" : "pending",
-  }));
+/**
+ * Maps the real, history-aware skill-context response (design spec §10) to
+ * ladder rungs. `prerequisite_chain` runs entry-level -> target (last
+ * element); `confirmed_prerequisites` are rungs the athlete has actually
+ * logged in the last 90 days; `current_entry_point` is "you are here" — it
+ * can equal the target movement itself once every prerequisite is
+ * confirmed, so `isCurrent` is tracked independently of `status` rather
+ * than as a 4th status value.
+ */
+function mapSkillContextToLadder(ctx: SkillContextOut): PrerequisiteStatus[] {
+  const chain = ctx.prerequisite_chain ?? [];
+  const confirmed = ctx.confirmed_prerequisites ?? [];
+  const lastIndex = chain.length - 1;
+  const items = chain.map((name, i) => {
+    const isTarget = i === lastIndex;
+    const isConfirmed = confirmed.includes(name);
+    return {
+      movementId: `${name}-${i}`,
+      movementName: name,
+      status: isTarget ? "target" : isConfirmed ? "checked" : "pending",
+      isCurrent: name === ctx.current_entry_point,
+    } satisfies PrerequisiteStatus;
+  });
+  // `prerequisite_chain` runs entry-level -> target; the ladder renders
+  // top-to-bottom, and the design (§10) wants the target skill at the top
+  // with entry-level prerequisites at the bottom, so reverse for display.
+  return items.reverse();
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +55,7 @@ interface Props {
   state: WizardState;
   accessToken: string;
   onSelect: (id: string, name: string) => void;
-  on1rmChange: (kg: number | null) => void;
+  on1rmChange: (kg: number | null, source?: "history" | "none" | null) => void;
   onNext: () => void;
   onBack: () => void;
   headingRef?: React.RefObject<HTMLHeadingElement | null>;
@@ -121,11 +86,54 @@ export function TargetMovementStep({
   // Derived: show results only when query is non-empty and no movement selected.
   const results = query.trim() ? searchResults : [];
 
-  // Prerequisite chain is derived synchronously — no separate state needed.
-  const prerequisites = useMemo<PrerequisiteStatus[] | null>(() => {
-    if (archetype !== "skill-acquisition" || !selectedMovementName) return null;
-    return getPrerequisites(selectedMovementName);
-  }, [archetype, selectedMovementName]);
+  // Real, history-aware skill-prerequisite chain (design spec §10) — replaces
+  // the previous static/fake client-side ladder entirely.
+  const [skillContext, setSkillContext] = useState<SkillContextOut | null>(
+    null,
+  );
+  const [skillContextLoading, setSkillContextLoading] = useState(false);
+  const [skillContextError, setSkillContextError] = useState(false);
+  const [skillContextRetryKey, setSkillContextRetryKey] = useState(0);
+
+  useEffect(() => {
+    // No setState here when the ladder isn't applicable — a stale
+    // skillContext value from a previous selection is harmless because the
+    // ladder JSX below is itself gated on `selectedMovementId` being set.
+    if (archetype !== "skill-acquisition" || !selectedMovementId) return;
+    const controller = new AbortController();
+    let cancelled = false;
+    // Deferred to a microtask — satisfies react-hooks/set-state-in-effect
+    // (a synchronous setState in an effect body triggers a same-tick
+    // cascading render) while still applying before the browser paints.
+    void Promise.resolve().then(() => {
+      if (cancelled) return;
+      setSkillContextLoading(true);
+      setSkillContextError(false);
+    });
+    api.movements
+      .skillContext(accessToken, selectedMovementId, {
+        signal: controller.signal,
+      })
+      .then((data) => {
+        if (!cancelled) setSkillContext(data);
+      })
+      .catch(() => {
+        if (!cancelled && !controller.signal.aborted)
+          setSkillContextError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setSkillContextLoading(false);
+      });
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [archetype, selectedMovementId, accessToken, skillContextRetryKey]);
+
+  const ladderItems = useMemo<PrerequisiteStatus[] | null>(() => {
+    if (!skillContext || !skillContext.available) return null;
+    return mapSkillContextToLadder(skillContext);
+  }, [skillContext]);
 
   // Ref so the cleanup function inside the setTimeout closure can abort the
   // right controller even after re-renders.
@@ -180,6 +188,64 @@ export function TargetMovementStep({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [query, accessToken, archetype]);
+
+  // 1RM back-fill (one-rm-peak only, 02 §2.4) — on selecting a target
+  // movement, look up the athlete's own history and pre-fill Current 1RM
+  // from the Epley-derived best e1RM (the same figure the Records domain
+  // shows as `current_e1rm_kg`/`best_1rm_kg`). Only runs once per selection
+  // (guarded by current1rmSource being unset). manuallyEditedRef is a second,
+  // synchronous guard: the effect's own dependency-based guard only stops a
+  // *new* fetch from starting, it does nothing about a fetch already in
+  // flight — without this ref, typing a real 1RM while the lookup is still
+  // pending gets silently overwritten the moment the (now-stale) response
+  // resolves.
+  const manuallyEditedRef = useRef(false);
+  useEffect(() => {
+    manuallyEditedRef.current = false;
+  }, [selectedMovementId]);
+
+  useEffect(() => {
+    if (archetype !== "one-rm-peak" || !selectedMovementId) return;
+    if (state.current1rmSource !== null) return;
+
+    const controller = new AbortController();
+    let cancelled = false;
+
+    api.analytics
+      .personalRecords(accessToken, { signal: controller.signal })
+      .then((records) => {
+        if (cancelled || manuallyEditedRef.current) return;
+        const match = records.find(
+          (r) =>
+            r.movement_id === selectedMovementId ||
+            r.movement_name.trim().toLowerCase() ===
+              selectedMovementName?.trim().toLowerCase(),
+        );
+        const backfillKg = match?.current_e1rm_kg ?? match?.best_1rm_kg ?? null;
+        on1rmChange(backfillKg, backfillKg !== null ? "history" : "none");
+      })
+      .catch(() => {
+        if (
+          !cancelled &&
+          !controller.signal.aborted &&
+          !manuallyEditedRef.current
+        ) {
+          on1rmChange(null, "none");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [
+    archetype,
+    selectedMovementId,
+    selectedMovementName,
+    accessToken,
+    state.current1rmSource,
+    on1rmChange,
+  ]);
 
   function handleSelect(id: string, name: string) {
     onSelect(id, name);
@@ -347,11 +413,19 @@ export function TargetMovementStep({
             min={0}
             step={2.5}
             value={current1rmKg ?? ""}
-            onChange={(e) =>
-              on1rmChange(e.target.value === "" ? null : Number(e.target.value))
+            onChange={(e) => {
+              manuallyEditedRef.current = true;
+              on1rmChange(
+                e.target.value === "" ? null : Number(e.target.value),
+                state.current1rmSource,
+              );
+            }}
+            placeholder={
+              state.current1rmSource === null
+                ? "looking up history…"
+                : "e.g. 100"
             }
-            placeholder="e.g. 100"
-            className="rounded font-data tabular-nums text-[30px] font-bold"
+            className="rounded font-mono tabular-nums text-[30px] font-bold"
             style={{
               width: "160px",
               border: "1px solid var(--border)",
@@ -361,7 +435,15 @@ export function TargetMovementStep({
               fontVariantNumeric: "tabular-nums",
             }}
           />
-          {current1rmKg === null && (
+          {state.current1rmSource === "history" && current1rmKg !== null && (
+            <p
+              className="mt-1 font-mono text-xs"
+              style={{ color: "var(--muted)" }}
+            >
+              From your best logged e1RM &mdash; edit if incorrect.
+            </p>
+          )}
+          {state.current1rmSource === "none" && (
             <p
               className="mt-1 font-mono text-xs"
               style={{ color: "var(--amber)" }}
@@ -372,7 +454,10 @@ export function TargetMovementStep({
           {current1rmKg !== null && (
             <button
               type="button"
-              onClick={() => on1rmChange(null)}
+              onClick={() => {
+                manuallyEditedRef.current = true;
+                on1rmChange(null, "none");
+              }}
               className="mt-2 block font-mono text-xs transition-colors"
               style={{
                 background: "none",
@@ -388,16 +473,70 @@ export function TargetMovementStep({
         </div>
       )}
 
-      {/* Prerequisite ladder — skill-acquisition only */}
-      {archetype === "skill-acquisition" && prerequisites && (
+      {/* Prerequisite ladder — skill-acquisition only, real backend data (§10) */}
+      {archetype === "skill-acquisition" && selectedMovementId && (
         <div>
           <p
             className="mb-2 font-mono text-xs"
             style={{ color: "var(--muted)" }}
           >
-            prerequisite ladder
+            {skillContext?.available && skillContext.target_skill
+              ? `Your path to ${skillContext.target_skill}`
+              : "prerequisite ladder"}
           </p>
-          <PrerequisiteLadder items={prerequisites} />
+
+          {skillContextLoading && (
+            <div
+              className="flex flex-col gap-2"
+              aria-label="Loading prerequisite ladder"
+            >
+              <Skeleton className="h-5 w-3/4 rounded-sm" />
+              <Skeleton className="h-5 w-2/3 rounded-sm" />
+              <Skeleton className="h-5 w-1/2 rounded-sm" />
+            </div>
+          )}
+
+          {!skillContextLoading && skillContextError && (
+            <div className="flex flex-col items-start gap-2">
+              <p
+                className="font-mono text-xs"
+                style={{ color: "var(--red)" }}
+                role="alert"
+              >
+                Couldn&apos;t load your skill path — retry
+              </p>
+              <button
+                type="button"
+                onClick={() => setSkillContextRetryKey((k) => k + 1)}
+                className="rounded font-mono text-xs transition-colors"
+                style={{
+                  border: "1px solid var(--border)",
+                  color: "var(--text)",
+                  padding: "4px 10px",
+                  minHeight: "44px",
+                  cursor: "pointer",
+                }}
+              >
+                retry
+              </button>
+            </div>
+          )}
+
+          {!skillContextLoading &&
+            !skillContextError &&
+            skillContext &&
+            !skillContext.available && (
+              <p
+                className="font-mono text-xs"
+                style={{ color: "var(--muted)" }}
+              >
+                No prerequisite ladder for this skill
+              </p>
+            )}
+
+          {!skillContextLoading && !skillContextError && ladderItems && (
+            <PrerequisiteLadder items={ladderItems} />
+          )}
         </div>
       )}
 

@@ -12,15 +12,20 @@ function makeState(overrides: Partial<WizardState> = {}): WizardState {
     archetype: "general-crossfit",
     selectedPresets: new Set(),
     daysPerWeek: 4,
+    startDate: "2026-07-20",
     targetMovementId: null,
     targetMovementName: null,
     current1rmKg: null,
+    current1rmSource: null,
     trainingAge: null,
     maxDurationWeeks: null,
     customTitle: null,
     isSubmitting: false,
     error: null,
     planId: null,
+    taskStatus: null,
+    rateLimited: false,
+    timedOut: false,
     ...overrides,
   };
 }
@@ -50,6 +55,7 @@ function StatefulTrainingAgeStep({
       onSubmit={onSubmit}
       isSubmitting={isSubmitting}
       error={error}
+      displayStep={4}
     />
   );
 }
@@ -195,6 +201,7 @@ function WizardHarness({
           onSubmit={() => {}}
           isSubmitting={wizard.state.isSubmitting}
           error={wizard.state.error}
+          displayStep={4}
         />
       )}
     </>

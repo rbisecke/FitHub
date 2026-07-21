@@ -270,11 +270,12 @@ function reducer(state: ExecutionState, action: Action): ExecutionState {
 // Rest duration by archetype
 // ---------------------------------------------------------------------------
 
+// Rest duration is per-archetype, not per-exercise (functional §9.1 note
+// #7) — the seven real archetype slugs only; unlisted values fall back to
+// the 90s default below.
 const REST_SECONDS_BY_ARCHETYPE: Record<string, number> = {
   "strength-bias": 180,
   "one-rm-peak": 240,
-  "conditioning-bias": 60,
-  "gymnastics-skill": 90,
   "skill-acquisition": 90,
   "general-crossfit": 90,
   "travel-minimal": 60,
@@ -561,7 +562,7 @@ export function SessionExecutionView({
 
     try {
       await api.plans.completeSession(accessToken, plan.id, session.id, body);
-      router.push(`/plans/${plan.id}`);
+      router.push(`/plan/${plan.id}`);
     } catch {
       setFinishError(
         "Couldn't save your session — check your connection and try again.",
@@ -610,7 +611,7 @@ export function SessionExecutionView({
           </button>
           {/* Exit button */}
           <button
-            onClick={() => router.push(`/plans/${plan.id}`)}
+            onClick={() => router.push(`/plan/${plan.id}`)}
             className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:text-[var(--red)]"
             aria-label="Exit session"
           >
@@ -855,10 +856,14 @@ export function SessionExecutionView({
         </AnimatePresence>
       </main>
 
-      {/* Session overview sheet */}
+      {/* Session overview sheet — data-theme="light" is required (not just
+          the page-level ForcedTheme): shadcn's Sheet portals to
+          document.body, escaping the light wrapper (02 §7 logging
+          exception is otherwise silently lost for anything in this sheet). */}
       <Sheet open={overviewOpen} onOpenChange={setOverviewOpen}>
         <SheetContent
           side="bottom"
+          data-theme="light"
           className="bg-[var(--surface)] border-t border-[var(--border)] rounded-t-2xl max-h-[70vh] overflow-y-auto pb-8"
         >
           <SheetHeader className="px-5 pt-4 pb-2">

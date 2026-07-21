@@ -11,6 +11,7 @@ function makeState(overrides: Partial<WizardState> = {}): WizardState {
     archetype: null,
     selectedPresets: new Set(),
     daysPerWeek: 4,
+    startDate: "2026-07-20",
     targetMovementId: null,
     targetMovementName: null,
     current1rmKg: null,
@@ -20,6 +21,10 @@ function makeState(overrides: Partial<WizardState> = {}): WizardState {
     isSubmitting: false,
     error: null,
     planId: null,
+    current1rmSource: null,
+    taskStatus: null,
+    rateLimited: false,
+    timedOut: false,
     ...overrides,
   };
 }

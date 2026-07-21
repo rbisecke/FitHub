@@ -147,6 +147,9 @@ class SessionPatch(BaseModel):
     session_id: str
     new_title: str | None = Field(default=None, max_length=200)
     new_notes: str | None = Field(default=None, max_length=500)
+    # Only 'skipped' is written today (adaptation merge's "skip" change type);
+    # manual revision never sets this, so COALESCE(None, status) is a no-op there.
+    new_status: Literal["skipped"] | None = None
     modified_items: list[PlannedItemPatch] = []
 
 

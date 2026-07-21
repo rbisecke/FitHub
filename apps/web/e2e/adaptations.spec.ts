@@ -190,10 +190,15 @@ test("double merge returns 409 conflict", async ({ page }) => {
   expect(second.status).toBe(409);
 });
 
-test("adaptations page renders adaptation cards", async ({ page }) => {
+test("adaptations page renders the PR header and a session diff card", async ({
+  page,
+}) => {
   const { token, userId } = await loginAndSetSession(page);
   const planId = await createPlanAndWait(token);
 
+  // diff_json is required for the review UI to render a session card — an
+  // adaptation with no diff_json renders the "no changes recommended" no-op
+  // state instead (design spec §8.7).
   await fetch(`${SUPABASE_URL}/rest/v1/adaptations`, {
     method: "POST",
     headers: {
@@ -209,15 +214,46 @@ test("adaptations page renders adaptation cards", async ({ page }) => {
       trigger_data: { acwr: 1.7 },
       rationale: "High training load detected.",
       stub: true,
+      diff_json: [
+        {
+          session_id: "00000000-0000-0000-0000-000000000099",
+          session_title: "E2E Session",
+          scheduled_date: null,
+          change: "reduce_intensity",
+          load_pct_delta: -10,
+          volume_delta_sets: null,
+          notes: "E2E test diff row.",
+          item_changes: [
+            {
+              item_id: null,
+              movement_name: "Back Squat",
+              item_order: 0,
+              old_sets: 5,
+              old_reps: "5",
+              old_load_pct_1rm: 75,
+              old_load_kg: null,
+              old_notes: null,
+              new_sets: 5,
+              new_reps: "5",
+              new_load_pct_1rm: 65,
+              new_load_kg: null,
+              new_notes: null,
+              changed: true,
+              removed: false,
+            },
+          ],
+        },
+      ],
     }),
   });
 
-  await page.goto(`http://localhost:3000/plans/${planId}/adaptations`);
+  await page.goto(`http://localhost:3000/plan/${planId}/adaptations`);
   await expect(
-    page.locator('[data-testid="adaptation-card"]').first(),
-  ).toBeVisible({
-    timeout: 10000,
-  });
+    page.locator('[data-testid="adaptation-header"]').first(),
+  ).toBeVisible({ timeout: 10000 });
+  await expect(
+    page.locator('[data-testid="session-diff-card"]').first(),
+  ).toBeVisible();
 });
 
 test.describe("rejection with feedback", () => {
@@ -296,27 +332,11 @@ test.describe("rejection with feedback", () => {
     expect(newAdaptation.plan_id).toBe(planId);
   });
 
-  test("revision form appears and submits via UI", async ({ page }) => {
-    const { token, userId } = await loginAndSetSession(page);
-    const planId = await createPlanAndWait(token);
-    await seedAdaptation(planId, userId);
-
-    await page.goto(`http://localhost:3000/plans/${planId}/adaptations`);
-    const card = page.locator('[data-testid="adaptation-card"]').first();
-    await expect(card).toBeVisible({ timeout: 10000 });
-
-    // Open revision form
-    await card.getByRole("button", { name: "request revision" }).click();
-    const form = page.locator('[data-testid="revision-form"]');
-    await expect(form).toBeVisible();
-
-    // Fill in feedback and submit
-    await form.locator("textarea").fill("Please be less aggressive this week.");
-    await form.getByRole("button", { name: "$ commit revision" }).click();
-
-    // A new proposed card should appear at the top
-    await expect(
-      page.locator('[data-testid="adaptation-card"]').first(),
-    ).toBeVisible({ timeout: 10000 });
-  });
+  // NOTE: a UI test for the manual-revision composer
+  // (components/adaptations/ManualRevisionComposer.tsx) belongs here once a
+  // plan-detail page embeds it — it isn't wired into any live route yet
+  // (the plan-overview page is a separate, in-flight effort). The composer's
+  // own behavior is covered by the revise/adjust/reject API tests above and
+  // by __tests__/lib/adaptationDiff.test.ts's computeManualRevisionDiff
+  // coverage in the meantime.
 });

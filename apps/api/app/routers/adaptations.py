@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import datetime
 from typing import Literal, cast
@@ -10,16 +11,22 @@ from typing import Literal, cast
 import psycopg
 import psycopg.rows
 from fastapi import APIRouter, HTTPException, Request, status
+from pydantic import ValidationError
 
 from app.dependencies.common import Auth, DBConn
 from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.adaptation import (
     AdaptationOut,
+    AdaptationSessionDiff,
     AdjustAdaptationRequest,
     DetectTriggersResponse,
     RejectAdaptationRequest,
     TriggerOut,
 )
+from app.models.plan import PlannedItemPatch, SessionPatch
+from app.routers.plans import _apply_session_patch, _load_prescribed_sessions
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["adaptations"])
 
@@ -47,17 +54,61 @@ def _row_to_out(r: dict[str, object]) -> AdaptationOut:
         plan_id=str(r["plan_id"]),
         user_id=str(r["user_id"]),
         trigger_type=cast(
-            Literal["high_acwr", "low_readiness", "missed_session", "rpe_creep"], r["trigger_type"]
+            Literal[
+                "high_acwr",
+                "low_readiness",
+                "missed_session",
+                "rpe_creep",
+                "active_injury",
+                "manual",
+            ],
+            r["trigger_type"],
         ),
         trigger_data=dict(r["trigger_data"]) if r["trigger_data"] else {},  # type: ignore[call-overload]
-        status=cast(Literal["proposed", "merged", "rejected"], r["status"]),
+        status=cast(Literal["proposed", "merged", "rejected", "superseded"], r["status"]),
         rationale=str(r["rationale"]) if r["rationale"] else None,
         rejection_reason=str(r["rejection_reason"]) if r.get("rejection_reason") else None,
-        diff_json=r["diff_json"],
+        diff_json=cast(list[AdaptationSessionDiff], r["diff_json"]) if r["diff_json"] else [],
         stub=bool(r["stub"]),
         proposed_at=cast(datetime | None, r["proposed_at"]),
         merged_at=cast(datetime | None, r["merged_at"]),
         rejected_at=cast(datetime | None, r["rejected_at"]),
+    )
+
+
+def _diff_to_session_patch(diff: AdaptationSessionDiff) -> SessionPatch:
+    """Reconstruct a SessionPatch from a validated diff_json entry for merge to apply.
+
+    Each item_change's `new_*` fields ARE the item's new state (see
+    app.ai.adaptation._build_item_changes) — a `removed` entry is dropped
+    entirely rather than turned into a PlannedItemPatch, which is exactly what
+    _apply_session_patch's full-replace semantics need: the surviving
+    modified_items list becomes the session's complete new item set. Typed
+    attribute access (not dict.get on raw JSONB) means a future
+    AdaptationItemChange field rename is a mypy error here, not a silently
+    dropped value at merge time.
+    """
+    modified_items = [
+        PlannedItemPatch(
+            item_id=ic.item_id,
+            movement_name=ic.movement_name,
+            sets=ic.new_sets,
+            reps=ic.new_reps,
+            load_pct_1rm=ic.new_load_pct_1rm,
+            load_kg=ic.new_load_kg,
+            notes=ic.new_notes,
+            item_order=ic.item_order,
+        )
+        for ic in diff.item_changes
+        if not ic.removed
+    ]
+    return SessionPatch(
+        session_id=diff.session_id,
+        modified_items=modified_items,
+        # 'skip' has no dedicated item-level representation (per ADAPTATION_SYSTEM,
+        # the LLM leaves modified_items empty for it) — the session is marked
+        # skipped instead of having its prescribed items destroyed.
+        new_status="skipped" if diff.change == "skip" else None,
     )
 
 
@@ -93,13 +144,20 @@ async def detect_plan_adaptations(
         for t in raw_triggers
     ]
 
+    # Load real prescribed sessions once — every trigger's adaptation proposal
+    # is generated against the same current plan state (BG-02: previously an
+    # empty list was passed here, so diff_json had no session_id/item detail).
+    affected_sessions = (
+        await _load_prescribed_sessions(str(plan_id), str(user.user_id), db) if raw_triggers else []
+    )
+
     # Generate all adaptation results before opening the transaction so LLM
     # calls don't hold a DB transaction open.
     adaptation_results: list[tuple[dict[str, object], dict[str, object]]] = []
     for trigger in raw_triggers:
         result = await generate_adaptation(
             {"trigger_type": trigger["type"], "trigger_data": trigger["data"]},
-            [],
+            affected_sessions,
         )
         adaptation_results.append((trigger, result))
 
@@ -159,7 +217,16 @@ async def list_adaptations(
         )
         rows = await cur.fetchall()
 
-    return [_row_to_out(r) for r in rows]
+    out: list[AdaptationOut] = []
+    for r in rows:
+        try:
+            out.append(_row_to_out(r))
+        except ValidationError:
+            # A row from before diff_json's shape was extended (or any other
+            # malformed row) must not 500 the whole history list — skip it and
+            # log, same protection merge_adaptation already applies per-row.
+            log.exception("adaptation %s has malformed diff_json, skipping", r["id"])
+    return out
 
 
 @router.post("/adaptations/{adaptation_id}/merge", response_model=AdaptationOut)
@@ -172,28 +239,66 @@ async def merge_adaptation(
 ) -> AdaptationOut:
     # Single atomic UPDATE with status guard — eliminates the SELECT+UPDATE TOCTOU race.
     # If no row is returned, a follow-up SELECT distinguishes 404 from 409.
-    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
-        await cur.execute(
-            f"""
-            UPDATE adaptations
-            SET status = 'merged', merged_at = now()
-            WHERE id = %s::uuid AND user_id = %s AND status = 'proposed'
-            RETURNING {_SELECT_COLS}
-            """,
-            [str(adaptation_id), user.user_id],
-        )
-        updated = await cur.fetchone()
-
-        if updated is None:
+    # The status flip and every session-patch write happen in the SAME transaction
+    # (a savepoint over the request-scoped connection), so a failure applying any
+    # patch rolls back the status flip too — merge must never report 'merged' while
+    # leaving the plan's sessions unchanged (the bug this whole endpoint existed to fix).
+    async with db.transaction():
+        async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
             await cur.execute(
-                "SELECT id FROM adaptations WHERE id = %s::uuid AND user_id = %s",
+                f"""
+                UPDATE adaptations
+                SET status = 'merged', merged_at = now()
+                WHERE id = %s::uuid AND user_id = %s AND status = 'proposed'
+                RETURNING {_SELECT_COLS}
+                """,
                 [str(adaptation_id), user.user_id],
             )
-            if await cur.fetchone() is None:
-                raise HTTPException(status_code=404, detail="Adaptation not found")
-            raise HTTPException(status_code=409, detail="Adaptation is not in proposed state")
+            updated = await cur.fetchone()
 
-    return _row_to_out(updated)
+            if updated is None:
+                await cur.execute(
+                    "SELECT id FROM adaptations WHERE id = %s::uuid AND user_id = %s",
+                    [str(adaptation_id), user.user_id],
+                )
+                if await cur.fetchone() is None:
+                    raise HTTPException(status_code=404, detail="Adaptation not found")
+                raise HTTPException(status_code=409, detail="Adaptation is not in proposed state")
+
+        # Validate the stored diff_json through the same typed model the API
+        # returns, so a malformed or unexpectedly-shaped row 500s cleanly here
+        # instead of raising an unguarded KeyError mid-transaction.
+        try:
+            merged_out = _row_to_out(updated)
+        except ValidationError:
+            log.exception("adaptation %s has malformed diff_json", adaptation_id)
+            raise HTTPException(
+                status_code=500, detail="Internal error. Please try again."
+            ) from None
+
+        plan_id = str(updated["plan_id"])
+
+        # Re-validate every diffed session is still prescribed, scoped to this plan,
+        # at merge time — not just when the proposal was generated. A session can be
+        # completed (or, in principle, moved) between propose and merge; applying a
+        # stale patch to a no-longer-prescribed session would delete/replace items
+        # under a session the athlete has already logged real results against
+        # (planned_items.id ON DELETE SET NULL on results.planned_item_id).
+        prescribed = await _load_prescribed_sessions(plan_id, str(user.user_id), db)
+        prescribed_ids = {str(s["id"]) for s in prescribed}
+        for session_diff in merged_out.diff_json:
+            if session_diff.session_id not in prescribed_ids:
+                raise HTTPException(
+                    status_code=409,
+                    detail="This plan changed since this suggestion was generated — "
+                    "re-check for changes",
+                )
+
+        for session_diff in merged_out.diff_json:
+            patch = _diff_to_session_patch(session_diff)
+            await _apply_session_patch(patch, plan_id, str(user.user_id), db)
+
+    return merged_out
 
 
 @router.post("/adaptations/{adaptation_id}/reject", response_model=AdaptationOut)
@@ -270,10 +375,14 @@ async def adjust_adaptation(
         "trigger_data": existing["trigger_data"] or {},
     }
 
+    # Load real prescribed sessions for the revised proposal — same BG-02 fix
+    # as detect_plan_adaptations; previously an empty list was passed here.
+    affected_sessions = await _load_prescribed_sessions(plan_id, str(user.user_id), db)
+
     # Generate revised adaptation (outside the transaction)
     result = await generate_adaptation(
         trigger,
-        [],
+        affected_sessions,
         rejection_context=body.feedback,
         prior_rationale=prior_rationale,
     )
