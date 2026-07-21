@@ -648,7 +648,10 @@ def has_red_flags(notes: str | None, pain_level: int, body_region: BodyRegion | 
 
 
 def resolve_substitution(body_region: BodyRegion | str, movement_name: str) -> list[str]:
-    key = (body_region, movement_name.lower().replace(" ", "_"))
+    # Both spaces and hyphens are name separators in the catalog (e.g.
+    # "Pull-up") but SUBSTITUTES keys are plain snake_case ("pull_up") —
+    # matches coach.py's _build_modifications normalization.
+    key = (body_region, movement_name.lower().replace(" ", "_").replace("-", "_"))
     return SUBSTITUTES.get(key, [])
 
 

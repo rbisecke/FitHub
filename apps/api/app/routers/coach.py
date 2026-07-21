@@ -634,7 +634,12 @@ def _build_modifications(
     modifications: list[MovementModification] = []
     safe_movements: list[str] = []
     for movement in movements:
-        key = movement.lower().replace(" ", "_")
+        # Both spaces and hyphens are name separators in the catalog (e.g.
+        # "Pull-up", "Push-up") but CONTRAINDICATIONS/SUBSTITUTES keys are
+        # plain snake_case ("pull_up") — missing the hyphen replacement here
+        # silently failed to match any hyphenated movement name against its
+        # real contraindications, understating a safety-relevant check.
+        key = movement.lower().replace(" ", "_").replace("-", "_")
         driven_by = blocked_map.get(key, [])
         if not driven_by:
             safe_movements.append(movement)
