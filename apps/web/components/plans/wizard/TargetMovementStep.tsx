@@ -425,7 +425,7 @@ export function TargetMovementStep({
                 ? "looking up history…"
                 : "e.g. 100"
             }
-            className="rounded font-data tabular-nums text-[30px] font-bold"
+            className="rounded font-mono tabular-nums text-[30px] font-bold"
             style={{
               width: "160px",
               border: "1px solid var(--border)",

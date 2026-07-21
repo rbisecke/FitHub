@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createApiClient } from "@/lib/api/client";
 import type { PlanDetail } from "@/lib/api/plans";
+import { AdaptationSurface } from "@/components/adaptations/AdaptationSurface";
 import { PlanHeader } from "./PlanHeader";
 import { PlanOverviewVariantA } from "./VariantA";
 import { PlanOverviewVariantB } from "./VariantB";
@@ -129,7 +130,16 @@ export function PlanOverviewScreen({
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 px-5 py-8">
-      <PlanHeader plan={plan} />
+      <PlanHeader
+        plan={plan}
+        adaptationSurfaceSlot={
+          <AdaptationSurface
+            token={accessToken}
+            planId={planId}
+            reviewHref={`/plan/${planId}/adaptations`}
+          />
+        }
+      />
 
       <div
         role="tablist"

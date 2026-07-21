@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { ForcedTheme } from "@/components/shared/forced-theme";
 import { TodayPrescriptionCard } from "@/components/plans/TodayPrescriptionCard";
 
 /**
@@ -25,27 +26,32 @@ export default async function TodayPage() {
   if (!session) redirect("/login");
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4 px-5 py-6">
-      <h1 className="font-mono text-lg font-bold text-[var(--text)]">
-        $ fithub today
-      </h1>
+    <ForcedTheme
+      theme="dark"
+      className="min-h-svh bg-background text-foreground"
+    >
+      <div className="mx-auto flex max-w-2xl flex-col gap-4 px-5 py-6">
+        <h1 className="font-mono text-lg font-bold text-[var(--text)]">
+          $ fithub today
+        </h1>
 
-      {/* Injury banner slot (Domain 05) — intentionally empty here. */}
-      <div data-testid="today-injury-banner-slot" />
+        {/* Injury banner slot (Domain 05) — intentionally empty here. */}
+        <div data-testid="today-injury-banner-slot" />
 
-      <TodayPrescriptionCard accessToken={session.access_token} />
+        <TodayPrescriptionCard accessToken={session.access_token} />
 
-      <Link
-        href="/log/new"
-        className="rounded-lg border p-4 text-center font-mono text-sm transition-colors"
-        style={{
-          borderColor: "var(--border)",
-          color: "var(--muted)",
-          minHeight: "44px",
-        }}
-      >
-        + log something outside the plan
-      </Link>
-    </div>
+        <Link
+          href="/log/new"
+          className="rounded-lg border p-4 text-center font-mono text-sm transition-colors"
+          style={{
+            borderColor: "var(--border)",
+            color: "var(--muted)",
+            minHeight: "44px",
+          }}
+        >
+          + log something outside the plan
+        </Link>
+      </div>
+    </ForcedTheme>
   );
 }

@@ -170,7 +170,7 @@ export function ScheduleStep({
         {/* Prominent week count display */}
         <div style={{ marginBottom: "12px" }}>
           <span
-            className="font-data tabular-nums text-[22px] font-bold"
+            className="font-mono tabular-nums text-[22px] font-bold"
             style={{ color: "var(--accent)" }}
           >
             {selectedWeeks}

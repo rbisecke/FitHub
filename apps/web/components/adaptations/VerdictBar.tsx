@@ -92,7 +92,7 @@ function VerdictForm({
       >
         <legend className="sr-only">Verdict</legend>
         <RadioGroup
-          value={verdict ?? undefined}
+          value={verdict ?? ""}
           onValueChange={(v) => setVerdict(v as Verdict)}
           className="grid grid-cols-3 gap-2"
         >
