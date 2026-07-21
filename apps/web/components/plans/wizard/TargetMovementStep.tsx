@@ -18,11 +18,12 @@ import { PrerequisiteLadder } from "./PrerequisiteLadder";
  * than as a 4th status value.
  */
 function mapSkillContextToLadder(ctx: SkillContextOut): PrerequisiteStatus[] {
-  const chain = ctx.prerequisite_chain;
+  const chain = ctx.prerequisite_chain ?? [];
+  const confirmed = ctx.confirmed_prerequisites ?? [];
   const lastIndex = chain.length - 1;
   const items = chain.map((name, i) => {
     const isTarget = i === lastIndex;
-    const isConfirmed = ctx.confirmed_prerequisites.includes(name);
+    const isConfirmed = confirmed.includes(name);
     return {
       movementId: `${name}-${i}`,
       movementName: name,
@@ -95,15 +96,20 @@ export function TargetMovementStep({
   const [skillContextRetryKey, setSkillContextRetryKey] = useState(0);
 
   useEffect(() => {
-    if (archetype !== "skill-acquisition" || !selectedMovementId) {
-      setSkillContext(null);
-      setSkillContextError(false);
-      return;
-    }
+    // No setState here when the ladder isn't applicable — a stale
+    // skillContext value from a previous selection is harmless because the
+    // ladder JSX below is itself gated on `selectedMovementId` being set.
+    if (archetype !== "skill-acquisition" || !selectedMovementId) return;
     const controller = new AbortController();
     let cancelled = false;
-    setSkillContextLoading(true);
-    setSkillContextError(false);
+    // Deferred to a microtask — satisfies react-hooks/set-state-in-effect
+    // (a synchronous setState in an effect body triggers a same-tick
+    // cascading render) while still applying before the browser paints.
+    void Promise.resolve().then(() => {
+      if (cancelled) return;
+      setSkillContextLoading(true);
+      setSkillContextError(false);
+    });
     api.movements
       .skillContext(accessToken, selectedMovementId, {
         signal: controller.signal,

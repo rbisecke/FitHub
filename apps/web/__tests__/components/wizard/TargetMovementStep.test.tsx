@@ -10,10 +10,12 @@ import type { WizardState, PrerequisiteStatus } from "@/lib/types/plans";
 // ---------------------------------------------------------------------------
 const mockSearch = vi.fn();
 const mockPersonalRecords = vi.fn().mockResolvedValue([]);
+const mockSkillContext = vi.fn().mockResolvedValue({ available: false });
 vi.mock("@/lib/api/client", () => ({
   api: {
     movements: {
       search: (...args: unknown[]) => mockSearch(...args),
+      skillContext: (...args: unknown[]) => mockSkillContext(...args),
     },
     analytics: {
       personalRecords: (...args: unknown[]) => mockPersonalRecords(...args),
