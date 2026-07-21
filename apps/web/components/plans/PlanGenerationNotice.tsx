@@ -1,3 +1,4 @@
+import { TriangleAlert } from "lucide-react";
 import type { PlanDetail } from "@/lib/api/plans";
 
 interface Props {
@@ -37,9 +38,11 @@ export function PlanGenerationNotice({
         border: "1px solid color-mix(in srgb, var(--amber) 40%, transparent)",
       }}
     >
-      <span className="font-data text-[11px] text-[var(--amber)] mt-[1px]">
-        $
-      </span>
+      <TriangleAlert
+        size={14}
+        aria-hidden="true"
+        className="mt-[2px] shrink-0 text-[var(--amber)]"
+      />
       <div className="flex flex-col gap-1">
         {isFallback && (
           <p className="font-data text-[12px] text-[var(--amber)] m-0">

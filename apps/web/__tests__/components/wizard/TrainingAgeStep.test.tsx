@@ -55,6 +55,7 @@ function StatefulTrainingAgeStep({
       onSubmit={onSubmit}
       isSubmitting={isSubmitting}
       error={error}
+      displayStep={4}
     />
   );
 }
@@ -200,6 +201,7 @@ function WizardHarness({
           onSubmit={() => {}}
           isSubmitting={wizard.state.isSubmitting}
           error={wizard.state.error}
+          displayStep={4}
         />
       )}
     </>

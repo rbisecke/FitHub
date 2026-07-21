@@ -352,6 +352,7 @@ export function CreatePlanWizard({ accessToken }: Props) {
               onSubmit={handleSubmit}
               isSubmitting={state.isSubmitting}
               error={state.error}
+              displayStep={has5Steps ? 5 : 4}
             />
             <div className="flex gap-3">
               <button

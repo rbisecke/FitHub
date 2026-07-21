@@ -336,9 +336,11 @@ export function TodayPrescriptionCard({
               sibling effort on this branch; this is the touch point only). */}
           <Link
             href={`/plan/${planId}/revise`}
-            className="font-mono text-xs underline-offset-2 hover:underline"
+            className="rounded font-mono text-xs"
             style={{
+              border: "1px solid var(--border)",
               color: "var(--muted)",
+              padding: "10px 16px",
               minHeight: "44px",
               display: "inline-flex",
               alignItems: "center",

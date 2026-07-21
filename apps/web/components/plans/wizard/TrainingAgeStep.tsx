@@ -35,6 +35,10 @@ interface Props {
   onSubmit: () => void;
   isSubmitting: boolean;
   error: string | null;
+  /** This step's visible position in the wizard's step indicator — 4 for the
+   * 4-step flow (no target-movement step), 5 for the 5-step flow. Drives the
+   * heading text so it never disagrees with the dots above it. */
+  displayStep: 4 | 5;
   headingRef?: React.RefObject<HTMLHeadingElement | null>;
 }
 
@@ -45,6 +49,7 @@ export function TrainingAgeStep({
   onSubmit,
   isSubmitting,
   error,
+  displayStep,
   headingRef,
 }: Props) {
   // When null the title is auto-derived from the archetype + training age.
@@ -99,7 +104,7 @@ export function TrainingAgeStep({
           className="font-mono text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           style={{ color: "var(--text)" }}
         >
-          step 5 &mdash; training age
+          step {displayStep} — training age
         </h2>
         <p className="mt-1 font-mono text-xs" style={{ color: "var(--muted)" }}>
           how long have you been training consistently?
