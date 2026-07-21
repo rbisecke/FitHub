@@ -37,8 +37,12 @@ function DeltaChip({
   if (kind === "none") return null;
   if (kind === "matched") {
     return (
-      <span className="font-mono text-[11px]" style={{ color: "var(--muted)" }}>
-        matched
+      <span
+        className="font-mono text-[11px]"
+        style={{ color: "var(--muted)" }}
+        title="Matched your previous best — no new PR"
+      >
+        matched prev. PR
       </span>
     );
   }
@@ -46,8 +50,9 @@ function DeltaChip({
     <span
       className="font-mono text-[11px] font-semibold"
       style={{ color: "var(--green)" }}
+      title="Improvement vs. your previous best, at the moment this PR was set"
     >
-      +{formatWeightDelta(record.delta_kg!, unit)}
+      +{formatWeightDelta(record.delta_kg!, unit)} vs. prev. PR
     </span>
   );
 }
@@ -60,8 +65,9 @@ function TrendGlyphChip({ record }: { record: PersonalRecord }) {
       className="font-mono text-[11px]"
       style={{ color: trendColorVar(direction) }}
       aria-label={`Current trend ${direction} vs. best`}
+      title={`Current trend is ${direction} vs. your all-time best (a separate signal from the delta below)`}
     >
-      {trendGlyph(direction)}
+      {trendGlyph(direction)} now
     </span>
   );
 }
@@ -126,6 +132,8 @@ function VariantLine({
           {prHeroValue(record, unit)}
         </span>
         <TrendGlyphChip record={record} />
+      </div>
+      <div className="mt-0.5">
         <DeltaChip record={record} unit={unit} />
       </div>
       {qualifier && (

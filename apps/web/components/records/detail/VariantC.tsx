@@ -5,8 +5,10 @@ import { formatWeight, formatWeightDelta } from "@/lib/display";
 import {
   deltaKind,
   formatAchievedDate,
+  noProjectionNote,
   prHeroValue,
   prSourceExpression,
+  trendDirection,
   type WeightUnit,
 } from "@/lib/records/prFormat";
 import { MovementTrendChart } from "@/components/records/detail/MovementTrendChart";
@@ -94,7 +96,10 @@ export function VariantC({
           </p>
           <p
             className="mt-1 font-mono text-[22px] font-semibold tabular-nums"
-            style={{ color: "var(--foreground)" }}
+            style={{
+              color: "var(--foreground)",
+              opacity: staleProjection ? 0.6 : 1,
+            }}
           >
             {formatWeight(record.current_e1rm_kg, unit)}
           </p>
@@ -103,6 +108,8 @@ export function VariantC({
             style={{ color: "var(--muted-foreground)" }}
           >
             current trend
+            {staleProjection &&
+              " — a rough extrapolation across a long gap since your last set"}
           </p>
           <MovementTrendChart
             points={points}
@@ -116,9 +123,15 @@ export function VariantC({
               className="mt-2 font-sans text-[12px]"
               style={{ color: "var(--muted-foreground)" }}
             >
-              Trend is flat right now — no near-term PR projected.
+              {noProjectionNote(trendDirection(record))}
             </p>
           )}
+          <p
+            className="mt-2 font-sans text-[11px]"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            Solid = logged. Dashed = projected, not yet earned.
+          </p>
         </div>
       )}
     </div>

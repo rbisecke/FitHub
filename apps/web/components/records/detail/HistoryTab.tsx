@@ -74,13 +74,13 @@ export function HistoryTab({
               }
             >
               <td
-                className="border-b border-[var(--border)] py-2 pr-4 font-mono text-[12px] tabular-nums"
+                className="border-b border-[var(--border)] py-2 pr-4 font-mono text-[12px] tabular-nums whitespace-nowrap"
                 style={{ color: "var(--muted-foreground)" }}
               >
                 {formatAchievedDate(row.date)}
               </td>
               <td
-                className="border-b border-[var(--border)] py-2 pr-4 font-mono text-[12px] tabular-nums"
+                className="border-b border-[var(--border)] py-2 pr-4 font-mono text-[12px] tabular-nums whitespace-nowrap"
                 style={{ color: "var(--foreground)" }}
               >
                 {row.load_kg != null ? formatWeight(row.load_kg, unit) : "—"}

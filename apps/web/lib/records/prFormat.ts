@@ -104,6 +104,25 @@ export function trendColorVar(direction: TrendDirection): string {
 }
 
 /**
+ * The honest note shown in place of the projection when `next_pr_kg` is
+ * null (Screen 2 States). The design doc gives one literal copy string for
+ * this combined state ("Trend is flat right now, no near-term PR
+ * projected"), covering both a genuinely flat/negative trend AND a
+ * positive trend whose milestone is already exceeded or >365 days out.
+ * Reusing that exact string when the trend is visibly "up" (green, ↑)
+ * reads as a direct contradiction next to the number — UI critique
+ * flagged this as eroding trust, not a nuance a user would parse charitably
+ * — so this splits the copy by actual direction while keeping the same
+ * honest "nothing withheld" intent.
+ */
+export function noProjectionNote(direction: TrendDirection | null): string {
+  if (direction === "up") {
+    return "Trending up, but no near-term PR milestone in sight yet.";
+  }
+  return "Trend is flat right now — no near-term PR projected.";
+}
+
+/**
  * Delta chip classification (Screen 1: `delta_kg` of exactly 0.0 is a real,
  * distinct case from null — a tied lift, never a false "+0.0kg" gain chip).
  */

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import type { E1RMPoint, PersonalRecord } from "@/lib/api";
 import { formatWeight } from "@/lib/display";
 import {
   formatAchievedDate,
+  noProjectionNote,
   trendColorVar,
   trendDirection,
   trendGlyph,
@@ -57,13 +59,19 @@ export function VariantA({
           <div className="flex items-baseline gap-2">
             <span
               className="font-mono text-[22px] font-semibold tabular-nums"
-              style={{ color: "var(--foreground)" }}
+              style={{
+                color: "var(--foreground)",
+                opacity: staleProjection ? 0.6 : 1,
+              }}
             >
               {formatWeight(record.current_e1rm_kg, unit)}
             </span>
             <span
               className="font-mono text-[16px]"
-              style={{ color: trendColorVar(direction) }}
+              style={{
+                color: trendColorVar(direction),
+                opacity: staleProjection ? 0.6 : 1,
+              }}
               aria-hidden="true"
             >
               {trendGlyph(direction)}
@@ -74,6 +82,8 @@ export function VariantA({
             style={{ color: "var(--muted-foreground)" }}
           >
             current trend
+            {staleProjection &&
+              " — a rough extrapolation across a long gap since your last set"}
           </p>
         </div>
       )}
@@ -83,15 +93,25 @@ export function VariantA({
           type="button"
           onClick={() => setProjectionExpanded((v) => !v)}
           aria-expanded={projectionExpanded}
-          className="w-fit font-mono text-[13px] italic underline-offset-2 hover:underline"
+          className="flex w-fit items-center gap-1 rounded-[6px] border font-mono text-[13px] transition-colors"
           style={{
             color: "var(--muted-foreground)",
+            borderColor: "var(--border)",
             opacity: staleProjection ? 0.55 : 1,
+            padding: "4px 8px",
           }}
         >
           Next PR: {formatWeight(record.next_pr_kg!, unit)} in ~
           {record.next_pr_weeks} wk
           {staleProjection ? " (stale)" : ""}
+          <ChevronDown
+            size={14}
+            aria-hidden="true"
+            style={{
+              transform: projectionExpanded ? "rotate(180deg)" : "rotate(0deg)",
+            }}
+            className="transition-transform"
+          />
         </button>
       )}
 
@@ -100,7 +120,7 @@ export function VariantA({
           className="font-sans text-[12px]"
           style={{ color: "var(--muted-foreground)" }}
         >
-          Trend is flat right now — no near-term PR projected.
+          {noProjectionNote(direction)}
         </p>
       )}
 

@@ -67,7 +67,7 @@ export function VariantB({
           <Marker
             pct={(bestPct + nowPct) / 2}
             fill="var(--purple)"
-            label="at your best"
+            label="at your best (current ≈ best)"
             value={formatWeight(record.best_1rm_kg, unit)}
           />
         ) : (
@@ -104,6 +104,21 @@ export function VariantB({
             />
           </div>
         )}
+      </div>
+
+      <div className="flex items-center justify-between">
+        <span
+          className="font-mono text-[10px] tabular-nums"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          {formatWeight(floor, unit)}
+        </span>
+        <span
+          className="font-mono text-[10px] tabular-nums"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          {formatWeight(ceiling, unit)}
+        </span>
       </div>
 
       <p

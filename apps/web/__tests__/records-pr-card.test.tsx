@@ -52,6 +52,6 @@ describe("RecordsPRCard", () => {
     ]);
     render(<RecordsPRCard group={group!} unit="kg" />);
     expect(screen.queryByText(/\+0\.0/)).toBeNull();
-    expect(screen.getByText("matched")).toBeTruthy();
+    expect(screen.getByText(/matched prev\. PR/)).toBeTruthy();
   });
 });

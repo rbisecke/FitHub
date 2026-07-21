@@ -34,7 +34,7 @@ export function ProgressTabsNav() {
   return (
     <nav
       aria-label="Progress sections"
-      className="border-b border-[var(--border)] bg-[var(--bg)] px-4 md:px-8"
+      className="relative border-b border-[var(--border)] bg-[var(--bg)] px-4 md:px-8"
     >
       <div className="mx-auto flex max-w-3xl gap-1 overflow-x-auto py-2">
         {SEGMENTS.map((segment) => {
@@ -57,6 +57,15 @@ export function ProgressTabsNav() {
           );
         })}
       </div>
+      {/* Right-edge fade — signals "more tabs, scroll" rather than a cut-off
+          layout bug when the segmented set overflows a narrow viewport. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-0 w-8 md:hidden"
+        style={{
+          background: "linear-gradient(to right, transparent, var(--bg))",
+        }}
+      />
     </nav>
   );
 }
