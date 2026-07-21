@@ -2898,6 +2898,10 @@ export interface components {
       prev_best_1rm_kg?: number | null;
       /** Delta Kg */
       delta_kg?: number | null;
+      /** Implement */
+      implement?: string | null;
+      /** Side */
+      side?: string | null;
       /** Current E1Rm Kg */
       current_e1rm_kg?: number | null;
       /** Next Pr Kg */
@@ -2933,6 +2937,10 @@ export interface components {
        * Format: date
        */
       achieved_at: string;
+      /** Implement */
+      implement?: string | null;
+      /** Side */
+      side?: string | null;
     };
     /** PinnedMovement */
     PinnedMovement: {

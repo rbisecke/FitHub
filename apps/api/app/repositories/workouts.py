@@ -53,7 +53,14 @@ async def _flag_prs(
     user_id: uuid.UUID,
     workout_id: uuid.UUID,
 ) -> None:
-    """Set is_pr = true on results in this workout that beat the user's prior best e1RM."""
+    """Set is_pr = true on results in this workout that beat the user's prior best e1RM.
+
+    Scoped per (movement, implement, side) variant (04 §2A, BG-23): a barbell
+    PR and a dumbbell PR are different achievements, so a heavier dumbbell
+    history must never suppress a fresh barbell PR (or vice versa). Both
+    columns are nullable, so the comparison uses ``IS NOT DISTINCT FROM``
+    rather than ``=`` — a NULL implement/side must match itself.
+    """
     await cur.execute(
         """
         UPDATE public.results AS r
@@ -68,6 +75,8 @@ async def _flag_prs(
                    FROM   public.results r2
                    WHERE  r2.user_id     = r.user_id
                      AND  r2.movement_id = r.movement_id
+                     AND  r2.implement IS NOT DISTINCT FROM r.implement
+                     AND  r2.side      IS NOT DISTINCT FROM r.side
                      AND  r2.workout_id != %s
                ),
                0
@@ -207,21 +216,6 @@ async def list_workouts(
     date_to: str | None = None,
 ) -> list[WorkoutSummary]:
     async with conn.cursor(row_factory=dict_row) as cur:
-        # CTE pre-computes the best 1RM per movement for this user, allowing
-        # the outer query to detect PRs with a single index scan instead of a
-        # correlated subquery per row.
-        pr_cte = """
-            WITH pr_by_movement AS (
-              SELECT r.movement_id, MAX(r.estimated_1rm_kg) AS best_1rm
-              FROM   public.results r
-              JOIN   public.workouts w2 ON r.workout_id = w2.id
-              WHERE  w2.user_id = %s
-                AND  r.estimated_1rm_kg IS NOT NULL
-                AND  r.movement_id IS NOT NULL
-              GROUP  BY r.movement_id
-            )
-        """
-
         filter_clauses: list[str] = ["w.user_id = %s"]
         params: list[object] = [user_id]
 
@@ -241,43 +235,29 @@ async def list_workouts(
 
         base_where = " AND ".join(filter_clauses)
 
-        has_pr_join = """
-            LEFT JOIN public.results pr_r
-                   ON pr_r.workout_id = w.id
-                  AND pr_r.estimated_1rm_kg IS NOT NULL
-                  AND pr_r.movement_id IS NOT NULL
-            LEFT JOIN pr_by_movement pbm
-                   ON pbm.movement_id = pr_r.movement_id
-                  AND pr_r.estimated_1rm_kg = pbm.best_1rm
-        """
-
         if before_id is None:
             await cur.execute(
-                pr_cte
-                + f"""
+                f"""
                 SELECT w.*, COALESCE(COUNT(DISTINCT r.id), 0) AS result_count,
-                       (MAX(pbm.best_1rm) IS NOT NULL) AS has_pr
+                       COALESCE(BOOL_OR(r.is_pr), false) AS has_pr
                 FROM   public.workouts w
                 LEFT JOIN public.results r
                        ON r.workout_id = w.id AND r.user_id = w.user_id
-                {has_pr_join}
                 WHERE  {base_where}
                 GROUP  BY w.id
                 ORDER  BY w.performed_at DESC, w.id DESC
                 LIMIT  %s
                 """,
-                [user_id, *params, limit],
+                [*params, limit],
             )
         else:
             await cur.execute(
-                pr_cte
-                + f"""
+                f"""
                 SELECT w.*, COALESCE(COUNT(DISTINCT r.id), 0) AS result_count,
-                       (MAX(pbm.best_1rm) IS NOT NULL) AS has_pr
+                       COALESCE(BOOL_OR(r.is_pr), false) AS has_pr
                 FROM   public.workouts w
                 LEFT JOIN public.results r
                        ON r.workout_id = w.id AND r.user_id = w.user_id
-                {has_pr_join}
                 WHERE  {base_where}
                   AND  (w.performed_at, w.id) < (
                            SELECT performed_at, id
@@ -288,7 +268,7 @@ async def list_workouts(
                 ORDER  BY w.performed_at DESC, w.id DESC
                 LIMIT  %s
                 """,
-                [user_id, *params, before_id, user_id, limit],
+                [*params, before_id, user_id, limit],
             )
         rows = await cur.fetchall()
     return [WorkoutSummary(**r) for r in rows]

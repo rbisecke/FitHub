@@ -35,14 +35,18 @@ export function ChartDataTable({
         </tr>
       </thead>
       <tbody>
-        {rows.map((row) => {
+        {rows.map((row, ri) => {
           const [head, ...rest] = row;
-          const rowKey = String(head);
+          // Keyed by row index, not the displayed first-column text: this is a
+          // static presentational snapshot (never reordered), and two rows can
+          // legitimately share the same displayed label — e.g. two benchmark
+          // attempts logged on the same calendar day — which would otherwise
+          // collide on a text-derived key.
           return (
-            <tr key={rowKey}>
+            <tr key={ri}>
               <th scope="row">{head}</th>
               {rest.map((cell, ci) => (
-                <td key={`${rowKey}-${columns[ci + 1] ?? ci}`}>{cell}</td>
+                <td key={`${ri}-${columns[ci + 1] ?? ci}`}>{cell}</td>
               ))}
             </tr>
           );

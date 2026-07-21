@@ -117,9 +117,242 @@ async def test_movement_trend_ordered_asc(alice_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_prs_scoped_by_implement_variant(alice_client: AsyncClient) -> None:
+    """Barbell and dumbbell variants of one movement are separate PR rows (04 §2A, BG-23)."""
+    movement_id = await _create_movement(alice_client, "Bench Variant Test")
+    barbell = {
+        **_SQUAT_RESULT,
+        "movement_id": movement_id,
+        "load_kg": 100.0,
+        "implement": "barbell",
+    }
+    dumbbell = {
+        **_SQUAT_RESULT,
+        "movement_id": movement_id,
+        "load_kg": 40.0,
+        "implement": "dumbbell",
+        "order_index": 1,
+    }
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": "2024-01-10T12:00:00Z", "results": [barbell, dumbbell]},
+    )
+
+    r = await alice_client.get("/api/v1/analytics/personal-records")
+    assert r.status_code == 200
+    prs = [p for p in r.json() if p["movement_name"] == "Bench Variant Test"]
+    assert len(prs) == 2
+    by_implement = {p["implement"]: p for p in prs}
+    assert set(by_implement) == {"barbell", "dumbbell"}
+    assert by_implement["barbell"]["best_1rm_kg"] > by_implement["dumbbell"]["best_1rm_kg"]
+
+
+@pytest.mark.asyncio
+async def test_prs_variant_delta_not_polluted_by_other_variant(alice_client: AsyncClient) -> None:
+    """delta_kg/prev_best_1rm_kg for one variant must not derive from another variant's history."""
+    movement_id = await _create_movement(alice_client, "Press Variant Delta Test")
+    # Dumbbell: two increasing results, so it has its own real prev-best history.
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2024-01-01T12:00:00Z",
+            "results": [
+                {
+                    **_SQUAT_RESULT,
+                    "movement_id": movement_id,
+                    "load_kg": 20.0,
+                    "implement": "dumbbell",
+                }
+            ],
+        },
+    )
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2024-01-15T12:00:00Z",
+            "results": [
+                {
+                    **_SQUAT_RESULT,
+                    "movement_id": movement_id,
+                    "load_kg": 30.0,
+                    "implement": "dumbbell",
+                }
+            ],
+        },
+    )
+    # Barbell: single, much heavier result logged after both dumbbell entries.
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={
+            "performed_at": "2024-01-20T12:00:00Z",
+            "results": [
+                {
+                    **_SQUAT_RESULT,
+                    "movement_id": movement_id,
+                    "load_kg": 100.0,
+                    "implement": "barbell",
+                }
+            ],
+        },
+    )
+
+    r = await alice_client.get("/api/v1/analytics/personal-records")
+    assert r.status_code == 200
+    prs = [p for p in r.json() if p["movement_name"] == "Press Variant Delta Test"]
+    by_implement = {p["implement"]: p for p in prs}
+
+    # Barbell is its own first-ever result — no prev best, no delta — even
+    # though a much heavier-e1RM-than-its-own-prior dumbbell history exists.
+    assert by_implement["barbell"]["prev_best_1rm_kg"] is None
+    assert by_implement["barbell"]["delta_kg"] is None
+    # Dumbbell's prev best is its own earlier 20kg entry, not the 100kg barbell lift.
+    epley_20 = 20.0 * (1 + 5 / 30)
+    assert by_implement["dumbbell"]["prev_best_1rm_kg"] == pytest.approx(epley_20, rel=0.01)
+
+
+@pytest.mark.asyncio
+async def test_prs_trend_projection_not_polluted_by_other_variant(
+    alice_client: AsyncClient,
+) -> None:
+    """OLS regression for one variant must not mix in another variant's data points (04 §2A)."""
+    from datetime import date as _date
+
+    from app.engine.strength import project_e1rm
+
+    movement_id = await _create_movement(alice_client, "Squat Trend Variant Test")
+    barbell_loads_dates = [
+        (80.0, "2024-01-01T12:00:00Z"),
+        (90.0, "2024-02-01T12:00:00Z"),
+        (100.0, "2024-03-01T12:00:00Z"),
+    ]
+    # Dumbbell: heavier in absolute e1RM but trending sharply downward — if
+    # this pollutes the barbell regression, barbell's current_e1rm_kg will
+    # diverge from the barbell-only-computed expectation below.
+    dumbbell_loads_dates = [
+        (60.0, "2024-01-01T12:00:00Z"),
+        (50.0, "2024-02-01T12:00:00Z"),
+        (40.0, "2024-03-01T12:00:00Z"),
+    ]
+
+    for load, dt in barbell_loads_dates:
+        await alice_client.post(
+            "/api/v1/workouts",
+            json={
+                "performed_at": dt,
+                "results": [
+                    {
+                        **_SQUAT_RESULT,
+                        "movement_id": movement_id,
+                        "load_kg": load,
+                        "implement": "barbell",
+                    }
+                ],
+            },
+        )
+    for load, dt in dumbbell_loads_dates:
+        await alice_client.post(
+            "/api/v1/workouts",
+            json={
+                "performed_at": dt,
+                "results": [
+                    {
+                        **_SQUAT_RESULT,
+                        "movement_id": movement_id,
+                        "load_kg": load,
+                        "implement": "dumbbell",
+                    }
+                ],
+            },
+        )
+
+    r = await alice_client.get("/api/v1/analytics/personal-records")
+    assert r.status_code == 200
+    prs = [p for p in r.json() if p["movement_name"] == "Squat Trend Variant Test"]
+    by_implement = {p["implement"]: p for p in prs}
+
+    def _epley(load: float) -> float:
+        return load * (1 + 5 / 30)
+
+    def _points(loads_dates: list[tuple[float, str]]) -> list[tuple[_date, float]]:
+        return [
+            (_date(int(dt[:4]), int(dt[5:7]), int(dt[8:10])), _epley(load))
+            for load, dt in loads_dates
+        ]
+
+    expected_barbell = project_e1rm(_points(barbell_loads_dates), _date.today())
+    expected_dumbbell = project_e1rm(_points(dumbbell_loads_dates), _date.today())
+
+    assert expected_barbell.current_e1rm_kg is not None
+    assert expected_dumbbell.current_e1rm_kg is not None
+    # The two independently-computed trends must be meaningfully different
+    # (one rising, one falling) — otherwise this test wouldn't actually catch
+    # cross-variant contamination.
+    assert expected_barbell.current_e1rm_kg != pytest.approx(
+        expected_dumbbell.current_e1rm_kg, rel=0.05
+    )
+
+    assert by_implement["barbell"]["current_e1rm_kg"] == pytest.approx(
+        expected_barbell.current_e1rm_kg, rel=0.01
+    )
+    assert by_implement["dumbbell"]["current_e1rm_kg"] == pytest.approx(
+        expected_dumbbell.current_e1rm_kg, rel=0.01
+    )
+
+
+@pytest.mark.asyncio
 async def test_prs_requires_auth(anon_client: AsyncClient) -> None:
     r = await anon_client.get("/api/v1/analytics/personal-records")
     assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_prs_user_scoped(alice_client: AsyncClient, bob_client: AsyncClient) -> None:
+    """Bob must never see Alice's PRs, even for a movement Alice created."""
+    movement_id = await _create_movement(alice_client, "Scoped PR Isolation Test")
+    result = {**_SQUAT_RESULT, "movement_id": movement_id}
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": "2024-01-10T12:00:00Z", "results": [result]},
+    )
+
+    r = await bob_client.get("/api/v1/analytics/personal-records")
+    assert r.status_code == 200
+    assert all(p["movement_name"] != "Scoped PR Isolation Test" for p in r.json())
+
+
+@pytest.mark.asyncio
+async def test_movement_trend_user_scoped(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """Bob querying Alice's movement_id gets his own (empty) trend, not hers."""
+    movement_id = await _create_movement(alice_client, "Scoped Trend Isolation Test")
+    for i, load in enumerate([80.0, 100.0, 110.0]):
+        result = {**_SQUAT_RESULT, "movement_id": movement_id, "load_kg": load}
+        await alice_client.post(
+            "/api/v1/workouts",
+            json={"performed_at": f"2024-0{i + 1}-10T12:00:00Z", "results": [result]},
+        )
+
+    r = await bob_client.get(f"/api/v1/analytics/movement-trend/{movement_id}")
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+@pytest.mark.asyncio
+async def test_movement_history_user_scoped(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """Bob querying Alice's movement_id gets his own (empty) history, not hers."""
+    movement_id = await _create_movement(alice_client, "Scoped History Isolation Test")
+    result = {**_SQUAT_RESULT, "movement_id": movement_id, "load_kg": 100.0}
+    await alice_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": "2024-01-10T12:00:00Z", "results": [result]},
+    )
+
+    r = await bob_client.get(f"/api/v1/analytics/movement-history/{movement_id}")
+    assert r.status_code == 200
+    assert r.json() == []
 
 
 # --- Strength intelligence fields ---

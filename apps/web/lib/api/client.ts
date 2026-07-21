@@ -287,8 +287,12 @@ export const api = {
       }),
   },
   analytics: {
-    load: (token: string, days = 90) =>
-      apiFetch<LoadModelResponse>(`/api/v1/analytics/load?days=${days}`, token),
+    load: (token: string, days = 90, options?: { signal?: AbortSignal }) =>
+      apiFetch<LoadModelResponse>(
+        `/api/v1/analytics/load?days=${days}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     personalRecords: (token: string, options?: { signal?: AbortSignal }) =>
       apiFetch<PersonalRecord[]>(
         "/api/v1/analytics/personal-records",
@@ -331,24 +335,47 @@ export const api = {
         options?.signal ? { signal: options.signal } : undefined,
       );
     },
-    volumeTrend: (token: string, weeks = 12) =>
+    volumeTrend: (
+      token: string,
+      weeks = 12,
+      options?: { signal?: AbortSignal },
+    ) =>
       apiFetch<VolumeTrendResponse>(
         `/api/v1/analytics/volume-trend?weeks=${weeks}`,
         token,
+        options?.signal ? { signal: options.signal } : undefined,
       ),
-    readiness: (token: string) =>
-      apiFetch<ReadinessResponse>("/api/v1/analytics/readiness", token),
-    trainingBalance: (token: string, days = 28) =>
+    readiness: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<ReadinessResponse>(
+        "/api/v1/analytics/readiness",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
+    trainingBalance: (
+      token: string,
+      days = 28,
+      options?: { signal?: AbortSignal },
+    ) =>
       apiFetch<TrainingBalanceResponse>(
         `/api/v1/analytics/training-balance?days=${days}`,
         token,
+        options?.signal ? { signal: options.signal } : undefined,
       ),
-    benchmarks: (token: string) =>
-      apiFetch<BenchmarkResponse>("/api/v1/analytics/benchmarks", token),
-    contributions: (token: string, days = 365) =>
+    benchmarks: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<BenchmarkResponse>(
+        "/api/v1/analytics/benchmarks",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
+    contributions: (
+      token: string,
+      days = 365,
+      options?: { signal?: AbortSignal },
+    ) =>
       apiFetch<ContributionsResponse>(
         `/api/v1/analytics/contributions?days=${days}`,
         token,
+        options?.signal ? { signal: options.signal } : undefined,
       ),
   },
   trainingPartners: (token: string, options?: { signal?: AbortSignal }) =>
@@ -894,7 +921,8 @@ export function createApiClient(token: string) {
         api.movements.skillContext(token, movementId, options),
     },
     analytics: {
-      load: (days?: number) => api.analytics.load(token, days),
+      load: (days?: number, options?: { signal?: AbortSignal }) =>
+        api.analytics.load(token, days, options),
       personalRecords: (options?: { signal?: AbortSignal }) =>
         api.analytics.personalRecords(token, options),
       movementTrend: (
@@ -907,13 +935,16 @@ export function createApiClient(token: string) {
         params?: Parameters<typeof api.analytics.movementHistory>[2],
         options?: { signal?: AbortSignal },
       ) => api.analytics.movementHistory(token, movementId, params, options),
-      volumeTrend: (weeks?: number) => api.analytics.volumeTrend(token, weeks),
-      readiness: () => api.analytics.readiness(token),
-      trainingBalance: (days?: number) =>
-        api.analytics.trainingBalance(token, days),
-      benchmarks: () => api.analytics.benchmarks(token),
-      contributions: (days?: number) =>
-        api.analytics.contributions(token, days),
+      volumeTrend: (weeks?: number, options?: { signal?: AbortSignal }) =>
+        api.analytics.volumeTrend(token, weeks, options),
+      readiness: (options?: { signal?: AbortSignal }) =>
+        api.analytics.readiness(token, options),
+      trainingBalance: (days?: number, options?: { signal?: AbortSignal }) =>
+        api.analytics.trainingBalance(token, days, options),
+      benchmarks: (options?: { signal?: AbortSignal }) =>
+        api.analytics.benchmarks(token, options),
+      contributions: (days?: number, options?: { signal?: AbortSignal }) =>
+        api.analytics.contributions(token, days, options),
     },
     plans: {
       list: () => api.plans.list(token),

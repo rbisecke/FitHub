@@ -39,6 +39,10 @@ class PersonalRecord(BaseModel):
     time_s: int | None = None
     prev_best_1rm_kg: float | None = None
     delta_kg: float | None = None
+    # Variant scoping (04 §2A, BG-23): a barbell PR and a dumbbell PR (or a
+    # left/right unilateral PR) are different achievements, tracked separately.
+    implement: str | None = None
+    side: str | None = None
     # Strength intelligence fields (null when fewer than 3 data points)
     current_e1rm_kg: float | None = None
     next_pr_kg: float | None = None
