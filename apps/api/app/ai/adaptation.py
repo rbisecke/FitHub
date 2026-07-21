@@ -33,13 +33,17 @@ _CHANGE_TYPE = Literal["reduce_intensity", "reduce_volume", "swap_session", "add
 # collide with a real gen_random_uuid() row, so it's obviously synthetic.
 # Because @stubbed short-circuits before any DB-loaded session data is
 # consulted, this fixture's session_id will never match a real
-# planned_sessions row in whatever plan triggered detection — merging a
-# stub-detected adaptation therefore only flips the adaptation's own status;
-# the item-level UPDATE/DELETE affects zero rows (WHERE session_id = ...
-# matches nothing). This mirrors STUB_PLAN/STUB_PLAN_REVISION, which are
-# likewise static and ignore their runtime arguments. Tests that verify
-# merge's real DB-rewrite behavior seed a hand-crafted diff_json referencing
-# a real session id from a freshly created test plan (see test_adaptations_api.py).
+# planned_sessions row in whatever plan triggered detection. merge_adaptation
+# re-validates every diffed session_id against the plan's current prescribed
+# sessions before applying anything (see its plan-membership/staleness guard
+# in routers/adaptations.py), so merging a stub-detected adaptation reliably
+# 409s ("this plan changed since this suggestion was generated") rather than
+# silently no-op'ing — an intentional, honest outcome for a fixture that was
+# never connected to real plan data, not a bug. This mirrors
+# STUB_PLAN/STUB_PLAN_REVISION, which are likewise static and ignore their
+# runtime arguments. Tests that verify merge's real DB-rewrite behavior seed a
+# hand-crafted diff_json referencing a real session id from a freshly created
+# test plan (see test_adaptations_api.py).
 
 _STUB_SESSION_ID = "00000000-0000-0000-0000-000000000000"
 _STUB_ITEM_ID = "00000000-0000-0000-0000-000000000001"
