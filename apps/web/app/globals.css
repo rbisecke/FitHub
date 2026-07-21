@@ -72,6 +72,14 @@
 :root,
 .dark,
 [data-theme="dark"] {
+  /* Tells the browser to render native form controls (checkboxes, scrollbars,
+     date pickers, etc.) with dark UI chrome here, and light chrome inside a
+     `.light`/`[data-theme="light"]` subtree below — without this, native
+     controls follow the OS preference regardless of FitHub's own theme
+     tokens, so an unchecked checkbox on a forced-light surface can render
+     as a solid dark square against a light background. */
+  color-scheme: dark;
+
   /* --- Base color tokens (0.1, 00 §3.0) — FitHub's canonical 10-hue palette --- */
   --bg: #0d1117;
   --surface: #161b22;
@@ -161,6 +169,8 @@
    ───────────────────────────────────────────────────────────────────────────── */
 .light,
 [data-theme="light"] {
+  color-scheme: light;
+
   /* Base tokens — GitHub-light palette equivalents */
   --bg: #ffffff;
   --surface: #f6f8fa;
