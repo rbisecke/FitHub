@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { ForcedTheme } from "@/components/shared/forced-theme";
 import { TodayPrescriptionCard } from "@/components/plans/TodayPrescriptionCard";
 import { ReadinessSection } from "@/components/analytics/readiness/ReadinessSection";
+import { StreakCard } from "@/components/dashboard/StreakCard";
+import { GamificationMount } from "@/components/gamification/GamificationMount";
 
 /**
  * Today tab (02 §6.1) — a composed screen this domain owns the layout of,
@@ -40,6 +42,14 @@ export default async function TodayPage() {
         <h1 className="font-mono text-lg font-bold text-[var(--text)]">
           $ fithub today
         </h1>
+
+        {/* Streak-freeze reveal + milestone toast (Domain 07 §F/§H) — renders
+            nothing unless a real unread gamification event is waiting. */}
+        <GamificationMount accessToken={session.access_token} />
+
+        {/* Canonical streak display (Domain 07 §D) — the everyday glanceable
+            surface (distinct from the above one-time reveal moment). */}
+        <StreakCard accessToken={session.access_token} />
 
         <ReadinessSection accessToken={session.access_token} />
 
