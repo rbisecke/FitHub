@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { createApiClient } from "@/lib/api/client";
 import type { PlanDetail, PlannedSessionOut } from "@/lib/api/plans";
 import { SessionTypeChip } from "@/components/plans/overview/chips";
@@ -182,19 +183,53 @@ function SessionDetailBody({
       </div>
 
       {!isCompleted && (
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href={`/plan/${planId}/sessions/${session.id}/execute`}
+            className="rounded font-mono text-sm font-semibold"
+            style={{
+              background: "var(--accent)",
+              color: "var(--bg)",
+              padding: "10px 24px",
+              minHeight: "44px",
+              display: "inline-flex",
+              alignItems: "center",
+            }}
+          >
+            start session
+          </Link>
+          {/*
+           * Deliberately NOT "Adapt session" — that label belongs to Domain
+           * 02's distinct, LLM-driven mesocycle-level "Adaptation review"
+           * feature. This is a deterministic, single-session, injury-only
+           * movement swap (03 §11, FR §6); the different wording keeps the
+           * two concepts legible as separate features.
+           */}
+          <Link
+            href={`/plan/${planId}/sessions/${session.id}/modify`}
+            className="rounded font-sans text-sm font-semibold"
+            style={{
+              background: "var(--surface)",
+              color: "var(--text)",
+              border: "1px solid var(--border)",
+              padding: "10px 24px",
+              minHeight: "44px",
+              display: "inline-flex",
+              alignItems: "center",
+            }}
+          >
+            Injury-adapt this session
+          </Link>
+        </div>
+      )}
+
+      {!isCompleted && (
         <Link
-          href={`/plan/${planId}/sessions/${session.id}/execute`}
-          className="self-start rounded font-mono text-sm font-semibold"
-          style={{
-            background: "var(--accent)",
-            color: "var(--bg)",
-            padding: "10px 24px",
-            minHeight: "44px",
-            display: "inline-flex",
-            alignItems: "center",
-          }}
+          href="/coach/check-wod"
+          className="flex items-center gap-1 self-start font-mono text-xs text-[var(--muted)] hover:text-[var(--text)]"
         >
-          start session
+          Check a WOD against your injuries
+          <ArrowRight size={12} aria-hidden="true" />
         </Link>
       )}
     </div>
