@@ -201,7 +201,7 @@ async def get_history(
 ) -> list[HistoryMessage]:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
-            """SELECT cm.role, cm.content, cm.created_at
+            """SELECT cm.role, cm.content, cm.created_at, cm.safety_tier
                FROM public.coach_messages cm
                JOIN public.coach_sessions cs ON cs.id = cm.session_id
                WHERE cm.session_id = %s AND cs.user_id = %s
@@ -416,12 +416,22 @@ async def _do_stream(
                     db, user_id=user_id, title=question[:200]
                 )
             else:
-                yield sse_event({"type": "error", "message": "Session not found."})
+                yield sse_event(
+                    {
+                        "type": "error",
+                        "message": "Session not found.",
+                        "subtype": "technical",
+                    }
+                )
                 return
     else:
         session_id = await coach_repo.create_session(db, user_id=user_id, title=question[:200])
 
     if tier == SafetyTier.STOP:
+        stop_message = (
+            "Please stop your workout and consult a medical professional immediately. "
+            "This situation is beyond the scope of AI coaching."
+        )
         await coach_repo.write_message(
             db, session_id, user_id, "user", question, safety_tier="stop"
         )
@@ -430,16 +440,14 @@ async def _do_stream(
             session_id,
             user_id,
             "assistant",
-            "I can't assist with that request.",
+            stop_message,
             safety_tier="stop",
         )
         yield sse_event(
             {
                 "type": "error",
-                "message": (
-                    "Please stop your workout and consult a medical professional immediately. "
-                    "This situation is beyond the scope of AI coaching."
-                ),
+                "message": stop_message,
+                "subtype": "stop",
             }
         )
         return
@@ -520,6 +528,7 @@ async def _do_stream(
                     {
                         "type": "error",
                         "message": "Coach is temporarily unavailable. Please try again.",
+                        "subtype": "technical",
                     }
                 )
                 return
@@ -536,6 +545,7 @@ async def _do_stream(
                     {
                         "type": "error",
                         "message": "Coach is temporarily unavailable. Please try again.",
+                        "subtype": "technical",
                     }
                 )
                 return
@@ -575,7 +585,14 @@ async def _do_stream(
             duration_ms=usage_duration_ms,
         )
 
-    yield sse_event({"type": "done", "session_id": str(session_id)})
+    yield sse_event(
+        {
+            "type": "done",
+            "session_id": str(session_id),
+            "citations": citations,
+            "safety_tier": tier.value,
+        }
+    )
 
 
 # ── Shared helpers ────────────────────────────────────────────────────────────

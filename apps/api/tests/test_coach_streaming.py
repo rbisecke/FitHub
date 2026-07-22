@@ -198,3 +198,77 @@ async def test_stream_question_too_long_rejected(alice_client: AsyncClient) -> N
         json={"question": "x" * 2001},
     )
     assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_stream_done_frame_includes_citations_and_safety_tier(
+    alice_client: AsyncClient,
+) -> None:
+    r = await alice_client.post(
+        "/api/v1/coach/chat/stream",
+        json={"question": "What is the best warm-up?"},
+    )
+    assert r.status_code == 200
+    events = _parse_sse(r.content)
+    done = events[-1]
+    assert done["type"] == "done"
+    assert isinstance(done["citations"], list)
+    assert done["safety_tier"] in ("coach", "modify")
+
+
+@pytest.mark.asyncio
+async def test_stream_stop_tier_error_frame_has_stop_subtype(alice_client: AsyncClient) -> None:
+    r = await alice_client.post(
+        "/api/v1/coach/chat/stream",
+        json={"question": "I have severe chest pain and can't breathe."},
+    )
+    assert r.status_code == 200
+    events = _parse_sse(r.content)
+    assert len(events) == 1
+    assert events[0]["type"] == "error"
+    assert events[0]["subtype"] == "stop"
+
+
+@pytest.mark.asyncio
+async def test_stream_invalid_session_id_error_frame_has_technical_subtype(
+    alice_client: AsyncClient,
+) -> None:
+    fake_id = str(uuid.uuid4())
+    r = await alice_client.post(
+        "/api/v1/coach/chat/stream",
+        json={"question": "What should I eat after a WOD?", "session_id": fake_id},
+    )
+    assert r.status_code == 200
+    events = _parse_sse(r.content)
+    assert events[0]["type"] == "error"
+    assert events[0]["subtype"] == "technical"
+    assert events[0]["subtype"] != "stop"
+
+
+@pytest.mark.asyncio
+async def test_session_messages_include_safety_tier_and_stop_copy_matches_live(
+    alice_client: AsyncClient,
+) -> None:
+    r = await alice_client.post(
+        "/api/v1/coach/chat/stream",
+        json={"question": "I have severe chest pain and can't breathe."},
+    )
+    assert r.status_code == 200
+    events = _parse_sse(r.content)
+    live_message = events[0]["message"]
+
+    r2 = await alice_client.get("/api/v1/coach/sessions")
+    assert r2.status_code == 200
+    session_id = r2.json()[0]["id"]
+
+    r3 = await alice_client.get(f"/api/v1/coach/sessions/{session_id}/messages")
+    assert r3.status_code == 200
+    msgs = r3.json()["messages"]
+    assert len(msgs) == 2
+    for m in msgs:
+        assert m["safety_tier"] == "stop"
+
+    assistant_msg = next(m for m in msgs if m["role"] == "assistant")
+    assert assistant_msg["content"] == live_message
+    assert "medical professional" in assistant_msg["content"]
+    assert assistant_msg["content"] != "I can't assist with that request."

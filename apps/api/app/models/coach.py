@@ -94,6 +94,7 @@ class HistoryMessage(BaseModel):
     role: Literal["user", "assistant"]
     content: str
     created_at: datetime
+    safety_tier: Literal["coach", "modify", "stop"] | None = None
 
 
 class ChatStreamRequest(BaseModel):

@@ -7080,6 +7080,22 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "safety_tier": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "coach",
+                  "modify",
+                  "stop"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safety Tier"
           }
         },
         "type": "object",

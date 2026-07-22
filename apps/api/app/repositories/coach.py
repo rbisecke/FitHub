@@ -167,7 +167,7 @@ async def list_messages(
     async with db.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT role, content, created_at
+            SELECT role, content, created_at, safety_tier
             FROM public.coach_messages
             WHERE session_id = %s
             ORDER BY created_at ASC
