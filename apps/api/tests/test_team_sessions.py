@@ -86,6 +86,66 @@ async def test_create_with_guest(alice_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_with_multiple_guests(alice_client: AsyncClient) -> None:
+    """A session can hold more than one guest — all guests share user_id=NULL,
+    so the old UNIQUE NULLS NOT DISTINCT (team_session_id, user_id) constraint
+    silently capped every session at exactly one guest (0083 fix)."""
+    payload = {
+        **_TS_BASE,
+        "participants": [{"guest_name": "Charlie"}, {"guest_name": "Dana"}],
+    }
+    r = await alice_client.post("/api/v1/team-sessions", json=payload)
+    assert r.status_code == 201
+    guest_names = sorted(p["guest_name"] for p in r.json()["participants"] if p["guest_name"])
+    assert guest_names == ["charlie", "dana"]
+
+
+@pytest.mark.asyncio
+async def test_create_participant_workout_already_linked_elsewhere_moves_it(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """Creating a session with a participant whose workout_id is already linked
+    to another session must move the link (clear-then-attach), not 500 with a
+    raw UniqueViolation — the creator's own workout_id path already had this
+    fix; the bulk req.participants path did not."""
+    w = await bob_client.post(
+        "/api/v1/workouts", json={"performed_at": "2026-06-01T09:00:00Z", "results": []}
+    )
+    assert w.status_code == 201
+    workout_id = w.json()["id"]
+
+    first = await alice_client.post(
+        "/api/v1/team-sessions",
+        json={**_TS_BASE, "participants": [{"user_id": str(BOB_ID), "workout_id": workout_id}]},
+    )
+    assert first.status_code == 201
+    first_pid = _pid(first.json(), user_id=BOB_ID)
+
+    second = await alice_client.post(
+        "/api/v1/team-sessions",
+        json={
+            **_TS_BASE,
+            "name": "Second Session",
+            "participants": [{"user_id": str(BOB_ID), "workout_id": workout_id}],
+        },
+    )
+    assert second.status_code == 201
+    second_pid = _pid(second.json(), user_id=BOB_ID)
+
+    # The first session's participant row must now show no linked workout —
+    # the reference moved, it wasn't left dangling.
+    refetched_first = await alice_client.get(f"/api/v1/team-sessions/{first.json()['id']}")
+    assert refetched_first.status_code == 200
+    first_participant = next(
+        p for p in refetched_first.json()["participants"] if p["id"] == first_pid
+    )
+    assert first_participant["workout_id"] is None
+
+    second_participant = next(p for p in second.json()["participants"] if p["id"] == second_pid)
+    assert second_participant["workout_id"] == workout_id
+
+
+@pytest.mark.asyncio
 async def test_create_sends_notification(
     alice_client: AsyncClient, bob_client: AsyncClient
 ) -> None:

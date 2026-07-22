@@ -405,6 +405,17 @@ async def create_team_session(
             if not (p.user_id and p.user_id == user_id)
         ]
         if participants_to_insert:
+            linked_workout_ids = [row[2] for row in participants_to_insert if row[2] is not None]
+            if linked_workout_ids:
+                # Clear any other participant row (any session) currently holding
+                # one of these workouts, so each becomes an atomic "move" rather
+                # than leaving a stale reference behind in its previous session —
+                # same fix as the creator's own workout_id path above.
+                await cur.executemany(
+                    "UPDATE public.team_session_participants SET workout_id = NULL "
+                    "WHERE workout_id = %s",
+                    [(wid,) for wid in linked_workout_ids],
+                )
             await cur.executemany(
                 """
                 INSERT INTO public.team_session_participants
