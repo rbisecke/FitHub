@@ -53,7 +53,14 @@ beforeEach(() => {
 
 describe("AccessRequestsPanel", () => {
   it('shows "No requests waiting." for an empty pending queue', () => {
-    render(<AccessRequestsPanel initial={[]} users={[]} token="tok" />);
+    render(
+      <AccessRequestsPanel
+        initial={[]}
+        initialLoadFailed={false}
+        users={[]}
+        token="tok"
+      />,
+    );
     expect(screen.getByText("No requests waiting.")).toBeTruthy();
   });
 
@@ -106,5 +113,48 @@ describe("AccessRequestsPanel", () => {
         "Invite email status unconfirmed — they can still sign in.",
       ),
     ).toBeTruthy();
+  });
+
+  it("does not blank a successfully-fetched queue when the users lookup came back empty (partial-failure fix)", () => {
+    // Regression for the P1: the page used to fetch `accessRequests` and
+    // `users` inside one `Promise.all`/`catch`, so a `users`-only failure
+    // (e.g. a network blip fetching the magic-link lookup list) silently
+    // rendered an empty "No requests waiting." queue — indistinguishable
+    // from a genuinely empty queue. `users={[]}` here simulates that failed
+    // lookup; the pending request itself must still render.
+    const pending = request({ id: "req-4", email: "jordan@example.com" });
+    render(
+      <AccessRequestsPanel
+        initial={[pending]}
+        initialLoadFailed={false}
+        users={[]}
+        token="tok"
+      />,
+    );
+    expect(screen.queryByText("No requests waiting.")).toBeNull();
+    expect(screen.getByText("jordan@example.com")).toBeTruthy();
+  });
+
+  it("shows a retry affordance (not an empty queue) when the initial request-queue fetch itself failed", async () => {
+    const pending = request({ id: "req-5" });
+    accessRequestsMock.mockResolvedValue([pending]);
+
+    render(
+      <AccessRequestsPanel
+        initial={null}
+        initialLoadFailed={true}
+        users={[]}
+        token="tok"
+      />,
+    );
+
+    expect(screen.queryByText("No requests waiting.")).toBeNull();
+    expect(
+      screen.getByText("Couldn't load access requests. Please try again."),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Retry/ }));
+
+    expect(await screen.findByText("someone@example.com")).toBeTruthy();
   });
 });

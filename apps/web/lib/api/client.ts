@@ -893,11 +893,16 @@ export const api = {
       apiFetch<AdminStatus>("/api/v1/admin/is-admin", token),
     metrics: (token: string) =>
       apiFetch<AdminMetricsSummary>("/api/v1/admin/metrics", token),
-    accessRequests: (token: string, status?: string) => {
+    accessRequests: (
+      token: string,
+      status?: string,
+      options?: { signal?: AbortSignal },
+    ) => {
       const qs = status ? `?status=${encodeURIComponent(status)}` : "";
       return apiFetch<AdminAccessRequest[]>(
         `/api/v1/admin/access-requests${qs}`,
         token,
+        options?.signal ? { signal: options.signal } : undefined,
       );
     },
     reviewAccessRequest: (

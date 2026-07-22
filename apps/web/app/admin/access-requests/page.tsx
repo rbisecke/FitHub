@@ -10,6 +10,15 @@ import type { AdminAccessRequest, AdminUser } from "@/lib/api";
  * on first paint), and the admin users list (used to resolve an approved
  * request's underlying `user_id` for the "Copy magic link" shortcut — see
  * `AccessRequestsPanel`).
+ *
+ * The two fetches are deliberately independent, each with its own
+ * try/catch — this is the human gatekeeping queue for an invite-only app, so
+ * a `users` failure (which only degrades the "Copy magic link" shortcut,
+ * already handled gracefully by `AccessRequestsPanel` when no match exists)
+ * must never blank out a successfully-fetched request queue. A single
+ * combined `Promise.all` inside one `catch` previously did exactly that: any
+ * failure of either call rendered "No requests waiting." — indistinguishable
+ * from a genuinely empty queue.
  */
 export default async function AdminAccessRequestsPage() {
   const supabase = await createClient();
@@ -20,17 +29,28 @@ export default async function AdminAccessRequestsPage() {
 
   const token = session.access_token;
 
-  let requests: AdminAccessRequest[] = [];
-  let users: AdminUser[] = [];
+  let requests: AdminAccessRequest[] | null = null;
+  let initialLoadFailed = false;
   try {
-    [requests, users] = await Promise.all([
-      api.admin.accessRequests(token),
-      api.admin.users(token),
-    ]);
+    requests = await api.admin.accessRequests(token);
   } catch {
-    // Best-effort first paint — the panel renders an empty queue rather than
-    // blocking the route; an admin can reload to retry.
+    initialLoadFailed = true;
   }
 
-  return <AccessRequestsPanel initial={requests} users={users} token={token} />;
+  let users: AdminUser[] = [];
+  try {
+    users = await api.admin.users(token);
+  } catch {
+    // Best-effort — only degrades the "Copy magic link" shortcut on approved
+    // rows; the request queue itself is unaffected.
+  }
+
+  return (
+    <AccessRequestsPanel
+      initial={requests}
+      initialLoadFailed={initialLoadFailed}
+      users={users}
+      token={token}
+    />
+  );
 }

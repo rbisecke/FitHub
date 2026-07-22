@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, Loader2, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -272,7 +273,8 @@ function RequestRow({
 }
 
 interface Props {
-  initial: AdminAccessRequest[];
+  initial: AdminAccessRequest[] | null;
+  initialLoadFailed?: boolean;
   users: AdminUser[];
   token: string;
 }
@@ -287,12 +289,61 @@ interface Props {
  * real per BG-22) to find the underlying account. When no match exists yet
  * (the person hasn't completed sign-in since being invited), the shortcut is
  * disabled with an explanatory note rather than fabricated.
+ *
+ * `initial`/`initialLoadFailed` follow the same SSR-first-paint-plus-client-retry
+ * pattern as `UsersTable`/`AllowlistScreen`: a failed initial fetch renders a
+ * "couldn't load" state with a retry affordance, never a silently empty
+ * queue — this is the human gatekeeping queue for an invite-only app, so
+ * "no requests waiting" must always mean the queue is actually empty.
  */
-export function AccessRequestsPanel({ initial, users, token }: Props) {
+export function AccessRequestsPanel({
+  initial,
+  initialLoadFailed = false,
+  users,
+  token,
+}: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("pending");
-  const [requests, setRequests] = useState<AdminAccessRequest[]>(initial);
+  const [requests, setRequests] = useState<AdminAccessRequest[] | null>(
+    initial,
+  );
+  const [loading, setLoading] = useState(
+    initial === null && !initialLoadFailed,
+  );
+  const [loadError, setLoadError] = useState(initialLoadFailed);
+  const [retryKey, setRetryKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const magicLink = useMagicLinkFlow(token);
+
+  useEffect(() => {
+    if (requests !== null && retryKey === 0) return;
+    const controller = new AbortController();
+    let cancelled = false;
+    api.admin
+      .accessRequests(token, undefined, { signal: controller.signal })
+      .then((data) => {
+        if (cancelled) return;
+        setRequests(data);
+        setLoadError(false);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled || controller.signal.aborted) return;
+        setLoadError(true);
+        setLoading(false);
+        void err;
+      });
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retryKey, token]);
+
+  function handleRetry() {
+    setLoadError(false);
+    setLoading(true);
+    setRetryKey((k) => k + 1);
+  }
 
   const emailToUserId = useMemo(() => {
     const map = new Map<string, string>();
@@ -302,19 +353,23 @@ export function AccessRequestsPanel({ initial, users, token }: Props) {
     return map;
   }, [users]);
 
+  const list = useMemo(() => requests ?? [], [requests]);
+
   const counts: Record<Tab, number> = useMemo(
     () => ({
-      pending: requests.filter((r) => r.status === "pending").length,
-      approved: requests.filter((r) => r.status === "approved").length,
-      rejected: requests.filter((r) => r.status === "rejected").length,
+      pending: list.filter((r) => r.status === "pending").length,
+      approved: list.filter((r) => r.status === "approved").length,
+      rejected: list.filter((r) => r.status === "rejected").length,
     }),
-    [requests],
+    [list],
   );
 
-  const filtered = requests.filter((r) => r.status === activeTab);
+  const filtered = list.filter((r) => r.status === activeTab);
 
   function handleSettled(updated: AdminAccessRequest) {
-    setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+    setRequests((prev) =>
+      prev ? prev.map((r) => (r.id === updated.id ? updated : r)) : prev,
+    );
   }
 
   async function refreshAll() {
@@ -340,57 +395,81 @@ export function AccessRequestsPanel({ initial, users, token }: Props) {
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
-        <TabsList>
-          {(["pending", "approved", "rejected"] as const).map((tab) => (
-            <TabsTrigger
-              key={tab}
-              value={tab}
-              className="gap-1.5 data-active:bg-[var(--accent)]/15 data-active:text-[var(--accent)] dark:data-active:border-[var(--accent)]/40 dark:data-active:bg-[var(--accent)]/15 dark:data-active:text-[var(--accent)]"
-            >
-              <span className="capitalize">{tab}</span>
-              <Badge
-                variant="secondary"
-                className="type-num-inline text-[10px]"
-              >
-                {counts[tab]}
-              </Badge>
-            </TabsTrigger>
+      {loading ? (
+        <div className="flex flex-col gap-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-[88px] w-full rounded-lg" />
           ))}
-        </TabsList>
+        </div>
+      ) : loadError ? (
+        <div className="flex flex-col items-start gap-2 rounded-lg border border-border bg-[var(--surface)] px-4 py-4">
+          <p className="type-small text-[var(--red)]">
+            Couldn&apos;t load access requests. Please try again.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleRetry}
+          >
+            <RefreshCw className="size-3.5" aria-hidden="true" />
+            Retry
+          </Button>
+        </div>
+      ) : (
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
+          <TabsList>
+            {(["pending", "approved", "rejected"] as const).map((tab) => (
+              <TabsTrigger
+                key={tab}
+                value={tab}
+                className="gap-1.5 data-active:bg-[var(--accent)]/15 data-active:text-[var(--accent)] dark:data-active:border-[var(--accent)]/40 dark:data-active:bg-[var(--accent)]/15 dark:data-active:text-[var(--accent)]"
+              >
+                <span className="capitalize">{tab}</span>
+                <Badge
+                  variant="secondary"
+                  className="type-num-inline text-[10px]"
+                >
+                  {counts[tab]}
+                </Badge>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        {(["pending", "approved", "rejected"] as const).map((tab) => (
-          <TabsContent key={tab} value={tab} className="mt-4">
-            {tab === activeTab && filtered.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border bg-[var(--surface)] px-8 py-11 text-center">
-                <p className="type-small text-muted-foreground">
-                  {tab === "pending"
-                    ? "No requests waiting."
-                    : `No ${tab} requests.`}
-                </p>
-              </div>
-            ) : tab === activeTab ? (
-              <div className="flex flex-col gap-3">
-                {filtered.map((req) => (
-                  <RequestRow
-                    key={req.id}
-                    request={req}
-                    token={token}
-                    resolvedUserId={
-                      emailToUserId.get(req.email.trim().toLowerCase()) ?? null
-                    }
-                    onSettled={handleSettled}
-                    onRefreshAll={() => void refreshAll()}
-                    onOpenMagicLink={(userId, label) =>
-                      magicLink.generate(userId, label)
-                    }
-                  />
-                ))}
-              </div>
-            ) : null}
-          </TabsContent>
-        ))}
-      </Tabs>
+          {(["pending", "approved", "rejected"] as const).map((tab) => (
+            <TabsContent key={tab} value={tab} className="mt-4">
+              {tab === activeTab && filtered.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border bg-[var(--surface)] px-8 py-11 text-center">
+                  <p className="type-small text-muted-foreground">
+                    {tab === "pending"
+                      ? "No requests waiting."
+                      : `No ${tab} requests.`}
+                  </p>
+                </div>
+              ) : tab === activeTab ? (
+                <div className="flex flex-col gap-3">
+                  {filtered.map((req) => (
+                    <RequestRow
+                      key={req.id}
+                      request={req}
+                      token={token}
+                      resolvedUserId={
+                        emailToUserId.get(req.email.trim().toLowerCase()) ??
+                        null
+                      }
+                      onSettled={handleSettled}
+                      onRefreshAll={() => void refreshAll()}
+                      onOpenMagicLink={(userId, label) =>
+                        magicLink.generate(userId, label)
+                      }
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </TabsContent>
+          ))}
+        </Tabs>
+      )}
 
       {refreshing ? (
         <p className="type-caption mt-3 text-muted-foreground">Refreshing…</p>

@@ -17,7 +17,12 @@ export default function DevAccessRequestsPreview() {
       theme="dark"
       className="min-h-svh bg-background text-foreground"
     >
-      <AccessRequestsPanel initial={REQUESTS} users={USERS} token="dev-token" />
+      <AccessRequestsPanel
+        initial={REQUESTS}
+        initialLoadFailed={false}
+        users={USERS}
+        token="dev-token"
+      />
     </ForcedTheme>
   );
 }
