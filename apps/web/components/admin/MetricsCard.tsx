@@ -7,6 +7,9 @@ interface Props {
   subtext?: string;
   subtextColor?: string;
   trend?: "up" | "down" | "neutral";
+  /** Smaller value type size for cards whose value is a longer composite
+   * string (e.g. "410ms / 890ms") that would otherwise wrap awkwardly. */
+  valueFontSize?: number;
 }
 
 export function MetricsCard({
@@ -18,17 +21,18 @@ export function MetricsCard({
   subtext,
   subtextColor,
   trend,
+  valueFontSize = 28,
 }: Props) {
   const trendPrefix = trend === "up" ? "▲ " : trend === "down" ? "▼ " : "";
   const resolvedSubtextColor =
     subtextColor ??
-    (trend === "up" || trend === "down" ? "#4ADE80" : "#8b949e");
+    (trend === "up" || trend === "down" ? "var(--green)" : "var(--muted)");
 
   return (
     <div
       style={{
-        background: "#161b22",
-        border: "1px solid #30363d",
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
         borderRadius: 14,
         padding: "16px 18px",
       }}
@@ -36,7 +40,7 @@ export function MetricsCard({
       <div
         style={{
           fontSize: 10.5,
-          color: "#8b949e",
+          color: "var(--muted-strong)",
           textTransform: "uppercase",
           letterSpacing: "0.5px",
           fontFamily: "var(--font-jetbrains-mono), monospace",
@@ -47,9 +51,9 @@ export function MetricsCard({
       <div
         style={{
           fontFamily: "var(--font-archivo-black), sans-serif",
-          fontSize: 28,
+          fontSize: valueFontSize,
           marginTop: 6,
-          color: valueColor ?? "#e6edf3",
+          color: valueColor ?? "var(--text)",
           display: "flex",
           alignItems: "baseline",
           gap: 4,
@@ -60,7 +64,7 @@ export function MetricsCard({
           <span
             style={{
               fontSize: 14,
-              color: unitColor ?? "#8b949e",
+              color: unitColor ?? "var(--muted)",
               fontFamily: "var(--font-jetbrains-mono), monospace",
             }}
           >
