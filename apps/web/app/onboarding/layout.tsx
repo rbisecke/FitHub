@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ForcedTheme } from "@/components/shared/forced-theme";
 
 export default async function OnboardingLayout({
   children,
@@ -13,14 +14,19 @@ export default async function OnboardingLayout({
   if (!user) redirect("/login");
 
   return (
-    <div
+    <ForcedTheme
+      theme="dark"
       className="fixed inset-0 z-[90] flex flex-col overflow-y-auto"
-      style={{
-        background:
-          "radial-gradient(1000px 500px at 50% -10%, rgba(74,222,128,0.07), transparent 60%), var(--background)",
-      }}
     >
-      {children}
-    </div>
+      <div
+        className="flex flex-1 flex-col"
+        style={{
+          background:
+            "radial-gradient(1000px 500px at 50% -10%, rgba(74,222,128,0.07), transparent 60%), var(--background)",
+        }}
+      >
+        {children}
+      </div>
+    </ForcedTheme>
   );
 }
