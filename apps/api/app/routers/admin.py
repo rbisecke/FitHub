@@ -40,6 +40,7 @@ from app.models.admin import (
     ReindexBody,
     ReindexJob,
     SubmitAccessRequestResponse,
+    TokenTypeBreakdown,
     UserCostRow,
 )
 
@@ -134,7 +135,10 @@ async def admin_metrics(
             SELECT
                 COALESCE(SUM({cost_expr}), 0)                             AS cost_30d_usd,
                 COUNT(*)                                                    AS interactions_30d,
+                COALESCE(SUM(lu.input_tokens), 0)                         AS input_tokens_sum,
+                COALESCE(SUM(lu.output_tokens), 0)                        AS output_tokens_sum,
                 COALESCE(SUM(lu.cache_read_tokens), 0)                    AS cache_reads,
+                COALESCE(SUM(lu.cache_write_tokens), 0)                   AS cache_write_sum,
                 COALESCE(SUM(lu.cache_read_tokens + lu.input_tokens), 0)  AS total_input,
                 PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY lu.ttft_ms)  AS ttft_p50,
                 PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY lu.ttft_ms)  AS ttft_p95
@@ -231,6 +235,24 @@ async def admin_metrics(
     req_count = int(req_row.get("req_count") or 0)
     error_rate_7d = err_count / req_count if req_count > 0 else 0.0
 
+    _token_rows: list[
+        tuple[Literal["input", "output", "cache_read", "cache_write"], int, float]
+    ] = [
+        ("input", int(row30.get("input_tokens_sum") or 0), _INPUT_PER_MTOK),
+        ("output", int(row30.get("output_tokens_sum") or 0), _OUTPUT_PER_MTOK),
+        ("cache_read", cache_reads, _CACHE_READ_PER_MTOK),
+        ("cache_write", int(row30.get("cache_write_sum") or 0), _CACHE_WRITE_PER_MTOK),
+    ]
+    token_breakdown = [
+        TokenTypeBreakdown(
+            token_type=token_type,
+            quantity=quantity,
+            unit_price_per_mtok=unit_price,
+            charge_usd=quantity * unit_price / 1e6,
+        )
+        for token_type, quantity, unit_price in _token_rows
+    ]
+
     return MetricsSummary(
         cost_30d_usd=cost_30d,
         cost_mtd_usd=cost_mtd,
@@ -254,6 +276,7 @@ async def admin_metrics(
         daily_costs=[
             DailyCostPoint(day=r["day"], cost_usd=float(r["cost_usd"])) for r in daily_rows
         ],
+        token_breakdown=token_breakdown,
         budget_usd=settings.anthropic_monthly_budget_usd,
     )
 

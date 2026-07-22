@@ -2628,6 +2628,8 @@ export interface components {
       per_user: components["schemas"]["UserCostRow"][];
       /** Daily Costs */
       daily_costs: components["schemas"]["DailyCostPoint"][];
+      /** Token Breakdown */
+      token_breakdown: components["schemas"]["TokenTypeBreakdown"][];
       /** Budget Usd */
       budget_usd: number;
     };
@@ -3777,6 +3779,26 @@ export interface components {
       /** Submitted */
       submitted: boolean;
       checkin: components["schemas"]["CheckInResponse"] | null;
+    };
+    /**
+     * TokenTypeBreakdown
+     * @description One line item in the cost dashboard's Vercel-invoice-style token table.
+     *
+     *     Computed over the same rolling 30-day window as ``cost_30d_usd``
+     *     (``llm_usage`` where ``stub = false`` and ``created_at`` within 30 days).
+     */
+    TokenTypeBreakdown: {
+      /**
+       * Token Type
+       * @enum {string}
+       */
+      token_type: "input" | "output" | "cache_read" | "cache_write";
+      /** Quantity */
+      quantity: number;
+      /** Unit Price Per Mtok */
+      unit_price_per_mtok: number;
+      /** Charge Usd */
+      charge_usd: number;
     };
     /** TrainingBalanceCategory */
     TrainingBalanceCategory: {

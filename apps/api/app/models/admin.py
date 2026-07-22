@@ -52,6 +52,19 @@ class DailyCostPoint(BaseModel):
     cost_usd: float
 
 
+class TokenTypeBreakdown(BaseModel):
+    """One line item in the cost dashboard's Vercel-invoice-style token table.
+
+    Computed over the same rolling 30-day window as ``cost_30d_usd``
+    (``llm_usage`` where ``stub = false`` and ``created_at`` within 30 days).
+    """
+
+    token_type: Literal["input", "output", "cache_read", "cache_write"]
+    quantity: int
+    unit_price_per_mtok: float
+    charge_usd: float
+
+
 class MetricsSummary(BaseModel):
     cost_30d_usd: float
     cost_mtd_usd: float
@@ -64,6 +77,7 @@ class MetricsSummary(BaseModel):
     interactions_30d: int
     per_user: list[UserCostRow]
     daily_costs: list[DailyCostPoint]
+    token_breakdown: list[TokenTypeBreakdown]
     budget_usd: float
 
 

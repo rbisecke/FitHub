@@ -8110,6 +8110,13 @@
             "type": "array",
             "title": "Daily Costs"
           },
+          "token_breakdown": {
+            "items": {
+              "$ref": "#/components/schemas/TokenTypeBreakdown"
+            },
+            "type": "array",
+            "title": "Token Breakdown"
+          },
           "budget_usd": {
             "type": "number",
             "title": "Budget Usd"
@@ -8128,6 +8135,7 @@
           "interactions_30d",
           "per_user",
           "daily_costs",
+          "token_breakdown",
           "budget_usd"
         ],
         "title": "MetricsSummary"
@@ -11529,6 +11537,41 @@
           "checkin"
         ],
         "title": "TodayCheckInResponse"
+      },
+      "TokenTypeBreakdown": {
+        "properties": {
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "input",
+              "output",
+              "cache_read",
+              "cache_write"
+            ],
+            "title": "Token Type"
+          },
+          "quantity": {
+            "type": "integer",
+            "title": "Quantity"
+          },
+          "unit_price_per_mtok": {
+            "type": "number",
+            "title": "Unit Price Per Mtok"
+          },
+          "charge_usd": {
+            "type": "number",
+            "title": "Charge Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token_type",
+          "quantity",
+          "unit_price_per_mtok",
+          "charge_usd"
+        ],
+        "title": "TokenTypeBreakdown",
+        "description": "One line item in the cost dashboard's Vercel-invoice-style token table.\n\nComputed over the same rolling 30-day window as ``cost_30d_usd``\n(``llm_usage`` where ``stub = false`` and ``created_at`` within 30 days)."
       },
       "TrainingBalanceCategory": {
         "properties": {
