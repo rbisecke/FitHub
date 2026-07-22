@@ -153,6 +153,10 @@ async def _clean_data() -> AsyncGenerator[None]:
             "DELETE FROM public.notifications WHERE user_id = ANY(%s::uuid[])",
             [[str(ALICE_ID), str(BOB_ID)]],
         )
+        await conn.execute(
+            "DELETE FROM public.training_partners WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
         # Results cascade from workouts; movements must be cleaned separately.
         await conn.execute(
             "DELETE FROM public.workouts WHERE user_id = ANY(%s::uuid[])",

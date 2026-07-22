@@ -26,7 +26,99 @@ def _normalise_guest_name(name: str | None) -> str | None:
     return name.lower().strip() if name else None
 
 
-def _row_to_participant(p: dict[str, Any]) -> TeamSessionParticipant:
+class WorkoutOwnershipError(Exception):
+    """Raised when a caller supplies a workout_id they have no right to link.
+
+    A workout may only be linked to a participant row if it belongs to the
+    acting caller or to the participant it's being attached to — never to an
+    arbitrary third party's workout. Without this check, the "clear any other
+    participant row holding this workout_id" step used to guard against
+    double-linking (see the partial unique index in migration
+    0082_tsp_workout_unique) would let any caller silently detach — or,
+    worse, read the score of — a stranger's workout by supplying its id,
+    since that step has no ownership scoping of its own.
+    """
+
+
+async def _assert_workout_link_allowed(
+    cur: psycopg.AsyncCursor[dict[str, Any]],
+    *,
+    workout_id: uuid.UUID,
+    allowed_user_ids: set[uuid.UUID],
+) -> None:
+    await cur.execute(
+        "SELECT user_id FROM public.workouts WHERE id = %s",
+        [str(workout_id)],
+    )
+    row = await cur.fetchone()
+    if row is None or row["user_id"] not in allowed_user_ids:
+        raise WorkoutOwnershipError(
+            "workout_id does not belong to the caller or the participant being linked"
+        )
+
+
+def _fmt_duration(seconds: int) -> str:
+    """Format whole seconds as m:ss or h:mm:ss.
+
+    Mirrors `app/routers/analytics.py::_fmt_time`, kept as a small private
+    duplicate rather than imported — that function lives in a router, and a
+    repository importing from a router would invert the layering.
+    """
+    if seconds >= 3600:
+        h, rem = divmod(seconds, 3600)
+        m, s = divmod(rem, 60)
+        return f"{h}:{m:02d}:{s:02d}"
+    m, s = divmod(seconds, 60)
+    return f"{m}:{s:02d}"
+
+
+def _fmt_load_kg(value: float) -> str:
+    rounded = round(value, 1)
+    if rounded == int(rounded):
+        return f"{int(rounded)} kg"
+    return f"{rounded} kg"
+
+
+def _compute_score(
+    scoring_type: str | None,
+    *,
+    duration_s: int | None,
+    total_reps: int | None,
+    rounds: int | None,
+    partial_reps: int | None,
+    max_load_kg: float | None,
+) -> str | None:
+    """Format a display-ready score string for one participant.
+
+    `relay` never gets a score (no per-person rank for that type — see the
+    scoring_type table in `_fetch_team_session`'s docstring/comments below).
+    """
+    if scoring_type in ("for_time", "slowest_finisher"):
+        return _fmt_duration(duration_s) if duration_s is not None else None
+    if scoring_type == "amrap":
+        if rounds is None and partial_reps is None:
+            return None
+        rounds = rounds or 0
+        partial_reps = partial_reps or 0
+        if partial_reps > 0:
+            return f"{rounds} rounds + {partial_reps} reps"
+        return f"{rounds} rounds"
+    if scoring_type == "total_reps":
+        return f"{total_reps} reps" if total_reps is not None else None
+    if scoring_type == "max_load":
+        return _fmt_load_kg(max_load_kg) if max_load_kg is not None else None
+    return None
+
+
+def _row_to_participant(p: dict[str, Any], scoring_type: str | None) -> TeamSessionParticipant:
+    score = _compute_score(
+        scoring_type,
+        duration_s=p.get("_duration_s"),
+        total_reps=p.get("_agg_total_reps"),
+        rounds=p.get("_agg_rounds"),
+        partial_reps=p.get("_agg_partial_reps"),
+        max_load_kg=p.get("_agg_max_load"),
+    )
     return TeamSessionParticipant(
         id=p["id"],
         team_session_id=p["team_session_id"],
@@ -36,7 +128,127 @@ def _row_to_participant(p: dict[str, Any]) -> TeamSessionParticipant:
         role=p.get("role"),
         joined_at=p["joined_at"],
         display_name=p.get("display_name"),
+        score=score,
+        rank=p.get("rank"),
     )
+
+
+# Leaderboard scoring CTE (BG-12), prepended to _fetch_team_session's query.
+#
+# scoring_type → rank direction → source:
+#   for_time         ascending   (fastest wins)   workouts.duration_s
+#   slowest_finisher descending  (slowest "wins",
+#                                 i.e. is the determinant) workouts.duration_s
+#   amrap            descending  (most work wins) SUM(rounds), SUM(partial_reps)
+#                                 from rounds_reps-type results — tiebreak
+#                                 within equal rounds is partial_reps, both
+#                                 descending. Simplification: combined into one
+#                                 sortable value `rounds * 1_000_000 +
+#                                 partial_reps` since the design spec only says
+#                                 "rounds+reps descending" without a precise
+#                                 formula.
+#   total_reps       descending  (most reps wins) SUM(reps) across reps-and/or
+#                                 rounds_reps-type results
+#   max_load         descending  (heaviest wins)  MAX(load_kg) across results
+#   relay            n/a         podium suppressed entirely — score/rank stay
+#                                 null for every participant (team aggregate
+#                                 only, no per-person ranking)
+#
+# `sort_key` normalises every type to "ascending = better" so a single
+# RANK() OVER (ORDER BY sort_key ASC) works regardless of scoring_type:
+# descending-is-better types negate their raw value first. RANK() (not
+# ROW_NUMBER()) is used so ties share a rank (1, 1, 3 — standard competition
+# ranking), with `joined_at` as the deterministic row order within a tie.
+_LEADERBOARD_CTE = """
+    WITH result_agg AS (
+        SELECT
+            r.workout_id,
+            SUM(r.reps) FILTER (WHERE r.result_type IN ('reps', 'rounds_reps'))
+                AS agg_total_reps,
+            SUM(r.rounds) FILTER (WHERE r.result_type = 'rounds_reps') AS agg_rounds,
+            SUM(r.partial_reps) FILTER (WHERE r.result_type = 'rounds_reps')
+                AS agg_partial_reps,
+            MAX(r.load_kg) AS agg_max_load
+        FROM public.results r
+        WHERE r.workout_id IN (
+            SELECT workout_id FROM public.team_session_participants
+            WHERE team_session_id = %s AND workout_id IS NOT NULL
+        )
+        GROUP BY r.workout_id
+    ),
+    participant_scores AS (
+        SELECT
+            tsp2.id AS participant_id,
+            w.duration_s,
+            ra.agg_total_reps,
+            ra.agg_rounds,
+            ra.agg_partial_reps,
+            ra.agg_max_load,
+            CASE ts2.scoring_type
+                WHEN 'for_time'         THEN w.duration_s IS NOT NULL
+                WHEN 'slowest_finisher' THEN w.duration_s IS NOT NULL
+                WHEN 'amrap'            THEN (ra.agg_rounds IS NOT NULL
+                                               OR ra.agg_partial_reps IS NOT NULL)
+                WHEN 'total_reps'       THEN ra.agg_total_reps IS NOT NULL
+                WHEN 'max_load'         THEN ra.agg_max_load IS NOT NULL
+                ELSE FALSE
+            END AS has_score,
+            CASE ts2.scoring_type
+                WHEN 'for_time'         THEN w.duration_s::numeric
+                WHEN 'slowest_finisher' THEN (-w.duration_s)::numeric
+                WHEN 'amrap'            THEN (-(
+                                                   COALESCE(ra.agg_rounds, 0) * 1000000
+                                                   -- Clamped: partial_reps has no DB-level
+                                                   -- bound, so an unrealistic value (bad
+                                                   -- input, not a real AMRAP round) can't
+                                                   -- bleed into the next round's bucket or
+                                                   -- go negative and invert the ranking.
+                                                   + LEAST(GREATEST(
+                                                         COALESCE(ra.agg_partial_reps, 0), 0
+                                                     ), 999999)
+                                               ))::numeric
+                WHEN 'total_reps'       THEN (-ra.agg_total_reps)::numeric
+                WHEN 'max_load'         THEN -ra.agg_max_load
+                ELSE NULL
+            END AS sort_key
+        FROM public.team_session_participants tsp2
+        JOIN public.team_sessions ts2 ON ts2.id = tsp2.team_session_id
+        LEFT JOIN public.workouts w ON w.id = tsp2.workout_id
+        LEFT JOIN result_agg ra ON ra.workout_id = tsp2.workout_id
+        WHERE tsp2.team_session_id = %s
+    ),
+    ranked_scores AS (
+        SELECT
+            participant_id,
+            has_score,
+            duration_s,
+            agg_total_reps,
+            agg_rounds,
+            agg_partial_reps,
+            agg_max_load,
+            RANK() OVER (ORDER BY sort_key ASC NULLS LAST) AS computed_rank
+        FROM participant_scores
+    )
+"""
+
+_PARTICIPANT_OBJ = """
+    json_build_object(
+        'id', tsp.id,
+        'team_session_id', tsp.team_session_id,
+        'user_id', tsp.user_id,
+        'workout_id', tsp.workout_id,
+        'guest_name', tsp.guest_name,
+        'role', tsp.role,
+        'joined_at', tsp.joined_at,
+        'display_name', COALESCE(p.display_name, tsp.guest_name),
+        'rank', CASE WHEN rs.has_score THEN rs.computed_rank ELSE NULL END,
+        '_duration_s', rs.duration_s,
+        '_agg_total_reps', rs.agg_total_reps,
+        '_agg_rounds', rs.agg_rounds,
+        '_agg_partial_reps', rs.agg_partial_reps,
+        '_agg_max_load', rs.agg_max_load
+    )
+"""
 
 
 async def _fetch_team_session(
@@ -49,30 +261,25 @@ async def _fetch_team_session(
 
     If user_id is provided the query also enforces visibility: caller must be
     creator or a participant (mirrors the ts_select RLS policy at app layer).
+
+    Extended for BG-12: a leaderboard CTE joins each participant's linked
+    workout/result(s) and computes a per-participant score + rank (see
+    `_LEADERBOARD_CTE` above for the scoring_type → source mapping).
     """
     async with conn.cursor(row_factory=dict_row) as cur:
-        _participant_obj = """
-            json_build_object(
-                'id', tsp.id,
-                'team_session_id', tsp.team_session_id,
-                'user_id', tsp.user_id,
-                'workout_id', tsp.workout_id,
-                'guest_name', tsp.guest_name,
-                'role', tsp.role,
-                'joined_at', tsp.joined_at,
-                'display_name', COALESCE(p.display_name, tsp.guest_name)
-            )
-        """
+        sid = str(team_session_id)
         if user_id is not None:
             await cur.execute(
                 f"""
+                {_LEADERBOARD_CTE}
                 SELECT ts.*,
                        json_agg(
-                           {_participant_obj} ORDER BY tsp.joined_at
+                           {_PARTICIPANT_OBJ} ORDER BY tsp.joined_at
                        ) FILTER (WHERE tsp.id IS NOT NULL) AS participants_json
                 FROM   public.team_sessions ts
                 LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
                 LEFT JOIN public.profiles p ON p.id = tsp.user_id
+                LEFT JOIN ranked_scores rs ON rs.participant_id = tsp.id
                 WHERE  ts.id = %s
                   AND (
                       ts.created_by = %s
@@ -83,22 +290,24 @@ async def _fetch_team_session(
                   )
                 GROUP  BY ts.id
                 """,
-                [str(team_session_id), user_id, user_id],
+                [sid, sid, sid, user_id, user_id],
             )
         else:
             await cur.execute(
                 f"""
+                {_LEADERBOARD_CTE}
                 SELECT ts.*,
                        json_agg(
-                           {_participant_obj} ORDER BY tsp.joined_at
+                           {_PARTICIPANT_OBJ} ORDER BY tsp.joined_at
                        ) FILTER (WHERE tsp.id IS NOT NULL) AS participants_json
                 FROM   public.team_sessions ts
                 LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
                 LEFT JOIN public.profiles p ON p.id = tsp.user_id
+                LEFT JOIN ranked_scores rs ON rs.participant_id = tsp.id
                 WHERE  ts.id = %s
                 GROUP  BY ts.id
                 """,
-                [str(team_session_id)],
+                [sid, sid, sid],
             )
         row = await cur.fetchone()
         if row is None:
@@ -110,7 +319,8 @@ def _row_to_team_session(row: dict[str, Any]) -> TeamSession:
     raw = row.pop("participants_json", None) or []
     if isinstance(raw, str):
         raw = json.loads(raw)
-    participants = [_row_to_participant(p) for p in raw]
+    scoring_type = row.get("scoring_type")
+    participants = [_row_to_participant(p, scoring_type) for p in raw]
     return TeamSession(**row, participants=participants)
 
 
@@ -127,6 +337,41 @@ async def _create_notification(
     )
 
 
+async def _fetch_display_name(
+    cur: psycopg.AsyncCursor[dict[str, Any]], *, user_id: uuid.UUID
+) -> str | None:
+    """Cheap single-column lookup — no existing lookup-by-id helper for
+    display_name in app/repositories/profile.py (get_profile requires an
+    email + avatar_url and does more than needed here)."""
+    await cur.execute("SELECT display_name FROM public.profiles WHERE id = %s", [user_id])
+    row = await cur.fetchone()
+    return row["display_name"] if row else None
+
+
+async def _build_notification_payload(
+    cur: psycopg.AsyncCursor[dict[str, Any]],
+    *,
+    team_session_id: uuid.UUID,
+    session_name: str | None,
+    actor_user_id: uuid.UUID,
+) -> dict[str, object]:
+    """Build the {team_session_id, session_name, actor_user_id, actor_name}
+    payload shared by every team-session notification type (BG-06/BG-14).
+
+    Every message line the frontend renders is
+    "{actor display name} {verb phrase} '{session_name}'" and must never fall
+    back to "Someone" — so both session_name and actor_name are always
+    populated here rather than left for the client to resolve.
+    """
+    actor_name = await _fetch_display_name(cur, user_id=actor_user_id)
+    return {
+        "team_session_id": str(team_session_id),
+        "session_name": session_name,
+        "actor_user_id": str(actor_user_id),
+        "actor_name": actor_name,
+    }
+
+
 async def create_team_session(
     conn: psycopg.AsyncConnection[Any],
     *,
@@ -138,8 +383,8 @@ async def create_team_session(
             """
                 INSERT INTO public.team_sessions
                     (created_by, name, team_size, scoring_type,
-                     team_score, team_score_s, team_score_reps, performed_at, notes)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     team_score, team_score_s, team_score_reps, performed_at, notes, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
                 """,
             [
@@ -152,6 +397,7 @@ async def create_team_session(
                 req.team_score_reps,
                 req.performed_at,
                 req.notes,
+                req.status,
             ],
         )
         row = await cur.fetchone()
@@ -162,6 +408,21 @@ async def create_team_session(
         # Creator is always participant 0.  If req.workout_id is supplied,
         # link it to the creator's participant row and stamp workouts.team_session_id.
         if req.workout_id is not None:
+            # The creator's own workout_id must belong to the creator — never
+            # a third party's, or the clear-before-relink step below would
+            # silently detach a stranger's workout from wherever it actually
+            # lives (see WorkoutOwnershipError).
+            await _assert_workout_link_allowed(
+                cur, workout_id=req.workout_id, allowed_user_ids={user_id}
+            )
+            # Clear any other participant row (any session) currently holding this
+            # workout, so relinking reads as an atomic "move" rather than leaving
+            # a stale reference behind in its previous session.
+            await cur.execute(
+                "UPDATE public.team_session_participants SET workout_id = NULL "
+                "WHERE workout_id = %s",
+                [str(req.workout_id)],
+            )
             await cur.execute(
                 "INSERT INTO public.team_session_participants "
                 "(team_session_id, user_id, workout_id) VALUES (%s, %s, %s)",
@@ -189,6 +450,26 @@ async def create_team_session(
             if not (p.user_id and p.user_id == user_id)
         ]
         if participants_to_insert:
+            # Each participant's workout_id must belong to either the creator
+            # (acting on the participant's behalf, e.g. a guest) or the
+            # participant themselves — never an unrelated third party's.
+            for p in req.participants:
+                if p.workout_id is not None:
+                    allowed = {user_id} | ({p.user_id} if p.user_id else set())
+                    await _assert_workout_link_allowed(
+                        cur, workout_id=p.workout_id, allowed_user_ids=allowed
+                    )
+            linked_workout_ids = [row[2] for row in participants_to_insert if row[2] is not None]
+            if linked_workout_ids:
+                # Clear any other participant row (any session) currently holding
+                # one of these workouts, so each becomes an atomic "move" rather
+                # than leaving a stale reference behind in its previous session —
+                # same fix as the creator's own workout_id path above.
+                await cur.executemany(
+                    "UPDATE public.team_session_participants SET workout_id = NULL "
+                    "WHERE workout_id = %s",
+                    [(wid,) for wid in linked_workout_ids],
+                )
             await cur.executemany(
                 """
                 INSERT INTO public.team_session_participants
@@ -197,22 +478,19 @@ async def create_team_session(
                 """,
                 participants_to_insert,
             )
-        notif_rows = [
-            (
-                p.user_id,
-                "team_session_linked" if p.workout_id else "workout_link_pending",
-                json.dumps(
-                    {
-                        "team_session_id": str(session_id),
-                        "session_name": req.name,
-                        "actor_user_id": str(user_id),
-                    }
-                ),
+        notif_recipients = [p for p in req.participants if p.user_id and p.user_id != user_id]
+        if notif_recipients:
+            payload = await _build_notification_payload(
+                cur, team_session_id=session_id, session_name=req.name, actor_user_id=user_id
             )
-            for p in req.participants
-            if p.user_id and p.user_id != user_id
-        ]
-        if notif_rows:
+            notif_rows = [
+                (
+                    p.user_id,
+                    "team_session_linked" if p.workout_id else "workout_link_pending",
+                    json.dumps(payload),
+                )
+                for p in notif_recipients
+            ]
             await cur.executemany(
                 "INSERT INTO public.notifications (user_id, type, payload) VALUES (%s, %s, %s)",
                 notif_rows,
@@ -240,57 +518,96 @@ async def list_team_sessions(
     before_id: uuid.UUID | None = None,
     limit: int = 20,
 ) -> list[TeamSessionSummary]:
+    # Small per-row participant preview (up to 3, joined_at order) for the list
+    # row's avatar cluster + derived-name fallback (06 §1). Joined AFTER the
+    # counts are grouped (not inside the same GROUP BY) — a json value has no
+    # equality operator, so it can't sit in a GROUP BY clause alongside it.
+    _preview_join = """
+        LEFT JOIN LATERAL (
+            SELECT json_agg(
+                       json_build_object(
+                           'user_id', prev.user_id,
+                           'guest_name', prev.guest_name,
+                           'display_name', COALESCE(pp.display_name, prev.guest_name)
+                       ) ORDER BY prev.joined_at
+                   ) AS preview
+            FROM (
+                SELECT * FROM public.team_session_participants
+                WHERE team_session_id = counts.id
+                ORDER BY joined_at
+                LIMIT 3
+            ) prev
+            LEFT JOIN public.profiles pp ON pp.id = prev.user_id
+        ) preview_agg ON true
+    """
     async with conn.cursor(row_factory=dict_row) as cur:
         if before_id is not None:
             await cur.execute(
-                """
-                SELECT ts.id, ts.created_by, ts.name, ts.team_size, ts.scoring_type,
-                       ts.team_score, ts.team_score_s, ts.team_score_reps,
-                       ts.status, ts.performed_at,
-                       COUNT(tsp.id) AS participant_count
-                FROM   public.team_sessions ts
-                LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
-                WHERE  (ts.created_by = %s OR ts.id IN (
-                           SELECT team_session_id FROM public.team_session_participants
-                           WHERE user_id = %s
-                        ))
-                  AND  (ts.performed_at, ts.id) < (
-                           SELECT performed_at, id FROM public.team_sessions
-                           WHERE id = %s
-                             AND (
-                                 created_by = %s
-                                 OR id IN (
-                                     SELECT team_session_id FROM public.team_session_participants
-                                     WHERE user_id = %s
+                f"""
+                WITH counts AS (
+                    SELECT ts.id, ts.created_by, ts.name, ts.team_size, ts.scoring_type,
+                           ts.team_score, ts.team_score_s, ts.team_score_reps,
+                           ts.status, ts.performed_at,
+                           COUNT(tsp.id) AS participant_count,
+                           COUNT(tsp.id) FILTER (WHERE tsp.workout_id IS NOT NULL) AS logged_count
+                    FROM   public.team_sessions ts
+                    LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
+                    WHERE  (ts.created_by = %s OR ts.id IN (
+                               SELECT team_session_id FROM public.team_session_participants
+                               WHERE user_id = %s
+                            ))
+                      AND  (ts.performed_at, ts.id) < (
+                               SELECT performed_at, id FROM public.team_sessions
+                               WHERE id = %s
+                                 AND (
+                                     created_by = %s
+                                     OR id IN (
+                                         SELECT team_session_id
+                                         FROM   public.team_session_participants
+                                         WHERE  user_id = %s
+                                     )
                                  )
-                             )
-                       )
-                GROUP  BY ts.id
-                ORDER  BY ts.performed_at DESC, ts.id DESC
+                           )
+                    GROUP  BY ts.id
+                )
+                SELECT counts.*, COALESCE(preview_agg.preview, '[]'::json) AS participants_preview
+                FROM   counts
+                {_preview_join}
+                ORDER  BY counts.performed_at DESC, counts.id DESC
                 LIMIT  %s
                 """,
                 [user_id, user_id, str(before_id), user_id, user_id, limit],
             )
         else:
             await cur.execute(
-                """
-                SELECT ts.id, ts.created_by, ts.name, ts.team_size, ts.scoring_type,
-                       ts.team_score, ts.team_score_s, ts.team_score_reps,
-                       ts.status, ts.performed_at,
-                       COUNT(tsp.id) AS participant_count
-                FROM   public.team_sessions ts
-                LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
-                WHERE  (ts.created_by = %s OR ts.id IN (
-                           SELECT team_session_id FROM public.team_session_participants
-                           WHERE user_id = %s
-                        ))
-                GROUP  BY ts.id
-                ORDER  BY ts.performed_at DESC, ts.id DESC
+                f"""
+                WITH counts AS (
+                    SELECT ts.id, ts.created_by, ts.name, ts.team_size, ts.scoring_type,
+                           ts.team_score, ts.team_score_s, ts.team_score_reps,
+                           ts.status, ts.performed_at,
+                           COUNT(tsp.id) AS participant_count,
+                           COUNT(tsp.id) FILTER (WHERE tsp.workout_id IS NOT NULL) AS logged_count
+                    FROM   public.team_sessions ts
+                    LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
+                    WHERE  (ts.created_by = %s OR ts.id IN (
+                               SELECT team_session_id FROM public.team_session_participants
+                               WHERE user_id = %s
+                            ))
+                    GROUP  BY ts.id
+                )
+                SELECT counts.*, COALESCE(preview_agg.preview, '[]'::json) AS participants_preview
+                FROM   counts
+                {_preview_join}
+                ORDER  BY counts.performed_at DESC, counts.id DESC
                 LIMIT  %s
                 """,
                 [user_id, user_id, limit],
             )
         rows = await cur.fetchall()
+        for r in rows:
+            preview = r.get("participants_preview")
+            if isinstance(preview, str):
+                r["participants_preview"] = json.loads(preview)
         return [TeamSessionSummary(**r) for r in rows]
 
 
@@ -307,15 +624,41 @@ async def patch_team_session(
 
     set_clause = ", ".join(f"{k} = %s" for k in fields)
     values = list(fields.values()) + [str(team_session_id), user_id]
-    async with conn.cursor(row_factory=dict_row) as cur:
+    async with conn.transaction(), conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             f"UPDATE public.team_sessions SET {set_clause} "
-            "WHERE id = %s AND created_by = %s RETURNING id",
+            "WHERE id = %s AND created_by = %s RETURNING id, name",
             values,
         )
         row = await cur.fetchone()
-    if row is None:
-        return None
+        if row is None:
+            return None
+
+        # BG-07: fire team_session_updated for every OTHER participant with a
+        # real user_id (skip the actor themselves, skip guests — no
+        # notification channel). This is the same generic edit-notification
+        # the Finalize flow relies on (finalize is just PATCH .../status).
+        await cur.execute(
+            "SELECT DISTINCT user_id FROM public.team_session_participants "
+            "WHERE team_session_id = %s AND user_id IS NOT NULL AND user_id != %s "
+            "LIMIT 200",
+            [str(team_session_id), user_id],
+        )
+        recipients = await cur.fetchall()
+        if recipients:
+            payload = await _build_notification_payload(
+                cur,
+                team_session_id=team_session_id,
+                session_name=row["name"],
+                actor_user_id=user_id,
+            )
+            notif_rows = [
+                (r["user_id"], "team_session_updated", json.dumps(payload)) for r in recipients
+            ]
+            await cur.executemany(
+                "INSERT INTO public.notifications (user_id, type, payload) VALUES (%s, %s, %s)",
+                notif_rows,
+            )
     return await get_team_session(conn, user_id=user_id, team_session_id=team_session_id)
 
 
@@ -341,13 +684,32 @@ async def add_participant(
     req: AddParticipantRequest,
 ) -> TeamSession | None:
     # Verify caller is the creator (RLS would also catch this, but be explicit)
-    async with conn.cursor(row_factory=dict_row) as cur:
+    async with conn.transaction(), conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
-            "SELECT id FROM public.team_sessions WHERE id = %s AND created_by = %s",
+            "SELECT id, name FROM public.team_sessions WHERE id = %s AND created_by = %s",
             [str(team_session_id), user_id],
         )
-        if await cur.fetchone() is None:
+        session_row = await cur.fetchone()
+        if session_row is None:
             return None
+
+        if req.workout_id is not None:
+            # The workout must belong to the creator (acting on a guest's
+            # behalf) or to the participant themselves — never an unrelated
+            # third party's, or the clear-before-relink step below would
+            # silently detach a stranger's workout.
+            allowed = {user_id} | ({req.user_id} if req.user_id else set())
+            await _assert_workout_link_allowed(
+                cur, workout_id=req.workout_id, allowed_user_ids=allowed
+            )
+            # Clear any other participant row (any session) currently holding this
+            # workout, so relinking reads as an atomic "move" rather than leaving
+            # a stale reference behind in its previous session.
+            await cur.execute(
+                "UPDATE public.team_session_participants SET workout_id = NULL "
+                "WHERE workout_id = %s",
+                [str(req.workout_id)],
+            )
 
         # psycopg.errors.UniqueViolation propagates to the caller (caught by router)
         await cur.execute(
@@ -366,24 +728,49 @@ async def add_participant(
         )
         if req.user_id:
             notif_type = "team_session_linked" if req.workout_id else "workout_link_pending"
+            payload = await _build_notification_payload(
+                cur,
+                team_session_id=team_session_id,
+                session_name=session_row["name"],
+                actor_user_id=user_id,
+            )
             await _create_notification(
                 cur,
                 user_id=req.user_id,
                 notif_type=notif_type,
-                payload={
-                    "team_session_id": str(team_session_id),
-                    "actor_user_id": str(user_id),
-                },
+                payload=payload,
             )
 
     return await _fetch_team_session(conn, team_session_id=team_session_id)
+
+
+async def get_participant(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    team_session_id: uuid.UUID,
+    participant_id: uuid.UUID,
+) -> dict[str, Any] | None:
+    """Fetch a single participant row scoped to its session, keyed by surrogate id.
+
+    Used by the router to resolve a participant row's user_id before deciding
+    the self-action authorization check — callers must not assume the row
+    exists just because a participant_id was supplied on the path.
+    """
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            "SELECT * FROM public.team_session_participants WHERE id = %s AND team_session_id = %s",
+            [str(participant_id), str(team_session_id)],
+        )
+        return await cur.fetchone()
 
 
 async def patch_participant(
     conn: psycopg.AsyncConnection[Any],
     *,
     team_session_id: uuid.UUID,
-    target_user_id: uuid.UUID,
+    participant_id: uuid.UUID,
+    actor_user_id: uuid.UUID,
+    target_user_id: uuid.UUID | None,
     req: PatchParticipantRequest,
 ) -> TeamSession | None:
     fields: dict[str, object] = {}
@@ -394,15 +781,75 @@ async def patch_participant(
 
     if fields:
         set_clause = ", ".join(f"{k} = %s" for k in fields)
-        values = list(fields.values()) + [str(team_session_id), str(target_user_id)]
-        async with conn.cursor() as cur:
+        values = list(fields.values()) + [str(team_session_id), str(participant_id)]
+        async with conn.transaction(), conn.cursor(row_factory=dict_row) as cur:
+            if req.workout_id is not None:
+                # The workout must belong to the actor (the creator, linking
+                # on someone's behalf) or to the participant themselves —
+                # never an unrelated third party's, or the clear-before-relink
+                # step below would silently detach a stranger's workout.
+                allowed = {actor_user_id} | ({target_user_id} if target_user_id else set())
+                await _assert_workout_link_allowed(
+                    cur, workout_id=req.workout_id, allowed_user_ids=allowed
+                )
+                # Clear any other participant row (any session) currently holding
+                # this workout, so relinking reads as an atomic "move" rather than
+                # leaving a stale reference behind in its previous session.
+                await cur.execute(
+                    "UPDATE public.team_session_participants SET workout_id = NULL "
+                    "WHERE workout_id = %s AND id != %s",
+                    [str(req.workout_id), str(participant_id)],
+                )
+            # Defense-in-depth: the router already checks the actor is the
+            # session creator or the target participant themselves before
+            # calling this, but that check must not be the only thing
+            # standing between a future caller and cross-user data
+            # corruption — mirror it into the UPDATE's own WHERE clause.
+            values += [actor_user_id, actor_user_id]
             await cur.execute(
-                f"UPDATE public.team_session_participants SET {set_clause} "
-                "WHERE team_session_id = %s AND user_id = %s",
+                f"""
+                UPDATE public.team_session_participants SET {set_clause}
+                WHERE team_session_id = %s AND id = %s
+                  AND (
+                      user_id = %s
+                      OR team_session_id IN (
+                          SELECT id FROM public.team_sessions WHERE created_by = %s
+                      )
+                  )
+                RETURNING user_id, workout_id
+                """,
                 values,
             )
-            if cur.rowcount == 0:
+            row = await cur.fetchone()
+            if row is None:
                 return None
+
+            # Notify only when: a real workout_id was just set, the participant
+            # is a registered user (guests have no notification channel), and
+            # someone other than the participant themselves made the change.
+            if (
+                req.workout_id is not None
+                and row["user_id"] is not None
+                and row["user_id"] != actor_user_id
+            ):
+                await cur.execute(
+                    "SELECT name FROM public.team_sessions WHERE id = %s",
+                    [str(team_session_id)],
+                )
+                session_row = await cur.fetchone()
+                session_name = session_row["name"] if session_row else None
+                payload = await _build_notification_payload(
+                    cur,
+                    team_session_id=team_session_id,
+                    session_name=session_name,
+                    actor_user_id=actor_user_id,
+                )
+                await _create_notification(
+                    cur,
+                    user_id=row["user_id"],
+                    notif_type="team_session_linked",
+                    payload=payload,
+                )
 
     return await _fetch_team_session(conn, team_session_id=team_session_id)
 
@@ -411,13 +858,26 @@ async def remove_participant(
     conn: psycopg.AsyncConnection[Any],
     *,
     team_session_id: uuid.UUID,
-    target_user_id: uuid.UUID,
+    participant_id: uuid.UUID,
+    actor_user_id: uuid.UUID,
 ) -> bool:
+    # Defense-in-depth: the router already checks the actor is the session
+    # creator or the target participant themselves before calling this, but
+    # that check must not be the only thing standing between a future caller
+    # and cross-user data loss — mirror it into the DELETE's own WHERE clause.
     async with conn.cursor() as cur:
         await cur.execute(
-            "DELETE FROM public.team_session_participants "
-            "WHERE team_session_id = %s AND user_id = %s",
-            [str(team_session_id), str(target_user_id)],
+            """
+            DELETE FROM public.team_session_participants
+            WHERE team_session_id = %s AND id = %s
+              AND (
+                  user_id = %s
+                  OR team_session_id IN (
+                      SELECT id FROM public.team_sessions WHERE created_by = %s
+                  )
+              )
+            """,
+            [str(team_session_id), str(participant_id), actor_user_id, actor_user_id],
         )
         return cur.rowcount > 0
 
@@ -576,3 +1036,22 @@ async def add_training_partner(
             session_count=0,
             most_common_format=None,
         )
+
+
+async def remove_training_partner(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    user_id: uuid.UUID,
+    partner_id: uuid.UUID,
+) -> bool:
+    """Delete the caller's own training_partners row.
+
+    One-directional (GitHub Follow model): only ever deletes `user_id`'s row,
+    never the partner's own reverse row (which may not even exist).
+    """
+    async with conn.cursor() as cur:
+        await cur.execute(
+            "DELETE FROM public.training_partners WHERE user_id = %s AND partner_id = %s",
+            (user_id, partner_id),
+        )
+        return cur.rowcount > 0

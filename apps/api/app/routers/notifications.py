@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Response, status
 
 import app.repositories.team_sessions as repo
 from app.dependencies.common import Auth, DBConn
@@ -66,3 +66,24 @@ async def add_training_partner(
     if result is None:
         raise HTTPException(status_code=409, detail="Already a training partner.")
     return result
+
+
+@router.delete(
+    "/api/v1/training-partners/{partner_user_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
+async def remove_training_partner(
+    request: Request,
+    user: Auth,
+    conn: DBConn,
+    partner_user_id: uuid.UUID,
+) -> Response:
+    # One-directional relationship (BG-08): only ever deletes the caller's own
+    # row, keyed by their own user_id + the path param — no cross-user angle,
+    # so a missing row is 404, never 403.
+    removed = await repo.remove_training_partner(
+        conn, user_id=user.user_id, partner_id=partner_user_id
+    )
+    if not removed:
+        raise HTTPException(status_code=404)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

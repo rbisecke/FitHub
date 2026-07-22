@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useReducedMotion } from "motion/react";
 import { api } from "@/lib/api/client";
 import { createClient } from "@/lib/supabase/client";
@@ -156,38 +157,49 @@ export function NotificationBell({ mode }: NotificationBellProps) {
         )}
       </button>
 
-      {open && (
-        <>
-          {/* Scrim */}
-          <div
-            className="fixed inset-0 z-40 bg-black/50"
-            onClick={() => setOpen(false)}
-          />
-          {/* Sheet */}
-          <div
-            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl overflow-hidden"
-            style={
-              prefersReduced
-                ? undefined
-                : {
-                    animation:
-                      "slideUpSheet 220ms cubic-bezier(.2,.9,.3,1) forwards",
-                  }
-            }
-          >
-            {/* Grab handle */}
-            <div className="bg-[--surface] pt-3 pb-1 flex justify-center border-t border-[--border]">
-              <div className="w-8 h-1 rounded-full bg-[--border]" />
-            </div>
-            <NotificationPanel
-              accessToken={accessToken}
-              initialNotifications={notifications}
-              mode="sheet"
-              onClose={() => setOpen(false)}
+      {open &&
+        createPortal(
+          <>
+            {/* Scrim — a real button (not a bare div) per the accessible
+                pattern already established in SheetOverlay.tsx: keyboard-
+                reachable in principle, but tabIndex={-1} since Escape/the
+                sheet's own controls are the intended close path. */}
+            <button
+              type="button"
+              aria-label="Close"
+              tabIndex={-1}
+              className="fixed inset-0 z-40 cursor-default bg-black/50"
+              onClick={() => setOpen(false)}
             />
-          </div>
-        </>
-      )}
+            {/* Sheet — portaled to <body> so it escapes the header's
+                backdrop-blur, which (like `filter`) establishes a new
+                containing block for fixed descendants and would otherwise
+                pin `bottom-0` to the 48px header instead of the viewport. */}
+            <div
+              className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl overflow-hidden"
+              style={
+                prefersReduced
+                  ? undefined
+                  : {
+                      animation:
+                        "slideUpSheet 220ms cubic-bezier(.2,.9,.3,1) forwards",
+                    }
+              }
+            >
+              {/* Grab handle */}
+              <div className="bg-[--surface] pt-3 pb-1 flex justify-center border-t border-[--border]">
+                <div className="w-8 h-1 rounded-full bg-[--border]" />
+              </div>
+              <NotificationPanel
+                accessToken={accessToken}
+                initialNotifications={notifications}
+                mode="sheet"
+                onClose={() => setOpen(false)}
+              />
+            </div>
+          </>,
+          document.body,
+        )}
     </>
   );
 }

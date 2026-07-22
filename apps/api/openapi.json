@@ -4304,13 +4304,13 @@
         }
       }
     },
-    "/api/v1/team-sessions/{team_session_id}/participants/{participant_user_id}": {
+    "/api/v1/team-sessions/{team_session_id}/participants/{participant_id}": {
       "patch": {
         "tags": [
           "team-sessions"
         ],
         "summary": "Patch Participant",
-        "operationId": "patch_participant_api_v1_team_sessions__team_session_id__participants__participant_user_id__patch",
+        "operationId": "patch_participant_api_v1_team_sessions__team_session_id__participants__participant_id__patch",
         "security": [
           {
             "HTTPBearer": []
@@ -4328,13 +4328,13 @@
             }
           },
           {
-            "name": "participant_user_id",
+            "name": "participant_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Participant User Id"
+              "title": "Participant Id"
             }
           }
         ],
@@ -4376,7 +4376,7 @@
           "team-sessions"
         ],
         "summary": "Remove Participant",
-        "operationId": "remove_participant_api_v1_team_sessions__team_session_id__participants__participant_user_id__delete",
+        "operationId": "remove_participant_api_v1_team_sessions__team_session_id__participants__participant_id__delete",
         "security": [
           {
             "HTTPBearer": []
@@ -4394,13 +4394,13 @@
             }
           },
           {
-            "name": "participant_user_id",
+            "name": "participant_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Participant User Id"
+              "title": "Participant Id"
             }
           }
         ],
@@ -4593,6 +4593,47 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/api/v1/training-partners/{partner_user_id}": {
+      "delete": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Remove Training Partner",
+        "operationId": "remove_training_partner_api_v1_training_partners__partner_user_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "partner_user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Partner User Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/wellness/checkin": {
@@ -6636,6 +6677,10 @@
               }
             ]
           },
+          "status": {
+            "$ref": "#/components/schemas/TeamSessionStatus",
+            "default": "active"
+          },
           "team_score": {
             "anyOf": [
               {
@@ -8598,6 +8643,51 @@
         },
         "type": "object",
         "title": "ParsedLogEntry"
+      },
+      "ParticipantPreview": {
+        "properties": {
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "guest_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guest Name"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "guest_name"
+        ],
+        "title": "ParticipantPreview",
+        "description": "A small, list-row-sized participant preview (06 \u00a71's avatar cluster +\nderived-name fallback) \u2014 not the full TeamSessionParticipant shape."
       },
       "PatchParticipantRequest": {
         "properties": {
@@ -11058,6 +11148,28 @@
               }
             ],
             "title": "Display Name"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
           }
         },
         "type": "object",
@@ -11161,6 +11273,17 @@
           "participant_count": {
             "type": "integer",
             "title": "Participant Count"
+          },
+          "logged_count": {
+            "type": "integer",
+            "title": "Logged Count"
+          },
+          "participants_preview": {
+            "items": {
+              "$ref": "#/components/schemas/ParticipantPreview"
+            },
+            "type": "array",
+            "title": "Participants Preview"
           }
         },
         "type": "object",
@@ -11175,7 +11298,8 @@
           "team_score_reps",
           "status",
           "performed_at",
-          "participant_count"
+          "participant_count",
+          "logged_count"
         ],
         "title": "TeamSessionSummary"
       },

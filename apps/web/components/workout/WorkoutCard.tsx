@@ -21,7 +21,8 @@ import { isBenchmark } from "@/lib/workout/benchmarks";
 import { relativeDate } from "@/lib/display";
 import { fmtDistance, type DistanceUnit } from "@/lib/distance";
 import { useUserPrefs } from "@/lib/contexts/UserPrefsContext";
-import { TeamSessionSheet } from "@/components/team-sessions/TeamSessionSheet";
+import { TeamSessionForm } from "@/components/team-sessions/TeamSessionForm";
+import { AvatarMonogram } from "@/components/shared/avatar-monogram";
 
 // Session-type badge colours mapped to brand tokens (token tints for border/bg),
 // matching WorkoutDetailClient so the list + detail read identically.
@@ -33,13 +34,6 @@ const SESSION_COLOURS: Record<string, string> = {
   rest: "text-[--muted] border-[--border] bg-[--surface-2]",
   deload: "text-[--amber] border-[--amber]/40 bg-[--amber]/10",
   active_recovery: "text-[--green] border-[--green]/40 bg-[--green]/10",
-};
-
-const ROLE_COLORS: Record<string, string> = {
-  rx: "#4ADE80",
-  scaled: "#FFC83D",
-  coach: "#8b5cf6",
-  athlete: "var(--accent)",
 };
 
 function formatTime(seconds: number): string {
@@ -614,39 +608,19 @@ function ExpandedContent({
           </p>
           <div className="flex flex-wrap gap-3 mb-2">
             {(teamSession.participants?.slice(0, 3) ?? []).map(
-              (p: TeamSessionParticipant, i: number) => {
-                const roleColor =
-                  ROLE_COLORS[p.role ?? "athlete"] ?? "var(--accent)";
+              (p: TeamSessionParticipant) => {
                 const name = p.display_name ?? p.guest_name ?? "?";
-                const initial = name.charAt(0).toUpperCase();
                 return (
-                  <div
-                    key={p.id ?? p.guest_name ?? String(i)}
-                    className="flex items-center gap-1.5"
-                  >
-                    <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold flex-shrink-0"
-                      style={{
-                        background: roleColor + "26",
-                        color: roleColor,
-                      }}
-                    >
-                      {initial}
-                    </div>
+                  <div key={p.id} className="flex items-center gap-1.5">
+                    <AvatarMonogram
+                      name={name}
+                      seed={p.user_id ?? p.guest_name ?? name}
+                      isGuest={!p.user_id}
+                      size="sm"
+                    />
                     <span className="text-xs text-[--text]">{name}</span>
                     {p.role && (
-                      <span
-                        style={{
-                          borderLeft: `2px solid ${roleColor}`,
-                          background: roleColor + "26",
-                          color: roleColor,
-                          padding: "1px 6px",
-                          borderRadius: 99,
-                          fontSize: 10,
-                          fontFamily: "monospace",
-                          flexShrink: 0,
-                        }}
-                      >
+                      <span className="rounded-full border border-[--border] bg-[--surface-2] px-1.5 py-0.5 font-mono text-[10px] text-[--muted] shrink-0">
                         {p.role}
                       </span>
                     )}
@@ -674,7 +648,7 @@ function ExpandedContent({
             );
           })()}
           <Link
-            href={`/team-sessions/${teamSession.id}`}
+            href={`/social/team-sessions/${teamSession.id}`}
             className="text-xs font-mono text-[--blue] hover:underline"
           >
             view team session →
@@ -714,15 +688,22 @@ function ExpandedContent({
         </div>
       </div>
 
-      {/* Team session creation sheet */}
-      <TeamSessionSheet
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        workoutId={summary.id}
-        performedAt={summary.performed_at}
-        accessToken={accessToken}
-        onCreated={(session) => setTeamSession(session)}
-      />
+      {/* Team session creation form (seeded from this workout) */}
+      {sheetOpen && (
+        <TeamSessionForm
+          accessToken={accessToken}
+          mode="create"
+          seedWorkout={{
+            workoutId: summary.id,
+            performedAt: summary.performed_at,
+          }}
+          onClose={() => setSheetOpen(false)}
+          onCreated={(session) => {
+            setTeamSession(session);
+            setSheetOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

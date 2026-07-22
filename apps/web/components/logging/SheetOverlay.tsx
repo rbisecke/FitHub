@@ -3,6 +3,17 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useReducedMotion } from "motion/react";
 
+// Module-level stack of currently-mounted `SheetOverlay` instances, keyed by
+// a monotonic id. When one `SheetOverlay` is nested inside another (e.g. an
+// "add participant" picker opened from within an already-open form sheet),
+// each instance adds its own `window` Escape-key listener — without this,
+// a single Escape press fires BOTH listeners in the same event dispatch
+// (registration order), closing the nested sheet AND the sheet underneath
+// it, silently discarding whatever the outer sheet held. Only the topmost
+// (most-recently-mounted) instance's Escape handler is allowed to act.
+let sheetOverlayIdSeq = 0;
+const openSheetOverlayIds: number[] = [];
+
 /**
  * Inline bottom-sheet overlay for the Log domain (01 § component mapping).
  *
@@ -21,15 +32,23 @@ export function SheetOverlay({
   onClose,
   children,
   maxHeight = "82dvh",
+  backdropOpacity = 0.55,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   maxHeight?: string;
+  /** Backdrop darkness, 0-1. Lower this for a sheet nested on top of another
+   * open `SheetOverlay` — two full-opacity scrims stacked read as "double
+   * dimming" (the base sheet looks disabled rather than simply behind). */
+  backdropOpacity?: number;
 }) {
   const [visible, setVisible] = useState(false);
   const prefersReducedMotion = useReducedMotion();
   const panelRef = useRef<HTMLDivElement>(null);
+  const instanceIdRef = useRef<number | null>(null);
+  if (instanceIdRef.current == null)
+    instanceIdRef.current = ++sheetOverlayIdSeq;
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -39,6 +58,9 @@ export function SheetOverlay({
   // Focus management + body scroll lock for a modal dialog: move focus into the
   // panel, trap Tab inside it, restore focus and scroll on close.
   useEffect(() => {
+    const instanceId = instanceIdRef.current!;
+    openSheetOverlayIds.push(instanceId);
+
     const previouslyFocused = document.activeElement as HTMLElement | null;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -46,6 +68,8 @@ export function SheetOverlay({
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        const topmost = openSheetOverlayIds[openSheetOverlayIds.length - 1];
+        if (topmost !== instanceId) return; // a nested sheet owns Escape right now
         onClose();
         return;
       }
@@ -66,6 +90,8 @@ export function SheetOverlay({
     };
     window.addEventListener("keydown", onKey);
     return () => {
+      const i = openSheetOverlayIds.indexOf(instanceId);
+      if (i !== -1) openSheetOverlayIds.splice(i, 1);
       window.removeEventListener("keydown", onKey);
       cancelAnimationFrame(focusId);
       document.body.style.overflow = prevOverflow;
@@ -85,7 +111,7 @@ export function SheetOverlay({
         aria-label="Close"
         tabIndex={-1}
         className="absolute inset-0 cursor-default"
-        style={{ background: "rgba(0,0,0,0.55)" }}
+        style={{ background: `rgba(0,0,0,${backdropOpacity})` }}
         onClick={onClose}
       />
       <div

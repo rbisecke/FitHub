@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { NAV_ITEMS } from "./nav-items";
 import { activeSegment } from "./active-segment";
 
@@ -11,6 +12,10 @@ import { activeSegment } from "./active-segment";
  * Holds the sidebar collapse trigger and a page-label breadcrumb so the bar has a
  * purpose before real screens land — the current nav label sits after the trigger,
  * derived from the route. Desktop-only; the mobile shell has its own top bar.
+ *
+ * `NotificationBell` (06 §7) is the redesigned shell's entry point into the
+ * notification feed — the legacy pre-redesign shell wires the same component
+ * into its own header, but this is the one live in the `(shell)` route group.
  */
 export function ShellTopBar() {
   const pathname = usePathname();
@@ -24,6 +29,9 @@ export function ShellTopBar() {
       {label ? (
         <span className="type-small font-medium text-foreground">{label}</span>
       ) : null}
+      <div className="ml-auto flex items-center pr-2">
+        <NotificationBell mode="desktop" />
+      </div>
     </div>
   );
 }

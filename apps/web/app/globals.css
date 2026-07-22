@@ -323,6 +323,18 @@
   .animate-skeleton {
     animation: skeleton-shimmer 1.2s ease-in-out infinite;
   }
+
+  /* Mobile bottom-sheet slide-up (06 §7, NotificationBell's mobile sheet).
+     translateY-based so `position: fixed; bottom: 0` keeps computing top from
+     the viewport — a plain `top`/`bottom` keyframe would fight that. */
+  @keyframes slideUpSheet {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

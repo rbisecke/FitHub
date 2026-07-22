@@ -38,6 +38,12 @@ class TeamSessionParticipant(BaseModel):
     role: str | None
     joined_at: datetime
     display_name: str | None = None
+    # Computed leaderboard fields (BG-12) — server-computed from the linked
+    # workout_id's Result(s), ranked per the session's scoring_type. Both are
+    # null for guests/unlinked participants and always null under `relay`
+    # scoring (no per-person rank for that type — see repo for details).
+    score: str | None = None
+    rank: int | None = None
 
 
 class CreateParticipantRequest(BaseModel):
@@ -79,6 +85,15 @@ class TeamSession(BaseModel):
     participants: list[TeamSessionParticipant] = Field(default_factory=list)
 
 
+class ParticipantPreview(BaseModel):
+    """A small, list-row-sized participant preview (06 §1's avatar cluster +
+    derived-name fallback) — not the full TeamSessionParticipant shape."""
+
+    user_id: uuid.UUID | None
+    guest_name: str | None
+    display_name: str | None = None
+
+
 class TeamSessionSummary(BaseModel):
     id: uuid.UUID
     created_by: uuid.UUID
@@ -91,6 +106,8 @@ class TeamSessionSummary(BaseModel):
     status: TeamSessionStatus
     performed_at: datetime
     participant_count: int
+    logged_count: int
+    participants_preview: list[ParticipantPreview] = Field(default_factory=list)
 
 
 class CreateTeamSessionRequest(BaseModel):
@@ -98,6 +115,12 @@ class CreateTeamSessionRequest(BaseModel):
     name: str | None = Field(default=None, max_length=200)
     team_size: int = Field(default=2, ge=2, le=20)
     scoring_type: ScoringType | None = None
+    # Defaults to active (BG-10): a freshly-created session starts in the Live
+    # state the leaderboard/Finalize design assumes as its starting point. The
+    # DB column's own default remains 'completed' for any insert that bypasses
+    # this model; 'completed' stays reachable here via an explicit override
+    # (e.g. an after-the-fact record) or later via PATCH .../status.
+    status: TeamSessionStatus = TeamSessionStatus.active
     team_score: str | None = Field(default=None, max_length=50)
     team_score_s: int | None = Field(default=None, gt=0)
     team_score_reps: int | None = Field(default=None, gt=0)

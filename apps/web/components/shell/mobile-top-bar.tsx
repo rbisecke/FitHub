@@ -1,4 +1,5 @@
 import { GitBranch } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { AccountMenu } from "./account-menu";
 
 /**
@@ -6,8 +7,8 @@ import { AccountMenu } from "./account-menu";
  *
  * The mobile bottom bar holds only the primary five, so the secondary nav and the
  * admin role-switch live behind the account/"more" menu here. Brand on the left,
- * `AccountMenu` on the right. Mobile-only — the desktop shell uses the sidebar +
- * `ShellTopBar` instead.
+ * `NotificationBell` (06 §7) + `AccountMenu` on the right. Mobile-only — the
+ * desktop shell uses the sidebar + `ShellTopBar` instead.
  */
 export function MobileTopBar({ isAdmin }: { isAdmin: boolean }) {
   return (
@@ -16,7 +17,10 @@ export function MobileTopBar({ isAdmin }: { isAdmin: boolean }) {
         <GitBranch className="size-5 text-[var(--accent)]" aria-hidden="true" />
         <span className="type-h3">FitHub</span>
       </div>
-      <AccountMenu isAdmin={isAdmin} includeOverflowNav />
+      <div className="flex items-center gap-1">
+        <NotificationBell mode="mobile" />
+        <AccountMenu isAdmin={isAdmin} includeOverflowNav />
+      </div>
     </header>
   );
 }
