@@ -115,6 +115,10 @@ export type ScoringType = components["schemas"]["ScoringType"];
 export type TeamSessionStatus = components["schemas"]["TeamSessionStatus"];
 export type Notification = components["schemas"]["Notification"];
 
+// Canonical server-computed streak object (Domain 07 §D) — from generated
+// OpenAPI schema.
+export type StreakState = components["schemas"]["StreakState"];
+
 // Profile search result — from generated OpenAPI schema (added in Feature 6)
 export type UserSearchResult = components["schemas"]["UserSearchResult"];
 

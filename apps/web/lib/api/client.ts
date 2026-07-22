@@ -34,6 +34,7 @@ import type {
   SessionMessagesResponse,
   UserProfile,
   ProfileStats,
+  StreakState,
   PinnedMovement,
   TeamSession,
   TeamSessionListResponse,
@@ -554,6 +555,14 @@ export const api = {
         token,
         options?.signal ? { signal: options.signal } : undefined,
       ),
+    // Canonical, server-computed streak object (Domain 07 §D) — also
+    // reconciles any lazily-discovered freeze consumption/milestone grants.
+    getStreak: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<StreakState>(
+        "/api/v1/profile/streak",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     patch: (
       token: string,
       body: Partial<
@@ -670,7 +679,12 @@ export const api = {
       }),
   },
   plans: {
-    list: (token: string) => apiFetch<PlanSummary[]>("/api/v1/plans", token),
+    list: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<PlanSummary[]>(
+        "/api/v1/plans",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     get: (token: string, id: string, options?: { signal?: AbortSignal }) =>
       apiFetch<PlanDetail>(
         `/api/v1/plans/${id}`,
@@ -990,7 +1004,8 @@ export function createApiClient(token: string) {
         api.analytics.contributions(token, days, options),
     },
     plans: {
-      list: () => api.plans.list(token),
+      list: (options?: { signal?: AbortSignal }) =>
+        api.plans.list(token, options),
       get: (id: string, options?: { signal?: AbortSignal }) =>
         api.plans.get(token, id, options),
       create: (
@@ -1049,6 +1064,8 @@ export function createApiClient(token: string) {
       getPinnedMovements: () => api.profile.getPinnedMovements(token),
       setPinnedMovements: (movementIds: string[]) =>
         api.profile.setPinnedMovements(token, movementIds),
+      getStreak: (options?: { signal?: AbortSignal }) =>
+        api.profile.getStreak(token, options),
     },
     coach: {
       parseLog: (text: string) => api.coach.parseLog(token, text),

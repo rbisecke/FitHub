@@ -14,7 +14,7 @@ import { SidebarStreakWidget } from "./SidebarStreakWidget";
 import { SidebarProfileFooter } from "./SidebarProfileFooter";
 import { createClient } from "@/lib/supabase/client";
 import { api } from "@/lib/api/client";
-import { streakCalc } from "@/lib/dashboard/streakCalc";
+import type { StreakState } from "@/lib/api";
 
 function InitialCollapseGuard() {
   const { setOpen } = useSidebar();
@@ -37,7 +37,7 @@ interface Props {
 }
 
 export function DesktopSidebar({ user, isAdmin }: Props) {
-  const [streak, setStreak] = useState(0);
+  const [streak, setStreak] = useState<StreakState | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -47,18 +47,11 @@ export function DesktopSidebar({ user, isAdmin }: Props) {
       if (cancelled || !data.session) return;
       const token = data.session.access_token;
       try {
-        const [workoutResp, profile] = await Promise.all([
-          api.workouts.list(
-            token,
-            { limit: 100 },
-            { signal: controller.signal },
-          ),
-          api.profile.get(token, { signal: controller.signal }),
-        ]);
+        const result = await api.profile.getStreak(token, {
+          signal: controller.signal,
+        });
         if (cancelled) return;
-        const frequencyTarget = profile.frequency_target_days ?? 3;
-        const result = streakCalc(workoutResp.items, frequencyTarget);
-        setStreak(result.currentStreak);
+        setStreak(result);
       } catch {
         // streak display is non-critical
       }
