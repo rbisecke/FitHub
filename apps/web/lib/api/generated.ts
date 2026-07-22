@@ -1335,7 +1335,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/v1/team-sessions/{team_session_id}/participants/{participant_user_id}": {
+  "/api/v1/team-sessions/{team_session_id}/participants/{participant_id}": {
     parameters: {
       query?: never;
       header?: never;
@@ -1346,11 +1346,11 @@ export interface paths {
     put?: never;
     post?: never;
     /** Remove Participant */
-    delete: operations["remove_participant_api_v1_team_sessions__team_session_id__participants__participant_user_id__delete"];
+    delete: operations["remove_participant_api_v1_team_sessions__team_session_id__participants__participant_id__delete"];
     options?: never;
     head?: never;
     /** Patch Participant */
-    patch: operations["patch_participant_api_v1_team_sessions__team_session_id__participants__participant_user_id__patch"];
+    patch: operations["patch_participant_api_v1_team_sessions__team_session_id__participants__participant_id__patch"];
     trace?: never;
   };
   "/api/v1/notifications": {
@@ -1400,6 +1400,23 @@ export interface paths {
     /** Add Training Partner */
     post: operations["add_training_partner_api_v1_training_partners_post"];
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/training-partners/{partner_user_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove Training Partner */
+    delete: operations["remove_training_partner_api_v1_training_partners__partner_user_id__delete"];
     options?: never;
     head?: never;
     patch?: never;
@@ -2111,6 +2128,8 @@ export interface components {
        */
       team_size: number;
       scoring_type?: components["schemas"]["ScoringType"] | null;
+      /** @default active */
+      status: components["schemas"]["TeamSessionStatus"];
       /** Team Score */
       team_score?: string | null;
       /** Team Score S */
@@ -3601,6 +3620,10 @@ export interface components {
       joined_at: string;
       /** Display Name */
       display_name?: string | null;
+      /** Score */
+      score?: string | null;
+      /** Rank */
+      rank?: number | null;
     };
     /**
      * TeamSessionStatus
@@ -3638,6 +3661,8 @@ export interface components {
       performed_at: string;
       /** Participant Count */
       participant_count: number;
+      /** Logged Count */
+      logged_count: number;
     };
     /** TodayCheckInResponse */
     TodayCheckInResponse: {
@@ -6634,13 +6659,13 @@ export interface operations {
       };
     };
   };
-  remove_participant_api_v1_team_sessions__team_session_id__participants__participant_user_id__delete: {
+  remove_participant_api_v1_team_sessions__team_session_id__participants__participant_id__delete: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         team_session_id: string;
-        participant_user_id: string;
+        participant_id: string;
       };
       cookie?: never;
     };
@@ -6664,13 +6689,13 @@ export interface operations {
       };
     };
   };
-  patch_participant_api_v1_team_sessions__team_session_id__participants__participant_user_id__patch: {
+  patch_participant_api_v1_team_sessions__team_session_id__participants__participant_id__patch: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         team_session_id: string;
-        participant_user_id: string;
+        participant_id: string;
       };
       cookie?: never;
     };
@@ -6803,6 +6828,35 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["TrainingPartner"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  remove_training_partner_api_v1_training_partners__partner_user_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        partner_user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
