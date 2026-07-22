@@ -2248,6 +2248,8 @@ export interface components {
        * Format: date-time
        */
       created_at: string;
+      /** Safety Tier */
+      safety_tier?: ("coach" | "modify" | "stop") | null;
     };
     /** InfraDashboard */
     InfraDashboard: {
