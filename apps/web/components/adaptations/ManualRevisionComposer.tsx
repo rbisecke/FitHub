@@ -241,12 +241,14 @@ export function ManualRevisionComposer({
       data-testid="revision-composer"
     >
       <label
+        htmlFor="revision-feedback-input"
         className="font-mono text-[12px]"
         style={{ color: "var(--muted)" }}
       >
         $ git request-changes
       </label>
       <Textarea
+        id="revision-feedback-input"
         value={feedback}
         onChange={(e) => setFeedback(e.target.value)}
         placeholder="Describe the change you want… e.g. 'swap Thursday's metcon for a Zone 2 row'"

@@ -45,6 +45,7 @@ export function PeriodSelector({
         >
           <SelectTrigger
             id={selectId}
+            aria-label={label ? undefined : "Period selector"}
             className="h-7 text-xs w-auto gap-1 border-[--border] bg-[--surface] text-[--muted]"
           >
             {options.find((o) => o.value === value)?.label ?? value}

@@ -8,6 +8,8 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   ...props
 }: SliderPrimitive.Root.Props) {
   const _values = Array.isArray(value)
@@ -41,6 +43,15 @@ function Slider({
           <SliderPrimitive.Thumb
             data-slot="slider-thumb"
             key={index}
+            // Base UI's own Root-level `aria-label`/`aria-labelledby` handling
+            // only covers `aria-labelledby` (surfaced to Root's own DOM node);
+            // the underlying native range input's accessible name comes from
+            // whatever's set on each Thumb, so this wrapper's own `aria-label`/
+            // `aria-labelledby` props (the ones every real caller in this app
+            // passes) must be forwarded here explicitly. Passing them to Root
+            // alone silently produces an unlabelled control (09 §8 audit).
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabelledBy}
             className="relative block size-3 shrink-0 rounded-full border border-ring bg-white ring-ring/50 transition-[color,box-shadow] select-none after:absolute after:-inset-2 hover:ring-3 focus-visible:ring-3 focus-visible:outline-hidden active:ring-3 disabled:pointer-events-none disabled:opacity-50"
           />
         ))}

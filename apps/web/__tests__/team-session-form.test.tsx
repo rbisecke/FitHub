@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "vitest-axe";
 import { TeamSessionForm } from "@/components/team-sessions/TeamSessionForm";
 
 vi.mock("@/lib/api/client", () => ({
@@ -74,5 +75,19 @@ describe("TeamSessionForm", () => {
     );
     expect(screen.getByText("Edit team session")).toBeTruthy();
     expect(screen.getByText("Delete session")).toBeTruthy();
+  });
+
+  // Effort 11.5 axe coverage gap-fill (Domain 06, Effort 8 — Team Sessions &
+  // Social): the create/edit form had zero automated a11y coverage. Also
+  // locks in the Field wrapper's group-labeling fix (role="group" +
+  // aria-labelledby) added during the audit — every one of its 8 usages in
+  // this form previously rendered an orphaned <label> with no htmlFor/id and
+  // no nesting around its control.
+  it("has no axe violations in create mode", async () => {
+    const { container } = render(
+      <TeamSessionForm accessToken="tok" mode="create" onClose={vi.fn()} />,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

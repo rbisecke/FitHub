@@ -9,6 +9,7 @@
 
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { axe } from "vitest-axe";
 import type { AdminUser } from "@/lib/api";
 
 const disableUserMock = vi.fn();
@@ -99,5 +100,43 @@ describe("UsersTable", () => {
 
     fireEvent.change(input, { target: { value: target.display_name } });
     expect(dialogDeleteButton).toHaveProperty("disabled", false);
+  });
+
+  // Effort 11.5 axe coverage gap-fill (Domain 08, Effort 10 — Admin Console):
+  // the operator's main user-management surface had zero automated a11y
+  // coverage. Covers the base table plus the delete-confirmation dialog,
+  // whose "Type X to confirm" input was the only htmlFor/id pairing found in
+  // this domain during the audit (confirms it's genuinely well-formed, not
+  // just quiet under jsdom).
+  it("has no axe violations in the base table", async () => {
+    const { container } = render(
+      <UsersTable
+        token="tok"
+        initialUsers={[user({}), user({ user_id: "3", display_name: null })]}
+        initialLoadFailed={false}
+      />,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("has no axe violations with the delete-confirmation dialog open", async () => {
+    const target = user({});
+    const { container } = render(
+      <UsersTable
+        token="tok"
+        initialUsers={[target]}
+        initialLoadFailed={false}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `Actions for ${target.display_name}`,
+      }),
+    );
+    fireEvent.click(screen.getByText("Delete"));
+    await screen.findByText("Delete this user?");
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

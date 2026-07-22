@@ -74,8 +74,20 @@ export function SheetOverlay({
         return;
       }
       if (e.key !== "Tab" || !panelRef.current) return;
-      const focusable = panelRef.current.querySelectorAll<HTMLElement>(
-        'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])',
+      // `:disabled`/`aria-disabled` elements match these selectors but are never
+      // real Tab stops (the browser skips them), so leaving them in breaks the
+      // wrap-around exactly when the true last reachable control precedes a
+      // disabled trailing button (e.g. a submit button gated on validation) —
+      // found live on the injury report sheet's disabled "Report injury"
+      // button during the 09 §8 audit (09.11.5).
+      const focusable = Array.from(
+        panelRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter(
+        (el) =>
+          !(el as HTMLButtonElement).disabled &&
+          el.getAttribute("aria-disabled") !== "true",
       );
       const first = focusable[0];
       const last = focusable[focusable.length - 1];

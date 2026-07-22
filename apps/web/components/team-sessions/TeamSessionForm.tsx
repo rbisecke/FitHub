@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { normalizeGuestName } from "@fithub/shared";
 import { api } from "@/lib/api/client";
 import { ForcedTheme } from "@/components/shared/forced-theme";
@@ -241,6 +241,7 @@ export function TeamSessionForm({
               onChange={(e) => setName(e.target.value)}
               maxLength={200}
               placeholder="e.g. Wednesday WOD"
+              aria-label="Session name"
               className="w-full rounded-[8px] px-3 py-2 font-sans text-[14px]"
               style={inputStyle}
             />
@@ -252,6 +253,7 @@ export function TeamSessionForm({
                 type="datetime-local"
                 value={performedAt}
                 onChange={(e) => setPerformedAt(e.target.value)}
+                aria-label="Date & time"
                 className="w-full rounded-[8px] px-3 py-2 font-mono text-[14px] tabular-nums"
                 style={inputStyle}
               />
@@ -484,6 +486,7 @@ export function TeamSessionForm({
                       }
                       placeholder="role"
                       maxLength={100}
+                      aria-label={`Role for ${p.display_name}`}
                       className="w-20 rounded-[6px] px-1.5 py-1 font-mono text-[11px]"
                       style={inputStyle}
                     />
@@ -521,6 +524,7 @@ export function TeamSessionForm({
               maxLength={2000}
               rows={3}
               placeholder="Anything worth remembering about this session…"
+              aria-label="Notes"
               className="w-full rounded-[8px] px-3 py-2 font-sans text-[13px]"
               style={inputStyle}
             />
@@ -595,14 +599,26 @@ function Field({
   hint?: string;
   children: React.ReactNode;
 }) {
+  // Children here range from a single native input to a row of buttons or a
+  // whole nested picker component, so a <label htmlFor>/id pairing can't be
+  // wired generically at this shared wrapper. Group semantics (role="group"
+  // + aria-labelledby) associate the visible label with whatever's inside
+  // regardless of shape, matching the pattern already used for the RPE and
+  // training-experience button groups elsewhere in the app.
+  const labelId = useId();
   return (
-    <div className="flex flex-col gap-1.5">
-      <label
+    <div
+      className="flex flex-col gap-1.5"
+      role="group"
+      aria-labelledby={labelId}
+    >
+      <span
+        id={labelId}
         className="font-sans text-[11px] font-medium uppercase tracking-wide"
         style={{ color: "var(--muted)" }}
       >
         {label}
-      </label>
+      </span>
       {children}
       {hint && (
         <p className="font-sans text-[12px]" style={{ color: "var(--muted)" }}>

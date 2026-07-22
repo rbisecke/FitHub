@@ -113,7 +113,11 @@ export default function PrimitivesPage() {
 
         <Section title="Input">
           <Input className="w-64" placeholder="Search movements…" />
-          <Input className="w-64" defaultValue="Filled value" />
+          <Input
+            className="w-64"
+            defaultValue="Filled value"
+            aria-label="Filled input example"
+          />
           <Input className="w-64" disabled placeholder="Disabled" />
         </Section>
 
@@ -142,7 +146,7 @@ export default function PrimitivesPage() {
 
         <Section title="Select">
           <Select defaultValue="kg">
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-40" aria-label="Unit">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

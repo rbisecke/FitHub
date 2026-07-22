@@ -238,6 +238,7 @@ export function AddDetailsCollapsible({
                 setValue("session_rpe", num);
               }
             }}
+            aria-label="Effort, rate of perceived exertion, 0 to 10"
             className="w-full"
           />
         </div>
@@ -290,6 +291,7 @@ export function AddDetailsCollapsible({
                 type="button"
                 role="switch"
                 aria-checked={restEnabled}
+                aria-label="Rest timer"
                 onClick={() => onRestEnabledChange(!restEnabled)}
                 className={[
                   "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors",

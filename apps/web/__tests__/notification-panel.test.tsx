@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { axe } from "vitest-axe";
 import { NotificationPanel } from "@/components/notifications/NotificationPanel";
 import type { Notification } from "@/lib/api";
 
@@ -199,5 +200,43 @@ describe("NotificationPanel", () => {
       expect(markReadMock).toHaveBeenCalledWith("tok", "n42"),
     );
     expect(pushMock).toHaveBeenCalledWith("/social/team-sessions/ts1");
+  });
+
+  // Effort 11.5 axe coverage gap-fill (Domain 07, Effort 9 — Integrations/
+  // Notifications/Gamification): the dropdown had zero automated a11y
+  // coverage despite being reachable from every shell page via the bell icon.
+  it("has no axe violations with a populated, mixed read/unread list", async () => {
+    const notifs = [
+      makeNotif({
+        id: "n1",
+        type: "team_session_linked",
+        payload: {
+          actor_name: "Alex",
+          session_name: "Wed WOD",
+          team_session_id: "ts1",
+        },
+      }),
+      makeNotif({
+        id: "n2",
+        type: "team_session_linked",
+        read_at: new Date().toISOString(),
+        payload: {
+          actor_name: "Sam",
+          session_name: "Thu row",
+          team_session_id: "ts2",
+        },
+      }),
+    ];
+    listMock.mockResolvedValueOnce(notifs);
+    const { container } = render(
+      <NotificationPanel
+        accessToken="tok"
+        initialNotifications={notifs}
+        mode="dropdown"
+      />,
+    );
+    await screen.findByText(/Alex linked a result/i);
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

@@ -167,10 +167,14 @@ export function InjuryReportForm({ accessToken }: Props) {
       </div>
 
       <div>
-        <label className="mb-2 block font-mono text-sm text-[var(--muted)]">
+        <label
+          htmlFor="pain-level-slider"
+          className="mb-2 block font-mono text-sm text-[var(--muted)]"
+        >
           pain level: {painLevel}/10
         </label>
         <input
+          id="pain-level-slider"
           type="range"
           min={0}
           max={10}
@@ -208,10 +212,14 @@ export function InjuryReportForm({ accessToken }: Props) {
       </div>
 
       <div>
-        <label className="mb-2 block font-mono text-sm text-[var(--muted)]">
+        <label
+          htmlFor="injury-notes"
+          className="mb-2 block font-mono text-sm text-[var(--muted)]"
+        >
           notes (optional)
         </label>
         <textarea
+          id="injury-notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           data-testid="injury-notes"
