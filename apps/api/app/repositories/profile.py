@@ -105,7 +105,7 @@ async def get_profile_stats(
         )
         row = await cur.fetchone()
 
-    best_streak = await _compute_best_streak(conn, user_id=user_id)
+    best_streak = await compute_best_streak_weeks(conn, user_id=user_id)
 
     return ProfileStats(
         total_workouts=row["total_workouts"] if row else 0,
@@ -115,12 +115,22 @@ async def get_profile_stats(
     )
 
 
-async def _compute_best_streak(
+async def compute_best_streak_weeks(
     conn: psycopg.AsyncConnection[Any],
     *,
     user_id: uuid.UUID,
 ) -> int:
-    """Return best consecutive-week streak where workouts >= frequency_target_days."""
+    """Return the best consecutive-week streak ever, where a week "counts" if
+    it either met `frequency_target_days` (distinct training days that week)
+    or was bridged by a streak-freeze (`streak_freeze_events.event_type =
+    'consumed'` — Domain 07 §E). Shared by `ProfileStats.best_streak_weeks`
+    and the `/profile/streak` endpoint's `personal_best`, so both read the
+    same canonical number (Domain 07 §D's consolidation mandate).
+
+    Note: counts *distinct days trained per week*, not raw session count —
+    matches `apps/web/lib/dashboard/streakCalc.ts`'s semantics, which the
+    original session-count version of this query predated.
+    """
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
@@ -131,8 +141,8 @@ async def _compute_best_streak(
             ),
             weekly AS (
                 SELECT
-                    DATE_TRUNC('week', performed_at) AS week_start,
-                    COUNT(*)::int                    AS sessions
+                    DATE_TRUNC('week', performed_at)::date        AS week_start,
+                    COUNT(DISTINCT performed_at::date)::int       AS days
                 FROM public.workouts
                 WHERE user_id = %s
                 GROUP BY 1
@@ -140,14 +150,23 @@ async def _compute_best_streak(
             qualifying AS (
                 SELECT week_start
                 FROM   weekly, target
-                WHERE  sessions >= target
-                ORDER  BY week_start
+                WHERE  days >= target
+            ),
+            covered AS (
+                SELECT week_key::date AS week_start
+                FROM   public.streak_freeze_events
+                WHERE  user_id = %s AND event_type = 'consumed'
+            ),
+            completed AS (
+                SELECT week_start FROM qualifying
+                UNION
+                SELECT week_start FROM covered
             ),
             numbered AS (
                 SELECT
                     week_start,
                     ROW_NUMBER() OVER (ORDER BY week_start)::int AS rn
-                FROM qualifying
+                FROM completed
             ),
             grouped AS (
                 SELECT
@@ -159,7 +178,7 @@ async def _compute_best_streak(
             SELECT COALESCE(MAX(streak_len), 0)::int AS best
             FROM grouped
             """,
-            (user_id, user_id),
+            (user_id, user_id, user_id),
         )
         row = await cur.fetchone()
     return int(row["best"]) if row else 0

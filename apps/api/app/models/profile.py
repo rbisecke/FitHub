@@ -109,3 +109,17 @@ class SetPinnedMovementsRequest(BaseModel):
 class UserSearchResult(BaseModel):
     user_id: uuid.UUID
     display_name: str | None
+
+
+class StreakState(BaseModel):
+    """The one canonical, server-computed streak object (Domain 07 §D) —
+    every surface renders from this rather than recomputing its own."""
+
+    current_streak: int
+    personal_best: int
+    this_week_count: int
+    frequency_target: int
+    at_risk: bool
+    is_comeback: bool
+    freezes_remaining: int
+    freeze_consumed_this_week: bool

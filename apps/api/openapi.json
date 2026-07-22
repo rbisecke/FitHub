@@ -2374,6 +2374,33 @@
         ]
       }
     },
+    "/api/v1/profile/streak": {
+      "get": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Get Streak",
+        "description": "The canonical, server-computed streak object (Domain 07 \u00a7D).\n\nAlso reconciles any lazily-discovered streak-freeze consumption and\nmilestone grants as a side effect of this read (Domain 07 \u00a7E) \u2014 see\n`app/repositories/streak.py` for the full mechanism.",
+        "operationId": "get_streak_api_v1_profile_streak_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreakState"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/profile/pinned-movements": {
       "get": {
         "tags": [
@@ -10889,6 +10916,55 @@
         ],
         "title": "SkillContextOut",
         "description": "The real, history-aware skill-prerequisite chain for a target movement.\n\n`available` is False when the movement has no defined prerequisite chain\n(its slug isn't a SKILL_PREREQUISITES key) \u2014 a legitimate, expected state\nfor most movements, not an error. In that case every other field is empty/\nnull and the frontend renders \"No prerequisite ladder for this skill\"\nrather than an empty ladder."
+      },
+      "StreakState": {
+        "properties": {
+          "current_streak": {
+            "type": "integer",
+            "title": "Current Streak"
+          },
+          "personal_best": {
+            "type": "integer",
+            "title": "Personal Best"
+          },
+          "this_week_count": {
+            "type": "integer",
+            "title": "This Week Count"
+          },
+          "frequency_target": {
+            "type": "integer",
+            "title": "Frequency Target"
+          },
+          "at_risk": {
+            "type": "boolean",
+            "title": "At Risk"
+          },
+          "is_comeback": {
+            "type": "boolean",
+            "title": "Is Comeback"
+          },
+          "freezes_remaining": {
+            "type": "integer",
+            "title": "Freezes Remaining"
+          },
+          "freeze_consumed_this_week": {
+            "type": "boolean",
+            "title": "Freeze Consumed This Week"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_streak",
+          "personal_best",
+          "this_week_count",
+          "frequency_target",
+          "at_risk",
+          "is_comeback",
+          "freezes_remaining",
+          "freeze_consumed_this_week"
+        ],
+        "title": "StreakState",
+        "description": "The one canonical, server-computed streak object (Domain 07 \u00a7D) \u2014\nevery surface renders from this rather than recomputing its own."
       },
       "SubmitAccessRequestResponse": {
         "properties": {

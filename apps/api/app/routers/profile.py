@@ -9,10 +9,12 @@ from app.models.profile import (
     PinnedMovement,
     ProfileStats,
     SetPinnedMovementsRequest,
+    StreakState,
     UserProfile,
     UserSearchResult,
 )
 from app.repositories import profile as repo
+from app.repositories import streak as streak_repo
 
 router = APIRouter(prefix="/api/v1/profile", tags=["profile"])
 
@@ -44,6 +46,21 @@ async def get_profile(user: Auth, conn: DBConn) -> UserProfile:
 @router.get("/stats", response_model=ProfileStats)
 async def get_profile_stats(user: Auth, conn: DBConn) -> ProfileStats:
     return await repo.get_profile_stats(conn, user_id=user.user_id)
+
+
+@router.get("/streak", response_model=StreakState)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
+async def get_streak(request: Request, user: Auth, conn: DBConn) -> StreakState:
+    """The canonical, server-computed streak object (Domain 07 §D).
+
+    Also reconciles any lazily-discovered streak-freeze consumption and
+    milestone grants as a side effect of this read (Domain 07 §E) — see
+    `app/repositories/streak.py` for the full mechanism.
+    """
+    try:
+        return await streak_repo.get_streak_state(conn, user_id=user.user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Profile not found") from exc
 
 
 @router.patch("", response_model=UserProfile)
