@@ -133,3 +133,8 @@ export type AdminInfraSnapshot = components["schemas"]["InfraSnapshot"];
 export type AdminInfraHistoryPoint = components["schemas"]["InfraHistoryPoint"];
 export type AdminDeploymentEvent = components["schemas"]["DeploymentEvent"];
 export type AdminInfraDashboard = components["schemas"]["InfraDashboard"];
+
+// Integrations (Domain 07 §A/B/C) — from generated OpenAPI schema
+export type ConnectionStatus = components["schemas"]["ConnectionStatus"];
+export type IntegrationDetail = components["schemas"]["IntegrationDetail"];
+export type ConnectResponse = components["schemas"]["ConnectResponse"];

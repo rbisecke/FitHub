@@ -40,6 +40,9 @@ import type {
   RoleSuggestionsResponse,
   Notification,
   UserSearchResult,
+  ConnectionStatus,
+  IntegrationDetail,
+  ConnectResponse,
 } from "./index";
 import type {
   PlanDetail,
@@ -842,19 +845,19 @@ export const api = {
   },
   integrations: {
     list: (token: string, options?: { signal?: AbortSignal }) =>
-      apiFetch<
-        {
-          provider: string;
-          sync_status: string;
-          last_synced_at: string | null;
-        }[]
-      >(
+      apiFetch<ConnectionStatus[]>(
         "/api/v1/integrations",
         token,
         options?.signal ? { signal: options.signal } : undefined,
       ),
+    appleHealthDetail: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<IntegrationDetail>(
+        "/api/v1/integrations/apple-health",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     connectAppleHealth: (token: string) =>
-      apiFetch<{ token: string; token_prefix: string; ingest_url: string }>(
+      apiFetch<ConnectResponse>(
         "/api/v1/integrations/apple-health/connect",
         token,
         { method: "POST" },
