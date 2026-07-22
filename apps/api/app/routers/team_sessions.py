@@ -39,7 +39,14 @@ async def create_team_session(
     conn: DBConn,
     req: CreateTeamSessionRequest,
 ) -> TeamSession:
-    return await repo.create_team_session(conn, user_id=user.user_id, req=req)
+    try:
+        return await repo.create_team_session(conn, user_id=user.user_id, req=req)
+    except repo.WorkoutOwnershipError as err:
+        raise HTTPException(status_code=403, detail=str(err)) from err
+    except UniqueViolation as err:
+        raise HTTPException(
+            status_code=409, detail="A participant appears more than once in this session"
+        ) from err
 
 
 @router.get("", response_model=TeamSessionListResponse)
@@ -112,6 +119,8 @@ async def add_participant(
         )
     except UniqueViolation as err:
         raise HTTPException(status_code=409, detail="User is already a participant") from err
+    except repo.WorkoutOwnershipError as err:
+        raise HTTPException(status_code=403, detail=str(err)) from err
     if ts is None:
         raise HTTPException(status_code=404)
     return ts
@@ -140,13 +149,17 @@ async def patch_participant(
         raise HTTPException(status_code=404)
     if ts.created_by != user.user_id and participant["user_id"] != user.user_id:
         raise HTTPException(status_code=403)
-    result = await repo.patch_participant(
-        conn,
-        team_session_id=team_session_id,
-        participant_id=participant_id,
-        actor_user_id=user.user_id,
-        req=req,
-    )
+    try:
+        result = await repo.patch_participant(
+            conn,
+            team_session_id=team_session_id,
+            participant_id=participant_id,
+            actor_user_id=user.user_id,
+            target_user_id=participant["user_id"],
+            req=req,
+        )
+    except repo.WorkoutOwnershipError as err:
+        raise HTTPException(status_code=403, detail=str(err)) from err
     if result is None:
         raise HTTPException(status_code=404)
     return result
@@ -181,6 +194,7 @@ async def remove_participant(
         conn,
         team_session_id=team_session_id,
         participant_id=participant_id,
+        actor_user_id=user.user_id,
     )
     if not removed:
         raise HTTPException(status_code=404)

@@ -26,6 +26,37 @@ def _normalise_guest_name(name: str | None) -> str | None:
     return name.lower().strip() if name else None
 
 
+class WorkoutOwnershipError(Exception):
+    """Raised when a caller supplies a workout_id they have no right to link.
+
+    A workout may only be linked to a participant row if it belongs to the
+    acting caller or to the participant it's being attached to — never to an
+    arbitrary third party's workout. Without this check, the "clear any other
+    participant row holding this workout_id" step used to guard against
+    double-linking (see the partial unique index in migration
+    0082_tsp_workout_unique) would let any caller silently detach — or,
+    worse, read the score of — a stranger's workout by supplying its id,
+    since that step has no ownership scoping of its own.
+    """
+
+
+async def _assert_workout_link_allowed(
+    cur: psycopg.AsyncCursor[dict[str, Any]],
+    *,
+    workout_id: uuid.UUID,
+    allowed_user_ids: set[uuid.UUID],
+) -> None:
+    await cur.execute(
+        "SELECT user_id FROM public.workouts WHERE id = %s",
+        [str(workout_id)],
+    )
+    row = await cur.fetchone()
+    if row is None or row["user_id"] not in allowed_user_ids:
+        raise WorkoutOwnershipError(
+            "workout_id does not belong to the caller or the participant being linked"
+        )
+
+
 def _fmt_duration(seconds: int) -> str:
     """Format whole seconds as m:ss or h:mm:ss.
 
@@ -167,7 +198,14 @@ _LEADERBOARD_CTE = """
                 WHEN 'slowest_finisher' THEN (-w.duration_s)::numeric
                 WHEN 'amrap'            THEN (-(
                                                    COALESCE(ra.agg_rounds, 0) * 1000000
-                                                   + COALESCE(ra.agg_partial_reps, 0)
+                                                   -- Clamped: partial_reps has no DB-level
+                                                   -- bound, so an unrealistic value (bad
+                                                   -- input, not a real AMRAP round) can't
+                                                   -- bleed into the next round's bucket or
+                                                   -- go negative and invert the ranking.
+                                                   + LEAST(GREATEST(
+                                                         COALESCE(ra.agg_partial_reps, 0), 0
+                                                     ), 999999)
                                                ))::numeric
                 WHEN 'total_reps'       THEN (-ra.agg_total_reps)::numeric
                 WHEN 'max_load'         THEN -ra.agg_max_load
@@ -370,6 +408,13 @@ async def create_team_session(
         # Creator is always participant 0.  If req.workout_id is supplied,
         # link it to the creator's participant row and stamp workouts.team_session_id.
         if req.workout_id is not None:
+            # The creator's own workout_id must belong to the creator — never
+            # a third party's, or the clear-before-relink step below would
+            # silently detach a stranger's workout from wherever it actually
+            # lives (see WorkoutOwnershipError).
+            await _assert_workout_link_allowed(
+                cur, workout_id=req.workout_id, allowed_user_ids={user_id}
+            )
             # Clear any other participant row (any session) currently holding this
             # workout, so relinking reads as an atomic "move" rather than leaving
             # a stale reference behind in its previous session.
@@ -405,6 +450,15 @@ async def create_team_session(
             if not (p.user_id and p.user_id == user_id)
         ]
         if participants_to_insert:
+            # Each participant's workout_id must belong to either the creator
+            # (acting on the participant's behalf, e.g. a guest) or the
+            # participant themselves — never an unrelated third party's.
+            for p in req.participants:
+                if p.workout_id is not None:
+                    allowed = {user_id} | ({p.user_id} if p.user_id else set())
+                    await _assert_workout_link_allowed(
+                        cur, workout_id=p.workout_id, allowed_user_ids=allowed
+                    )
             linked_workout_ids = [row[2] for row in participants_to_insert if row[2] is not None]
             if linked_workout_ids:
                 # Clear any other participant row (any session) currently holding
@@ -586,7 +640,8 @@ async def patch_team_session(
         # the Finalize flow relies on (finalize is just PATCH .../status).
         await cur.execute(
             "SELECT DISTINCT user_id FROM public.team_session_participants "
-            "WHERE team_session_id = %s AND user_id IS NOT NULL AND user_id != %s",
+            "WHERE team_session_id = %s AND user_id IS NOT NULL AND user_id != %s "
+            "LIMIT 200",
             [str(team_session_id), user_id],
         )
         recipients = await cur.fetchall()
@@ -639,6 +694,14 @@ async def add_participant(
             return None
 
         if req.workout_id is not None:
+            # The workout must belong to the creator (acting on a guest's
+            # behalf) or to the participant themselves — never an unrelated
+            # third party's, or the clear-before-relink step below would
+            # silently detach a stranger's workout.
+            allowed = {user_id} | ({req.user_id} if req.user_id else set())
+            await _assert_workout_link_allowed(
+                cur, workout_id=req.workout_id, allowed_user_ids=allowed
+            )
             # Clear any other participant row (any session) currently holding this
             # workout, so relinking reads as an atomic "move" rather than leaving
             # a stale reference behind in its previous session.
@@ -707,6 +770,7 @@ async def patch_participant(
     team_session_id: uuid.UUID,
     participant_id: uuid.UUID,
     actor_user_id: uuid.UUID,
+    target_user_id: uuid.UUID | None,
     req: PatchParticipantRequest,
 ) -> TeamSession | None:
     fields: dict[str, object] = {}
@@ -720,6 +784,14 @@ async def patch_participant(
         values = list(fields.values()) + [str(team_session_id), str(participant_id)]
         async with conn.transaction(), conn.cursor(row_factory=dict_row) as cur:
             if req.workout_id is not None:
+                # The workout must belong to the actor (the creator, linking
+                # on someone's behalf) or to the participant themselves —
+                # never an unrelated third party's, or the clear-before-relink
+                # step below would silently detach a stranger's workout.
+                allowed = {actor_user_id} | ({target_user_id} if target_user_id else set())
+                await _assert_workout_link_allowed(
+                    cur, workout_id=req.workout_id, allowed_user_ids=allowed
+                )
                 # Clear any other participant row (any session) currently holding
                 # this workout, so relinking reads as an atomic "move" rather than
                 # leaving a stale reference behind in its previous session.
@@ -728,10 +800,24 @@ async def patch_participant(
                     "WHERE workout_id = %s AND id != %s",
                     [str(req.workout_id), str(participant_id)],
                 )
+            # Defense-in-depth: the router already checks the actor is the
+            # session creator or the target participant themselves before
+            # calling this, but that check must not be the only thing
+            # standing between a future caller and cross-user data
+            # corruption — mirror it into the UPDATE's own WHERE clause.
+            values += [actor_user_id, actor_user_id]
             await cur.execute(
-                f"UPDATE public.team_session_participants SET {set_clause} "
-                "WHERE team_session_id = %s AND id = %s "
-                "RETURNING user_id, workout_id",
+                f"""
+                UPDATE public.team_session_participants SET {set_clause}
+                WHERE team_session_id = %s AND id = %s
+                  AND (
+                      user_id = %s
+                      OR team_session_id IN (
+                          SELECT id FROM public.team_sessions WHERE created_by = %s
+                      )
+                  )
+                RETURNING user_id, workout_id
+                """,
                 values,
             )
             row = await cur.fetchone()
@@ -773,11 +859,25 @@ async def remove_participant(
     *,
     team_session_id: uuid.UUID,
     participant_id: uuid.UUID,
+    actor_user_id: uuid.UUID,
 ) -> bool:
+    # Defense-in-depth: the router already checks the actor is the session
+    # creator or the target participant themselves before calling this, but
+    # that check must not be the only thing standing between a future caller
+    # and cross-user data loss — mirror it into the DELETE's own WHERE clause.
     async with conn.cursor() as cur:
         await cur.execute(
-            "DELETE FROM public.team_session_participants WHERE team_session_id = %s AND id = %s",
-            [str(team_session_id), str(participant_id)],
+            """
+            DELETE FROM public.team_session_participants
+            WHERE team_session_id = %s AND id = %s
+              AND (
+                  user_id = %s
+                  OR team_session_id IN (
+                      SELECT id FROM public.team_sessions WHERE created_by = %s
+                  )
+              )
+            """,
+            [str(team_session_id), str(participant_id), actor_user_id, actor_user_id],
         )
         return cur.rowcount > 0
 

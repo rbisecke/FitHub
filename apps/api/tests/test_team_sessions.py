@@ -433,6 +433,167 @@ async def test_patch_participant_unknown_id_404(alice_client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
+async def test_patch_participant_cross_session_id_404(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """A real participant_id from a DIFFERENT session (not just a nonexistent
+    one) must also 404 — the surrogate key must be scoped by team_session_id,
+    not looked up bare."""
+    ts_a = (await alice_client.post("/api/v1/team-sessions", json=_TS_BASE)).json()
+    ts_b_payload = {**_TS_BASE, "name": "Other Session"}
+    ts_b = (await bob_client.post("/api/v1/team-sessions", json=ts_b_payload)).json()
+    bob_pid_in_b = _pid(ts_b, user_id=BOB_ID)
+
+    # Alice supplies Bob's real participant_id, but scoped to HER OWN session
+    # (ts_a) — Bob's row belongs to ts_b, so this must 404, not act on it.
+    r = await alice_client.patch(
+        f"/api/v1/team-sessions/{ts_a['id']}/participants/{bob_pid_in_b}",
+        json={"role": "hacker"},
+    )
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_remove_participant_cross_session_id_404(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    ts_a = (await alice_client.post("/api/v1/team-sessions", json=_TS_BASE)).json()
+    ts_b_payload = {**_TS_BASE, "name": "Other Session"}
+    ts_b = (await bob_client.post("/api/v1/team-sessions", json=ts_b_payload)).json()
+    bob_pid_in_b = _pid(ts_b, user_id=BOB_ID)
+
+    r = await alice_client.delete(f"/api/v1/team-sessions/{ts_a['id']}/participants/{bob_pid_in_b}")
+    assert r.status_code == 404
+    # And Bob's row must genuinely survive untouched in his own session.
+    refetched = (await bob_client.get(f"/api/v1/team-sessions/{ts_b['id']}")).json()
+    assert bob_pid_in_b in [p["id"] for p in refetched["participants"]]
+
+
+# ── Workout-ownership IDOR (workout_id must belong to the caller or the
+# participant being linked, never an unrelated third party) ──────────────────
+
+
+@pytest.mark.asyncio
+async def test_create_own_workout_must_belong_to_creator(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    bob_workout = (
+        await bob_client.post(
+            "/api/v1/workouts", json={"performed_at": _PERFORMED_AT, "results": []}
+        )
+    ).json()
+
+    r = await alice_client.post(
+        "/api/v1/team-sessions", json={**_TS_BASE, "workout_id": bob_workout["id"]}
+    )
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_create_bulk_participant_workout_must_belong_to_actor_or_target(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """Bob already linked his own workout to his own session. Alice must not
+    be able to detach it by supplying it as a guest's workout_id in her own,
+    unrelated session."""
+    bob_workout = (
+        await bob_client.post(
+            "/api/v1/workouts", json={"performed_at": _PERFORMED_AT, "results": []}
+        )
+    ).json()
+    bob_session = (
+        await bob_client.post(
+            "/api/v1/team-sessions",
+            json={
+                **_TS_BASE,
+                "name": "Bob's Session",
+                "workout_id": bob_workout["id"],
+            },
+        )
+    ).json()
+    bob_pid = _pid(bob_session, user_id=BOB_ID)
+    assert bob_session["participants"][0]["workout_id"] == bob_workout["id"]
+
+    r = await alice_client.post(
+        "/api/v1/team-sessions",
+        json={
+            **_TS_BASE,
+            "name": "Alice's Session",
+            "participants": [{"guest_name": "Charlie", "workout_id": bob_workout["id"]}],
+        },
+    )
+    assert r.status_code == 403
+
+    # Bob's own session must be entirely untouched.
+    refetched = (await bob_client.get(f"/api/v1/team-sessions/{bob_session['id']}")).json()
+    bob_participant = next(p for p in refetched["participants"] if p["id"] == bob_pid)
+    assert bob_participant["workout_id"] == bob_workout["id"]
+
+
+@pytest.mark.asyncio
+async def test_add_participant_workout_must_belong_to_actor_or_target(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    bob_workout = (
+        await bob_client.post(
+            "/api/v1/workouts", json={"performed_at": _PERFORMED_AT, "results": []}
+        )
+    ).json()
+    bob_session = (
+        await bob_client.post(
+            "/api/v1/team-sessions",
+            json={**_TS_BASE, "name": "Bob's Session", "workout_id": bob_workout["id"]},
+        )
+    ).json()
+
+    alice_session = (await alice_client.post("/api/v1/team-sessions", json=_TS_BASE)).json()
+    r = await alice_client.post(
+        f"/api/v1/team-sessions/{alice_session['id']}/participants",
+        json={"guest_name": "Charlie", "workout_id": bob_workout["id"]},
+    )
+    assert r.status_code == 403
+
+    refetched = (await bob_client.get(f"/api/v1/team-sessions/{bob_session['id']}")).json()
+    assert refetched["participants"][0]["workout_id"] == bob_workout["id"]
+
+
+@pytest.mark.asyncio
+async def test_patch_participant_workout_must_belong_to_actor_or_target(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    bob_workout = (
+        await bob_client.post(
+            "/api/v1/workouts", json={"performed_at": _PERFORMED_AT, "results": []}
+        )
+    ).json()
+    bob_session = (
+        await bob_client.post(
+            "/api/v1/team-sessions",
+            json={**_TS_BASE, "name": "Bob's Session", "workout_id": bob_workout["id"]},
+        )
+    ).json()
+
+    alice_session_payload = {
+        **_TS_BASE,
+        "name": "Alice's Session",
+        "participants": [{"guest_name": "Charlie"}],
+    }
+    alice_session = (
+        await alice_client.post("/api/v1/team-sessions", json=alice_session_payload)
+    ).json()
+    charlie_pid = _pid(alice_session, guest_name="charlie")
+
+    r = await alice_client.patch(
+        f"/api/v1/team-sessions/{alice_session['id']}/participants/{charlie_pid}",
+        json={"workout_id": bob_workout["id"]},
+    )
+    assert r.status_code == 403
+
+    refetched = (await bob_client.get(f"/api/v1/team-sessions/{bob_session['id']}")).json()
+    assert refetched["participants"][0]["workout_id"] == bob_workout["id"]
+
+
+@pytest.mark.asyncio
 async def test_patch_guest_participant_by_creator(alice_client: AsyncClient) -> None:
     """A guest participant (user_id IS NULL) has no user_id to key requests by —
     only the creator can address it, and only via its surrogate participant_id."""
