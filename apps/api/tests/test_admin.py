@@ -11,7 +11,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.config import get_settings
 from app.main import app
-from tests.conftest import _TEST_USER_HEADER, ALICE_ID, TEST_DB_DSN
+from tests.conftest import _TEST_USER_HEADER, ALICE_ID, BOB_ID, TEST_DB_DSN
 
 
 @pytest.fixture(autouse=True)
@@ -96,6 +96,30 @@ async def test_access_request_duplicate_within_24h(anon_client: AsyncClient) -> 
     assert r2.status_code in (409, 429)
 
 
+# ── GET /api/v1/admin/is-admin ────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_is_admin_true_for_admin(admin_client: AsyncClient) -> None:
+    resp = await admin_client.get("/api/v1/admin/is-admin")
+    assert resp.status_code == 200
+    assert resp.json() == {"is_admin": True}
+
+
+@pytest.mark.asyncio
+async def test_is_admin_false_for_non_admin(non_admin_client: AsyncClient) -> None:
+    """A non-admin gets a normal 200 with is_admin: false, never a 403."""
+    resp = await non_admin_client.get("/api/v1/admin/is-admin")
+    assert resp.status_code == 200
+    assert resp.json() == {"is_admin": False}
+
+
+@pytest.mark.asyncio
+async def test_is_admin_unauthenticated(anon_client: AsyncClient) -> None:
+    resp = await anon_client.get("/api/v1/admin/is-admin")
+    assert resp.status_code == 401
+
+
 # ── Admin gating ──────────────────────────────────────────────────────────────
 
 
@@ -124,6 +148,66 @@ async def test_admin_metrics_returns_summary(admin_client: AsyncClient) -> None:
     assert "budget_usd" in data
     assert isinstance(data["per_user"], list)
     assert isinstance(data["daily_costs"], list)
+    assert isinstance(data["token_breakdown"], list)
+
+
+@pytest.fixture
+async def _seed_llm_usage_tokens() -> AsyncGenerator[None]:
+    """Two real (non-stub) llm_usage rows for Alice with known token counts."""
+    rows = [
+        (ALICE_ID, "coach-chat", "claude-haiku-4.5", 1000, 500, 200, 100),
+        (ALICE_ID, "coach-chat", "claude-haiku-4.5", 2000, 1000, 300, 150),
+    ]
+    async with (
+        await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn,
+        conn.cursor() as cur,
+    ):
+        await cur.executemany(
+            """
+            INSERT INTO public.llm_usage
+                (user_id, endpoint, model, input_tokens, output_tokens,
+                 cache_read_tokens, cache_write_tokens, stub)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, false)
+            """,
+            rows,
+        )
+    yield
+    async with await psycopg.AsyncConnection.connect(TEST_DB_DSN, autocommit=True) as conn:
+        await conn.execute(
+            "DELETE FROM public.llm_usage WHERE user_id = %s AND endpoint = 'coach-chat'",
+            [ALICE_ID],
+        )
+
+
+@pytest.mark.asyncio
+async def test_admin_metrics_token_breakdown(
+    admin_client: AsyncClient, _seed_llm_usage_tokens: None
+) -> None:
+    """BG-21: token_breakdown reflects real per-type totals and sums to cost_30d_usd."""
+    resp = await admin_client.get("/api/v1/admin/metrics")
+    assert resp.status_code == 200
+    data = resp.json()
+
+    by_type = {row["token_type"]: row for row in data["token_breakdown"]}
+    assert set(by_type) == {"input", "output", "cache_read", "cache_write"}
+
+    assert by_type["input"]["quantity"] == 3000
+    assert by_type["output"]["quantity"] == 1500
+    assert by_type["cache_read"]["quantity"] == 500
+    assert by_type["cache_write"]["quantity"] == 250
+
+    assert by_type["input"]["unit_price_per_mtok"] == pytest.approx(1.00)
+    assert by_type["output"]["unit_price_per_mtok"] == pytest.approx(5.00)
+    assert by_type["cache_read"]["unit_price_per_mtok"] == pytest.approx(0.10)
+    assert by_type["cache_write"]["unit_price_per_mtok"] == pytest.approx(1.25)
+
+    assert by_type["input"]["charge_usd"] == pytest.approx(3000 * 1.00 / 1e6)
+    assert by_type["output"]["charge_usd"] == pytest.approx(1500 * 5.00 / 1e6)
+    assert by_type["cache_read"]["charge_usd"] == pytest.approx(500 * 0.10 / 1e6)
+    assert by_type["cache_write"]["charge_usd"] == pytest.approx(250 * 1.25 / 1e6)
+
+    total_charge = sum(row["charge_usd"] for row in data["token_breakdown"])
+    assert total_charge == pytest.approx(data["cost_30d_usd"], rel=1e-6)
 
 
 # ── GET /api/v1/admin/access-requests ────────────────────────────────────────
@@ -177,6 +261,16 @@ async def test_list_admin_users(admin_client: AsyncClient) -> None:
     resp = await admin_client.get("/api/v1/admin/users")
     assert resp.status_code == 200
     assert isinstance(resp.json(), list)
+
+
+@pytest.mark.asyncio
+async def test_list_admin_users_populates_real_email(admin_client: AsyncClient) -> None:
+    """BG-22: email must come from auth.users, not a hardcoded NULL."""
+    resp = await admin_client.get("/api/v1/admin/users")
+    assert resp.status_code == 200
+    by_id = {r["user_id"]: r for r in resp.json()}
+    assert by_id[str(ALICE_ID)]["email"] == "alice@test.local"
+    assert by_id[str(BOB_ID)]["email"] == "bob@test.local"
 
 
 # ── GET /api/v1/admin/invited-emails ─────────────────────────────────────────

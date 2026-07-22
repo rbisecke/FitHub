@@ -1,3 +1,5 @@
+"use client";
+
 import { GitBranch } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { AccountMenu } from "./account-menu";
@@ -9,6 +11,10 @@ import { AccountMenu } from "./account-menu";
  * admin role-switch live behind the account/"more" menu here. Brand on the left,
  * `NotificationBell` (06 §7) + `AccountMenu` on the right. Mobile-only — the
  * desktop shell uses the sidebar + `ShellTopBar` instead.
+ *
+ * Never mounts on `/admin` routes — `AppShell` (which renders this) is scoped
+ * to the `(shell)` route group, and the admin console lives outside it in its
+ * own top-level `app/admin/**` segment with its own independent shell.
  */
 export function MobileTopBar({ isAdmin }: { isAdmin: boolean }) {
   return (

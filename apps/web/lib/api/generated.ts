@@ -21,6 +21,32 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/admin/is-admin": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Is Admin
+     * @description Tell an authenticated caller whether they're an admin.
+     *
+     *     Unlike every other route in this router, this does NOT depend on
+     *     `require_admin` — a non-admin must get a normal 200 with
+     *     `is_admin: false`, not a 403, since answering that question is the
+     *     entire point of the endpoint (the frontend shell layout uses it to
+     *     decide whether to render the admin nav/switch affordance).
+     */
+    get: operations["get_is_admin_api_v1_admin_is_admin_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/admin/metrics": {
     parameters: {
       query?: never;
@@ -1771,6 +1797,11 @@ export interface components {
       /** Safety Trigger Count 7D */
       safety_trigger_count_7d: number;
     };
+    /** AdminStatus */
+    AdminStatus: {
+      /** Is Admin */
+      is_admin: boolean;
+    };
     /** AdminUser */
     AdminUser: {
       /** User Id */
@@ -2628,6 +2659,8 @@ export interface components {
       per_user: components["schemas"]["UserCostRow"][];
       /** Daily Costs */
       daily_costs: components["schemas"]["DailyCostPoint"][];
+      /** Token Breakdown */
+      token_breakdown: components["schemas"]["TokenTypeBreakdown"][];
       /** Budget Usd */
       budget_usd: number;
     };
@@ -3778,6 +3811,26 @@ export interface components {
       submitted: boolean;
       checkin: components["schemas"]["CheckInResponse"] | null;
     };
+    /**
+     * TokenTypeBreakdown
+     * @description One line item in the cost dashboard's Vercel-invoice-style token table.
+     *
+     *     Computed over the same rolling 30-day window as ``cost_30d_usd``
+     *     (``llm_usage`` where ``stub = false`` and ``created_at`` within 30 days).
+     */
+    TokenTypeBreakdown: {
+      /**
+       * Token Type
+       * @enum {string}
+       */
+      token_type: "input" | "output" | "cache_read" | "cache_write";
+      /** Quantity */
+      quantity: number;
+      /** Unit Price Per Mtok */
+      unit_price_per_mtok: number;
+      /** Charge Usd */
+      charge_usd: number;
+    };
     /** TrainingBalanceCategory */
     TrainingBalanceCategory: {
       /** Category */
@@ -4164,6 +4217,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_is_admin_api_v1_admin_is_admin_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AdminStatus"];
         };
       };
     };

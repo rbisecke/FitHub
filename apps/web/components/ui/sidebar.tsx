@@ -57,6 +57,7 @@ function SidebarProvider({
   defaultOpen = true,
   open: openProp,
   onOpenChange: setOpenProp,
+  cookieName = SIDEBAR_COOKIE_NAME,
   className,
   style,
   children,
@@ -65,6 +66,16 @@ function SidebarProvider({
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /**
+   * Cookie the collapse state persists to. Defaults to the shared
+   * `sidebar_state` cookie every member-shell `Sidebar` reads/writes. The
+   * admin console mounts a second, independent `SidebarProvider`
+   * (`app/admin/layout.tsx`) and passes a distinct name here — otherwise the
+   * two unrelated shells silently share one collapse preference: collapsing
+   * the admin sidebar and then leaving to a member route would leave the
+   * member sidebar collapsed too, with no visible cause.
+   */
+  cookieName?: string;
 }) {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = React.useState(false);
@@ -83,9 +94,9 @@ function SidebarProvider({
       }
 
       // This sets the cookie to keep the sidebar state.
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+      document.cookie = `${cookieName}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
     },
-    [setOpenProp, open],
+    [setOpenProp, open, cookieName],
   );
 
   // Helper to toggle the sidebar.

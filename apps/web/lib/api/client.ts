@@ -5,6 +5,11 @@ import type {
   AdminHealth,
   AdminInfraSnapshot,
   AdminInfraDashboard,
+  AdminStatus,
+  AdminMagicLinkResponse,
+  AdminInvitedEmail,
+  AdminKBEntry,
+  AdminReindexJob,
 } from "./index";
 import type {
   Movement,
@@ -882,13 +887,22 @@ export const api = {
       }),
   },
   admin: {
+    // Real allowlist gating (Effort 10) — 200 with `is_admin: false` for a
+    // non-admin, never a 403 (answering the question is the whole point).
+    isAdmin: (token: string) =>
+      apiFetch<AdminStatus>("/api/v1/admin/is-admin", token),
     metrics: (token: string) =>
       apiFetch<AdminMetricsSummary>("/api/v1/admin/metrics", token),
-    accessRequests: (token: string, status?: string) => {
+    accessRequests: (
+      token: string,
+      status?: string,
+      options?: { signal?: AbortSignal },
+    ) => {
       const qs = status ? `?status=${encodeURIComponent(status)}` : "";
       return apiFetch<AdminAccessRequest[]>(
         `/api/v1/admin/access-requests${qs}`,
         token,
+        options?.signal ? { signal: options.signal } : undefined,
       );
     },
     reviewAccessRequest: (
@@ -905,8 +919,12 @@ export const api = {
           body: JSON.stringify({ action, note: note ?? null }),
         },
       ),
-    users: (token: string) =>
-      apiFetch<AdminUser[]>("/api/v1/admin/users", token),
+    users: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<AdminUser[]>(
+        "/api/v1/admin/users",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     health: (token: string) =>
       apiFetch<AdminHealth>("/api/v1/admin/health", token),
     infraStatus: (token: string, options?: { signal?: AbortSignal }) =>
@@ -920,6 +938,53 @@ export const api = {
         "/api/v1/admin/infra",
         token,
         options?.signal ? { signal: options.signal } : undefined,
+      ),
+    disableUser: (token: string, userId: string) =>
+      apiFetch<void>(`/api/v1/admin/users/${userId}/disable`, token, {
+        method: "POST",
+      }),
+    generateMagicLink: (token: string, userId: string) =>
+      apiFetch<AdminMagicLinkResponse>(
+        `/api/v1/admin/users/${userId}/magic-link`,
+        token,
+        { method: "POST" },
+      ),
+    deleteUser: (token: string, userId: string) =>
+      apiFetch<void>(`/api/v1/admin/users/${userId}?confirm=true`, token, {
+        method: "DELETE",
+      }),
+    invitedEmails: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<AdminInvitedEmail[]>(
+        "/api/v1/admin/invited-emails",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
+    addInvitedEmail: (token: string, email: string) =>
+      apiFetch<AdminInvitedEmail>("/api/v1/admin/invited-emails", token, {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      }),
+    removeInvitedEmail: (token: string, email: string) =>
+      apiFetch<void>(
+        `/api/v1/admin/invited-emails/${encodeURIComponent(email)}`,
+        token,
+        { method: "DELETE" },
+      ),
+    knowledgeBase: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<AdminKBEntry[]>(
+        "/api/v1/admin/knowledge-base",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
+    triggerReindex: (token: string, sourceType?: string) =>
+      apiFetch<AdminReindexJob>("/api/v1/admin/knowledge-base/reindex", token, {
+        method: "POST",
+        body: JSON.stringify({ source_type: sourceType ?? null }),
+      }),
+    reindexStatus: (token: string, jobId: string) =>
+      apiFetch<AdminReindexJob>(
+        `/api/v1/admin/knowledge-base/reindex/${jobId}`,
+        token,
       ),
   },
 };

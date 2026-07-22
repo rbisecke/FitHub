@@ -1,157 +1,117 @@
-interface TokenTotals {
-  input: number;
-  output: number;
-  cacheRead: number;
-  cacheWrite: number;
-}
+import type { AdminTokenTypeBreakdown } from "@/lib/api";
+import {
+  formatTokenCount,
+  formatUnitPrice,
+  formatUsd,
+} from "@/lib/admin/cost-format";
 
 interface Props {
-  totals: TokenTotals | null;
+  breakdown: AdminTokenTypeBreakdown[];
 }
 
-interface TokenTypeCard {
+// Fixed display order + labels + fallback pricing (`08` §7 — the hardcoded
+// Haiku 4.5 table). The fallback prices only ever render when the backend
+// has zero rows to report (a brand-new deployment with no non-stub LLM
+// calls yet) so the empty state still shows the real per-type pricing
+// rather than blank dashes.
+const ROW_ORDER: {
+  type: AdminTokenTypeBreakdown["token_type"];
   label: string;
-  color: string;
-  value: number;
-  total: number;
-}
+  fallbackPrice: number;
+}[] = [
+  { type: "input", label: "Input tokens", fallbackPrice: 1.0 },
+  { type: "output", label: "Output tokens", fallbackPrice: 5.0 },
+  { type: "cache_read", label: "Cache read", fallbackPrice: 0.1 },
+  { type: "cache_write", label: "Cache write", fallbackPrice: 1.25 },
+];
 
-function fmtTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return String(n);
-}
+/**
+ * Cost breakdown — Vercel invoice format (`08` §7, item 3). One row per
+ * token type with Quantity / Unit price / Charge, rolling to a subtotal.
+ * Replaces the old `totals={null}` all-zeros 4-card grid stub.
+ */
+export function TokenGrid({ breakdown }: Props) {
+  const byType = new Map(breakdown.map((row) => [row.token_type, row]));
 
-export function TokenGrid({ totals }: Props) {
-  const t: TokenTotals = totals ?? {
-    input: 0,
-    output: 0,
-    cacheRead: 0,
-    cacheWrite: 0,
-  };
-  const total = t.input + t.output + t.cacheRead + t.cacheWrite;
+  const rows = ROW_ORDER.map(({ type, label, fallbackPrice }) => {
+    const row = byType.get(type);
+    return {
+      label,
+      quantity: row?.quantity ?? 0,
+      unitPrice: row?.unit_price_per_mtok ?? fallbackPrice,
+      charge: row?.charge_usd ?? 0,
+    };
+  });
 
-  const cards: TokenTypeCard[] = [
-    { label: "Input tokens", color: "#58a6ff", value: t.input, total },
-    { label: "Output tokens", color: "#4ADE80", value: t.output, total },
-    { label: "Cache read", color: "#FFC83D", value: t.cacheRead, total },
-    { label: "Cache write", color: "#FF7A45", value: t.cacheWrite, total },
-  ];
+  const subtotal = rows.reduce((sum, r) => sum + r.charge, 0);
 
   return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          marginBottom: 14,
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: 14,
-              color: "#e6edf3",
-              fontFamily: "var(--font-jetbrains-mono), monospace",
-            }}
-          >
-            Token breakdown
-          </div>
-          <div
-            style={{
-              fontSize: 11.5,
-              color: "#8b949e",
-              marginTop: 2,
-              fontFamily: "var(--font-jetbrains-mono), monospace",
-            }}
-          >
-            Cumulative · last 30 days
-          </div>
-        </div>
-        {total > 0 && (
-          <div
-            style={{
-              fontFamily: "var(--font-archivo-black), sans-serif",
-              fontSize: 18,
-              color: "#e6edf3",
-            }}
-          >
-            {fmtTokens(total)}
-          </div>
-        )}
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+      <div className="border-b border-[var(--border)] px-5 py-4">
+        <h2 className="type-h3 text-[var(--text)]">Cost breakdown</h2>
+        <p className="type-caption mt-0.5 text-[var(--muted)]">
+          Token usage · last 30 days
+        </p>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4,1fr)",
-          gap: 13,
-        }}
-      >
-        {cards.map((card) => (
-          <div
-            key={card.label}
-            style={{
-              background: "#21262d",
-              border: "1px solid #30363d",
-              borderRadius: 12,
-              padding: 15,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 9,
-              }}
-            >
-              <span
-                style={{
-                  width: 9,
-                  height: 9,
-                  borderRadius: 2,
-                  background: card.color,
-                  display: "inline-block",
-                  flexShrink: 0,
-                }}
-              />
-              <span
-                style={{
-                  fontSize: 11.5,
-                  color: "#8b949e",
-                  fontFamily: "var(--font-jetbrains-mono), monospace",
-                }}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse font-mono text-sm">
+          <thead>
+            <tr className="border-b border-[var(--border)] text-left">
+              <th className="px-5 py-2 font-normal text-[var(--muted)]">
+                Token type
+              </th>
+              <th className="px-5 py-2 text-right font-normal text-[var(--muted)]">
+                Quantity
+              </th>
+              <th className="px-5 py-2 text-right font-normal text-[var(--muted)]">
+                Unit price
+              </th>
+              <th className="px-5 py-2 text-right font-normal text-[var(--muted)]">
+                Charge
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr
+                key={row.label}
+                className="border-b border-[var(--border)] last:border-b-0"
               >
-                {card.label}
-              </span>
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-archivo-black), sans-serif",
-                fontSize: 22,
-                color: "#e6edf3",
-              }}
-            >
-              {fmtTokens(card.value)}
-            </div>
-            <div
-              style={{
-                fontSize: 10.5,
-                color: "#8b949e",
-                marginTop: 3,
-                fontFamily: "var(--font-jetbrains-mono), monospace",
-              }}
-            >
-              {total > 0
-                ? `${Math.round((card.value / total) * 100)}% of total`
-                : "—"}
-            </div>
-          </div>
-        ))}
+                <td className="px-5 py-2.5 font-sans text-[var(--text)]">
+                  {row.label}
+                </td>
+                <td className="px-5 py-2.5 text-right tabular-nums text-[var(--text)]">
+                  {formatTokenCount(row.quantity)}
+                </td>
+                <td className="px-5 py-2.5 text-right tabular-nums text-[var(--muted)]">
+                  {formatUnitPrice(row.unitPrice)}
+                </td>
+                <td className="px-5 py-2.5 text-right tabular-nums text-[var(--text)]">
+                  {formatUsd(row.charge)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-[var(--text)]">
+              <td
+                colSpan={3}
+                className="px-5 pb-2.5 pt-4 text-right font-sans font-semibold text-[var(--text)]"
+              >
+                Subtotal
+              </td>
+              <td className="px-5 pb-2.5 pt-4 text-right text-base font-semibold tabular-nums text-[var(--text)]">
+                {formatUsd(subtotal)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
+
+      <p className="border-t border-[var(--border)] px-5 py-2 font-mono text-xs text-[var(--muted)]">
+        Pricing: Haiku 4.5 — hardcoded, hand-maintained rates
+      </p>
     </div>
   );
 }

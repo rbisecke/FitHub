@@ -15,9 +15,10 @@ import psycopg.rows
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from psycopg.errors import UniqueViolation
 
+from app.auth import UserContext, get_current_user
 from app.config import get_settings
 from app.db import get_db
-from app.dependencies.admin import require_admin
+from app.dependencies.admin import is_admin_user, require_admin
 from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.admin import (
     AccessRequestCreate,
@@ -25,6 +26,7 @@ from app.models.admin import (
     AccessRequestRow,
     AddInviteBody,
     AdminHealth,
+    AdminStatus,
     AdminUser,
     DailyCostPoint,
     DeploymentEvent,
@@ -40,6 +42,7 @@ from app.models.admin import (
     ReindexBody,
     ReindexJob,
     SubmitAccessRequestResponse,
+    TokenTypeBreakdown,
     UserCostRow,
 )
 
@@ -116,6 +119,24 @@ async def submit_access_request(
     return SubmitAccessRequestResponse(status="submitted")
 
 
+# ── Admin: self-status (any authenticated user, no admin gate) ────────────────
+
+
+@router.get("/api/v1/admin/is-admin", response_model=AdminStatus)
+async def get_is_admin(
+    user: Annotated[UserContext, Depends(get_current_user)],
+) -> AdminStatus:
+    """Tell an authenticated caller whether they're an admin.
+
+    Unlike every other route in this router, this does NOT depend on
+    `require_admin` — a non-admin must get a normal 200 with
+    `is_admin: false`, not a 403, since answering that question is the
+    entire point of the endpoint (the frontend shell layout uses it to
+    decide whether to render the admin nav/switch affordance).
+    """
+    return AdminStatus(is_admin=is_admin_user(user.user_id))
+
+
 # ── Admin: metrics summary ────────────────────────────────────────────────────
 
 
@@ -134,7 +155,10 @@ async def admin_metrics(
             SELECT
                 COALESCE(SUM({cost_expr}), 0)                             AS cost_30d_usd,
                 COUNT(*)                                                    AS interactions_30d,
+                COALESCE(SUM(lu.input_tokens), 0)                         AS input_tokens_sum,
+                COALESCE(SUM(lu.output_tokens), 0)                        AS output_tokens_sum,
                 COALESCE(SUM(lu.cache_read_tokens), 0)                    AS cache_reads,
+                COALESCE(SUM(lu.cache_write_tokens), 0)                   AS cache_write_sum,
                 COALESCE(SUM(lu.cache_read_tokens + lu.input_tokens), 0)  AS total_input,
                 PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY lu.ttft_ms)  AS ttft_p50,
                 PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY lu.ttft_ms)  AS ttft_p95
@@ -181,14 +205,15 @@ async def admin_metrics(
             SELECT
                 lu.user_id::text,
                 p.display_name,
-                NULL::text                  AS email,
+                u.email                     AS email,
                 COUNT(*)                    AS interactions_30d,
                 COALESCE(SUM({cost_expr}), 0) AS cost_30d_usd
             FROM llm_usage lu
             LEFT JOIN profiles p ON p.id = lu.user_id
+            LEFT JOIN auth.users u ON u.id = lu.user_id
             WHERE lu.created_at > now() - interval '30 days'
               AND lu.stub = false
-            GROUP BY lu.user_id, p.display_name
+            GROUP BY lu.user_id, p.display_name, u.email
             ORDER BY cost_30d_usd DESC
             LIMIT 50
             """,
@@ -230,6 +255,24 @@ async def admin_metrics(
     req_count = int(req_row.get("req_count") or 0)
     error_rate_7d = err_count / req_count if req_count > 0 else 0.0
 
+    _token_rows: list[
+        tuple[Literal["input", "output", "cache_read", "cache_write"], int, float]
+    ] = [
+        ("input", int(row30.get("input_tokens_sum") or 0), _INPUT_PER_MTOK),
+        ("output", int(row30.get("output_tokens_sum") or 0), _OUTPUT_PER_MTOK),
+        ("cache_read", cache_reads, _CACHE_READ_PER_MTOK),
+        ("cache_write", int(row30.get("cache_write_sum") or 0), _CACHE_WRITE_PER_MTOK),
+    ]
+    token_breakdown = [
+        TokenTypeBreakdown(
+            token_type=token_type,
+            quantity=quantity,
+            unit_price_per_mtok=unit_price,
+            charge_usd=quantity * unit_price / 1e6,
+        )
+        for token_type, quantity, unit_price in _token_rows
+    ]
+
     return MetricsSummary(
         cost_30d_usd=cost_30d,
         cost_mtd_usd=cost_mtd,
@@ -253,6 +296,7 @@ async def admin_metrics(
         daily_costs=[
             DailyCostPoint(day=r["day"], cost_usd=float(r["cost_usd"])) for r in daily_rows
         ],
+        token_breakdown=token_breakdown,
         budget_usd=settings.anthropic_monthly_budget_usd,
     )
 
@@ -374,16 +418,18 @@ async def list_admin_users(
             SELECT
                 p.id::text                              AS user_id,
                 p.display_name,
-                NULL::text                              AS email,
+                u.email                                 AS email,
                 p.created_at,
                 NULL::timestamptz                       AS banned_until,
                 COALESCE(COUNT(lu.id), 0)::int          AS interactions_30d
             FROM profiles p
+            LEFT JOIN auth.users u
+                   ON u.id = p.id
             LEFT JOIN llm_usage lu
                    ON lu.user_id = p.id
                   AND lu.created_at > now() - interval '30 days'
                   AND lu.stub = false
-            GROUP BY p.id, p.display_name, p.created_at
+            GROUP BY p.id, p.display_name, u.email, p.created_at
             ORDER BY p.created_at DESC
             LIMIT 200
             """,

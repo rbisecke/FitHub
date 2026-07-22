@@ -1,5 +1,11 @@
 import { MetricsCard } from "@/components/admin/MetricsCard";
-import { STATUS_COLOR } from "@/components/admin/infraStatusColors";
+import {
+  STATUS_COLOR,
+  deployStatusColor,
+  isFailedDeployStatus,
+} from "@/components/admin/infraStatusColors";
+import { computeDeployMarkerX } from "@/components/admin/infraSparklineMarkers";
+import { DeploymentErrorDetail } from "@/components/admin/DeploymentErrorDetail";
 import type {
   AdminInfraDashboard,
   AdminInfraSnapshot,
@@ -35,15 +41,6 @@ function ms(v: unknown): string {
   return n != null ? `${n}ms` : "—";
 }
 
-function deployStatusColor(status: string | null): string {
-  if (status === "READY" || status === "SUCCESS") return "var(--green)";
-  if (status === "ERROR" || status === "CRASHED" || status === "FAILED")
-    return "var(--red)";
-  if (status === "BUILDING" || status === "SLEEPING" || status === "QUEUED")
-    return "var(--amber)";
-  return "var(--muted)";
-}
-
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString("en-US", {
     month: "short",
@@ -59,9 +56,15 @@ function formatDate(iso: string): string {
 function BlockHeader({
   title,
   status,
+  checkedAt,
 }: {
   title: string;
   status: AdminInfraSnapshot["status"];
+  /** Static "as of {checked_at}" liveness cue (08 §8 Interactions, RESOLVED
+   * 2026-07-18) — this collector's own last-poll timestamp, not a
+   * live-refresh indicator. Absent when the source is unknown (never
+   * collected this cycle). */
+  checkedAt?: string;
 }) {
   return (
     <div
@@ -70,6 +73,7 @@ function BlockHeader({
         alignItems: "center",
         gap: 8,
         marginBottom: 16,
+        flexWrap: "wrap",
       }}
     >
       <span
@@ -105,6 +109,18 @@ function BlockHeader({
       >
         {status}
       </span>
+      {checkedAt && (
+        <span
+          style={{
+            fontSize: 10.5,
+            color: "var(--muted)",
+            fontFamily: "var(--font-jetbrains-mono), monospace",
+            marginLeft: "auto",
+          }}
+        >
+          as of {formatDate(checkedAt)}
+        </span>
+      )}
     </div>
   );
 }
@@ -113,20 +129,29 @@ function BlockHeader({
 
 function Sparkline({
   points,
+  deployments,
   metricKey,
   label,
   height = 44,
   width = 100,
 }: {
   points: AdminInfraHistoryPoint[];
+  /** All recent deployments (both platforms) — overlaid as vertical dashed
+   * markers so an operator can correlate "did this deploy cause the spike"
+   * against this specific metric in one glance (08 §8; Railway-metrics
+   * precedent). Not pre-filtered by platform: a Railway (API) deploy can
+   * move Supabase's memory line just as plausibly as a Vercel deploy can
+   * precede an API error-rate move, so every deploy is a candidate marker on
+   * every sparkline — only its timestamp decides whether it falls in-window. */
+  deployments: AdminDeploymentEvent[];
   metricKey: string;
   label: string;
   height?: number;
   width?: number;
 }) {
   const timestamps = points.map((p) => new Date(p.collected_at).getTime());
-  const minTime = Math.min(...timestamps);
-  const maxTime = Math.max(...timestamps);
+  const minTime = points.length ? Math.min(...timestamps) : 0;
+  const maxTime = points.length ? Math.max(...timestamps) : 0;
   const timeRange = maxTime - minTime || 1;
 
   // Retain each point's real collection time alongside its value so the
@@ -142,7 +167,11 @@ function Sparkline({
   const values = series.map((s) => s.v);
 
   return (
-    <div style={{ marginTop: 8 }}>
+    // Extra top margin (vs. the metric-card grid above) and bottom margin
+    // (vs. whatever follows — DeploymentList or the next section) so the
+    // chart reads as its own "history" sub-panel rather than a continuation
+    // of the "current state" card row (UI critique 2026-07-22).
+    <div style={{ marginTop: 24, marginBottom: 20 }}>
       <div
         style={{
           fontSize: 10,
@@ -166,7 +195,9 @@ function Sparkline({
             fontFamily: "var(--font-jetbrains-mono), monospace",
           }}
         >
-          Not enough history yet — check back after a few collector cycles.
+          {points.length === 0
+            ? "No data in the last hour."
+            : "Not enough history yet — check back after a few collector cycles."}
         </div>
       ) : (
         (() => {
@@ -181,6 +212,20 @@ function Sparkline({
                 }`,
             )
             .join(" ");
+
+          const markers = deployments
+            .map((d) => {
+              const x = computeDeployMarkerX(
+                d.occurred_at,
+                minTime,
+                maxTime,
+                width,
+              );
+              if (x == null) return null;
+              return { id: d.id, x, failed: isFailedDeployStatus(d.status), d };
+            })
+            .filter((m): m is NonNullable<typeof m> => m != null);
+
           return (
             <svg
               width="100%"
@@ -190,12 +235,49 @@ function Sparkline({
               role="img"
               aria-label={`${label} sparkline, ${
                 values.length
-              } data points, most recent ${values[values.length - 1]}`}
+              } data points, most recent ${values[values.length - 1]}${
+                markers.length
+                  ? `, ${markers.length} deploy event${
+                      markers.length !== 1 ? "s" : ""
+                    } in this window`
+                  : ""
+              }`}
             >
+              {/* Deploy markers render behind the metric line so the line
+                  itself stays the clearest element on top (08 §8: "keep
+                  gridlines/ticks sparse"). Failed deploys get the danger
+                  color — the single most likely candidate for "did this
+                  cause the spike" — everything else is a neutral dashed
+                  line, so the chart never exceeds the 2-3 color cap (§1.5,
+                  accent line + muted marker + red-failed marker). `--muted`
+                  (not `--border`) for the neutral marker — `--border` reads
+                  as near-invisible against `--surface` and was blending into
+                  the `--accent` polyline at their intersection, defeating
+                  the entire "spot the deploy" purpose (UI critique
+                  2026-07-22). */}
+              {markers.map(({ id, x, failed, d }) => (
+                <line
+                  key={id}
+                  x1={x}
+                  x2={x}
+                  y1={0}
+                  y2={height}
+                  stroke={failed ? "var(--red)" : "var(--muted)"}
+                  strokeWidth={1}
+                  strokeDasharray="3,3"
+                  aria-hidden="true"
+                >
+                  <title>
+                    {`${d.platform} deploy — ${d.status} — ${formatDate(
+                      d.occurred_at,
+                    )}`}
+                  </title>
+                </line>
+              ))}
               <polyline
                 points={coords}
                 fill="none"
-                stroke="var(--blue)"
+                stroke="var(--accent)"
                 strokeWidth={1.5}
                 strokeLinejoin="round"
                 strokeLinecap="round"
@@ -210,6 +292,15 @@ function Sparkline({
 
 // ── Deployment list — shared between Vercel + Railway blocks ─────────────────
 
+// Non-color signal alongside the status text/dot/row-fill — a failed row's
+// danger fill alone is decorative-only for anyone not distinguishing hue
+// (UI critique 2026-07-22: pair color with a shape, not just text weight).
+function deployStatusGlyph(status: string | null): string {
+  if (isFailedDeployStatus(status)) return "✕ ";
+  if (status === "READY" || status === "SUCCESS") return "✓ ";
+  return "";
+}
+
 function DeploymentList({
   deployments,
 }: {
@@ -222,7 +313,9 @@ function DeploymentList({
           fontSize: 12,
           color: "var(--muted)",
           fontFamily: "var(--font-jetbrains-mono), monospace",
-          padding: "12px 0 0",
+          padding: "16px 0 0",
+          marginTop: 12,
+          borderTop: "1px solid var(--border)",
         }}
       >
         No deployments recorded yet.
@@ -236,77 +329,95 @@ function DeploymentList({
         display: "flex",
         flexDirection: "column",
         gap: 10,
-        marginTop: 12,
+        // A visible separator (not just a margin) so the list reads as
+        // "deploy history" distinct from the chart above it, matching the
+        // same separation added to the sparkline's own margins (UI critique
+        // 2026-07-22).
+        marginTop: 20,
+        paddingTop: 16,
+        borderTop: "1px solid var(--border)",
       }}
     >
-      {deployments.slice(0, 5).map((d) => (
-        <div
-          key={d.id}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 3,
-            fontSize: 11.5,
-            fontFamily: "var(--font-jetbrains-mono), monospace",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span
-              aria-hidden="true"
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: deployStatusColor(d.status),
-                flexShrink: 0,
-              }}
-            />
-            <span style={{ color: deployStatusColor(d.status), flexShrink: 0 }}>
-              {d.status}
-            </span>
-            <span
-              style={{
-                flex: 1,
-                minWidth: 0,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                color: "var(--text)",
-              }}
-            >
-              {d.commit_sha && (
-                <span style={{ color: "var(--muted)" }}>
-                  {d.commit_sha.slice(0, 7)}{" "}
-                </span>
-              )}
-              {d.commit_message ?? d.branch ?? "—"}
-            </span>
-            <span
-              style={{
-                marginLeft: "auto",
-                flexShrink: 0,
-                color: "var(--muted)",
-              }}
-            >
-              {formatDate(d.occurred_at)}
-            </span>
-          </div>
-          {d.error_message && (
-            <div
-              title={d.error_message}
-              style={{
-                paddingLeft: 14,
-                color: "var(--red)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {d.error_message}
+      {deployments.slice(0, 5).map((d) => {
+        const failed = isFailedDeployStatus(d.status);
+        return (
+          <div
+            key={d.id}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 3,
+              fontSize: 11.5,
+              fontFamily: "var(--font-jetbrains-mono), monospace",
+              // Full-card fill for a failed deploy (08 §8 States: "Deploy
+              // failure ... full danger fill") — tints the whole row, not
+              // just the status text (§1.4).
+              ...(failed
+                ? {
+                    background:
+                      "color-mix(in srgb, var(--red) 14%, transparent)",
+                    border:
+                      "1px solid color-mix(in srgb, var(--red) 38%, transparent)",
+                    borderRadius: 8,
+                    padding: "8px 10px",
+                  }
+                : { padding: "0 2px" }),
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: deployStatusColor(d.status),
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                style={{
+                  color: deployStatusColor(d.status),
+                  flexShrink: 0,
+                  fontWeight: failed ? 700 : 400,
+                }}
+              >
+                {deployStatusGlyph(d.status)}
+                {d.status}
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  color: "var(--text)",
+                }}
+              >
+                {d.commit_sha && (
+                  <span style={{ color: "var(--muted)" }}>
+                    {d.commit_sha.slice(0, 7)}{" "}
+                  </span>
+                )}
+                {d.commit_message ?? d.branch ?? "—"}
+              </span>
+              <span
+                style={{
+                  marginLeft: "auto",
+                  flexShrink: 0,
+                  color: "var(--muted)",
+                }}
+              >
+                {formatDate(d.occurred_at)}
+              </span>
             </div>
-          )}
-        </div>
-      ))}
+            {d.error_message && (
+              <DeploymentErrorDetail message={d.error_message} />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -316,9 +427,11 @@ function DeploymentList({
 function SupabaseBlock({
   snap,
   history,
+  deployments,
 }: {
   snap: AdminInfraSnapshot | undefined;
   history: AdminInfraHistoryPoint[];
+  deployments: AdminDeploymentEvent[];
 }) {
   const m = snap?.metrics ?? {};
   const gotrue = boolOrNull(m.gotrue_running);
@@ -331,6 +444,7 @@ function SupabaseBlock({
       <BlockHeader
         title="Supabase — Database"
         status={snap?.status ?? "unknown"}
+        checkedAt={snap?.checked_at}
       />
       <div
         className="admin-infra-grid"
@@ -364,6 +478,7 @@ function SupabaseBlock({
       </div>
       <Sparkline
         points={history}
+        deployments={deployments}
         metricKey="memory_used_pct"
         label="Memory %"
       />
@@ -387,7 +502,11 @@ function RailwayBlock({
 
   return (
     <section style={{ marginBottom: 32 }}>
-      <BlockHeader title="Railway — API" status={snap?.status ?? "unknown"} />
+      <BlockHeader
+        title="Railway — API"
+        status={snap?.status ?? "unknown"}
+        checkedAt={snap?.checked_at}
+      />
       <div
         className="admin-infra-grid"
         style={{
@@ -418,6 +537,7 @@ function RailwayBlock({
       </div>
       <Sparkline
         points={history}
+        deployments={deployments}
         metricKey="http_error_rate_pct"
         label="Error rate %"
       />
@@ -443,6 +563,7 @@ function VercelBlock({
       <BlockHeader
         title="Vercel — Frontend"
         status={snap?.status ?? "unknown"}
+        checkedAt={snap?.checked_at}
       />
       {/* 3 columns (not 2) so these cards line up edge-to-edge with the
           Supabase/Railway grids above — Vercel only has 2 metrics today,
@@ -491,6 +612,7 @@ export function InfraPanel({ dashboard }: Props) {
       <SupabaseBlock
         snap={bySource.get("supabase")}
         history={dashboard.history["supabase"] ?? []}
+        deployments={dashboard.recent_deployments}
       />
       <RailwayBlock
         snap={bySource.get("railway")}

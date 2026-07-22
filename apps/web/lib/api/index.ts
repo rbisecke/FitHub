@@ -131,6 +131,18 @@ export type AdminLLMError = components["schemas"]["LLMError"];
 export type AdminHealth = components["schemas"]["AdminHealth"];
 export type AdminUser = components["schemas"]["AdminUser"];
 export type AdminAccessRequest = components["schemas"]["AccessRequestRow"];
+// Real allowlist gating (Effort 10) — GET /api/v1/admin/is-admin.
+export type AdminStatus = components["schemas"]["AdminStatus"];
+// Per-token-type cost breakdown (Effort 10, BG-21) — MetricsSummary.token_breakdown.
+export type AdminTokenTypeBreakdown =
+  components["schemas"]["TokenTypeBreakdown"];
+// User-management action responses (Effort 10, `08` §6).
+export type AdminMagicLinkResponse = components["schemas"]["MagicLinkResponse"];
+// Invite allowlist CRUD (Effort 10, `08` §9).
+export type AdminInvitedEmail = components["schemas"]["InvitedEmail"];
+// Knowledge base (Effort 10, `08` §10) — honest stub, see admin.py docstrings.
+export type AdminKBEntry = components["schemas"]["KBEntry"];
+export type AdminReindexJob = components["schemas"]["ReindexJob"];
 
 // Infra monitoring types — from generated OpenAPI schema
 export type AdminInfraSnapshot = components["schemas"]["InfraSnapshot"];
