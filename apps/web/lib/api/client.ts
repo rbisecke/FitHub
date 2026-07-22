@@ -6,6 +6,10 @@ import type {
   AdminInfraSnapshot,
   AdminInfraDashboard,
   AdminStatus,
+  AdminMagicLinkResponse,
+  AdminInvitedEmail,
+  AdminKBEntry,
+  AdminReindexJob,
 } from "./index";
 import type {
   Movement,
@@ -925,6 +929,45 @@ export const api = {
         "/api/v1/admin/infra",
         token,
         options?.signal ? { signal: options.signal } : undefined,
+      ),
+    disableUser: (token: string, userId: string) =>
+      apiFetch<void>(`/api/v1/admin/users/${userId}/disable`, token, {
+        method: "POST",
+      }),
+    generateMagicLink: (token: string, userId: string) =>
+      apiFetch<AdminMagicLinkResponse>(
+        `/api/v1/admin/users/${userId}/magic-link`,
+        token,
+        { method: "POST" },
+      ),
+    deleteUser: (token: string, userId: string) =>
+      apiFetch<void>(`/api/v1/admin/users/${userId}?confirm=true`, token, {
+        method: "DELETE",
+      }),
+    invitedEmails: (token: string) =>
+      apiFetch<AdminInvitedEmail[]>("/api/v1/admin/invited-emails", token),
+    addInvitedEmail: (token: string, email: string) =>
+      apiFetch<AdminInvitedEmail>("/api/v1/admin/invited-emails", token, {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      }),
+    removeInvitedEmail: (token: string, email: string) =>
+      apiFetch<void>(
+        `/api/v1/admin/invited-emails/${encodeURIComponent(email)}`,
+        token,
+        { method: "DELETE" },
+      ),
+    knowledgeBase: (token: string) =>
+      apiFetch<AdminKBEntry[]>("/api/v1/admin/knowledge-base", token),
+    triggerReindex: (token: string, sourceType?: string) =>
+      apiFetch<AdminReindexJob>("/api/v1/admin/knowledge-base/reindex", token, {
+        method: "POST",
+        body: JSON.stringify({ source_type: sourceType ?? null }),
+      }),
+    reindexStatus: (token: string, jobId: string) =>
+      apiFetch<AdminReindexJob>(
+        `/api/v1/admin/knowledge-base/reindex/${jobId}`,
+        token,
       ),
   },
 };
