@@ -160,7 +160,7 @@ export function DescribeItScreen({
     };
     try {
       const workout = await client.workouts.create(body);
-      router.push(`/workouts/${workout.short_hash}`);
+      router.push(`/workouts/${workout.short_hash}?logged=1`);
     } catch {
       setCommitting(false);
       setError("Couldn't save the workout. Please try again.");

@@ -293,6 +293,16 @@
     padding-bottom: calc(64px + env(safe-area-inset-bottom) + 16px);
   }
 
+  /* Like .pb-nav-safe, but also clears the quick-log FAB's rise above the bar
+     (mobile-bottom-nav.tsx perches a size-14/56px FAB `-mb-2.5` above the
+     64px bar, so it pokes ~46px above the bar's own top edge). Use this
+     instead of .pb-nav-safe on any screen whose last content is an
+     actionable row that could otherwise land in that overlap band — e.g. a
+     settings detail screen with trailing action buttons. */
+  .pb-nav-safe-fab {
+    padding-bottom: calc(64px + 46px + env(safe-area-inset-bottom) + 16px);
+  }
+
   /* Elevation helper for floating overlays (dialogs, sheets, popovers) — the one
      place drop-shadow is used (00 §3.5). Surface step + border covers everything else. */
   .elevation-overlay {

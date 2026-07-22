@@ -17,6 +17,7 @@ import { isBenchmark } from "@/lib/workout/benchmarks";
 import { ResultLine } from "@/components/logging/ResultLine";
 import { SheetOverlay } from "@/components/logging/SheetOverlay";
 import { TrendPreview } from "./TrendPreview";
+import { PRCelebrationBanner } from "./PRCelebrationBanner";
 
 const PR_TOLERANCE_KG = 0.5;
 
@@ -39,10 +40,19 @@ export function WorkoutDetail({
   workout,
   units,
   token,
+  justLogged: justLoggedProp = false,
 }: {
   workout: Workout;
   units: DisplayUnits;
   token: string;
+  /**
+   * True when the route was reached straight from the logging flow via
+   * `?logged=1` (07 §H). Read server-side (the page's `searchParams` prop)
+   * rather than via `useSearchParams()` here — that hook requires a
+   * Suspense boundary to prerender, which the dev preview route
+   * (`/dev/workout-detail`) doesn't have.
+   */
+  justLogged?: boolean;
 }) {
   const router = useRouter();
   const client = useMemo(() => createApiClient(token), [token]);
@@ -52,6 +62,20 @@ export function WorkoutDetail({
   const [bestByMovement, setBestByMovement] = useState<Map<string, number>>(
     new Map(),
   );
+
+  // Captured once on first render so the celebration banner doesn't
+  // disappear when the `?logged=1` marker is stripped from the URL a moment
+  // later (see the effect below).
+  const [justLogged] = useState(justLoggedProp);
+
+  // Strip the `?logged=1` marker once shown — a manual refresh or revisiting
+  // this page later must not re-trigger the celebration.
+  useEffect(() => {
+    if (!justLogged) return;
+    router.replace(`/workouts/${workout.short_hash}`, { scroll: false });
+    // Intentionally runs once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const results = useMemo(
     () =>
@@ -100,6 +124,17 @@ export function WorkoutDetail({
   const groups = useMemo(
     () => groupResults(results, bestByMovement),
     [results, bestByMovement],
+  );
+
+  const prGroups = useMemo(
+    () =>
+      groups
+        .filter((g) => g.prResultId && g.movementId)
+        .map((g) => ({
+          movementId: g.movementId!,
+          movementName: g.movementName,
+        })),
+    [groups],
   );
 
   async function handleDelete() {
@@ -199,6 +234,14 @@ export function WorkoutDetail({
 
         {/* Results pane */}
         <div>
+          {justLogged && (
+            <PRCelebrationBanner
+              workoutId={workout.id}
+              prGroups={prGroups}
+              client={client}
+              weightUnit={units.weight}
+            />
+          )}
           {groups.length === 0 ? (
             <p
               className="font-sans text-[14px]"

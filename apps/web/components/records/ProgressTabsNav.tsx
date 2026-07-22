@@ -9,6 +9,7 @@ const SEGMENTS = [
   { href: "/progress/volume", label: "Volume" },
   { href: "/progress/balance", label: "Balance" },
   { href: "/progress/benchmarks", label: "Benchmarks" },
+  { href: "/progress/streak", label: "Streak" },
 ] as const;
 
 /**

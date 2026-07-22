@@ -13,8 +13,10 @@ import type { DisplayUnits } from "@/lib/units";
  */
 export default async function WorkoutDetailRoute({
   params,
+  searchParams,
 }: {
   params: Promise<{ hash: string }>;
+  searchParams: Promise<{ logged?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -24,6 +26,8 @@ export default async function WorkoutDetailRoute({
   const token = session.access_token;
 
   const { hash } = await params;
+  const { logged } = await searchParams;
+  const justLogged = logged === "1";
 
   const units: DisplayUnits = { weight: "kg", distance: "km" };
   try {
@@ -47,7 +51,12 @@ export default async function WorkoutDetailRoute({
       theme="light"
       className="min-h-svh bg-background text-foreground"
     >
-      <WorkoutDetail workout={workout} units={units} token={token} />
+      <WorkoutDetail
+        workout={workout}
+        units={units}
+        token={token}
+        justLogged={justLogged}
+      />
     </ForcedTheme>
   );
 }

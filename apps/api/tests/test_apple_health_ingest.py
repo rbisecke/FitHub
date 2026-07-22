@@ -225,3 +225,147 @@ async def test_list_integrations_returns_connection(alice_client: AsyncClient) -
     assert any(c["provider"] == "apple_health" for c in data)
 
     await alice_client.delete("/api/v1/integrations/apple-health/token")
+
+
+# ── Detail endpoint + persisted sync outcome ──────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_list_integrations_includes_token_prefix(
+    alice_client: AsyncClient,
+) -> None:
+    connect_r = await alice_client.post("/api/v1/integrations/apple-health/connect")
+    prefix = connect_r.json()["token_prefix"]
+
+    r = await alice_client.get("/api/v1/integrations")
+    assert r.status_code == 200
+    row = next(c for c in r.json() if c["provider"] == "apple_health")
+    assert row["token_prefix"] == prefix
+
+    await alice_client.delete("/api/v1/integrations/apple-health/token")
+
+
+@pytest.mark.asyncio
+async def test_detail_requires_auth(anon_client: AsyncClient) -> None:
+    r = await anon_client.get("/api/v1/integrations/apple-health")
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_detail_404_when_not_connected(alice_client: AsyncClient) -> None:
+    # Alice has no lingering connection at the start of this test (each test
+    # that connects also revokes at the end).
+    r = await alice_client.get("/api/v1/integrations/apple-health")
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_detail_reflects_last_sync_outcome(
+    alice_client: AsyncClient, anon_client: AsyncClient
+) -> None:
+    token_r = await alice_client.post("/api/v1/integrations/apple-health/connect")
+    token = token_r.json()["token"]
+
+    detail_before = await alice_client.get("/api/v1/integrations/apple-health")
+    assert detail_before.status_code == 200
+    assert detail_before.json()["last_sync_rows_inserted"] is None
+    assert detail_before.json()["last_sync_error"] is None
+
+    sync_r = await anon_client.post(
+        "/api/v1/integrations/apple-health/sync",
+        headers={"Authorization": f"Bearer {token}"},
+        json=HAE_PAYLOAD,
+    )
+    assert sync_r.status_code == 200
+
+    detail_after = await alice_client.get("/api/v1/integrations/apple-health")
+    assert detail_after.status_code == 200
+    data = detail_after.json()
+    assert data["token_prefix"] == token[:12]
+    assert data["last_sync_rows_inserted"] == 2
+    assert data["last_sync_recovery_computed"] is True
+    assert data["last_sync_error"] is None
+    assert data["sync_status"] == "idle"
+
+    await alice_client.delete("/api/v1/integrations/apple-health/token")
+
+
+@pytest.mark.asyncio
+async def test_oversized_payload_persists_error_and_marks_sync_status(
+    alice_client: AsyncClient, anon_client: AsyncClient
+) -> None:
+    token_r = await alice_client.post("/api/v1/integrations/apple-health/connect")
+    token = token_r.json()["token"]
+
+    oversized = {"data": {"metrics": [{"name": "pad", "data": [{"pad": "x" * (6 * 1024 * 1024)}]}]}}
+    r = await anon_client.post(
+        "/api/v1/integrations/apple-health/sync",
+        headers={"Authorization": f"Bearer {token}"},
+        json=oversized,
+    )
+    assert r.status_code == 413
+
+    detail = await alice_client.get("/api/v1/integrations/apple-health")
+    assert detail.status_code == 200
+    data = detail.json()
+    assert data["sync_status"] == "error"
+    assert data["last_sync_error"] == "payload_too_large"
+
+    await alice_client.delete("/api/v1/integrations/apple-health/token")
+
+
+@pytest.mark.asyncio
+async def test_invalid_json_persists_error_and_marks_sync_status(
+    alice_client: AsyncClient, anon_client: AsyncClient
+) -> None:
+    token_r = await alice_client.post("/api/v1/integrations/apple-health/connect")
+    token = token_r.json()["token"]
+
+    r = await anon_client.post(
+        "/api/v1/integrations/apple-health/sync",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        content=b"{not valid json",
+    )
+    assert r.status_code == 400
+
+    detail = await alice_client.get("/api/v1/integrations/apple-health")
+    assert detail.status_code == 200
+    data = detail.json()
+    assert data["sync_status"] == "error"
+    assert data["last_sync_error"] == "invalid_json"
+
+    await alice_client.delete("/api/v1/integrations/apple-health/token")
+
+
+@pytest.mark.asyncio
+async def test_successful_sync_clears_previous_error(
+    alice_client: AsyncClient, anon_client: AsyncClient
+) -> None:
+    token_r = await alice_client.post("/api/v1/integrations/apple-health/connect")
+    token = token_r.json()["token"]
+
+    bad = await anon_client.post(
+        "/api/v1/integrations/apple-health/sync",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        content=b"not json",
+    )
+    assert bad.status_code == 400
+
+    good = await anon_client.post(
+        "/api/v1/integrations/apple-health/sync",
+        headers={"Authorization": f"Bearer {token}"},
+        json=HAE_PAYLOAD,
+    )
+    assert good.status_code == 200
+
+    detail = await alice_client.get("/api/v1/integrations/apple-health")
+    assert detail.json()["last_sync_error"] is None
+    assert detail.json()["sync_status"] == "idle"
+
+    await alice_client.delete("/api/v1/integrations/apple-health/token")

@@ -57,7 +57,7 @@ export function QuickLogSheet({
           new Date().toISOString(),
         ),
       );
-      router.push(`/workouts/${created.short_hash}`);
+      router.push(`/workouts/${created.short_hash}?logged=1`);
     } catch (err) {
       setSaving(false);
       setError(

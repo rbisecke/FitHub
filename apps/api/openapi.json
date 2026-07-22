@@ -1671,6 +1671,32 @@
         ]
       }
     },
+    "/api/v1/integrations/apple-health": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Get Apple Health Detail",
+        "operationId": "get_apple_health_detail_api_v1_integrations_apple_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/integrations/apple-health/sync": {
       "post": {
         "tags": [
@@ -2362,6 +2388,33 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProfileStats"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/profile/streak": {
+      "get": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Get Streak",
+        "description": "The canonical, server-computed streak object (Domain 07 \u00a7D).\n\nAlso reconciles any lazily-discovered streak-freeze consumption and\nmilestone grants as a side effect of this read (Domain 07 \u00a7E) \u2014 see\n`app/repositories/streak.py` for the full mechanism.",
+        "operationId": "get_streak_api_v1_profile_streak_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreakState"
                 }
               }
             }
@@ -5918,11 +5971,9 @@
           "sync_status": {
             "type": "string",
             "enum": [
-              "connected",
-              "syncing",
               "idle",
-              "error",
-              "disconnected"
+              "syncing",
+              "error"
             ],
             "title": "Sync Status"
           },
@@ -5936,13 +5987,25 @@
               }
             ],
             "title": "Last Synced At"
+          },
+          "token_prefix": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Token Prefix"
           }
         },
         "type": "object",
         "required": [
           "provider",
           "sync_status",
-          "last_synced_at"
+          "last_synced_at",
+          "token_prefix"
         ],
         "title": "ConnectionStatus"
       },
@@ -7433,6 +7496,94 @@
         ],
         "title": "InjuryOut"
       },
+      "IntegrationDetail": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "sync_status": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "syncing",
+              "error"
+            ],
+            "title": "Sync Status"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          },
+          "token_prefix": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Token Prefix"
+          },
+          "last_sync_rows_inserted": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync Rows Inserted"
+          },
+          "last_sync_recovery_computed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync Recovery Computed"
+          },
+          "last_sync_error": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "payload_too_large",
+                  "invalid_json"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "sync_status",
+          "last_synced_at",
+          "token_prefix",
+          "last_sync_rows_inserted",
+          "last_sync_recovery_computed",
+          "last_sync_error"
+        ],
+        "title": "IntegrationDetail",
+        "description": "Per-provider detail (Domain 07 \u00a7C) \u2014 kept off the list endpoint so\n`GET /api/v1/integrations` stays cheap for the list screen."
+      },
       "InvitedEmail": {
         "properties": {
           "id": {
@@ -8495,7 +8646,10 @@
         "enum": [
           "team_session_linked",
           "team_session_updated",
-          "workout_link_pending"
+          "workout_link_pending",
+          "streak_at_risk",
+          "freeze_consumed",
+          "streak_milestone"
         ],
         "title": "NotificationType"
       },
@@ -10889,6 +11043,55 @@
         ],
         "title": "SkillContextOut",
         "description": "The real, history-aware skill-prerequisite chain for a target movement.\n\n`available` is False when the movement has no defined prerequisite chain\n(its slug isn't a SKILL_PREREQUISITES key) \u2014 a legitimate, expected state\nfor most movements, not an error. In that case every other field is empty/\nnull and the frontend renders \"No prerequisite ladder for this skill\"\nrather than an empty ladder."
+      },
+      "StreakState": {
+        "properties": {
+          "current_streak": {
+            "type": "integer",
+            "title": "Current Streak"
+          },
+          "personal_best": {
+            "type": "integer",
+            "title": "Personal Best"
+          },
+          "this_week_count": {
+            "type": "integer",
+            "title": "This Week Count"
+          },
+          "frequency_target": {
+            "type": "integer",
+            "title": "Frequency Target"
+          },
+          "at_risk": {
+            "type": "boolean",
+            "title": "At Risk"
+          },
+          "is_comeback": {
+            "type": "boolean",
+            "title": "Is Comeback"
+          },
+          "freezes_remaining": {
+            "type": "integer",
+            "title": "Freezes Remaining"
+          },
+          "freeze_consumed_this_week": {
+            "type": "boolean",
+            "title": "Freeze Consumed This Week"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_streak",
+          "personal_best",
+          "this_week_count",
+          "frequency_target",
+          "at_risk",
+          "is_comeback",
+          "freezes_remaining",
+          "freeze_consumed_this_week"
+        ],
+        "title": "StreakState",
+        "description": "The one canonical, server-computed streak object (Domain 07 \u00a7D) \u2014\nevery surface renders from this rather than recomputing its own."
       },
       "SubmitAccessRequestResponse": {
         "properties": {

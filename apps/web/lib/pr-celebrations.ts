@@ -1,36 +1,14 @@
 import { toast } from "sonner";
 import { ls } from "@/lib/local-storage";
-import { formatWeight } from "@/lib/display";
 
-const MILESTONE_WEEKS = [4, 8, 12, 26, 52] as const;
-
-const MILESTONE_MESSAGES: Record<number, string> = {
-  4: "One month of consistency.",
-  8: "Two months strong.",
-  12: "Three months — you're building a real habit.",
-  26: "Half a year. Your training is part of who you are now.",
-  52: "One full year. Legendary.",
-};
-
-export function checkAndFireMilestoneToast(currentStreak: number): void {
-  if (currentStreak === 0) return;
-  const lastSeen = parseInt(
-    ls.get("fithub_streak_milestone_last_seen") ?? "0",
-    10,
-  );
-  const nextMilestone = MILESTONE_WEEKS.find(
-    (m) => m <= currentStreak && m > lastSeen,
-  );
-  if (!nextMilestone) return;
-
-  toast(`streak: ${nextMilestone}wk — ${MILESTONE_MESSAGES[nextMilestone]}`, {
-    id: `streak_milestone_${nextMilestone}`,
-    duration: 7000,
-    icon: "🔥",
-    style: { borderColor: "var(--green)" },
-  });
-  ls.set("fithub_streak_milestone_last_seen", String(nextMilestone));
-}
+// Milestone toasts and PR celebrations now live server-driven/component-based
+// (Domain 07 §F/§H): see `lib/gamification/milestone-toast.ts` (fired from a
+// real, unread `streak_milestone` notification rather than a `localStorage`
+// "last seen" flag, which caused a cross-device double-fire bug) and
+// `components/logging/detail/PRCelebrationBanner.tsx` (an in-flow banner per
+// the Bible's Hevy-not-SugarWOD decision, not a toast). The former
+// `checkAndFireMilestoneToast` and `firePrToast` here were both unwired
+// (zero callers) and are removed rather than left as dead code.
 
 export function fireInitialCommitToast(): void {
   toast("Initial commit. Your training repo is live.", {
@@ -38,27 +16,6 @@ export function fireInitialCommitToast(): void {
     duration: 6000,
     icon: "🟢",
   });
-}
-
-export function firePrToast(
-  movementName: string,
-  bestKg: number,
-  deltaKg: number | null,
-  weightUnit: "kg" | "lb" = "kg",
-): void {
-  const best = formatWeight(bestKg, weightUnit);
-  const delta =
-    deltaKg != null ? formatWeight(Math.abs(deltaKg), weightUnit) : null;
-  toast.success(
-    delta != null && deltaKg != null && deltaKg > 0
-      ? `New PR! ${movementName} ${best} — +${delta} from your previous best`
-      : `First PR! ${movementName} ${best} — your benchmark is set`,
-    {
-      id: `pr_${movementName}_${bestKg}`,
-      duration: 5000,
-      icon: "🏷️",
-    },
-  );
 }
 
 // Clean up PR shimmer keys older than 48 h. Call once on app mount.

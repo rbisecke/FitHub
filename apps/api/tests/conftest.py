@@ -153,6 +153,30 @@ async def _clean_data() -> AsyncGenerator[None]:
             "DELETE FROM public.notifications WHERE user_id = ANY(%s::uuid[])",
             [[str(ALICE_ID), str(BOB_ID)]],
         )
+        # Streak-freeze ledger + inventory (Domain 07 §E) — freezes_remaining
+        # reset to 0 rather than deleted so tests don't need to distinguish
+        # "row never created" from "row reset".
+        await conn.execute(
+            "DELETE FROM public.streak_freeze_events WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        await conn.execute(
+            "DELETE FROM public.streak_state WHERE user_id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        # frequency_target_days defaults to 3 at seed time — restore it so a
+        # test that patches it (streak tests) never leaks into another file.
+        await conn.execute(
+            "UPDATE public.profiles SET frequency_target_days = 3 WHERE id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
+        # last_active_at is touched by every authenticated request (app/auth.py's
+        # require_invited) — reset it so a test relying on "not active today"
+        # (tests/test_gamification.py) never leaks into another file.
+        await conn.execute(
+            "UPDATE public.profiles SET last_active_at = NULL WHERE id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
         await conn.execute(
             "DELETE FROM public.training_partners WHERE user_id = ANY(%s::uuid[])",
             [[str(ALICE_ID), str(BOB_ID)]],

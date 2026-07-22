@@ -144,7 +144,7 @@ export function TagMilestoneSheet({
     );
     try {
       const created = await client.workouts.create({ ...body, is_tag: true });
-      router.push(`/workouts/${created.short_hash}`);
+      router.push(`/workouts/${created.short_hash}?logged=1`);
     } catch (err) {
       setSaving(false);
       setError(

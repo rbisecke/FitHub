@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Snowflake } from "lucide-react";
 import { api } from "@/lib/api/client";
 import type { Notification } from "@/lib/api";
 import { AvatarMonogram } from "@/components/shared/avatar-monogram";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FlameGlyph } from "@/components/gamification/FlameGlyph";
 
 /**
  * Notification feed (06 §7). Dark by design (F1 — this panel is mounted
@@ -17,12 +19,32 @@ import { Skeleton } from "@/components/ui/skeleton";
  * route `/social/team-sessions/{id}` (06 F7) — there is no notification-specific
  * view, and the target route's own 404 handling covers a deleted/inaccessible
  * session.
+ *
+ * Three gamification types (07 §I) extend the same feed: `streak_at_risk`,
+ * `freeze_consumed`, `streak_milestone`. They're actor-free by design (no
+ * "Someone did X" — these describe a system-detected state), render a
+ * reserved flame/frost glyph instead of an avatar, and deep-link to
+ * `/progress/streak`.
  */
 
 type Filter = "unread" | "all";
 
+const GAMIFICATION_TYPES = new Set<Notification["type"]>([
+  "streak_at_risk",
+  "freeze_consumed",
+  "streak_milestone",
+]);
+
+function isGamificationType(type: Notification["type"]): boolean {
+  return GAMIFICATION_TYPES.has(type);
+}
+
 function str(v: unknown): string | undefined {
   return typeof v === "string" && v.length > 0 ? v : undefined;
+}
+
+function num(v: unknown): number | undefined {
+  return typeof v === "number" ? v : undefined;
 }
 
 function payloadOf(n: Notification): Record<string, unknown> {
@@ -67,12 +89,34 @@ function messageFor(n: Notification): string {
       return actor
         ? `${actor} updated ${sessionLabel}`
         : `${sessionLabel} was updated`;
+    case "streak_at_risk": {
+      // No real code fires this yet (07 Open Item 7 — it depends on a
+      // scheduled-trigger job the notification system doesn't have today).
+      // Render the backend's own composed `message` once that job lands;
+      // this literal template is a best-effort placeholder built against
+      // the spec's copy, not a confirmed payload shape.
+      const backendMessage = str(payload.message);
+      if (backendMessage) return backendMessage;
+      const sessionsNeeded = num(payload.sessions_needed);
+      const currentStreak = num(payload.current_streak);
+      if (sessionsNeeded != null && currentStreak != null) {
+        return `${sessionsNeeded} session${
+          sessionsNeeded === 1 ? "" : "s"
+        } left this week to keep your ${currentStreak}-week streak`;
+      }
+      return "Sessions left this week to keep your streak going";
+    }
+    case "freeze_consumed":
+      return str(payload.message) ?? "A streak freeze covered last week";
+    case "streak_milestone":
+      return str(payload.message) ?? "Streak milestone reached";
     default:
       return "New team session activity";
   }
 }
 
-function sessionHref(n: Notification): string {
+function hrefFor(n: Notification): string {
+  if (isGamificationType(n.type)) return "/progress/streak";
   const teamSessionId = str(payloadOf(n).team_session_id);
   return teamSessionId ? `/social/team-sessions/${teamSessionId}` : "/social";
 }
@@ -131,7 +175,7 @@ export function NotificationPanel({
   }, [accessToken, filter]);
 
   async function openNotification(n: Notification) {
-    const href = sessionHref(n);
+    const href = hrefFor(n);
     if (!n.read_at) {
       try {
         const updated = await api.notifications.markRead(accessToken, n.id);
@@ -271,12 +315,34 @@ export function NotificationPanel({
                   onClick={() => void openNotification(n)}
                   className="flex min-w-0 flex-1 gap-3 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 >
-                  <AvatarMonogram
-                    name={actor ?? ""}
-                    seed={actorSeed}
-                    size="sm"
-                    className="mt-0.5"
-                  />
+                  {isGamificationType(n.type) ? (
+                    <span
+                      className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full"
+                      style={{ background: "var(--surface-2)" }}
+                      aria-hidden="true"
+                    >
+                      {n.type === "freeze_consumed" ? (
+                        <Snowflake
+                          className="size-4"
+                          style={{ color: "var(--frost)" }}
+                        />
+                      ) : (
+                        <span
+                          className="flex size-4"
+                          style={{ color: "var(--flame)" }}
+                        >
+                          <FlameGlyph className="size-full" />
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <AvatarMonogram
+                      name={actor ?? ""}
+                      seed={actorSeed}
+                      size="sm"
+                      className="mt-0.5"
+                    />
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="font-sans text-[13px] leading-relaxed text-[var(--text)]">
                       {messageFor(n)}

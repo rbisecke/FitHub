@@ -260,7 +260,7 @@ export function ActiveLoggingScreen({
       const created = await client.workouts.create(
         buildCreateWorkout(session, performedAt),
       );
-      router.push(`/workouts/${created.short_hash}`);
+      router.push(`/workouts/${created.short_hash}?logged=1`);
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) setCommitState("rate");
       else if (err instanceof ApiError) setCommitState("error");

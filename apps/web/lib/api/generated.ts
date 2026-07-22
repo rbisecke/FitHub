@@ -657,6 +657,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/integrations/apple-health": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Apple Health Detail */
+    get: operations["get_apple_health_detail_api_v1_integrations_apple_health_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/integrations/apple-health/sync": {
     parameters: {
       query?: never;
@@ -864,6 +881,30 @@ export interface paths {
     };
     /** Get Profile Stats */
     get: operations["get_profile_stats_api_v1_profile_stats_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/profile/streak": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Streak
+     * @description The canonical, server-computed streak object (Domain 07 §D).
+     *
+     *     Also reconciles any lazily-discovered streak-freeze consumption and
+     *     milestone grants as a side effect of this read (Domain 07 §E) — see
+     *     `app/repositories/streak.py` for the full mechanism.
+     */
+    get: operations["get_streak_api_v1_profile_streak_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1937,9 +1978,11 @@ export interface components {
        * Sync Status
        * @enum {string}
        */
-      sync_status: "connected" | "syncing" | "idle" | "error" | "disconnected";
+      sync_status: "idle" | "syncing" | "error";
       /** Last Synced At */
       last_synced_at: string | null;
+      /** Token Prefix */
+      token_prefix: string | null;
     };
     /** ContributionPoint */
     ContributionPoint: {
@@ -2381,6 +2424,30 @@ export interface components {
       /** Staleness Days */
       readonly staleness_days: number;
     };
+    /**
+     * IntegrationDetail
+     * @description Per-provider detail (Domain 07 §C) — kept off the list endpoint so
+     *     `GET /api/v1/integrations` stays cheap for the list screen.
+     */
+    IntegrationDetail: {
+      /** Provider */
+      provider: string;
+      /**
+       * Sync Status
+       * @enum {string}
+       */
+      sync_status: "idle" | "syncing" | "error";
+      /** Last Synced At */
+      last_synced_at: string | null;
+      /** Token Prefix */
+      token_prefix: string | null;
+      /** Last Sync Rows Inserted */
+      last_sync_rows_inserted: number | null;
+      /** Last Sync Recovery Computed */
+      last_sync_recovery_computed: boolean | null;
+      /** Last Sync Error */
+      last_sync_error: ("payload_too_large" | "invalid_json") | null;
+    };
     /** InvitedEmail */
     InvitedEmail: {
       /**
@@ -2759,7 +2826,10 @@ export interface components {
     NotificationType:
       | "team_session_linked"
       | "team_session_updated"
-      | "workout_link_pending";
+      | "workout_link_pending"
+      | "streak_at_risk"
+      | "freeze_consumed"
+      | "streak_milestone";
     /** ParseLogRequest */
     ParseLogRequest: {
       /** Text */
@@ -3539,6 +3609,29 @@ export interface components {
       confirmed_prerequisites?: string[];
       /** Current Entry Point */
       current_entry_point?: string | null;
+    };
+    /**
+     * StreakState
+     * @description The one canonical, server-computed streak object (Domain 07 §D) —
+     *     every surface renders from this rather than recomputing its own.
+     */
+    StreakState: {
+      /** Current Streak */
+      current_streak: number;
+      /** Personal Best */
+      personal_best: number;
+      /** This Week Count */
+      this_week_count: number;
+      /** Frequency Target */
+      frequency_target: number;
+      /** At Risk */
+      at_risk: boolean;
+      /** Is Comeback */
+      is_comeback: boolean;
+      /** Freezes Remaining */
+      freezes_remaining: number;
+      /** Freeze Consumed This Week */
+      freeze_consumed_this_week: boolean;
     };
     /** SubmitAccessRequestResponse */
     SubmitAccessRequestResponse: {
@@ -5097,6 +5190,26 @@ export interface operations {
       };
     };
   };
+  get_apple_health_detail_api_v1_integrations_apple_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IntegrationDetail"];
+        };
+      };
+    };
+  };
   apple_health_sync_api_v1_integrations_apple_health_sync_post: {
     parameters: {
       query?: never;
@@ -5481,6 +5594,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ProfileStats"];
+        };
+      };
+    };
+  };
+  get_streak_api_v1_profile_streak_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["StreakState"];
         };
       };
     };
