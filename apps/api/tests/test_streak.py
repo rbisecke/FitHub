@@ -223,16 +223,9 @@ async def test_milestone_grants_freeze(alice_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_milestone_at_cap_does_not_over_grant(alice_client: AsyncClient) -> None:
-    """Cross 4, 8, and 12 in one clean (gap-free, un-seeded) 12-week streak so
-    the cap is reached purely through real milestone grants (4: 0->1, 8:
-    1->2, 12: already at cap) — deliberately not pre-seeding freezes here.
-    Seeding `freezes_remaining > 0` up front would make the walk itself
-    "phantom-bridge" one extra week past the edge of logged history (a week
-    with no data is indistinguishable from a missed one), which would spend
-    and then immediately re-grant a freeze mid-call — a real mechanic
-    (see test_single_gap_covered_by_freeze), but a confound for isolating
-    "does the cap actually hold" here.
-    """
+    """Cross 4, 8, and 12 in one clean (gap-free) 12-week streak so the cap is
+    reached purely through real milestone grants (4: 0->1, 8: 1->2, 12:
+    already at cap)."""
     await _set_target(alice_client, 1)
     for n in range(1, 13):
         await _log_workout(alice_client, _week_start(n) + timedelta(days=2))
@@ -253,16 +246,47 @@ async def test_milestone_at_cap_does_not_over_grant(alice_client: AsyncClient) -
 
     # The grant event is recorded even though the inventory didn't change, so
     # milestone 12 itself is never re-evaluated — a second call must not fire
-    # a duplicate streak_milestone notification for it. (freezes_remaining
-    # itself is deliberately not re-asserted here: since it's now >0, the next
-    # call's walk will bridge one more phantom week past the edge of logged
-    # history — the same real mechanic noted in this test's docstring, just
-    # arriving a call later instead of pre-seeded. That's covered by
-    # test_single_gap_covered_by_freeze, not this test.)
+    # a duplicate streak_milestone notification for it, and must not spend the
+    # freeze on a phantom pre-history week either (see
+    # test_freeze_not_phantom_consumed_before_earliest_workout).
     r2 = await alice_client.get("/api/v1/profile/streak")
     assert r2.status_code == 200
+    assert r2.json()["freezes_remaining"] == 2
     milestone_notifs_after = await _notifications(alice_client, "streak_milestone")
     assert len(milestone_notifs_after) == 3
+
+
+@pytest.mark.asyncio
+async def test_freeze_not_phantom_consumed_before_earliest_workout(
+    alice_client: AsyncClient,
+) -> None:
+    """A week before the user's first-ever logged workout has no real history
+    to have missed. Seed a freeze directly (simulating one already earned)
+    for a user whose logged history starts at week 4 — the walk must stop at
+    that boundary rather than treating every earlier, data-free week as a
+    genuine miss and silently spending the freeze on it.
+
+    The clean 4-week streak itself also crosses the 4-week milestone and
+    grants a second freeze (1 seeded + 1 granted = 2) — that's expected and
+    orthogonal to this test; what matters is that neither freeze gets spent
+    on a phantom pre-history week."""
+    await _set_target(alice_client, 1)
+    for n in (1, 2, 3, 4):
+        await _log_workout(alice_client, _week_start(n) + timedelta(days=2))
+    await _seed_freezes(ALICE_ID, 1)
+
+    r = await alice_client.get("/api/v1/profile/streak")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["current_streak"] == 4
+    assert body["freezes_remaining"] == 2  # 1 seeded + 1 milestone grant, neither spent
+    assert body["freeze_consumed_this_week"] is False
+    assert await _notifications(alice_client, "freeze_consumed") == []
+
+    # A second call must not phantom-bridge and spend one of them either.
+    r2 = await alice_client.get("/api/v1/profile/streak")
+    assert r2.status_code == 200
+    assert r2.json()["freezes_remaining"] == 2
 
 
 # ── at_risk / is_comeback boundaries ─────────────────────────────────────────

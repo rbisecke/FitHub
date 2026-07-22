@@ -187,11 +187,14 @@ async def get_streak_state(
                         AS this_week_count,
                     (SELECT MAX(performed_at) FROM public.workouts WHERE user_id = %s)
                         AS most_recent_workout,
+                    (SELECT DATE_TRUNC('week', MIN(performed_at))::date
+                     FROM public.workouts WHERE user_id = %s)
+                        AS earliest_week_start,
                     now() AS db_now
                 FROM public.profiles p
                 WHERE p.id = %s
                 """,
-                [user_id, user_id, user_id],
+                [user_id, user_id, user_id, user_id],
             )
             ctx = await cur.fetchone()
         if ctx is None:
@@ -202,6 +205,10 @@ async def get_streak_state(
         isodow: int = ctx["isodow"]
         this_week_count: int = ctx["this_week_count"]
         most_recent_workout = ctx["most_recent_workout"]
+        # None for a user with zero logged workouts — the walk below never
+        # runs in that case anyway (qualifying_weeks/consumed_weeks are both
+        # empty and the very first iteration hits the boundary check).
+        earliest_week_start: date | None = ctx["earliest_week_start"]
         db_now = ctx["db_now"]
 
         async with conn.cursor(row_factory=dict_row) as cur:
@@ -259,6 +266,13 @@ async def get_streak_state(
         prev_was_bridged = False
 
         while True:
+            # A week before the user's first-ever logged workout has no real
+            # history to have missed — stop cleanly rather than treating it
+            # as a genuine miss (which would otherwise silently spend a
+            # freshly-granted freeze on a "phantom" pre-history week the
+            # instant a user crosses their first milestone).
+            if earliest_week_start is None or week_cursor < earliest_week_start:
+                break
             if week_cursor in qualifying_weeks:
                 current_streak += 1
                 prev_was_bridged = False
