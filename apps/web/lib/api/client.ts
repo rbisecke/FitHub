@@ -914,8 +914,12 @@ export const api = {
           body: JSON.stringify({ action, note: note ?? null }),
         },
       ),
-    users: (token: string) =>
-      apiFetch<AdminUser[]>("/api/v1/admin/users", token),
+    users: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<AdminUser[]>(
+        "/api/v1/admin/users",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     health: (token: string) =>
       apiFetch<AdminHealth>("/api/v1/admin/health", token),
     infraStatus: (token: string, options?: { signal?: AbortSignal }) =>

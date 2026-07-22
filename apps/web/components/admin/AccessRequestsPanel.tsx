@@ -1,346 +1,406 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import type { AdminAccessRequest } from "@/lib/api";
+import { useMemo, useState } from "react";
+import { Check, Loader2, RefreshCw, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  MagicLinkModal,
+  useMagicLinkFlow,
+} from "@/components/admin/MagicLinkModal";
+import { api, ApiError } from "@/lib/api/client";
+import type { AdminAccessRequest, AdminUser } from "@/lib/api";
 
-// ── Status pill ───────────────────────────────────────────────────────────────
+type Tab = "pending" | "approved" | "rejected";
 
-function StatusPill({ status }: { status: AdminAccessRequest["status"] }) {
-  const styles: Record<AdminAccessRequest["status"], React.CSSProperties> = {
-    pending: {
-      color: "#FFC83D",
-      background: "rgba(255,200,61,.14)",
-      border: "1px solid rgba(255,200,61,.35)",
-    },
-    approved: {
-      color: "#4ADE80",
-      background: "rgba(74,222,128,.12)",
-      border: "1px solid rgba(74,222,128,.35)",
-    },
-    rejected: {
-      color: "#f85149",
-      background: "rgba(248,81,73,.14)",
-      border: "1px solid rgba(248,81,73,.35)",
-    },
-  };
-
-  return (
-    <span
-      style={{
-        fontSize: 9.5,
-        fontWeight: 700,
-        letterSpacing: ".5px",
-        textTransform: "uppercase",
-        padding: "2px 8px",
-        borderRadius: 20,
-        ...styles[status],
-      }}
-    >
-      {status}
-    </span>
-  );
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-// ── Checkmark SVG ─────────────────────────────────────────────────────────────
-
-function CheckIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#0d1117"
-      strokeWidth="2.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
+/** Full-surface fill applied on a real approve/reject transition (`08` §5,
+ * flow-research rec 3 — gated to the actual state change, never a flash on a
+ * poll tick). */
+function flashClass(flash: "approved" | "rejected" | null) {
+  if (flash === "approved")
+    return "bg-[var(--green)]/15 border-[var(--green)]/50";
+  if (flash === "rejected") return "bg-[var(--red)]/12 border-[var(--red)]/40";
+  return "border-border bg-[var(--surface)]";
 }
 
-// ── Request card ──────────────────────────────────────────────────────────────
-
-interface CardProps {
+interface RowProps {
   request: AdminAccessRequest;
   token: string;
-  onUpdate: (updated: AdminAccessRequest) => void;
+  resolvedUserId: string | null;
+  onSettled: (updated: AdminAccessRequest) => void;
+  onRefreshAll: () => void;
+  onOpenMagicLink: (userId: string, label: string) => void;
 }
 
-function RequestCard({ request, token, onUpdate }: CardProps) {
-  const [pending, startTransition] = useTransition();
-  const [hoverApprove, setHoverApprove] = useState(false);
-  const [hoverReject, setHoverReject] = useState(false);
+function RequestRow({
+  request,
+  token,
+  resolvedUserId,
+  onSettled,
+  onRefreshAll,
+  onOpenMagicLink,
+}: RowProps) {
+  const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
+  const [flash, setFlash] = useState<"approved" | "rejected" | null>(null);
+  const [showRejectNote, setShowRejectNote] = useState(false);
+  const [rejectNote, setRejectNote] = useState("");
+  const [alreadyHandled, setAlreadyHandled] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  function settleAfterFlash(
+    action: "approved" | "rejected",
+    updated: AdminAccessRequest,
+  ) {
+    setFlash(action);
+    window.setTimeout(() => onSettled(updated), 480);
   }
 
-  function handleAction(action: "approved" | "rejected") {
+  async function runAction(action: "approved" | "rejected", note?: string) {
     setActionError(null);
-    startTransition(async () => {
+    setBusy(action === "approved" ? "approve" : "reject");
+    try {
+      const updated = await api.admin.reviewAccessRequest(
+        token,
+        request.id,
+        action,
+        note,
+      );
+      settleAfterFlash(action, updated);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        setAlreadyHandled(true);
+        setBusy(null);
+        return;
+      }
+      // The round trip failed (network blip, 502 invite-send error, etc.) —
+      // we can't tell from here whether the DB write committed before the
+      // failure, so reconcile against the server's truth rather than assume
+      // either outcome.
       try {
-        const res = await fetch(`/api/v1/admin/access-requests/${request.id}`, {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ action, note: null }),
-        });
-        if (res.ok) {
-          const updated: AdminAccessRequest = await res.json();
-          onUpdate(updated);
-        } else {
-          setActionError(`Action failed (${res.status})`);
+        const fresh = await api.admin.accessRequests(token);
+        const match = fresh.find((r) => r.id === request.id);
+        if (match && match.status !== "pending") {
+          settleAfterFlash(
+            match.status === "approved" ? "approved" : "rejected",
+            match,
+          );
+          return;
         }
       } catch {
-        setActionError("Network error. Please try again.");
+        // fall through to the generic error below
       }
-    });
+      setBusy(null);
+      setActionError("Action failed. Please try again.");
+    }
   }
+
+  if (alreadyHandled) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-[var(--surface)] px-4 py-3">
+        <p className="type-small text-muted-foreground">
+          This request was already handled.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onRefreshAll}
+        >
+          <RefreshCw className="size-3.5" aria-hidden="true" />
+          Refresh
+        </Button>
+      </div>
+    );
+  }
+
+  const pending = request.status === "pending";
 
   return (
     <div
-      style={{
-        background: "#161b22",
-        border: "1px solid #30363d",
-        borderRadius: 14,
-        padding: "17px 19px",
-        opacity: pending ? 0.6 : 1,
-        transition: "opacity 150ms ease",
-      }}
+      className={`rounded-lg border p-4 transition-colors duration-[320ms] ease-[var(--ease-standard)] ${flashClass(
+        flash,
+      )}`}
     >
-      <div
-        className="ar-card-inner"
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 16,
-        }}
-      >
-        {/* Left: content */}
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              flexWrap: "wrap",
-            }}
-          >
-            <span style={{ fontWeight: 700, fontSize: 14 }}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="type-small font-semibold text-foreground">
               {request.email}
             </span>
-            {request.name && (
-              <span style={{ fontSize: 12.5, color: "#8b949e" }}>
+            {request.name ? (
+              <span className="type-caption text-muted-foreground">
                 ({request.name})
               </span>
-            )}
-            <StatusPill status={request.status} />
+            ) : null}
           </div>
-
-          {request.motivation && (
-            <p
-              style={{
-                fontSize: 12.5,
-                color: "#8b949e",
-                lineHeight: 1.6,
-                margin: "9px 0 0",
-              }}
-            >
+          {request.motivation ? (
+            <p className="type-small mt-1.5 text-muted-foreground italic">
               &ldquo;{request.motivation}&rdquo;
             </p>
+          ) : (
+            <p className="type-small mt-1.5 text-muted-foreground/60 italic">
+              No message provided.
+            </p>
           )}
-
-          <div style={{ fontSize: 11, color: "#8b949e", marginTop: 9 }}>
+          <div className="type-num-inline mt-2 text-[11px] text-muted-foreground">
             Requested {formatDate(request.created_at)}
+            {request.reviewed_at
+              ? ` · Reviewed ${formatDate(request.reviewed_at)}`
+              : ""}
           </div>
         </div>
 
-        {/* Right: actions or resolved label */}
-        {request.status === "pending" ? (
-          <div
-            className="ar-actions"
-            style={{ display: "flex", gap: 8, flexShrink: 0 }}
-          >
-            <button
-              onClick={() => handleAction("rejected")}
-              disabled={pending}
-              onMouseEnter={() => setHoverReject(true)}
-              onMouseLeave={() => setHoverReject(false)}
-              style={{
-                background: "#21262d",
-                border: hoverReject ? "1px solid #f85149" : "1px solid #30363d",
-                color: hoverReject ? "#f85149" : "#8b949e",
-                fontWeight: 600,
-                fontSize: 12.5,
-                padding: "9px 15px",
-                borderRadius: 9,
-                cursor: pending ? "not-allowed" : "pointer",
-                fontFamily: "inherit",
-                transition: "border-color 150ms ease, color 150ms ease",
-              }}
+        {pending ? (
+          <div className="flex shrink-0 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={busy !== null}
+              onClick={() => setShowRejectNote((v) => !v)}
             >
+              {busy === "reject" ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <X className="size-3.5" aria-hidden="true" />
+              )}
               Reject
-            </button>
-            <button
-              onClick={() => handleAction("approved")}
-              disabled={pending}
-              onMouseEnter={() => setHoverApprove(true)}
-              onMouseLeave={() => setHoverApprove(false)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-                background: "#4ADE80",
-                color: "#0d1117",
-                border: "none",
-                fontWeight: 700,
-                fontSize: 12.5,
-                padding: "9px 15px",
-                borderRadius: 9,
-                cursor: pending ? "not-allowed" : "pointer",
-                fontFamily: "inherit",
-                filter: hoverApprove ? "brightness(1.08)" : undefined,
-                transition: "filter 150ms ease",
-              }}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={busy !== null}
+              onClick={() => void runAction("approved")}
             >
-              <CheckIcon />
+              {busy === "approve" ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Check className="size-3.5" aria-hidden="true" />
+              )}
               Approve
-            </button>
+            </Button>
           </div>
+        ) : request.status === "approved" ? (
+          <Badge className="border-[var(--green)]/40 bg-[var(--green)]/15 text-[var(--green)]">
+            Approved
+          </Badge>
         ) : (
-          <div
-            style={{
-              fontSize: 11.5,
-              color: "#8b949e",
-              flexShrink: 0,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {request.status === "approved" ? "✓ invite sent" : "— dismissed"}
-          </div>
+          <Badge className="border-[var(--red)]/35 bg-[var(--red)]/12 text-[var(--red)]">
+            Rejected
+          </Badge>
         )}
       </div>
-      {actionError && (
-        <p
-          style={{
-            color: "var(--red)",
-            fontFamily: "monospace",
-            fontSize: 11,
-            marginTop: 6,
-          }}
-        >
-          {actionError}
-        </p>
-      )}
+
+      {pending && showRejectNote ? (
+        <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
+          <Textarea
+            value={rejectNote}
+            onChange={(e) => setRejectNote(e.target.value)}
+            placeholder="Optional note for the record (not sent to the requester)"
+            maxLength={1000}
+            className="text-sm"
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setShowRejectNote(false);
+                setRejectNote("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={busy !== null}
+              onClick={() =>
+                void runAction("rejected", rejectNote.trim() || undefined)
+              }
+            >
+              {busy === "reject" ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              ) : null}
+              Confirm reject
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {request.status === "approved" ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-border bg-[var(--surface)]/60 px-3 py-2">
+          <span className="type-caption text-muted-foreground">
+            Invite email status unconfirmed — they can still sign in.
+          </span>
+          {resolvedUserId ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              onClick={() => onOpenMagicLink(resolvedUserId, request.email)}
+            >
+              Copy magic link
+            </Button>
+          ) : (
+            <span className="type-caption text-[var(--amber)] italic">
+              Magic link unavailable — no matching signed-in account yet
+            </span>
+          )}
+        </div>
+      ) : null}
+
+      {actionError ? (
+        <p className="type-caption mt-2 text-[var(--red)]">{actionError}</p>
+      ) : null}
     </div>
   );
 }
 
-// ── Main panel ────────────────────────────────────────────────────────────────
-
-type Tab = "pending" | "approved" | "rejected";
-
 interface Props {
   initial: AdminAccessRequest[];
+  users: AdminUser[];
   token: string;
 }
 
-export function AccessRequestsPanel({ initial, token }: Props) {
+/**
+ * Access requests queue (`08` §5). Pending/Approved/Rejected tabs with live
+ * counts; pending is the default and only actionable tab.
+ *
+ * `users` resolves the approved-row "Copy magic link" shortcut: `AccessRequestRow`
+ * carries no `user_id` (FR §4.2's shape), so we cross-reference the approved
+ * request's email against the admin users list (email is now populated for
+ * real per BG-22) to find the underlying account. When no match exists yet
+ * (the person hasn't completed sign-in since being invited), the shortcut is
+ * disabled with an explanatory note rather than fabricated.
+ */
+export function AccessRequestsPanel({ initial, users, token }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("pending");
   const [requests, setRequests] = useState<AdminAccessRequest[]>(initial);
+  const [refreshing, setRefreshing] = useState(false);
+  const magicLink = useMagicLinkFlow(token);
+
+  const emailToUserId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const u of users) {
+      if (u.email) map.set(u.email.trim().toLowerCase(), u.user_id);
+    }
+    return map;
+  }, [users]);
+
+  const counts: Record<Tab, number> = useMemo(
+    () => ({
+      pending: requests.filter((r) => r.status === "pending").length,
+      approved: requests.filter((r) => r.status === "approved").length,
+      rejected: requests.filter((r) => r.status === "rejected").length,
+    }),
+    [requests],
+  );
 
   const filtered = requests.filter((r) => r.status === activeTab);
 
-  const counts: Record<Tab, number> = {
-    pending: requests.filter((r) => r.status === "pending").length,
-    approved: requests.filter((r) => r.status === "approved").length,
-    rejected: requests.filter((r) => r.status === "rejected").length,
-  };
-
-  function handleUpdate(updated: AdminAccessRequest) {
+  function handleSettled(updated: AdminAccessRequest) {
     setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-    // After approving/rejecting a pending item, keep the user on pending tab
-    // so they can see the queue update
   }
 
-  const tabs: Tab[] = ["pending", "approved", "rejected"];
+  async function refreshAll() {
+    setRefreshing(true);
+    try {
+      const fresh = await api.admin.accessRequests(token);
+      setRequests(fresh);
+    } catch {
+      // Best-effort — the row stays in its "already handled" state and the
+      // admin can retry the refresh.
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   return (
-    <div>
-      {/* Tab bar */}
-      <div
-        style={{
-          display: "inline-flex",
-          gap: 2,
-          background: "#161b22",
-          border: "1px solid #30363d",
-          borderRadius: 10,
-          padding: 3,
-          marginBottom: 18,
-        }}
-      >
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              fontFamily: "var(--font-jetbrains-mono), monospace",
-              fontSize: 12.5,
-              fontWeight: 700,
-              padding: "8px 15px",
-              borderRadius: 8,
-              cursor: "pointer",
-              border: "none",
-              background: activeTab === tab ? "#4ADE80" : "transparent",
-              color: activeTab === tab ? "#0d1117" : "#8b949e",
-              transition: "background 150ms ease, color 150ms ease",
-            }}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}{" "}
-            <span style={{ opacity: 0.7 }}>{counts[tab]}</span>
-          </button>
-        ))}
+    <div className="mx-auto max-w-3xl px-4 py-6 md:px-8 md:py-8">
+      <div className="mb-5">
+        <h1 className="type-h1 text-foreground">Access requests</h1>
+        <p className="type-small mt-1 text-muted-foreground">
+          Review requests for invite-only access. Approving allowlists the email
+          and sends an invite; rejecting dismisses it.
+        </p>
       </div>
 
-      {/* Cards */}
-      {filtered.length === 0 ? (
-        <div
-          style={{
-            background: "#161b22",
-            border: "1px dashed #30363d",
-            borderRadius: 14,
-            padding: 44,
-            textAlign: "center",
-            color: "#8b949e",
-            fontSize: 13,
-          }}
-        >
-          No {activeTab} requests.
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-          {filtered.map((req) => (
-            <RequestCard
-              key={req.id}
-              request={req}
-              token={token}
-              onUpdate={handleUpdate}
-            />
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
+        <TabsList>
+          {(["pending", "approved", "rejected"] as const).map((tab) => (
+            <TabsTrigger
+              key={tab}
+              value={tab}
+              className="gap-1.5 data-active:bg-[var(--accent)]/15 data-active:text-[var(--accent)] dark:data-active:border-[var(--accent)]/40 dark:data-active:bg-[var(--accent)]/15 dark:data-active:text-[var(--accent)]"
+            >
+              <span className="capitalize">{tab}</span>
+              <Badge
+                variant="secondary"
+                className="type-num-inline text-[10px]"
+              >
+                {counts[tab]}
+              </Badge>
+            </TabsTrigger>
           ))}
-        </div>
-      )}
+        </TabsList>
+
+        {(["pending", "approved", "rejected"] as const).map((tab) => (
+          <TabsContent key={tab} value={tab} className="mt-4">
+            {tab === activeTab && filtered.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border bg-[var(--surface)] px-8 py-11 text-center">
+                <p className="type-small text-muted-foreground">
+                  {tab === "pending"
+                    ? "No requests waiting."
+                    : `No ${tab} requests.`}
+                </p>
+              </div>
+            ) : tab === activeTab ? (
+              <div className="flex flex-col gap-3">
+                {filtered.map((req) => (
+                  <RequestRow
+                    key={req.id}
+                    request={req}
+                    token={token}
+                    resolvedUserId={
+                      emailToUserId.get(req.email.trim().toLowerCase()) ?? null
+                    }
+                    onSettled={handleSettled}
+                    onRefreshAll={() => void refreshAll()}
+                    onOpenMagicLink={(userId, label) =>
+                      magicLink.generate(userId, label)
+                    }
+                  />
+                ))}
+              </div>
+            ) : null}
+          </TabsContent>
+        ))}
+      </Tabs>
+
+      {refreshing ? (
+        <p className="type-caption mt-3 text-muted-foreground">Refreshing…</p>
+      ) : null}
+
+      <MagicLinkModal
+        state={magicLink.state}
+        onOpenChange={magicLink.onOpenChange}
+        onRetry={magicLink.retry}
+      />
     </div>
   );
 }
