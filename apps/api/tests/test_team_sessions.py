@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import uuid
+from typing import Any
+
 import pytest
 from httpx import AsyncClient
 
@@ -9,6 +12,18 @@ from tests.conftest import ALICE_ID, BOB_ID
 
 _PERFORMED_AT = "2026-06-19T09:00:00Z"
 _TS_BASE = {"performed_at": _PERFORMED_AT, "name": "Partner Helen"}
+
+
+def _pid(
+    ts: dict[str, Any], *, user_id: uuid.UUID | None = None, guest_name: str | None = None
+) -> str:
+    """Find a participant row's surrogate id in a TeamSession JSON response."""
+    for p in ts["participants"]:
+        if user_id is not None and p["user_id"] == str(user_id):
+            return p["id"]  # type: ignore[no-any-return]
+        if guest_name is not None and p["guest_name"] == guest_name:
+            return p["id"]  # type: ignore[no-any-return]
+    raise AssertionError("participant not found in team session response")
 
 
 # ── Auth ───────────────────────────────────────────────────────────────────────
@@ -168,13 +183,15 @@ async def test_add_participant_duplicate_409(alice_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_participant_opt_out(alice_client: AsyncClient, bob_client: AsyncClient) -> None:
     payload = {**_TS_BASE, "participants": [{"user_id": str(BOB_ID)}]}
-    ts_id = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()["id"]
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+    ts_id = ts["id"]
+    bob_pid = _pid(ts, user_id=BOB_ID)
 
-    r = await bob_client.delete(f"/api/v1/team-sessions/{ts_id}/participants/{BOB_ID}")
+    r = await bob_client.delete(f"/api/v1/team-sessions/{ts_id}/participants/{bob_pid}")
     assert r.status_code == 204
 
-    ts = (await alice_client.get(f"/api/v1/team-sessions/{ts_id}")).json()
-    user_ids = [p["user_id"] for p in ts["participants"] if p["user_id"]]
+    ts2 = (await alice_client.get(f"/api/v1/team-sessions/{ts_id}")).json()
+    user_ids = [p["user_id"] for p in ts2["participants"] if p["user_id"]]
     assert str(BOB_ID) not in user_ids
 
 
@@ -183,10 +200,12 @@ async def test_non_creator_removes_other_403(
     alice_client: AsyncClient, bob_client: AsyncClient
 ) -> None:
     payload = {**_TS_BASE, "participants": [{"user_id": str(BOB_ID)}]}
-    ts_id = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()["id"]
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+    ts_id = ts["id"]
+    alice_pid = _pid(ts, user_id=ALICE_ID)
 
     # Bob tries to remove Alice (the creator) — should 403
-    r = await bob_client.delete(f"/api/v1/team-sessions/{ts_id}/participants/{ALICE_ID}")
+    r = await bob_client.delete(f"/api/v1/team-sessions/{ts_id}/participants/{alice_pid}")
     assert r.status_code == 403
 
 
@@ -203,11 +222,13 @@ async def test_patch_participant_link_workout(
     workout_id = workout_r.json()["id"]
 
     payload = {**_TS_BASE, "participants": [{"user_id": str(BOB_ID)}]}
-    ts_id = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()["id"]
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+    ts_id = ts["id"]
+    bob_pid = _pid(ts, user_id=BOB_ID)
 
     # Bob links own workout
     r = await bob_client.patch(
-        f"/api/v1/team-sessions/{ts_id}/participants/{BOB_ID}",
+        f"/api/v1/team-sessions/{ts_id}/participants/{bob_pid}",
         json={"workout_id": workout_id},
     )
     assert r.status_code == 200
@@ -220,14 +241,62 @@ async def test_patch_participant_cross_user_403(
     alice_client: AsyncClient, bob_client: AsyncClient
 ) -> None:
     payload = {**_TS_BASE, "participants": [{"user_id": str(BOB_ID)}]}
-    ts_id = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()["id"]
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+    ts_id = ts["id"]
+    alice_pid = _pid(ts, user_id=ALICE_ID)
 
     # Bob tries to patch Alice's participant row — should 403
     r = await bob_client.patch(
-        f"/api/v1/team-sessions/{ts_id}/participants/{ALICE_ID}",
+        f"/api/v1/team-sessions/{ts_id}/participants/{alice_pid}",
         json={"role": "hacker"},
     )
     assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_patch_participant_unknown_id_404(alice_client: AsyncClient) -> None:
+    """A participant_id that doesn't exist in this session 404s, not 403 — IDOR
+    prevention: existence of a participant row is never revealed to a caller
+    without access to it."""
+    ts_id = (await alice_client.post("/api/v1/team-sessions", json=_TS_BASE)).json()["id"]
+    r = await alice_client.patch(
+        f"/api/v1/team-sessions/{ts_id}/participants/{uuid.uuid4()}",
+        json={"role": "anchor"},
+    )
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_patch_guest_participant_by_creator(alice_client: AsyncClient) -> None:
+    """A guest participant (user_id IS NULL) has no user_id to key requests by —
+    only the creator can address it, and only via its surrogate participant_id."""
+    payload = {**_TS_BASE, "participants": [{"guest_name": "Charlie"}]}
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+    ts_id = ts["id"]
+    guest_pid = _pid(ts, guest_name="charlie")
+
+    r = await alice_client.patch(
+        f"/api/v1/team-sessions/{ts_id}/participants/{guest_pid}",
+        json={"role": "anchor"},
+    )
+    assert r.status_code == 200
+    guest = next(p for p in r.json()["participants"] if p["id"] == guest_pid)
+    assert guest["role"] == "anchor"
+
+
+@pytest.mark.asyncio
+async def test_remove_guest_participant_by_creator(alice_client: AsyncClient) -> None:
+    payload = {**_TS_BASE, "participants": [{"guest_name": "Charlie"}]}
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+    ts_id = ts["id"]
+    guest_pid = _pid(ts, guest_name="charlie")
+
+    r = await alice_client.delete(f"/api/v1/team-sessions/{ts_id}/participants/{guest_pid}")
+    assert r.status_code == 204
+
+    ts2 = (await alice_client.get(f"/api/v1/team-sessions/{ts_id}")).json()
+    remaining_ids = [p["id"] for p in ts2["participants"]]
+    assert guest_pid not in remaining_ids
 
 
 # ── Workout → team-session ─────────────────────────────────────────────────────
@@ -247,16 +316,66 @@ async def test_get_workout_team_session(alice_client: AsyncClient) -> None:
         json={**_TS_BASE, "participants": [{"user_id": str(ALICE_ID), "workout_id": workout_id}]},
     )
     assert ts_r.status_code == 201
-    ts_id = ts_r.json()["id"]
+    ts = ts_r.json()
+    ts_id = ts["id"]
+    alice_pid = _pid(ts, user_id=ALICE_ID)
 
     # Link Alice's workout to her participant row
     await alice_client.patch(
-        f"/api/v1/team-sessions/{ts_id}/participants/{ALICE_ID}",
+        f"/api/v1/team-sessions/{ts_id}/participants/{alice_pid}",
         json={"workout_id": workout_id},
     )
 
     r = await alice_client.get(f"/api/v1/workouts/{workout_id}/team-session")
     assert r.status_code == 404  # workout.team_session_id not set yet — expected
+
+
+@pytest.mark.asyncio
+async def test_relink_workout_clears_stale_participant_reference(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """A workout can only be linked to one participant row at a time (BG-09).
+
+    Linking it to a second session's participant row must clear the first
+    session's stale reference in the same transaction as the new link — never
+    leaving both rows pointing at the same workout.
+    """
+    workout_r = await bob_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": _PERFORMED_AT, "session_type": "metcon"},
+    )
+    assert workout_r.status_code == 201
+    workout_id = workout_r.json()["id"]
+
+    # Session A: Bob links his workout to his own participant row.
+    payload_a = {**_TS_BASE, "participants": [{"user_id": str(BOB_ID)}]}
+    ts_a = (await alice_client.post("/api/v1/team-sessions", json=payload_a)).json()
+    ts_a_id = ts_a["id"]
+    bob_pid_a = _pid(ts_a, user_id=BOB_ID)
+    link_a = await bob_client.patch(
+        f"/api/v1/team-sessions/{ts_a_id}/participants/{bob_pid_a}",
+        json={"workout_id": workout_id},
+    )
+    assert link_a.status_code == 200
+
+    # Session B: Bob links the SAME workout to a different participant row.
+    payload_b = {**_TS_BASE, "participants": [{"user_id": str(BOB_ID)}]}
+    ts_b = (await alice_client.post("/api/v1/team-sessions", json=payload_b)).json()
+    ts_b_id = ts_b["id"]
+    bob_pid_b = _pid(ts_b, user_id=BOB_ID)
+    link_b = await bob_client.patch(
+        f"/api/v1/team-sessions/{ts_b_id}/participants/{bob_pid_b}",
+        json={"workout_id": workout_id},
+    )
+    assert link_b.status_code == 200
+    bob_b = next(p for p in link_b.json()["participants"] if p["id"] == bob_pid_b)
+    assert bob_b["workout_id"] == workout_id
+
+    # Session A's participant row must now show workout_id: null — the stale
+    # reference was actually cleared, not left dangling.
+    ts_a_after = (await alice_client.get(f"/api/v1/team-sessions/{ts_a_id}")).json()
+    bob_a_after = next(p for p in ts_a_after["participants"] if p["id"] == bob_pid_a)
+    assert bob_a_after["workout_id"] is None
 
 
 @pytest.mark.asyncio
@@ -370,6 +489,66 @@ async def test_mark_notification_read(alice_client: AsyncClient, bob_client: Asy
     r = await bob_client.post(f"/api/v1/notifications/{notif_id}/read")
     assert r.status_code == 200
     assert r.json()["read_at"] is not None
+
+
+@pytest.mark.asyncio
+async def test_patch_participant_notifies_on_later_link_by_other_actor(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """BG-15: linking a workout onto someone else's participant row via PATCH
+    (not at creation/add time) must fire team_session_linked for them."""
+    workout_r = await bob_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": _PERFORMED_AT, "session_type": "metcon"},
+    )
+    workout_id = workout_r.json()["id"]
+
+    payload = {**_TS_BASE, "participants": [{"user_id": str(BOB_ID)}]}
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+    ts_id = ts["id"]
+    bob_pid = _pid(ts, user_id=BOB_ID)
+
+    # Alice (creator, not Bob) links Bob's workout on his behalf.
+    r = await alice_client.patch(
+        f"/api/v1/team-sessions/{ts_id}/participants/{bob_pid}",
+        json={"workout_id": workout_id},
+    )
+    assert r.status_code == 200
+
+    notifs_r = await bob_client.get("/api/v1/notifications")
+    assert notifs_r.status_code == 200
+    types = [n["type"] for n in notifs_r.json()]
+    assert "team_session_linked" in types
+
+
+@pytest.mark.asyncio
+async def test_patch_participant_self_link_does_not_notify(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """Self-links never generate a notification — only someone else's action
+    touching your session data should notify you."""
+    workout_r = await bob_client.post(
+        "/api/v1/workouts",
+        json={"performed_at": _PERFORMED_AT, "session_type": "metcon"},
+    )
+    workout_id = workout_r.json()["id"]
+
+    payload = {**_TS_BASE, "participants": [{"user_id": str(BOB_ID)}]}
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+    ts_id = ts["id"]
+    bob_pid = _pid(ts, user_id=BOB_ID)
+
+    # Bob links his own workout to his own participant row.
+    r = await bob_client.patch(
+        f"/api/v1/team-sessions/{ts_id}/participants/{bob_pid}",
+        json={"workout_id": workout_id},
+    )
+    assert r.status_code == 200
+
+    notifs_r = await bob_client.get("/api/v1/notifications")
+    assert notifs_r.status_code == 200
+    types = [n["type"] for n in notifs_r.json()]
+    assert "team_session_linked" not in types
 
 
 # ── Role suggestions ───────────────────────────────────────────────────────────

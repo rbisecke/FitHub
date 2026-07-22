@@ -4304,13 +4304,13 @@
         }
       }
     },
-    "/api/v1/team-sessions/{team_session_id}/participants/{participant_user_id}": {
+    "/api/v1/team-sessions/{team_session_id}/participants/{participant_id}": {
       "patch": {
         "tags": [
           "team-sessions"
         ],
         "summary": "Patch Participant",
-        "operationId": "patch_participant_api_v1_team_sessions__team_session_id__participants__participant_user_id__patch",
+        "operationId": "patch_participant_api_v1_team_sessions__team_session_id__participants__participant_id__patch",
         "security": [
           {
             "HTTPBearer": []
@@ -4328,13 +4328,13 @@
             }
           },
           {
-            "name": "participant_user_id",
+            "name": "participant_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Participant User Id"
+              "title": "Participant Id"
             }
           }
         ],
@@ -4376,7 +4376,7 @@
           "team-sessions"
         ],
         "summary": "Remove Participant",
-        "operationId": "remove_participant_api_v1_team_sessions__team_session_id__participants__participant_user_id__delete",
+        "operationId": "remove_participant_api_v1_team_sessions__team_session_id__participants__participant_id__delete",
         "security": [
           {
             "HTTPBearer": []
@@ -4394,13 +4394,13 @@
             }
           },
           {
-            "name": "participant_user_id",
+            "name": "participant_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Participant User Id"
+              "title": "Participant Id"
             }
           }
         ],

@@ -117,26 +117,34 @@ async def add_participant(
     return ts
 
 
-@router.patch("/{team_session_id}/participants/{participant_user_id}", response_model=TeamSession)
+@router.patch("/{team_session_id}/participants/{participant_id}", response_model=TeamSession)
 @limiter.limit("30/minute", key_func=user_or_ip_key)
 async def patch_participant(
     request: Request,
     user: Auth,
     conn: DBConn,
     team_session_id: uuid.UUID,
-    participant_user_id: uuid.UUID,
+    participant_id: uuid.UUID,
     req: PatchParticipantRequest,
 ) -> TeamSession:
     # App-layer auth: caller must be session creator or the target participant.
     ts = await repo.get_team_session(conn, user_id=user.user_id, team_session_id=team_session_id)
     if ts is None:
         raise HTTPException(status_code=404)
-    if ts.created_by != user.user_id and participant_user_id != user.user_id:
+    # Never reveal existence of a participant row to someone without access —
+    # a missing/foreign participant_id is 404, not 403 (IDOR prevention).
+    participant = await repo.get_participant(
+        conn, team_session_id=team_session_id, participant_id=participant_id
+    )
+    if participant is None:
+        raise HTTPException(status_code=404)
+    if ts.created_by != user.user_id and participant["user_id"] != user.user_id:
         raise HTTPException(status_code=403)
     result = await repo.patch_participant(
         conn,
         team_session_id=team_session_id,
-        target_user_id=participant_user_id,
+        participant_id=participant_id,
+        actor_user_id=user.user_id,
         req=req,
     )
     if result is None:
@@ -145,7 +153,7 @@ async def patch_participant(
 
 
 @router.delete(
-    "/{team_session_id}/participants/{participant_user_id}",
+    "/{team_session_id}/participants/{participant_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 @limiter.limit("30/minute", key_func=user_or_ip_key)
@@ -154,18 +162,25 @@ async def remove_participant(
     user: Auth,
     conn: DBConn,
     team_session_id: uuid.UUID,
-    participant_user_id: uuid.UUID,
+    participant_id: uuid.UUID,
 ) -> Response:
     # Creator can remove anyone; a user can remove themselves (opt-out).
     ts = await repo.get_team_session(conn, user_id=user.user_id, team_session_id=team_session_id)
     if ts is None:
         raise HTTPException(status_code=404)
-    if ts.created_by != user.user_id and participant_user_id != user.user_id:
+    # Never reveal existence of a participant row to someone without access —
+    # a missing/foreign participant_id is 404, not 403 (IDOR prevention).
+    participant = await repo.get_participant(
+        conn, team_session_id=team_session_id, participant_id=participant_id
+    )
+    if participant is None:
+        raise HTTPException(status_code=404)
+    if ts.created_by != user.user_id and participant["user_id"] != user.user_id:
         raise HTTPException(status_code=403)
     removed = await repo.remove_participant(
         conn,
         team_session_id=team_session_id,
-        target_user_id=participant_user_id,
+        participant_id=participant_id,
     )
     if not removed:
         raise HTTPException(status_code=404)

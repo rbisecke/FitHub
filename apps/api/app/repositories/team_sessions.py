@@ -162,6 +162,14 @@ async def create_team_session(
         # Creator is always participant 0.  If req.workout_id is supplied,
         # link it to the creator's participant row and stamp workouts.team_session_id.
         if req.workout_id is not None:
+            # Clear any other participant row (any session) currently holding this
+            # workout, so relinking reads as an atomic "move" rather than leaving
+            # a stale reference behind in its previous session.
+            await cur.execute(
+                "UPDATE public.team_session_participants SET workout_id = NULL "
+                "WHERE workout_id = %s",
+                [str(req.workout_id)],
+            )
             await cur.execute(
                 "INSERT INTO public.team_session_participants "
                 "(team_session_id, user_id, workout_id) VALUES (%s, %s, %s)",
@@ -341,13 +349,23 @@ async def add_participant(
     req: AddParticipantRequest,
 ) -> TeamSession | None:
     # Verify caller is the creator (RLS would also catch this, but be explicit)
-    async with conn.cursor(row_factory=dict_row) as cur:
+    async with conn.transaction(), conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             "SELECT id FROM public.team_sessions WHERE id = %s AND created_by = %s",
             [str(team_session_id), user_id],
         )
         if await cur.fetchone() is None:
             return None
+
+        if req.workout_id is not None:
+            # Clear any other participant row (any session) currently holding this
+            # workout, so relinking reads as an atomic "move" rather than leaving
+            # a stale reference behind in its previous session.
+            await cur.execute(
+                "UPDATE public.team_session_participants SET workout_id = NULL "
+                "WHERE workout_id = %s",
+                [str(req.workout_id)],
+            )
 
         # psycopg.errors.UniqueViolation propagates to the caller (caught by router)
         await cur.execute(
@@ -379,11 +397,32 @@ async def add_participant(
     return await _fetch_team_session(conn, team_session_id=team_session_id)
 
 
+async def get_participant(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    team_session_id: uuid.UUID,
+    participant_id: uuid.UUID,
+) -> dict[str, Any] | None:
+    """Fetch a single participant row scoped to its session, keyed by surrogate id.
+
+    Used by the router to resolve a participant row's user_id before deciding
+    the self-action authorization check — callers must not assume the row
+    exists just because a participant_id was supplied on the path.
+    """
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            "SELECT * FROM public.team_session_participants WHERE id = %s AND team_session_id = %s",
+            [str(participant_id), str(team_session_id)],
+        )
+        return await cur.fetchone()
+
+
 async def patch_participant(
     conn: psycopg.AsyncConnection[Any],
     *,
     team_session_id: uuid.UUID,
-    target_user_id: uuid.UUID,
+    participant_id: uuid.UUID,
+    actor_user_id: uuid.UUID,
     req: PatchParticipantRequest,
 ) -> TeamSession | None:
     fields: dict[str, object] = {}
@@ -394,15 +433,44 @@ async def patch_participant(
 
     if fields:
         set_clause = ", ".join(f"{k} = %s" for k in fields)
-        values = list(fields.values()) + [str(team_session_id), str(target_user_id)]
-        async with conn.cursor() as cur:
+        values = list(fields.values()) + [str(team_session_id), str(participant_id)]
+        async with conn.transaction(), conn.cursor(row_factory=dict_row) as cur:
+            if req.workout_id is not None:
+                # Clear any other participant row (any session) currently holding
+                # this workout, so relinking reads as an atomic "move" rather than
+                # leaving a stale reference behind in its previous session.
+                await cur.execute(
+                    "UPDATE public.team_session_participants SET workout_id = NULL "
+                    "WHERE workout_id = %s AND id != %s",
+                    [str(req.workout_id), str(participant_id)],
+                )
             await cur.execute(
                 f"UPDATE public.team_session_participants SET {set_clause} "
-                "WHERE team_session_id = %s AND user_id = %s",
+                "WHERE team_session_id = %s AND id = %s "
+                "RETURNING user_id, workout_id",
                 values,
             )
-            if cur.rowcount == 0:
+            row = await cur.fetchone()
+            if row is None:
                 return None
+
+            # Notify only when: a real workout_id was just set, the participant
+            # is a registered user (guests have no notification channel), and
+            # someone other than the participant themselves made the change.
+            if (
+                req.workout_id is not None
+                and row["user_id"] is not None
+                and row["user_id"] != actor_user_id
+            ):
+                await _create_notification(
+                    cur,
+                    user_id=row["user_id"],
+                    notif_type="team_session_linked",
+                    payload={
+                        "team_session_id": str(team_session_id),
+                        "actor_user_id": str(actor_user_id),
+                    },
+                )
 
     return await _fetch_team_session(conn, team_session_id=team_session_id)
 
@@ -411,13 +479,12 @@ async def remove_participant(
     conn: psycopg.AsyncConnection[Any],
     *,
     team_session_id: uuid.UUID,
-    target_user_id: uuid.UUID,
+    participant_id: uuid.UUID,
 ) -> bool:
     async with conn.cursor() as cur:
         await cur.execute(
-            "DELETE FROM public.team_session_participants "
-            "WHERE team_session_id = %s AND user_id = %s",
-            [str(team_session_id), str(target_user_id)],
+            "DELETE FROM public.team_session_participants WHERE team_session_id = %s AND id = %s",
+            [str(team_session_id), str(participant_id)],
         )
         return cur.rowcount > 0
 
