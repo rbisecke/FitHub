@@ -82,6 +82,8 @@ export function ChatThread({
   const [historyLoading, setHistoryLoading] = useState(sessionId !== null);
   const [historyLimit, setHistoryLimit] = useState(50);
   const [historyHasMore, setHistoryHasMore] = useState(false);
+  const [historyError, setHistoryError] = useState(false);
+  const [historyReloadKey, setHistoryReloadKey] = useState(0);
   const [localTurns, setLocalTurns] = useState<Turn[]>([]);
   const [composerValue, setComposerValue] = useState(initialComposerValue);
   const [showConsent, setShowConsent] = useState(
@@ -113,7 +115,10 @@ export function ChatThread({
 
     // Deferred to a microtask — satisfies react-hooks/set-state-in-effect.
     void Promise.resolve().then(() => {
-      if (!cancelled) setHistoryLoading(true);
+      if (!cancelled) {
+        setHistoryLoading(true);
+        setHistoryError(false);
+      }
     });
 
     const client = createApiClient(accessToken);
@@ -126,6 +131,10 @@ export function ChatThread({
       })
       .catch((err) => {
         if (cancelled || controller.signal.aborted) return;
+        // Surfaced distinctly below (not folded into the empty/starter-prompt
+        // state) — a resumed session whose fetch failed must not look
+        // indistinguishable from a genuinely brand-new conversation.
+        setHistoryError(true);
         void err;
       })
       .finally(() => {
@@ -135,7 +144,7 @@ export function ChatThread({
       cancelled = true;
       controller.abort();
     };
-  }, [sessionId, accessToken, historyLimit]);
+  }, [sessionId, accessToken, historyLimit, historyReloadKey]);
 
   // Focus management on resume (§0.5): land in the thread, not on the list row.
   useEffect(() => {
@@ -182,6 +191,24 @@ export function ChatThread({
           onSessionResolved?.(chat.sessionId);
         }
         onTurnSettled?.();
+      } else if (chat.status === "aborted") {
+        // Stop retains the partial text (design-spec 03 §2) — commit it as a
+        // settled turn so it isn't lost, and offer Retry via the isAborted
+        // banner below rather than the follow-up-chip surface (this turn is
+        // incomplete, not a finished answer).
+        if (chat.text.length > 0) {
+          setLocalTurns((prev) => [
+            ...prev,
+            {
+              kind: "assistant",
+              id: newId(),
+              content: chat.text,
+              citations: [],
+              safetyTier: null,
+              stub: chat.stub,
+            },
+          ]);
+        }
       } else if (chat.status === "error") {
         if (chat.httpStatus === 503) {
           setKillSwitched(true);
@@ -226,6 +253,7 @@ export function ChatThread({
 
   const isEmpty =
     !historyLoading &&
+    !historyError &&
     history.length === 0 &&
     localTurns.length === 0 &&
     chat.status === "idle";
@@ -247,6 +275,7 @@ export function ChatThread({
     !isRateLimited &&
     !isRecoveringFromCollision;
   const isStreamingLive = chat.status === "streaming";
+  const isAborted = chat.status === "aborted";
 
   const lastAssistantTurn = [...localTurns]
     .reverse()
@@ -256,6 +285,7 @@ export function ChatThread({
   const showFollowUps =
     !isStreamingLive &&
     chat.status !== "stopped" &&
+    chat.status !== "aborted" &&
     lastAssistantTurn !== undefined &&
     localTurns[localTurns.length - 1]?.id === lastAssistantTurn.id;
 
@@ -291,14 +321,25 @@ export function ChatThread({
           </div>
         )}
 
-        {!showConsent && !historyLoading && isEmpty && (
-          <StarterPrompts
-            onSend={doSend}
-            onPopulate={(text) => setComposerValue(text)}
+        {!showConsent && !historyLoading && historyError && (
+          <ChatErrorBanner
+            message="Couldn't load this conversation."
+            onRetry={() => setHistoryReloadKey((k) => k + 1)}
           />
         )}
 
-        {!showConsent && !historyLoading && !isEmpty && (
+        {!showConsent &&
+          !historyLoading &&
+          !historyError &&
+          !killSwitched &&
+          isEmpty && (
+            <StarterPrompts
+              onSend={doSend}
+              onPopulate={(text) => setComposerValue(text)}
+            />
+          )}
+
+        {!showConsent && !historyLoading && !historyError && !isEmpty && (
           <div className="flex flex-col gap-4">
             {historyHasMore && (
               <button
@@ -311,20 +352,28 @@ export function ChatThread({
               </button>
             )}
 
-            {history.map((m, i) =>
-              m.role === "user" ? (
-                <UserBubble key={`h-${i}`} content={m.content} />
+            {history.map((m) => {
+              // created_at is clock_timestamp()-backed (per-statement, not
+              // per-transaction) since migration 0081, so it's unique per
+              // message within a session — a stable fallback key per
+              // apps/web/CLAUDE.md, unlike the array index (which shifts
+              // every message when "Load earlier messages" prepends older
+              // rows, silently reassigning each row's component state, e.g.
+              // an expanded "Show reasoning" toggle, to a different message).
+              const key = `${m.created_at}-${m.role}`;
+              return m.role === "user" ? (
+                <UserBubble key={key} content={m.content} />
               ) : m.safety_tier === "stop" ? (
-                <SafetyStopNotice key={`h-${i}`} />
+                <SafetyStopNotice key={key} />
               ) : (
                 <AssistantMessage
-                  key={`h-${i}`}
+                  key={key}
                   phase="settled"
                   text={m.content}
                   safetyTier={m.safety_tier === "modify" ? "modify" : null}
                 />
-              ),
-            )}
+              );
+            })}
 
             {localTurns.map((turn) => {
               if (turn.kind === "user") {
@@ -368,6 +417,9 @@ export function ChatThread({
               />
             )}
             {isRateLimited && <RateLimitedNotice onRetry={handleRetry} />}
+            {isAborted && (
+              <ChatErrorBanner message="Stopped." onRetry={handleRetry} />
+            )}
           </div>
         )}
 

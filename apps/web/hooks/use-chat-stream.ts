@@ -15,6 +15,7 @@ export type ChatStatus =
   | "idle"
   | "streaming"
   | "stopped" // terminal, non-retryable — a safety STOP (error.subtype)
+  | "aborted" // user hit Stop — partial text retained, Retry offered (design-spec 03 §2)
   | "error" // retryable technical failure
   | "done";
 
@@ -89,9 +90,12 @@ export interface UseChatStreamResult {
   safetyTier: ChatSafetyTier | null;
   /** `stub` from the terminal `done` frame — dev/test-double mode (design-spec §9.2). */
   stub: boolean;
-  /** Start a turn. Sends an idempotency key so a retry can't double-invoke the LLM.
-   * Pass `sessionId` to resume an existing thread; omit it to let the backend
-   * auto-create a new session. */
+  /** Start a turn. Sends an `Idempotency-Key` header (a fresh UUID per call) so a
+   * future backend dedup layer has something to key on — the backend does not
+   * currently read or enforce this header, so a client-level retry can still
+   * double-invoke the LLM today; this is forward-looking, not an existing
+   * guarantee. Pass `sessionId` to resume an existing thread; omit it to let
+   * the backend auto-create a new session. */
   send: (message: string, sessionId?: string) => Promise<void>;
   /** Abort the in-flight turn; partial text is preserved. */
   abort: () => void;
@@ -325,8 +329,11 @@ export function useChatStream(
       } catch (err) {
         flush();
         if (controller.signal.aborted) {
-          // Aborted turns keep their partial text and fall back to idle.
-          setStatus("idle");
+          // A user-initiated Stop keeps the partial text and lands on its own
+          // terminal status — NOT "idle" — so the caller can commit the partial
+          // turn and offer Retry (design-spec 03 §2's Stop → retained → Retry
+          // pattern), the same as it would for a technical failure.
+          setStatus("aborted");
           return;
         }
         setStatus("error");

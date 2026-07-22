@@ -33,6 +33,14 @@ export function useCoachSessions(accessToken: string): UseCoachSessionsResult {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const knownIds = useRef(new Set<string>());
+  const loadMoreControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(
+    () => () => {
+      loadMoreControllerRef.current?.abort();
+    },
+    [],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -73,17 +81,29 @@ export function useCoachSessions(accessToken: string): UseCoachSessionsResult {
     const lastId = sessions[sessions.length - 1]?.id;
     if (!lastId) return;
     setLoadingMore(true);
+    const controller = new AbortController();
+    loadMoreControllerRef.current = controller;
     const client = createApiClient(accessToken);
     client.coach.sessions
-      .list({ limit: PAGE_SIZE, beforeId: lastId })
+      .list(
+        { limit: PAGE_SIZE, beforeId: lastId },
+        { signal: controller.signal },
+      )
       .then((data) => {
+        if (controller.signal.aborted) return;
         const fresh = data.filter((s) => !knownIds.current.has(s.id));
         for (const s of fresh) knownIds.current.add(s.id);
         setSessions((prev) => [...prev, ...fresh]);
         setHasMore(data.length === PAGE_SIZE);
       })
-      .catch(() => setError(true))
-      .finally(() => setLoadingMore(false));
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setError(true);
+      })
+      .finally(() => {
+        if (controller.signal.aborted) return;
+        setLoadingMore(false);
+      });
   }, [accessToken, loadingMore, sessions]);
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);

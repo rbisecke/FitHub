@@ -110,6 +110,47 @@ describe("useChatStream", () => {
     expect(result.current.error).toBe("Safety stop");
   });
 
+  it("stops on abort — preserves partial text and lands on 'aborted', not 'idle'", async () => {
+    // A real fetch ties its response body stream to the AbortSignal, so
+    // aborting mid-stream rejects any pending reader.read() — simulate that
+    // by erroring the stream's controller when the signal fires, rather than
+    // ever closing the stream normally.
+    const encoder = new TextEncoder();
+    let controllerRef: ReadableStreamDefaultController<Uint8Array> | null =
+      null;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controllerRef = controller;
+        controller.enqueue(
+          encoder.encode(sse({ type: "token", text: "partial" })),
+        );
+      },
+    });
+
+    const fetchImpl = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
+      init?.signal?.addEventListener("abort", () => {
+        controllerRef?.error(new DOMException("Aborted", "AbortError"));
+      });
+      return Promise.resolve(new Response(stream, { status: 200 }));
+    }) as unknown as typeof fetch;
+
+    const { result } = renderHook(() =>
+      useChatStream({ ...baseOptions, fetchImpl }),
+    );
+
+    act(() => {
+      void result.current.send("hi");
+    });
+    await waitFor(() => expect(result.current.text).toBe("partial"));
+
+    act(() => {
+      result.current.abort();
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("aborted"));
+    expect(result.current.text).toBe("partial");
+  });
+
   it("treats a technical error as retryable 'error'", async () => {
     const fetchImpl = vi.fn(async () =>
       mockStreamResponse([
