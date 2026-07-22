@@ -38,6 +38,12 @@ class TeamSessionParticipant(BaseModel):
     role: str | None
     joined_at: datetime
     display_name: str | None = None
+    # Computed leaderboard fields (BG-12) — server-computed from the linked
+    # workout_id's Result(s), ranked per the session's scoring_type. Both are
+    # null for guests/unlinked participants and always null under `relay`
+    # scoring (no per-person rank for that type — see repo for details).
+    score: str | None = None
+    rank: int | None = None
 
 
 class CreateParticipantRequest(BaseModel):

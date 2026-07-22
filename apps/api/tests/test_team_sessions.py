@@ -691,3 +691,285 @@ async def test_role_suggestions_populated(alice_client: AsyncClient) -> None:
     r = await alice_client.get("/api/v1/team-sessions/role-suggestions")
     assert r.status_code == 200
     assert "anchor" in r.json()["suggestions"]
+
+
+# ── Leaderboard (BG-12) ────────────────────────────────────────────────────────
+
+
+def _by_key(ts: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Index a TeamSession's participants by user_id (str) or guest_name."""
+    return {(p["user_id"] or p["guest_name"]): p for p in ts["participants"]}
+
+
+async def _make_workout(
+    client: AsyncClient,
+    *,
+    duration_s: int | None = None,
+    results: list[dict[str, Any]] | None = None,
+) -> str:
+    body: dict[str, Any] = {"performed_at": _PERFORMED_AT, "session_type": "metcon"}
+    if duration_s is not None:
+        body["duration_s"] = duration_s
+    if results is not None:
+        body["results"] = results
+    r = await client.post("/api/v1/workouts", json=body)
+    assert r.status_code == 201
+    return r.json()["id"]  # type: ignore[no-any-return]
+
+
+async def _link_guest(
+    alice_client: AsyncClient, ts_id: str, guest_pid: str, workout_id: str
+) -> dict[str, Any]:
+    r = await alice_client.patch(
+        f"/api/v1/team-sessions/{ts_id}/participants/{guest_pid}",
+        json={"workout_id": workout_id},
+    )
+    assert r.status_code == 200
+    return r.json()  # type: ignore[no-any-return]
+
+
+@pytest.mark.asyncio
+async def test_leaderboard_for_time_ranks_ascending(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """Fastest (lowest duration_s) wins — rank 1."""
+    alice_workout = await _make_workout(alice_client, duration_s=300)  # 5:00
+    bob_workout = await _make_workout(bob_client, duration_s=200)  # 3:20
+    guest_workout = await _make_workout(alice_client, duration_s=400)  # 6:40
+
+    payload = {
+        **_TS_BASE,
+        "scoring_type": "for_time",
+        "workout_id": alice_workout,
+        "participants": [
+            {"user_id": str(BOB_ID), "workout_id": bob_workout},
+            {"guest_name": "Charlie"},
+        ],
+    }
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+    guest_pid = _pid(ts, guest_name="charlie")
+    ts_final = await _link_guest(alice_client, ts["id"], guest_pid, guest_workout)
+
+    by = _by_key(ts_final)
+    assert by[str(BOB_ID)]["rank"] == 1
+    assert by[str(BOB_ID)]["score"] == "3:20"
+    assert by[str(ALICE_ID)]["rank"] == 2
+    assert by[str(ALICE_ID)]["score"] == "5:00"
+    assert by["charlie"]["rank"] == 3
+    assert by["charlie"]["score"] == "6:40"
+
+
+@pytest.mark.asyncio
+async def test_leaderboard_slowest_finisher_ranks_descending(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """The slowest (highest duration_s) is the determinant — rank 1."""
+    alice_workout = await _make_workout(alice_client, duration_s=300)
+    bob_workout = await _make_workout(bob_client, duration_s=200)
+    guest_workout = await _make_workout(alice_client, duration_s=400)
+
+    payload = {
+        **_TS_BASE,
+        "scoring_type": "slowest_finisher",
+        "workout_id": alice_workout,
+        "participants": [
+            {"user_id": str(BOB_ID), "workout_id": bob_workout},
+            {"guest_name": "Charlie"},
+        ],
+    }
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+    guest_pid = _pid(ts, guest_name="charlie")
+    ts_final = await _link_guest(alice_client, ts["id"], guest_pid, guest_workout)
+
+    by = _by_key(ts_final)
+    assert by["charlie"]["rank"] == 1
+    assert by[str(ALICE_ID)]["rank"] == 2
+    assert by[str(BOB_ID)]["rank"] == 3
+
+
+@pytest.mark.asyncio
+async def test_leaderboard_amrap_ranks_rounds_then_partial_reps_descending(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """Most work wins: SUM(rounds) desc, then SUM(partial_reps) desc as the
+    within-equal-rounds tiebreak."""
+    alice_workout = await _make_workout(
+        alice_client,
+        results=[{"result_type": "rounds_reps", "rounds": 5, "partial_reps": 10, "order_index": 0}],
+    )
+    bob_workout = await _make_workout(
+        bob_client,
+        results=[{"result_type": "rounds_reps", "rounds": 5, "partial_reps": 20, "order_index": 0}],
+    )
+    guest_workout = await _make_workout(
+        alice_client,
+        results=[{"result_type": "rounds_reps", "rounds": 6, "partial_reps": 0, "order_index": 0}],
+    )
+
+    payload = {
+        **_TS_BASE,
+        "scoring_type": "amrap",
+        "workout_id": alice_workout,
+        "participants": [
+            {"user_id": str(BOB_ID), "workout_id": bob_workout},
+            {"guest_name": "Charlie"},
+        ],
+    }
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+    guest_pid = _pid(ts, guest_name="charlie")
+    ts_final = await _link_guest(alice_client, ts["id"], guest_pid, guest_workout)
+
+    by = _by_key(ts_final)
+    assert by["charlie"]["rank"] == 1
+    assert by["charlie"]["score"] == "6 rounds"
+    assert by[str(BOB_ID)]["rank"] == 2
+    assert by[str(BOB_ID)]["score"] == "5 rounds + 20 reps"
+    assert by[str(ALICE_ID)]["rank"] == 3
+    assert by[str(ALICE_ID)]["score"] == "5 rounds + 10 reps"
+
+
+@pytest.mark.asyncio
+async def test_leaderboard_total_reps_ranks_descending(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    alice_workout = await _make_workout(
+        alice_client, results=[{"result_type": "reps", "reps": 30, "order_index": 0}]
+    )
+    bob_workout = await _make_workout(
+        bob_client, results=[{"result_type": "reps", "reps": 50, "order_index": 0}]
+    )
+    guest_workout = await _make_workout(
+        alice_client, results=[{"result_type": "reps", "reps": 40, "order_index": 0}]
+    )
+
+    payload = {
+        **_TS_BASE,
+        "scoring_type": "total_reps",
+        "workout_id": alice_workout,
+        "participants": [
+            {"user_id": str(BOB_ID), "workout_id": bob_workout},
+            {"guest_name": "Charlie"},
+        ],
+    }
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+    guest_pid = _pid(ts, guest_name="charlie")
+    ts_final = await _link_guest(alice_client, ts["id"], guest_pid, guest_workout)
+
+    by = _by_key(ts_final)
+    assert by[str(BOB_ID)]["rank"] == 1
+    assert by[str(BOB_ID)]["score"] == "50 reps"
+    assert by["charlie"]["rank"] == 2
+    assert by[str(ALICE_ID)]["rank"] == 3
+
+
+@pytest.mark.asyncio
+async def test_leaderboard_max_load_ranks_descending(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    alice_workout = await _make_workout(
+        alice_client,
+        results=[{"result_type": "weight", "load_kg": "100.0", "reps": 1, "order_index": 0}],
+    )
+    bob_workout = await _make_workout(
+        bob_client,
+        results=[{"result_type": "weight", "load_kg": "120.5", "reps": 1, "order_index": 0}],
+    )
+    guest_workout = await _make_workout(
+        alice_client,
+        results=[{"result_type": "weight", "load_kg": "90.0", "reps": 1, "order_index": 0}],
+    )
+
+    payload = {
+        **_TS_BASE,
+        "scoring_type": "max_load",
+        "workout_id": alice_workout,
+        "participants": [
+            {"user_id": str(BOB_ID), "workout_id": bob_workout},
+            {"guest_name": "Charlie"},
+        ],
+    }
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+    guest_pid = _pid(ts, guest_name="charlie")
+    ts_final = await _link_guest(alice_client, ts["id"], guest_pid, guest_workout)
+
+    by = _by_key(ts_final)
+    assert by[str(BOB_ID)]["rank"] == 1
+    assert by[str(BOB_ID)]["score"] == "120.5 kg"
+    assert by[str(ALICE_ID)]["rank"] == 2
+    assert by[str(ALICE_ID)]["score"] == "100 kg"
+    assert by["charlie"]["rank"] == 3
+    assert by["charlie"]["score"] == "90 kg"
+
+
+@pytest.mark.asyncio
+async def test_leaderboard_tie_shares_rank(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """Standard competition ranking: equal scores share a rank (1, 1, 3), not
+    (1, 1, 2)."""
+    alice_workout = await _make_workout(alice_client, duration_s=300)
+    bob_workout = await _make_workout(bob_client, duration_s=300)  # tied with Alice
+    guest_workout = await _make_workout(alice_client, duration_s=400)
+
+    payload = {
+        **_TS_BASE,
+        "scoring_type": "for_time",
+        "workout_id": alice_workout,
+        "participants": [
+            {"user_id": str(BOB_ID), "workout_id": bob_workout},
+            {"guest_name": "Charlie"},
+        ],
+    }
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+    guest_pid = _pid(ts, guest_name="charlie")
+    ts_final = await _link_guest(alice_client, ts["id"], guest_pid, guest_workout)
+
+    by = _by_key(ts_final)
+    assert by[str(ALICE_ID)]["rank"] == 1
+    assert by[str(BOB_ID)]["rank"] == 1
+    assert by["charlie"]["rank"] == 3  # skips 2 — competition ranking
+
+
+@pytest.mark.asyncio
+async def test_leaderboard_relay_suppresses_rank_and_score(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """relay is a team-aggregate type — no per-person rank, ever."""
+    alice_workout = await _make_workout(alice_client, duration_s=300)
+    bob_workout = await _make_workout(bob_client, duration_s=200)
+
+    payload = {
+        **_TS_BASE,
+        "scoring_type": "relay",
+        "team_score_s": 500,
+        "workout_id": alice_workout,
+        "participants": [{"user_id": str(BOB_ID), "workout_id": bob_workout}],
+    }
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+
+    for p in ts["participants"]:
+        assert p["rank"] is None
+        assert p["score"] is None
+
+
+@pytest.mark.asyncio
+async def test_leaderboard_unlinked_participant_has_null_score_and_rank(
+    alice_client: AsyncClient,
+) -> None:
+    """An unlinked participant (no workout_id) never breaks the leaderboard
+    query — it just sits out with null score/rank."""
+    alice_workout = await _make_workout(alice_client, duration_s=300)
+
+    payload = {
+        **_TS_BASE,
+        "scoring_type": "for_time",
+        "workout_id": alice_workout,
+        "participants": [{"guest_name": "Charlie"}],  # never linked
+    }
+    ts = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()
+
+    by = _by_key(ts)
+    assert by[str(ALICE_ID)]["rank"] == 1
+    assert by[str(ALICE_ID)]["score"] == "5:00"
+    assert by["charlie"]["rank"] is None
+    assert by["charlie"]["score"] is None

@@ -26,7 +26,68 @@ def _normalise_guest_name(name: str | None) -> str | None:
     return name.lower().strip() if name else None
 
 
-def _row_to_participant(p: dict[str, Any]) -> TeamSessionParticipant:
+def _fmt_duration(seconds: int) -> str:
+    """Format whole seconds as m:ss or h:mm:ss.
+
+    Mirrors `app/routers/analytics.py::_fmt_time`, kept as a small private
+    duplicate rather than imported — that function lives in a router, and a
+    repository importing from a router would invert the layering.
+    """
+    if seconds >= 3600:
+        h, rem = divmod(seconds, 3600)
+        m, s = divmod(rem, 60)
+        return f"{h}:{m:02d}:{s:02d}"
+    m, s = divmod(seconds, 60)
+    return f"{m}:{s:02d}"
+
+
+def _fmt_load_kg(value: float) -> str:
+    rounded = round(value, 1)
+    if rounded == int(rounded):
+        return f"{int(rounded)} kg"
+    return f"{rounded} kg"
+
+
+def _compute_score(
+    scoring_type: str | None,
+    *,
+    duration_s: int | None,
+    total_reps: int | None,
+    rounds: int | None,
+    partial_reps: int | None,
+    max_load_kg: float | None,
+) -> str | None:
+    """Format a display-ready score string for one participant.
+
+    `relay` never gets a score (no per-person rank for that type — see the
+    scoring_type table in `_fetch_team_session`'s docstring/comments below).
+    """
+    if scoring_type in ("for_time", "slowest_finisher"):
+        return _fmt_duration(duration_s) if duration_s is not None else None
+    if scoring_type == "amrap":
+        if rounds is None and partial_reps is None:
+            return None
+        rounds = rounds or 0
+        partial_reps = partial_reps or 0
+        if partial_reps > 0:
+            return f"{rounds} rounds + {partial_reps} reps"
+        return f"{rounds} rounds"
+    if scoring_type == "total_reps":
+        return f"{total_reps} reps" if total_reps is not None else None
+    if scoring_type == "max_load":
+        return _fmt_load_kg(max_load_kg) if max_load_kg is not None else None
+    return None
+
+
+def _row_to_participant(p: dict[str, Any], scoring_type: str | None) -> TeamSessionParticipant:
+    score = _compute_score(
+        scoring_type,
+        duration_s=p.get("_duration_s"),
+        total_reps=p.get("_agg_total_reps"),
+        rounds=p.get("_agg_rounds"),
+        partial_reps=p.get("_agg_partial_reps"),
+        max_load_kg=p.get("_agg_max_load"),
+    )
     return TeamSessionParticipant(
         id=p["id"],
         team_session_id=p["team_session_id"],
@@ -36,7 +97,120 @@ def _row_to_participant(p: dict[str, Any]) -> TeamSessionParticipant:
         role=p.get("role"),
         joined_at=p["joined_at"],
         display_name=p.get("display_name"),
+        score=score,
+        rank=p.get("rank"),
     )
+
+
+# Leaderboard scoring CTE (BG-12), prepended to _fetch_team_session's query.
+#
+# scoring_type → rank direction → source:
+#   for_time         ascending   (fastest wins)   workouts.duration_s
+#   slowest_finisher descending  (slowest "wins",
+#                                 i.e. is the determinant) workouts.duration_s
+#   amrap            descending  (most work wins) SUM(rounds), SUM(partial_reps)
+#                                 from rounds_reps-type results — tiebreak
+#                                 within equal rounds is partial_reps, both
+#                                 descending. Simplification: combined into one
+#                                 sortable value `rounds * 1_000_000 +
+#                                 partial_reps` since the design spec only says
+#                                 "rounds+reps descending" without a precise
+#                                 formula.
+#   total_reps       descending  (most reps wins) SUM(reps) across reps-and/or
+#                                 rounds_reps-type results
+#   max_load         descending  (heaviest wins)  MAX(load_kg) across results
+#   relay            n/a         podium suppressed entirely — score/rank stay
+#                                 null for every participant (team aggregate
+#                                 only, no per-person ranking)
+#
+# `sort_key` normalises every type to "ascending = better" so a single
+# RANK() OVER (ORDER BY sort_key ASC) works regardless of scoring_type:
+# descending-is-better types negate their raw value first. RANK() (not
+# ROW_NUMBER()) is used so ties share a rank (1, 1, 3 — standard competition
+# ranking), with `joined_at` as the deterministic row order within a tie.
+_LEADERBOARD_CTE = """
+    WITH result_agg AS (
+        SELECT
+            r.workout_id,
+            SUM(r.reps) FILTER (WHERE r.result_type IN ('reps', 'rounds_reps'))
+                AS agg_total_reps,
+            SUM(r.rounds) FILTER (WHERE r.result_type = 'rounds_reps') AS agg_rounds,
+            SUM(r.partial_reps) FILTER (WHERE r.result_type = 'rounds_reps')
+                AS agg_partial_reps,
+            MAX(r.load_kg) AS agg_max_load
+        FROM public.results r
+        WHERE r.workout_id IN (
+            SELECT workout_id FROM public.team_session_participants
+            WHERE team_session_id = %s AND workout_id IS NOT NULL
+        )
+        GROUP BY r.workout_id
+    ),
+    participant_scores AS (
+        SELECT
+            tsp2.id AS participant_id,
+            w.duration_s,
+            ra.agg_total_reps,
+            ra.agg_rounds,
+            ra.agg_partial_reps,
+            ra.agg_max_load,
+            CASE ts2.scoring_type
+                WHEN 'for_time'         THEN w.duration_s IS NOT NULL
+                WHEN 'slowest_finisher' THEN w.duration_s IS NOT NULL
+                WHEN 'amrap'            THEN (ra.agg_rounds IS NOT NULL
+                                               OR ra.agg_partial_reps IS NOT NULL)
+                WHEN 'total_reps'       THEN ra.agg_total_reps IS NOT NULL
+                WHEN 'max_load'         THEN ra.agg_max_load IS NOT NULL
+                ELSE FALSE
+            END AS has_score,
+            CASE ts2.scoring_type
+                WHEN 'for_time'         THEN w.duration_s::numeric
+                WHEN 'slowest_finisher' THEN (-w.duration_s)::numeric
+                WHEN 'amrap'            THEN (-(
+                                                   COALESCE(ra.agg_rounds, 0) * 1000000
+                                                   + COALESCE(ra.agg_partial_reps, 0)
+                                               ))::numeric
+                WHEN 'total_reps'       THEN (-ra.agg_total_reps)::numeric
+                WHEN 'max_load'         THEN -ra.agg_max_load
+                ELSE NULL
+            END AS sort_key
+        FROM public.team_session_participants tsp2
+        JOIN public.team_sessions ts2 ON ts2.id = tsp2.team_session_id
+        LEFT JOIN public.workouts w ON w.id = tsp2.workout_id
+        LEFT JOIN result_agg ra ON ra.workout_id = tsp2.workout_id
+        WHERE tsp2.team_session_id = %s
+    ),
+    ranked_scores AS (
+        SELECT
+            participant_id,
+            has_score,
+            duration_s,
+            agg_total_reps,
+            agg_rounds,
+            agg_partial_reps,
+            agg_max_load,
+            RANK() OVER (ORDER BY sort_key ASC NULLS LAST) AS computed_rank
+        FROM participant_scores
+    )
+"""
+
+_PARTICIPANT_OBJ = """
+    json_build_object(
+        'id', tsp.id,
+        'team_session_id', tsp.team_session_id,
+        'user_id', tsp.user_id,
+        'workout_id', tsp.workout_id,
+        'guest_name', tsp.guest_name,
+        'role', tsp.role,
+        'joined_at', tsp.joined_at,
+        'display_name', COALESCE(p.display_name, tsp.guest_name),
+        'rank', CASE WHEN rs.has_score THEN rs.computed_rank ELSE NULL END,
+        '_duration_s', rs.duration_s,
+        '_agg_total_reps', rs.agg_total_reps,
+        '_agg_rounds', rs.agg_rounds,
+        '_agg_partial_reps', rs.agg_partial_reps,
+        '_agg_max_load', rs.agg_max_load
+    )
+"""
 
 
 async def _fetch_team_session(
@@ -49,30 +223,25 @@ async def _fetch_team_session(
 
     If user_id is provided the query also enforces visibility: caller must be
     creator or a participant (mirrors the ts_select RLS policy at app layer).
+
+    Extended for BG-12: a leaderboard CTE joins each participant's linked
+    workout/result(s) and computes a per-participant score + rank (see
+    `_LEADERBOARD_CTE` above for the scoring_type → source mapping).
     """
     async with conn.cursor(row_factory=dict_row) as cur:
-        _participant_obj = """
-            json_build_object(
-                'id', tsp.id,
-                'team_session_id', tsp.team_session_id,
-                'user_id', tsp.user_id,
-                'workout_id', tsp.workout_id,
-                'guest_name', tsp.guest_name,
-                'role', tsp.role,
-                'joined_at', tsp.joined_at,
-                'display_name', COALESCE(p.display_name, tsp.guest_name)
-            )
-        """
+        sid = str(team_session_id)
         if user_id is not None:
             await cur.execute(
                 f"""
+                {_LEADERBOARD_CTE}
                 SELECT ts.*,
                        json_agg(
-                           {_participant_obj} ORDER BY tsp.joined_at
+                           {_PARTICIPANT_OBJ} ORDER BY tsp.joined_at
                        ) FILTER (WHERE tsp.id IS NOT NULL) AS participants_json
                 FROM   public.team_sessions ts
                 LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
                 LEFT JOIN public.profiles p ON p.id = tsp.user_id
+                LEFT JOIN ranked_scores rs ON rs.participant_id = tsp.id
                 WHERE  ts.id = %s
                   AND (
                       ts.created_by = %s
@@ -83,22 +252,24 @@ async def _fetch_team_session(
                   )
                 GROUP  BY ts.id
                 """,
-                [str(team_session_id), user_id, user_id],
+                [sid, sid, sid, user_id, user_id],
             )
         else:
             await cur.execute(
                 f"""
+                {_LEADERBOARD_CTE}
                 SELECT ts.*,
                        json_agg(
-                           {_participant_obj} ORDER BY tsp.joined_at
+                           {_PARTICIPANT_OBJ} ORDER BY tsp.joined_at
                        ) FILTER (WHERE tsp.id IS NOT NULL) AS participants_json
                 FROM   public.team_sessions ts
                 LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
                 LEFT JOIN public.profiles p ON p.id = tsp.user_id
+                LEFT JOIN ranked_scores rs ON rs.participant_id = tsp.id
                 WHERE  ts.id = %s
                 GROUP  BY ts.id
                 """,
-                [str(team_session_id)],
+                [sid, sid, sid],
             )
         row = await cur.fetchone()
         if row is None:
@@ -110,7 +281,8 @@ def _row_to_team_session(row: dict[str, Any]) -> TeamSession:
     raw = row.pop("participants_json", None) or []
     if isinstance(raw, str):
         raw = json.loads(raw)
-    participants = [_row_to_participant(p) for p in raw]
+    scoring_type = row.get("scoring_type")
+    participants = [_row_to_participant(p, scoring_type) for p in raw]
     return TeamSession(**row, participants=participants)
 
 
