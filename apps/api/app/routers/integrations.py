@@ -11,7 +11,12 @@ from fastapi import APIRouter, HTTPException, Request
 from app.dependencies.common import Auth, DBConn
 from app.integrations.ingest_tokens import generate_ingest_token, verify_ingest_token
 from app.middleware.rate_limit import limiter, user_or_ip_key
-from app.models.integrations import ConnectionStatus, ConnectResponse, SyncResponse
+from app.models.integrations import (
+    ConnectionStatus,
+    ConnectResponse,
+    IntegrationDetail,
+    SyncResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +90,8 @@ async def list_integrations(
             """
             SELECT provider, sync_status,
                    to_char(last_synced_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
-                       AS last_synced_at
+                       AS last_synced_at,
+                   config->>'ingest_token_prefix' AS token_prefix
             FROM data_connections
             WHERE user_id = %s
             ORDER BY provider
@@ -100,9 +106,47 @@ async def list_integrations(
             provider=r["provider"],
             sync_status=r["sync_status"],
             last_synced_at=r["last_synced_at"],
+            token_prefix=r["token_prefix"],
         )
         for r in rows
     ]
+
+
+# ── Per-provider detail (Domain 07 §C) ────────────────────────────────────────
+
+
+@router.get("/apple-health", response_model=IntegrationDetail)
+async def get_apple_health_detail(
+    user: Auth,
+    db: DBConn,
+) -> IntegrationDetail:
+    async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        await cur.execute(
+            """
+            SELECT provider, sync_status,
+                   to_char(last_synced_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                       AS last_synced_at,
+                   config->>'ingest_token_prefix' AS token_prefix,
+                   last_sync_rows_inserted, last_sync_recovery_computed, last_sync_error
+            FROM data_connections
+            WHERE user_id = %s AND provider = 'apple_health'
+            """,
+            [user.user_id],
+        )
+        row = await cur.fetchone()
+
+    if row is None:
+        raise HTTPException(status_code=404, detail="No Apple Health connection")
+
+    return IntegrationDetail(
+        provider=row["provider"],
+        sync_status=row["sync_status"],
+        last_synced_at=row["last_synced_at"],
+        token_prefix=row["token_prefix"],
+        last_sync_rows_inserted=row["last_sync_rows_inserted"],
+        last_sync_recovery_computed=row["last_sync_recovery_computed"],
+        last_sync_error=row["last_sync_error"],
+    )
 
 
 # ── Apple Health ingest (HAE bearer token OR Supabase JWT) ────────────────────
@@ -150,30 +194,23 @@ async def apple_health_sync(
     content_length = request.headers.get("content-length")
     try:
         if content_length and int(content_length) > _MAX_BODY:
+            await _record_sync_error(db, user_id, "payload_too_large")
             raise HTTPException(status_code=413, detail="Payload too large")
     except ValueError:
         pass  # body size check below is authoritative
     body_bytes = await request.body()
     if len(body_bytes) > _MAX_BODY:
+        await _record_sync_error(db, user_id, "payload_too_large")
         raise HTTPException(status_code=413, detail="Payload too large")
     try:
         payload = json.loads(body_bytes)
     except json.JSONDecodeError as exc:
+        await _record_sync_error(db, user_id, "invalid_json")
         raise HTTPException(status_code=400, detail="Invalid JSON") from exc
 
     from app.integrations.apple_health import ingest_apple_health
 
     rows_inserted = await ingest_apple_health(payload, user_id, db)
-
-    # Update last_synced_at
-    await db.execute(
-        """
-        UPDATE data_connections
-        SET last_synced_at = now(), sync_status = 'idle'
-        WHERE user_id = %s AND provider = 'apple_health'
-        """,
-        [user_id],
-    )
 
     # Trigger recovery computation in background (best-effort)
     recovery_computed = False
@@ -185,4 +222,42 @@ async def apple_health_sync(
     except Exception:
         logger.exception("Recovery computation failed for user %s", user_id)
 
+    # Persist this sync's outcome (Domain 07 §C source-detail screen). Clears
+    # any previously-recorded error class now that a sync has succeeded.
+    await db.execute(
+        """
+        UPDATE data_connections
+        SET last_synced_at = now(),
+            sync_status = 'idle',
+            last_sync_rows_inserted = %s,
+            last_sync_recovery_computed = %s,
+            last_sync_error = NULL
+        WHERE user_id = %s AND provider = 'apple_health'
+        """,
+        [rows_inserted, recovery_computed, user_id],
+    )
+
     return SyncResponse(rows_inserted=rows_inserted, recovery_computed=recovery_computed)
+
+
+async def _record_sync_error(db: DBConn, user_id: str, error_code: str) -> None:
+    """Flag the connection as errored before raising to the caller, so the
+    source-detail screen (07 §C) can translate the failure class to plain
+    language on the user's next visit. Only used for failure classes that
+    occur after the bearer token has already been verified against this
+    user's row — see the migration's docstring for why 401 is excluded.
+
+    Commits explicitly: `get_db` rolls back the connection's transaction on
+    an exception leaving the route handler, and every call site here writes
+    this row specifically so it survives the `HTTPException` raised right
+    after — without the commit, the flag would be rolled back along with it.
+    """
+    await db.execute(
+        """
+        UPDATE data_connections
+        SET sync_status = 'error', last_sync_error = %s
+        WHERE user_id = %s AND provider = 'apple_health'
+        """,
+        [error_code, user_id],
+    )
+    await db.commit()

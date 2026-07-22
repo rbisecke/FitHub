@@ -1671,6 +1671,32 @@
         ]
       }
     },
+    "/api/v1/integrations/apple-health": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Get Apple Health Detail",
+        "operationId": "get_apple_health_detail_api_v1_integrations_apple_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/integrations/apple-health/sync": {
       "post": {
         "tags": [
@@ -5945,11 +5971,9 @@
           "sync_status": {
             "type": "string",
             "enum": [
-              "connected",
-              "syncing",
               "idle",
-              "error",
-              "disconnected"
+              "syncing",
+              "error"
             ],
             "title": "Sync Status"
           },
@@ -5963,13 +5987,25 @@
               }
             ],
             "title": "Last Synced At"
+          },
+          "token_prefix": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Token Prefix"
           }
         },
         "type": "object",
         "required": [
           "provider",
           "sync_status",
-          "last_synced_at"
+          "last_synced_at",
+          "token_prefix"
         ],
         "title": "ConnectionStatus"
       },
@@ -7459,6 +7495,94 @@
           "staleness_days"
         ],
         "title": "InjuryOut"
+      },
+      "IntegrationDetail": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "sync_status": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "syncing",
+              "error"
+            ],
+            "title": "Sync Status"
+          },
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          },
+          "token_prefix": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Token Prefix"
+          },
+          "last_sync_rows_inserted": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync Rows Inserted"
+          },
+          "last_sync_recovery_computed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync Recovery Computed"
+          },
+          "last_sync_error": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "payload_too_large",
+                  "invalid_json"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "sync_status",
+          "last_synced_at",
+          "token_prefix",
+          "last_sync_rows_inserted",
+          "last_sync_recovery_computed",
+          "last_sync_error"
+        ],
+        "title": "IntegrationDetail",
+        "description": "Per-provider detail (Domain 07 \u00a7C) \u2014 kept off the list endpoint so\n`GET /api/v1/integrations` stays cheap for the list screen."
       },
       "InvitedEmail": {
         "properties": {
