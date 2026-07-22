@@ -107,7 +107,12 @@ export type TeamSession = components["schemas"]["TeamSession"];
 export type TeamSessionParticipant =
   components["schemas"]["TeamSessionParticipant"];
 export type TeamSessionSummary = components["schemas"]["TeamSessionSummary"];
+export type TeamSessionListResponse =
+  components["schemas"]["TeamSessionListResponse"];
+export type RoleSuggestionsResponse =
+  components["schemas"]["RoleSuggestionsResponse"];
 export type ScoringType = components["schemas"]["ScoringType"];
+export type TeamSessionStatus = components["schemas"]["TeamSessionStatus"];
 export type Notification = components["schemas"]["Notification"];
 
 // Profile search result — from generated OpenAPI schema (added in Feature 6)

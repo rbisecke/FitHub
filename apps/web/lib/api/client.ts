@@ -36,6 +36,8 @@ import type {
   ProfileStats,
   PinnedMovement,
   TeamSession,
+  TeamSessionListResponse,
+  RoleSuggestionsResponse,
   Notification,
   UserSearchResult,
 } from "./index";
@@ -389,7 +391,33 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ email }),
     }),
+  // One-directional: only ever deletes the caller's own training_partners row
+  // (06 §8a "Remove partner" affordance / BG-08).
+  removeTrainingPartner: (token: string, partnerUserId: string) =>
+    apiFetch<void>(`/api/v1/training-partners/${partnerUserId}`, token, {
+      method: "DELETE",
+    }),
   teamSessions: {
+    list: (
+      token: string,
+      params?: { beforeId?: string; limit?: number },
+      options?: { signal?: AbortSignal },
+    ) => {
+      const qs = new URLSearchParams();
+      if (params?.beforeId) qs.set("before_id", params.beforeId);
+      if (params?.limit) qs.set("limit", String(params.limit));
+      return apiFetch<TeamSessionListResponse>(
+        `/api/v1/team-sessions?${qs}`,
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      );
+    },
+    roleSuggestions: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<RoleSuggestionsResponse>(
+        "/api/v1/team-sessions/role-suggestions",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     create: (
       token: string,
       body: {
@@ -397,6 +425,7 @@ export const api = {
         name?: string | null;
         team_size?: number;
         scoring_type?: string | null;
+        status?: string | null;
         team_score?: string | null;
         team_score_s?: number | null;
         team_score_reps?: number | null;
@@ -455,20 +484,22 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    // Keyed by the participant row's own surrogate `id`, NOT `user_id` — this
+    // is what makes guest rows (user_id: null) addressable at all (06 §4b/§4d).
     patchParticipant: (
       token: string,
       id: string,
-      participantUserId: string,
+      participantId: string,
       body: { workout_id?: string | null; role?: string | null },
     ) =>
       apiFetch<TeamSession>(
-        `/api/v1/team-sessions/${id}/participants/${participantUserId}`,
+        `/api/v1/team-sessions/${id}/participants/${participantId}`,
         token,
         { method: "PATCH", body: JSON.stringify(body) },
       ),
-    removeParticipant: (token: string, id: string, participantUserId: string) =>
+    removeParticipant: (token: string, id: string, participantId: string) =>
       apiFetch<void>(
-        `/api/v1/team-sessions/${id}/participants/${participantUserId}`,
+        `/api/v1/team-sessions/${id}/participants/${participantId}`,
         token,
         { method: "DELETE" },
       ),
@@ -1053,6 +1084,38 @@ export function createApiClient(token: string) {
     },
     trainingPartners: () => api.trainingPartners(token),
     addTrainingPartner: (email: string) => api.addTrainingPartner(token, email),
+    removeTrainingPartner: (partnerUserId: string) =>
+      api.removeTrainingPartner(token, partnerUserId),
+    teamSessions: {
+      list: (
+        params?: Parameters<typeof api.teamSessions.list>[1],
+        options?: { signal?: AbortSignal },
+      ) => api.teamSessions.list(token, params, options),
+      roleSuggestions: (options?: { signal?: AbortSignal }) =>
+        api.teamSessions.roleSuggestions(token, options),
+      create: (body: Parameters<typeof api.teamSessions.create>[1]) =>
+        api.teamSessions.create(token, body),
+      get: (id: string, options?: { signal?: AbortSignal }) =>
+        api.teamSessions.get(token, id, options),
+      patch: (id: string, body: Parameters<typeof api.teamSessions.patch>[2]) =>
+        api.teamSessions.patch(token, id, body),
+      delete: (id: string) => api.teamSessions.delete(token, id),
+      addParticipant: (
+        id: string,
+        body: Parameters<typeof api.teamSessions.addParticipant>[2],
+      ) => api.teamSessions.addParticipant(token, id, body),
+      patchParticipant: (
+        id: string,
+        participantId: string,
+        body: Parameters<typeof api.teamSessions.patchParticipant>[3],
+      ) => api.teamSessions.patchParticipant(token, id, participantId, body),
+      removeParticipant: (id: string, participantId: string) =>
+        api.teamSessions.removeParticipant(token, id, participantId),
+      getWorkoutTeamSession: (
+        workoutId: string,
+        options?: { signal?: AbortSignal },
+      ) => api.teamSessions.getWorkoutTeamSession(token, workoutId, options),
+    },
     notifications: {
       list: (includeRead?: boolean, options?: { signal?: AbortSignal }) =>
         api.notifications.list(token, includeRead, options),

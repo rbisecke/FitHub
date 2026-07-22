@@ -1,21 +1,11 @@
-import { MixedThemePlaceholder } from "@/components/shell/placeholder-screen";
+import { redirect } from "next/navigation";
 
-export default function SocialPage() {
-  return (
-    <MixedThemePlaceholder
-      title="Social"
-      screens={[
-        {
-          theme: "dark",
-          screen: "Live leaderboard · results reveal · session list",
-          note: "Glanceable/celebratory (Domain 06). Built in Effort 8.",
-        },
-        {
-          theme: "light",
-          screen: "Create/edit session · training-partners roster",
-          note: "Seated data entry (Domain 06). Built in Effort 8.",
-        },
-      ]}
-    />
-  );
+/**
+ * `/social` has no content of its own — the team-session list is the default
+ * segment (design-spec 06 §F7: nav lands on the primary list, matching every
+ * other domain's `/progress` → `/progress/records` precedent). Redirect
+ * rather than duplicate the tab nav's default-active styling here.
+ */
+export default function SocialPage(): never {
+  redirect("/social/team-sessions");
 }
