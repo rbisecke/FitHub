@@ -14,6 +14,15 @@ _PERFORMED_AT = "2026-06-19T09:00:00Z"
 _TS_BASE = {"performed_at": _PERFORMED_AT, "name": "Partner Helen"}
 
 
+async def _display_name(client: AsyncClient) -> str:
+    """Fetch the caller's current display_name — used instead of a hardcoded
+    literal so notification-payload assertions aren't coupled to whatever
+    display_name happens to be seeded in the local dev DB."""
+    r = await client.get("/api/v1/profile")
+    assert r.status_code == 200
+    return r.json()["display_name"]  # type: ignore[no-any-return]
+
+
 def _pid(
     ts: dict[str, Any], *, user_id: uuid.UUID | None = None, guest_name: str | None = None
 ) -> str:
@@ -88,6 +97,15 @@ async def test_create_sends_notification(
     assert notifs.status_code == 200
     types = [n["type"] for n in notifs.json()]
     assert "workout_link_pending" in types
+
+    # BG-06/BG-14: payload must carry all four keys with real values — the
+    # frontend renders "{actor_name} {verb} '{session_name}'" and must never
+    # fall back to "Someone".
+    notif = next(n for n in notifs.json() if n["type"] == "workout_link_pending")
+    assert notif["payload"]["team_session_id"] is not None
+    assert notif["payload"]["session_name"] == "Partner Helen"
+    assert notif["payload"]["actor_user_id"] == str(ALICE_ID)
+    assert notif["payload"]["actor_name"] == await _display_name(alice_client)
 
 
 @pytest.mark.asyncio
@@ -213,6 +231,27 @@ async def test_add_participant(alice_client: AsyncClient) -> None:
     assert r.status_code == 200
     user_ids = [p["user_id"] for p in r.json()["participants"]]
     assert str(BOB_ID) in user_ids
+
+
+@pytest.mark.asyncio
+async def test_add_participant_notification_payload_shape(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """BG-06/BG-14: add_participant's payload previously carried neither
+    session_name nor actor_name — now both are always populated."""
+    ts_id = (await alice_client.post("/api/v1/team-sessions", json=_TS_BASE)).json()["id"]
+    r = await alice_client.post(
+        f"/api/v1/team-sessions/{ts_id}/participants",
+        json={"user_id": str(BOB_ID)},
+    )
+    assert r.status_code == 200
+
+    notifs_r = await bob_client.get("/api/v1/notifications")
+    notif = next(n for n in notifs_r.json() if n["type"] == "workout_link_pending")
+    assert notif["payload"]["team_session_id"] == ts_id
+    assert notif["payload"]["session_name"] == "Partner Helen"
+    assert notif["payload"]["actor_user_id"] == str(ALICE_ID)
+    assert notif["payload"]["actor_name"] == await _display_name(alice_client)
 
 
 @pytest.mark.asyncio
@@ -563,6 +602,40 @@ async def test_patch_participant_notifies_on_later_link_by_other_actor(
     assert notifs_r.status_code == 200
     types = [n["type"] for n in notifs_r.json()]
     assert "team_session_linked" in types
+
+    # BG-06/BG-14: the later-link path previously had no payload at all.
+    notif = next(n for n in notifs_r.json() if n["type"] == "team_session_linked")
+    assert notif["payload"]["team_session_id"] == ts_id
+    assert notif["payload"]["session_name"] == "Partner Helen"
+    assert notif["payload"]["actor_user_id"] == str(ALICE_ID)
+    assert notif["payload"]["actor_name"] == await _display_name(alice_client)
+
+
+@pytest.mark.asyncio
+async def test_patch_team_session_notifies_other_participants_not_actor(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """BG-07: team_session_updated has no insert site anywhere — patching a
+    session must fire it to every OTHER participant with a real user_id, and
+    never to the actor themselves. This also covers the Finalize flow, since
+    finalize is just PATCH .../status."""
+    payload = {**_TS_BASE, "participants": [{"user_id": str(BOB_ID)}]}
+    ts_id = (await alice_client.post("/api/v1/team-sessions", json=payload)).json()["id"]
+
+    r = await alice_client.patch(f"/api/v1/team-sessions/{ts_id}", json={"name": "Updated Name"})
+    assert r.status_code == 200
+
+    bob_notifs = (await bob_client.get("/api/v1/notifications")).json()
+    updated = [n for n in bob_notifs if n["type"] == "team_session_updated"]
+    assert len(updated) == 1
+    assert updated[0]["payload"]["team_session_id"] == ts_id
+    assert updated[0]["payload"]["session_name"] == "Updated Name"
+    assert updated[0]["payload"]["actor_user_id"] == str(ALICE_ID)
+    assert updated[0]["payload"]["actor_name"] == await _display_name(alice_client)
+
+    # The actor (Alice, the creator who made the change) never notifies herself.
+    alice_notifs = (await alice_client.get("/api/v1/notifications")).json()
+    assert "team_session_updated" not in [n["type"] for n in alice_notifs]
 
 
 @pytest.mark.asyncio

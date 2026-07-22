@@ -127,6 +127,41 @@ async def _create_notification(
     )
 
 
+async def _fetch_display_name(
+    cur: psycopg.AsyncCursor[dict[str, Any]], *, user_id: uuid.UUID
+) -> str | None:
+    """Cheap single-column lookup — no existing lookup-by-id helper for
+    display_name in app/repositories/profile.py (get_profile requires an
+    email + avatar_url and does more than needed here)."""
+    await cur.execute("SELECT display_name FROM public.profiles WHERE id = %s", [user_id])
+    row = await cur.fetchone()
+    return row["display_name"] if row else None
+
+
+async def _build_notification_payload(
+    cur: psycopg.AsyncCursor[dict[str, Any]],
+    *,
+    team_session_id: uuid.UUID,
+    session_name: str | None,
+    actor_user_id: uuid.UUID,
+) -> dict[str, object]:
+    """Build the {team_session_id, session_name, actor_user_id, actor_name}
+    payload shared by every team-session notification type (BG-06/BG-14).
+
+    Every message line the frontend renders is
+    "{actor display name} {verb phrase} '{session_name}'" and must never fall
+    back to "Someone" — so both session_name and actor_name are always
+    populated here rather than left for the client to resolve.
+    """
+    actor_name = await _fetch_display_name(cur, user_id=actor_user_id)
+    return {
+        "team_session_id": str(team_session_id),
+        "session_name": session_name,
+        "actor_user_id": str(actor_user_id),
+        "actor_name": actor_name,
+    }
+
+
 async def create_team_session(
     conn: psycopg.AsyncConnection[Any],
     *,
@@ -206,22 +241,19 @@ async def create_team_session(
                 """,
                 participants_to_insert,
             )
-        notif_rows = [
-            (
-                p.user_id,
-                "team_session_linked" if p.workout_id else "workout_link_pending",
-                json.dumps(
-                    {
-                        "team_session_id": str(session_id),
-                        "session_name": req.name,
-                        "actor_user_id": str(user_id),
-                    }
-                ),
+        notif_recipients = [p for p in req.participants if p.user_id and p.user_id != user_id]
+        if notif_recipients:
+            payload = await _build_notification_payload(
+                cur, team_session_id=session_id, session_name=req.name, actor_user_id=user_id
             )
-            for p in req.participants
-            if p.user_id and p.user_id != user_id
-        ]
-        if notif_rows:
+            notif_rows = [
+                (
+                    p.user_id,
+                    "team_session_linked" if p.workout_id else "workout_link_pending",
+                    json.dumps(payload),
+                )
+                for p in notif_recipients
+            ]
             await cur.executemany(
                 "INSERT INTO public.notifications (user_id, type, payload) VALUES (%s, %s, %s)",
                 notif_rows,
@@ -318,15 +350,40 @@ async def patch_team_session(
 
     set_clause = ", ".join(f"{k} = %s" for k in fields)
     values = list(fields.values()) + [str(team_session_id), user_id]
-    async with conn.cursor(row_factory=dict_row) as cur:
+    async with conn.transaction(), conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             f"UPDATE public.team_sessions SET {set_clause} "
-            "WHERE id = %s AND created_by = %s RETURNING id",
+            "WHERE id = %s AND created_by = %s RETURNING id, name",
             values,
         )
         row = await cur.fetchone()
-    if row is None:
-        return None
+        if row is None:
+            return None
+
+        # BG-07: fire team_session_updated for every OTHER participant with a
+        # real user_id (skip the actor themselves, skip guests — no
+        # notification channel). This is the same generic edit-notification
+        # the Finalize flow relies on (finalize is just PATCH .../status).
+        await cur.execute(
+            "SELECT DISTINCT user_id FROM public.team_session_participants "
+            "WHERE team_session_id = %s AND user_id IS NOT NULL AND user_id != %s",
+            [str(team_session_id), user_id],
+        )
+        recipients = await cur.fetchall()
+        if recipients:
+            payload = await _build_notification_payload(
+                cur,
+                team_session_id=team_session_id,
+                session_name=row["name"],
+                actor_user_id=user_id,
+            )
+            notif_rows = [
+                (r["user_id"], "team_session_updated", json.dumps(payload)) for r in recipients
+            ]
+            await cur.executemany(
+                "INSERT INTO public.notifications (user_id, type, payload) VALUES (%s, %s, %s)",
+                notif_rows,
+            )
     return await get_team_session(conn, user_id=user_id, team_session_id=team_session_id)
 
 
@@ -354,10 +411,11 @@ async def add_participant(
     # Verify caller is the creator (RLS would also catch this, but be explicit)
     async with conn.transaction(), conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
-            "SELECT id FROM public.team_sessions WHERE id = %s AND created_by = %s",
+            "SELECT id, name FROM public.team_sessions WHERE id = %s AND created_by = %s",
             [str(team_session_id), user_id],
         )
-        if await cur.fetchone() is None:
+        session_row = await cur.fetchone()
+        if session_row is None:
             return None
 
         if req.workout_id is not None:
@@ -387,14 +445,17 @@ async def add_participant(
         )
         if req.user_id:
             notif_type = "team_session_linked" if req.workout_id else "workout_link_pending"
+            payload = await _build_notification_payload(
+                cur,
+                team_session_id=team_session_id,
+                session_name=session_row["name"],
+                actor_user_id=user_id,
+            )
             await _create_notification(
                 cur,
                 user_id=req.user_id,
                 notif_type=notif_type,
-                payload={
-                    "team_session_id": str(team_session_id),
-                    "actor_user_id": str(user_id),
-                },
+                payload=payload,
             )
 
     return await _fetch_team_session(conn, team_session_id=team_session_id)
@@ -465,14 +526,23 @@ async def patch_participant(
                 and row["user_id"] is not None
                 and row["user_id"] != actor_user_id
             ):
+                await cur.execute(
+                    "SELECT name FROM public.team_sessions WHERE id = %s",
+                    [str(team_session_id)],
+                )
+                session_row = await cur.fetchone()
+                session_name = session_row["name"] if session_row else None
+                payload = await _build_notification_payload(
+                    cur,
+                    team_session_id=team_session_id,
+                    session_name=session_name,
+                    actor_user_id=actor_user_id,
+                )
                 await _create_notification(
                     cur,
                     user_id=row["user_id"],
                     notif_type="team_session_linked",
-                    payload={
-                        "team_session_id": str(team_session_id),
-                        "actor_user_id": str(actor_user_id),
-                    },
+                    payload=payload,
                 )
 
     return await _fetch_team_session(conn, team_session_id=team_session_id)
