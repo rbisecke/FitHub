@@ -36,7 +36,15 @@ function PodiumSlot({
   rankCounts: Map<number, number>;
 }) {
   const prefersReducedMotion = useReducedMotion();
-  const tierColor = TIER_COLOR[place];
+  // Keyed by the participant's ACTUAL computed rank, not the slot position
+  // (`place` only controls layout — center/tallest for 1st, left/right for
+  // 2nd/3rd). A podium-boundary tie can put a rank-1 participant in the
+  // visual "2nd" slot (the earlier joined_at tie-member takes the plinth,
+  // per the design spec's tiebreak rule) — using `place` there would have
+  // rendered a silver ring + "2" badge on someone who's actually tied for
+  // 1st, contradicting the small T-1 tie label below it.
+  const rank = participant.rank ?? place;
+  const tierColor = TIER_COLOR[rank as 1 | 2 | 3];
   // Computed together (not via a cast) so the type checker, not a runtime
   // assumption, guarantees `rankBadge` is only non-null when `rank` is a number.
   const rankBadge =
@@ -96,7 +104,7 @@ function PodiumSlot({
             boxShadow: "0 0 0 2px var(--bg)",
           }}
         >
-          {place}
+          {rank}
         </span>
       </div>
       <p
