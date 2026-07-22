@@ -231,7 +231,7 @@ export function TeamSessionListScreen({
           accent "+" FAB nearby reads as two indistinguishable primary
           actions (design-review finding). This header action stays visible
           at every width instead of introducing a second FAB convention. */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-1 flex items-center justify-between">
         <h1
           className="font-sans text-[20px] font-semibold"
           style={{ color: "var(--text)" }}
@@ -247,6 +247,15 @@ export function TeamSessionListScreen({
           <span className="md:hidden">+ New</span>
           <span className="hidden md:inline">+ New session</span>
         </button>
+      </div>
+      <div className="mb-4">
+        <Link
+          href="/social/training-partners"
+          className="font-sans text-[12px] font-medium"
+          style={{ color: "var(--accent)" }}
+        >
+          Training partners →
+        </Link>
       </div>
 
       {error && items.length === 0 && (

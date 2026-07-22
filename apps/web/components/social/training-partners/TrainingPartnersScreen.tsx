@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { identityColor, normalizeGuestName } from "@fithub/shared";
 import { api, ApiError } from "@/lib/api/client";
@@ -75,6 +76,12 @@ export function TrainingPartnersScreen({
         <h1 className="type-h2 text-foreground">Training partners</h1>
         <Button onClick={() => setAddOpen(true)}>Add by email</Button>
       </div>
+      <Link
+        href="/social/team-sessions"
+        className="type-small w-fit text-accent"
+      >
+        ← Team sessions
+      </Link>
 
       {partners.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card px-6 py-10 text-center">
