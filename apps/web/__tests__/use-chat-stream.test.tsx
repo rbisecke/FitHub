@@ -144,5 +144,148 @@ describe("useChatStream", () => {
 
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.error).toContain("429");
+    expect(result.current.httpStatus).toBe(429);
+    expect(result.current.errorSubtype).toBe("technical");
+  });
+
+  it("surfaces the backend's JSON `detail` on a non-ok response (kill-switch copy)", async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            detail:
+              "AI coaching is temporarily suspended. Please try again later.",
+          }),
+          { status: 503 },
+        ),
+    ) as unknown as typeof fetch;
+
+    const { result } = renderHook(() =>
+      useChatStream({ ...baseOptions, fetchImpl }),
+    );
+    await act(async () => {
+      await result.current.send("hi");
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.httpStatus).toBe(503);
+    expect(result.current.error).toBe(
+      "AI coaching is temporarily suspended. Please try again later.",
+    );
+  });
+
+  it("sends { question, session_id } — not the old { message } shape", async () => {
+    const fetchImpl = vi.fn(async () =>
+      mockStreamResponse([sse({ type: "done" })]),
+    ) as unknown as typeof fetch;
+
+    const { result } = renderHook(() =>
+      useChatStream({ ...baseOptions, fetchImpl }),
+    );
+    await act(async () => {
+      await result.current.send("How's my ACWR?", "session-123");
+    });
+
+    const call = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock
+      .calls[0];
+    const init = call?.[1] as RequestInit;
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body).toEqual({
+      question: "How's my ACWR?",
+      session_id: "session-123",
+    });
+  });
+
+  it("omits session_id entirely for a brand-new thread", async () => {
+    const fetchImpl = vi.fn(async () =>
+      mockStreamResponse([sse({ type: "done" })]),
+    ) as unknown as typeof fetch;
+
+    const { result } = renderHook(() =>
+      useChatStream({ ...baseOptions, fetchImpl }),
+    );
+    await act(async () => {
+      await result.current.send("Suggest a deload");
+    });
+
+    const call = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock
+      .calls[0];
+    const init = call?.[1] as RequestInit;
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body).toEqual({ question: "Suggest a deload" });
+  });
+
+  it("captures session_id, citations, and safety_tier from the done frame", async () => {
+    const fetchImpl = vi.fn(async () =>
+      mockStreamResponse([
+        sse({ type: "token", text: "Take a deload week." }),
+        sse({
+          type: "done",
+          session_id: "abc-123",
+          citations: [
+            { title: "Deload guidance", source_type: "article", score: 0.9 },
+          ],
+          safety_tier: "coach",
+          stub: false,
+        }),
+      ]),
+    ) as unknown as typeof fetch;
+
+    const { result } = renderHook(() =>
+      useChatStream({ ...baseOptions, fetchImpl }),
+    );
+    await act(async () => {
+      await result.current.send("Suggest a deload");
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("done"));
+    expect(result.current.sessionId).toBe("abc-123");
+    expect(result.current.citations).toEqual([
+      { title: "Deload guidance", source_type: "article", score: 0.9 },
+    ]);
+    expect(result.current.safetyTier).toBe("coach");
+    expect(result.current.stub).toBe(false);
+  });
+
+  it("captures stub:true from the done frame", async () => {
+    const fetchImpl = vi.fn(async () =>
+      mockStreamResponse([
+        sse({ type: "token", text: "stub answer" }),
+        sse({
+          type: "done",
+          session_id: "abc-123",
+          citations: [],
+          safety_tier: "coach",
+          stub: true,
+        }),
+      ]),
+    ) as unknown as typeof fetch;
+
+    const { result } = renderHook(() =>
+      useChatStream({ ...baseOptions, fetchImpl }),
+    );
+    await act(async () => {
+      await result.current.send("hi");
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("done"));
+    expect(result.current.stub).toBe(true);
+  });
+
+  it("treats a stream that closes with no done/error frame as a retryable error", async () => {
+    const fetchImpl = vi.fn(async () =>
+      mockStreamResponse([sse({ type: "token", text: "partial" })]),
+    ) as unknown as typeof fetch;
+
+    const { result } = renderHook(() =>
+      useChatStream({ ...baseOptions, fetchImpl }),
+    );
+    await act(async () => {
+      await result.current.send("hi");
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.text).toBe("partial");
+    expect(result.current.errorSubtype).toBe("technical");
   });
 });
