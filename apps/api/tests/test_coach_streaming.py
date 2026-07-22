@@ -267,6 +267,41 @@ async def test_stream_invalid_session_id_error_frame_has_technical_subtype(
 
 
 @pytest.mark.asyncio
+async def test_get_messages_returns_most_recent_window_not_oldest(
+    alice_client: AsyncClient,
+) -> None:
+    # Three exchanges = 6 messages. A limit smaller than the full history
+    # must return the MOST RECENT window (oldest-first within that window),
+    # not the oldest messages in the session — a resumed thread should show
+    # where the athlete left off, not the start of a long conversation.
+    session_id: str | None = None
+    questions = ["first question", "second question", "third question"]
+    for q in questions:
+        payload: dict[str, str] = {"question": q}
+        if session_id is not None:
+            payload["session_id"] = session_id
+        r = await alice_client.post("/api/v1/coach/chat/stream", json=payload)
+        session_id = _parse_sse(r.content)[-1]["session_id"]
+    assert session_id is not None
+
+    r2 = await alice_client.get(
+        f"/api/v1/coach/sessions/{session_id}/messages", params={"limit": 4}
+    )
+    assert r2.status_code == 200
+    body = r2.json()
+    assert body["has_more"] is True
+    assert len(body["messages"]) == 4
+
+    # The window is the last 4 of 6 messages: the full Q2/A2 and Q3/A3 pairs
+    # — in ascending (oldest-first) order — not Q1/A1/Q2/A2 (the oldest 4).
+    contents = [m["content"] for m in body["messages"]]
+    assert contents[0] == "second question"
+    assert contents[2] == "third question"
+    roles = [m["role"] for m in body["messages"]]
+    assert roles == ["user", "assistant", "user", "assistant"]
+
+
+@pytest.mark.asyncio
 async def test_stream_done_frame_includes_stub_flag(alice_client: AsyncClient) -> None:
     r = await alice_client.post(
         "/api/v1/coach/chat/stream",

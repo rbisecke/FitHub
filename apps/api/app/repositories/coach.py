@@ -189,13 +189,20 @@ async def list_messages(
     if row is None:
         return SessionMessagesResponse(messages=[], has_more=False)
 
+    # Fetch the MOST RECENT `limit` messages (not the oldest) — a resumed
+    # session must show where the athlete left off, not the start of a long
+    # conversation. Ordered DESC to get the newest rows under LIMIT, then
+    # reversed back to ascending (oldest-first) for display. The client's
+    # "load earlier messages" affordance re-requests with a larger `limit`,
+    # which under this DESC-then-reverse query correctly reaches further back
+    # in history each time.
     async with db.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
             SELECT role, content, created_at, safety_tier
             FROM public.coach_messages
             WHERE session_id = %s
-            ORDER BY created_at ASC
+            ORDER BY created_at DESC
             LIMIT %s
             """,
             [session_id, limit + 1],
@@ -203,7 +210,7 @@ async def list_messages(
         rows = await cur.fetchall()
 
     has_more = len(rows) > limit
-    messages = [HistoryMessage(**r) for r in rows[:limit]]
+    messages = [HistoryMessage(**r) for r in reversed(rows[:limit])]
     return SessionMessagesResponse(messages=messages, has_more=has_more)
 
 
