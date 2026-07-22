@@ -181,14 +181,15 @@ async def admin_metrics(
             SELECT
                 lu.user_id::text,
                 p.display_name,
-                NULL::text                  AS email,
+                u.email                     AS email,
                 COUNT(*)                    AS interactions_30d,
                 COALESCE(SUM({cost_expr}), 0) AS cost_30d_usd
             FROM llm_usage lu
             LEFT JOIN profiles p ON p.id = lu.user_id
+            LEFT JOIN auth.users u ON u.id = lu.user_id
             WHERE lu.created_at > now() - interval '30 days'
               AND lu.stub = false
-            GROUP BY lu.user_id, p.display_name
+            GROUP BY lu.user_id, p.display_name, u.email
             ORDER BY cost_30d_usd DESC
             LIMIT 50
             """,
@@ -374,16 +375,18 @@ async def list_admin_users(
             SELECT
                 p.id::text                              AS user_id,
                 p.display_name,
-                NULL::text                              AS email,
+                u.email                                 AS email,
                 p.created_at,
                 NULL::timestamptz                       AS banned_until,
                 COALESCE(COUNT(lu.id), 0)::int          AS interactions_30d
             FROM profiles p
+            LEFT JOIN auth.users u
+                   ON u.id = p.id
             LEFT JOIN llm_usage lu
                    ON lu.user_id = p.id
                   AND lu.created_at > now() - interval '30 days'
                   AND lu.stub = false
-            GROUP BY p.id, p.display_name, p.created_at
+            GROUP BY p.id, p.display_name, u.email, p.created_at
             ORDER BY p.created_at DESC
             LIMIT 200
             """,

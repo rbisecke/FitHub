@@ -11,7 +11,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.config import get_settings
 from app.main import app
-from tests.conftest import _TEST_USER_HEADER, ALICE_ID, TEST_DB_DSN
+from tests.conftest import _TEST_USER_HEADER, ALICE_ID, BOB_ID, TEST_DB_DSN
 
 
 @pytest.fixture(autouse=True)
@@ -177,6 +177,16 @@ async def test_list_admin_users(admin_client: AsyncClient) -> None:
     resp = await admin_client.get("/api/v1/admin/users")
     assert resp.status_code == 200
     assert isinstance(resp.json(), list)
+
+
+@pytest.mark.asyncio
+async def test_list_admin_users_populates_real_email(admin_client: AsyncClient) -> None:
+    """BG-22: email must come from auth.users, not a hardcoded NULL."""
+    resp = await admin_client.get("/api/v1/admin/users")
+    assert resp.status_code == 200
+    by_id = {r["user_id"]: r for r in resp.json()}
+    assert by_id[str(ALICE_ID)]["email"] == "alice@test.local"
+    assert by_id[str(BOB_ID)]["email"] == "bob@test.local"
 
 
 # ── GET /api/v1/admin/invited-emails ─────────────────────────────────────────
