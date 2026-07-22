@@ -872,6 +872,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/profile/streak": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Streak
+     * @description The canonical, server-computed streak object (Domain 07 §D).
+     *
+     *     Also reconciles any lazily-discovered streak-freeze consumption and
+     *     milestone grants as a side effect of this read (Domain 07 §E) — see
+     *     `app/repositories/streak.py` for the full mechanism.
+     */
+    get: operations["get_streak_api_v1_profile_streak_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/profile/pinned-movements": {
     parameters: {
       query?: never;
@@ -2759,7 +2783,10 @@ export interface components {
     NotificationType:
       | "team_session_linked"
       | "team_session_updated"
-      | "workout_link_pending";
+      | "workout_link_pending"
+      | "streak_at_risk"
+      | "freeze_consumed"
+      | "streak_milestone";
     /** ParseLogRequest */
     ParseLogRequest: {
       /** Text */
@@ -3539,6 +3566,29 @@ export interface components {
       confirmed_prerequisites?: string[];
       /** Current Entry Point */
       current_entry_point?: string | null;
+    };
+    /**
+     * StreakState
+     * @description The one canonical, server-computed streak object (Domain 07 §D) —
+     *     every surface renders from this rather than recomputing its own.
+     */
+    StreakState: {
+      /** Current Streak */
+      current_streak: number;
+      /** Personal Best */
+      personal_best: number;
+      /** This Week Count */
+      this_week_count: number;
+      /** Frequency Target */
+      frequency_target: number;
+      /** At Risk */
+      at_risk: boolean;
+      /** Is Comeback */
+      is_comeback: boolean;
+      /** Freezes Remaining */
+      freezes_remaining: number;
+      /** Freeze Consumed This Week */
+      freeze_consumed_this_week: boolean;
     };
     /** SubmitAccessRequestResponse */
     SubmitAccessRequestResponse: {
@@ -5481,6 +5531,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ProfileStats"];
+        };
+      };
+    };
+  };
+  get_streak_api_v1_profile_streak_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["StreakState"];
         };
       };
     };
