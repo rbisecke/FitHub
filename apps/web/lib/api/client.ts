@@ -948,8 +948,12 @@ export const api = {
       apiFetch<void>(`/api/v1/admin/users/${userId}?confirm=true`, token, {
         method: "DELETE",
       }),
-    invitedEmails: (token: string) =>
-      apiFetch<AdminInvitedEmail[]>("/api/v1/admin/invited-emails", token),
+    invitedEmails: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<AdminInvitedEmail[]>(
+        "/api/v1/admin/invited-emails",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     addInvitedEmail: (token: string, email: string) =>
       apiFetch<AdminInvitedEmail>("/api/v1/admin/invited-emails", token, {
         method: "POST",
@@ -961,8 +965,12 @@ export const api = {
         token,
         { method: "DELETE" },
       ),
-    knowledgeBase: (token: string) =>
-      apiFetch<AdminKBEntry[]>("/api/v1/admin/knowledge-base", token),
+    knowledgeBase: (token: string, options?: { signal?: AbortSignal }) =>
+      apiFetch<AdminKBEntry[]>(
+        "/api/v1/admin/knowledge-base",
+        token,
+        options?.signal ? { signal: options.signal } : undefined,
+      ),
     triggerReindex: (token: string, sourceType?: string) =>
       apiFetch<AdminReindexJob>("/api/v1/admin/knowledge-base/reindex", token, {
         method: "POST",
