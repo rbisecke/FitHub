@@ -1,4 +1,9 @@
-import type { ResultType, SessionType, WorkoutFormat } from "@/lib/api";
+import type {
+  ResultType,
+  ScoringType,
+  SessionType,
+  WorkoutFormat,
+} from "@/lib/api";
 
 export const FORMAT_LABELS: Record<WorkoutFormat, string> = {
   strength: "Strength",
@@ -23,6 +28,23 @@ export const SESSION_LABELS: Record<SessionType, string> = {
   deload: "Deload",
   active_recovery: "Active Recovery",
 };
+
+/** F6 (06 §0) — the one fixed ScoringType → display-string mapping, used
+ * everywhere scoring_type surfaces (list chip, detail header chip, form
+ * option, derived-name fallback). The raw enum value is never shown. */
+export const SCORING_TYPE_LABELS: Record<ScoringType, string> = {
+  for_time: "For Time",
+  amrap: "AMRAP",
+  total_reps: "Total Reps",
+  max_load: "Max Load",
+  relay: "Relay",
+  slowest_finisher: "Slowest Finisher",
+};
+
+export function scoringTypeLabel(key: string | null | undefined): string {
+  if (!key) return "";
+  return SCORING_TYPE_LABELS[key as ScoringType] ?? key;
+}
 
 export const RESULT_TYPE_LABELS: Record<ResultType, string> = {
   weight: "Weight",
