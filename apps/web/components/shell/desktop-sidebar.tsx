@@ -18,7 +18,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { PRIMARY_NAV, SECONDARY_NAV, navHref, type NavItem } from "./nav-items";
-import { isSegmentActive, isAdminRoute } from "./active-segment";
+import { isSegmentActive } from "./active-segment";
 import { AccountMenu } from "./account-menu";
 import { cn } from "@/lib/utils";
 
@@ -76,11 +76,6 @@ function NavRow({ item, pathname }: { item: NavItem; pathname: string }) {
 export function DesktopSidebar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
   const secondary = SECONDARY_NAV.filter((i) => !i.adminGated);
-
-  // The admin console (`app/(shell)/admin/layout.tsx`) builds its own
-  // Sidebar — rendering this one too would overlap it (both are
-  // `position: fixed` at the same coordinates). See `isAdminRoute`.
-  if (isAdminRoute(pathname)) return null;
 
   return (
     <Sidebar collapsible="icon">

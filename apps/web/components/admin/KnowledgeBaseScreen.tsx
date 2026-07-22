@@ -81,7 +81,7 @@ function CopyButton({ text }: { text: string }) {
 
 /**
  * Knowledge base (`08` §10). Server-fetched first paint (see
- * `app/(shell)/admin/knowledge-base/page.tsx`); this client component owns
+ * `app/admin/knowledge-base/page.tsx`); this client component owns
  * the client-side retry path plus the reindex dialog.
  *
  * Honesty is the explicit design requirement (FR §5.5): the reindex "job" is

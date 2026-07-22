@@ -35,7 +35,7 @@ function formatDateTime(iso: string) {
 
 /**
  * Invite allowlist management (`08` §9). Server-fetched first paint (see
- * `app/(shell)/admin/allowlist/page.tsx`); this client component owns the
+ * `app/admin/allowlist/page.tsx`); this client component owns the
  * client-side retry path, the inline add form, and the confirmed-remove
  * flow — the highest-consequence, least-obvious action in the admin domain,
  * since removing an already-used email 403s that user out of the whole API

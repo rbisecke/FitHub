@@ -16,9 +16,16 @@ import { api } from "@/lib/api/client";
  * fails closed (treated as non-admin) — this call only controls whether the admin
  * nav item / role-switch affordance is *shown*; it is not the security boundary.
  * The `/admin/*` routes themselves independently re-verify `is-admin` server-side
- * and redirect a non-admin away (`app/(shell)/admin/layout.tsx`), so a stale or
+ * and redirect a non-admin away (`app/admin/layout.tsx`), so a stale or
  * over-eager "true" here could never actually grant access, only reveal an
  * affordance a redirect would immediately bounce.
+ *
+ * `/admin/*` lives in its own top-level `app/admin/**` segment (not this
+ * `(shell)` route group) so it never mounts inside `AppShell` below — the
+ * admin console builds its own independent `SidebarProvider`/`SidebarInset`
+ * shell (`app/admin/layout.tsx`), and nesting that inside `AppShell`'s own
+ * `SidebarProvider`/`SidebarInset` produced a doubled `<main>` landmark plus
+ * both instances fighting over the same unnamespaced `sidebar_state` cookie.
  */
 export default async function ShellLayout({
   children,

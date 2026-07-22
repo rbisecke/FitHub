@@ -24,7 +24,16 @@ import { AdminConsoleGate } from "@/components/admin/AdminConsoleGate";
  * straight back to `/today` — the same principle this codebase applies to
  * backend ownership checks, not a UI-only gate the nav's absence would be
  * enough to enforce on its own.
+ *
+ * This shell's `SidebarProvider` persists its collapse state to its own
+ * `admin_sidebar_state` cookie, not the member shell's shared `sidebar_state`
+ * one (`components/ui/sidebar.tsx`'s `cookieName` prop) — otherwise
+ * collapsing this sidebar would also leave the member `AppShell` sidebar
+ * (`components/shell/app-shell.tsx`) collapsed on the next visit to a member
+ * route, with no visible cause, since both would default to whichever value
+ * was written last.
  */
+const ADMIN_SIDEBAR_COOKIE = "admin_sidebar_state";
 export default async function AdminLayout({
   children,
 }: {
@@ -46,13 +55,16 @@ export default async function AdminLayout({
   if (!isAdmin) redirect("/today");
 
   const cookieStore = await cookies();
-  const raw = cookieStore.get("sidebar_state")?.value;
+  const raw = cookieStore.get(ADMIN_SIDEBAR_COOKIE)?.value;
   const defaultOpen = raw !== undefined ? raw === "true" : true;
 
   return (
     <AdminConsoleGate>
       <ForcedTheme theme="dark" className="flex h-svh w-full">
-        <SidebarProvider defaultOpen={defaultOpen}>
+        <SidebarProvider
+          defaultOpen={defaultOpen}
+          cookieName={ADMIN_SIDEBAR_COOKIE}
+        >
           <AdminNavSidebar />
           <SidebarInset className="flex min-h-svh flex-col">
             {/* Shadowed as one unit so the seam against the light cost page
