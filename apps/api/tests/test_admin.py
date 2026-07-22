@@ -96,6 +96,30 @@ async def test_access_request_duplicate_within_24h(anon_client: AsyncClient) -> 
     assert r2.status_code in (409, 429)
 
 
+# ── GET /api/v1/admin/is-admin ────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_is_admin_true_for_admin(admin_client: AsyncClient) -> None:
+    resp = await admin_client.get("/api/v1/admin/is-admin")
+    assert resp.status_code == 200
+    assert resp.json() == {"is_admin": True}
+
+
+@pytest.mark.asyncio
+async def test_is_admin_false_for_non_admin(non_admin_client: AsyncClient) -> None:
+    """A non-admin gets a normal 200 with is_admin: false, never a 403."""
+    resp = await non_admin_client.get("/api/v1/admin/is-admin")
+    assert resp.status_code == 200
+    assert resp.json() == {"is_admin": False}
+
+
+@pytest.mark.asyncio
+async def test_is_admin_unauthenticated(anon_client: AsyncClient) -> None:
+    resp = await anon_client.get("/api/v1/admin/is-admin")
+    assert resp.status_code == 401
+
+
 # ── Admin gating ──────────────────────────────────────────────────────────────
 
 

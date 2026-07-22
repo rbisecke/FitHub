@@ -104,6 +104,10 @@ class AddInviteBody(BaseModel):
     email: EmailStr = Field(max_length=254)
 
 
+class AdminStatus(BaseModel):
+    is_admin: bool
+
+
 # ── Health ────────────────────────────────────────────────────────────────────
 
 

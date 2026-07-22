@@ -15,9 +15,10 @@ import psycopg.rows
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from psycopg.errors import UniqueViolation
 
+from app.auth import UserContext, get_current_user
 from app.config import get_settings
 from app.db import get_db
-from app.dependencies.admin import require_admin
+from app.dependencies.admin import is_admin_user, require_admin
 from app.middleware.rate_limit import limiter, user_or_ip_key
 from app.models.admin import (
     AccessRequestCreate,
@@ -25,6 +26,7 @@ from app.models.admin import (
     AccessRequestRow,
     AddInviteBody,
     AdminHealth,
+    AdminStatus,
     AdminUser,
     DailyCostPoint,
     DeploymentEvent,
@@ -115,6 +117,24 @@ async def submit_access_request(
         ) from None
 
     return SubmitAccessRequestResponse(status="submitted")
+
+
+# ── Admin: self-status (any authenticated user, no admin gate) ────────────────
+
+
+@router.get("/api/v1/admin/is-admin", response_model=AdminStatus)
+async def get_is_admin(
+    user: Annotated[UserContext, Depends(get_current_user)],
+) -> AdminStatus:
+    """Tell an authenticated caller whether they're an admin.
+
+    Unlike every other route in this router, this does NOT depend on
+    `require_admin` — a non-admin must get a normal 200 with
+    `is_admin: false`, not a 403, since answering that question is the
+    entire point of the endpoint (the frontend shell layout uses it to
+    decide whether to render the admin nav/switch affordance).
+    """
+    return AdminStatus(is_admin=is_admin_user(user.user_id))
 
 
 # ── Admin: metrics summary ────────────────────────────────────────────────────

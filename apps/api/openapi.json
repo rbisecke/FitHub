@@ -46,6 +46,33 @@
         }
       }
     },
+    "/api/v1/admin/is-admin": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get Is Admin",
+        "description": "Tell an authenticated caller whether they're an admin.\n\nUnlike every other route in this router, this does NOT depend on\n`require_admin` \u2014 a non-admin must get a normal 200 with\n`is_admin: false`, not a 403, since answering that question is the\nentire point of the endpoint (the frontend shell layout uses it to\ndecide whether to render the admin nav/switch affordance).",
+        "operationId": "get_is_admin_api_v1_admin_is_admin_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStatus"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/admin/metrics": {
       "get": {
         "tags": [
@@ -5455,6 +5482,19 @@
           "safety_trigger_count_7d"
         ],
         "title": "AdminHealth"
+      },
+      "AdminStatus": {
+        "properties": {
+          "is_admin": {
+            "type": "boolean",
+            "title": "Is Admin"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_admin"
+        ],
+        "title": "AdminStatus"
       },
       "AdminUser": {
         "properties": {
