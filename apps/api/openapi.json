@@ -6636,6 +6636,10 @@
               }
             ]
           },
+          "status": {
+            "$ref": "#/components/schemas/TeamSessionStatus",
+            "default": "active"
+          },
           "team_score": {
             "anyOf": [
               {
@@ -11161,6 +11165,10 @@
           "participant_count": {
             "type": "integer",
             "title": "Participant Count"
+          },
+          "logged_count": {
+            "type": "integer",
+            "title": "Logged Count"
           }
         },
         "type": "object",
@@ -11175,7 +11183,8 @@
           "team_score_reps",
           "status",
           "performed_at",
-          "participant_count"
+          "participant_count",
+          "logged_count"
         ],
         "title": "TeamSessionSummary"
       },

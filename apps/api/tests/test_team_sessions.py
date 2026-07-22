@@ -50,11 +50,21 @@ async def test_create_minimal(alice_client: AsyncClient) -> None:
     assert r.status_code == 201
     body = r.json()
     assert body["name"] == "Partner Helen"
-    assert body["status"] == "completed"
+    assert body["status"] == "active"
     assert body["team_size"] == 2
     # Creator is auto-added as participant
     assert len(body["participants"]) == 1
     assert body["participants"][0]["user_id"] == str(ALICE_ID)
+
+
+@pytest.mark.asyncio
+async def test_create_explicit_status_completed_honored(alice_client: AsyncClient) -> None:
+    """BG-10: status defaults to active, but an explicit override is honored —
+    'completed' remains reachable for an after-the-fact record."""
+    payload = {**_TS_BASE, "status": "completed"}
+    r = await alice_client.post("/api/v1/team-sessions", json=payload)
+    assert r.status_code == 201
+    assert r.json()["status"] == "completed"
 
 
 @pytest.mark.asyncio
@@ -106,6 +116,40 @@ async def test_list_as_participant(alice_client: AsyncClient, bob_client: AsyncC
     r = await bob_client.get("/api/v1/team-sessions")
     assert r.status_code == 200
     assert len(r.json()["items"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_list_logged_count(alice_client: AsyncClient, bob_client: AsyncClient) -> None:
+    """BG-13: the list endpoint returns logged_count (N) alongside
+    participant_count (M) — 2 of 3 participants have a linked workout_id."""
+    alice_workout = (
+        await alice_client.post(
+            "/api/v1/workouts",
+            json={"performed_at": _PERFORMED_AT, "session_type": "metcon"},
+        )
+    ).json()
+    bob_workout = (
+        await bob_client.post(
+            "/api/v1/workouts",
+            json={"performed_at": _PERFORMED_AT, "session_type": "metcon"},
+        )
+    ).json()
+
+    payload = {
+        **_TS_BASE,
+        "workout_id": alice_workout["id"],
+        "participants": [
+            {"user_id": str(BOB_ID), "workout_id": bob_workout["id"]},
+            {"guest_name": "Charlie"},
+        ],
+    }
+    await alice_client.post("/api/v1/team-sessions", json=payload)
+
+    r = await alice_client.get("/api/v1/team-sessions")
+    assert r.status_code == 200
+    item = r.json()["items"][0]
+    assert item["participant_count"] == 3
+    assert item["logged_count"] == 2
 
 
 # ── Get ────────────────────────────────────────────────────────────────────────

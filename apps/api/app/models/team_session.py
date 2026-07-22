@@ -91,6 +91,7 @@ class TeamSessionSummary(BaseModel):
     status: TeamSessionStatus
     performed_at: datetime
     participant_count: int
+    logged_count: int
 
 
 class CreateTeamSessionRequest(BaseModel):
@@ -98,6 +99,12 @@ class CreateTeamSessionRequest(BaseModel):
     name: str | None = Field(default=None, max_length=200)
     team_size: int = Field(default=2, ge=2, le=20)
     scoring_type: ScoringType | None = None
+    # Defaults to active (BG-10): a freshly-created session starts in the Live
+    # state the leaderboard/Finalize design assumes as its starting point. The
+    # DB column's own default remains 'completed' for any insert that bypasses
+    # this model; 'completed' stays reachable here via an explicit override
+    # (e.g. an after-the-fact record) or later via PATCH .../status.
+    status: TeamSessionStatus = TeamSessionStatus.active
     team_score: str | None = Field(default=None, max_length=50)
     team_score_s: int | None = Field(default=None, gt=0)
     team_score_reps: int | None = Field(default=None, gt=0)

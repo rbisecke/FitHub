@@ -138,8 +138,8 @@ async def create_team_session(
             """
                 INSERT INTO public.team_sessions
                     (created_by, name, team_size, scoring_type,
-                     team_score, team_score_s, team_score_reps, performed_at, notes)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     team_score, team_score_s, team_score_reps, performed_at, notes, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
                 """,
             [
@@ -152,6 +152,7 @@ async def create_team_session(
                 req.team_score_reps,
                 req.performed_at,
                 req.notes,
+                req.status,
             ],
         )
         row = await cur.fetchone()
@@ -255,7 +256,8 @@ async def list_team_sessions(
                 SELECT ts.id, ts.created_by, ts.name, ts.team_size, ts.scoring_type,
                        ts.team_score, ts.team_score_s, ts.team_score_reps,
                        ts.status, ts.performed_at,
-                       COUNT(tsp.id) AS participant_count
+                       COUNT(tsp.id) AS participant_count,
+                       COUNT(tsp.id) FILTER (WHERE tsp.workout_id IS NOT NULL) AS logged_count
                 FROM   public.team_sessions ts
                 LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
                 WHERE  (ts.created_by = %s OR ts.id IN (
@@ -285,7 +287,8 @@ async def list_team_sessions(
                 SELECT ts.id, ts.created_by, ts.name, ts.team_size, ts.scoring_type,
                        ts.team_score, ts.team_score_s, ts.team_score_reps,
                        ts.status, ts.performed_at,
-                       COUNT(tsp.id) AS participant_count
+                       COUNT(tsp.id) AS participant_count,
+                       COUNT(tsp.id) FILTER (WHERE tsp.workout_id IS NOT NULL) AS logged_count
                 FROM   public.team_sessions ts
                 LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
                 WHERE  (ts.created_by = %s OR ts.id IN (
