@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { AdminHealth, AdminRecentError } from "@/lib/api";
+import type { AdminHealth, AdminRecentError, AdminLLMError } from "@/lib/api";
 
 function formatTimestamp(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
@@ -20,7 +20,8 @@ function statusColor(code: number): React.CSSProperties {
   return { color: "var(--muted)" };
 }
 
-const GRID = "150px 1.4fr 60px 130px minmax(0,2fr)";
+const HTTP_GRID = "150px 1.4fr 60px 130px minmax(0,2fr)";
+const LLM_GRID = "150px 1.6fr 140px minmax(0,2fr)";
 
 function ErrorRow({ error }: { error: AdminRecentError }) {
   return (
@@ -29,7 +30,7 @@ function ErrorRow({ error }: { error: AdminRecentError }) {
         padding: "13px 20px",
         borderBottom: "1px solid var(--border)",
         display: "grid",
-        gridTemplateColumns: GRID,
+        gridTemplateColumns: HTTP_GRID,
         gap: 12,
         alignItems: "center",
         fontSize: 12,
@@ -70,68 +71,64 @@ function ErrorRow({ error }: { error: AdminRecentError }) {
   );
 }
 
-function ErrorCard({ error }: { error: AdminRecentError }) {
+// LLM errors carry no `status_code` (unlike HTTP `recent_errors`), so there's
+// no severity class to grade the row-fill by — every entry here is already a
+// realized error by definition. `error_code` being present vs. null is the
+// only signal available: a coded failure is treated as the harder error
+// (red), an uncoded one as still-worth-flagging but softer (amber), so the
+// "same row-fill treatment" (08 §8) still reads as escalating severity
+// rather than a single flat color for every row.
+function llmErrorCodeColor(errorCode: string | null): React.CSSProperties {
+  return errorCode
+    ? { color: "var(--red)", fontWeight: 700 }
+    : { color: "var(--amber)" };
+}
+
+function LLMErrorRow({ error }: { error: AdminLLMError }) {
   return (
     <div
       style={{
-        padding: "13px 16px",
+        padding: "13px 20px",
         borderBottom: "1px solid var(--border)",
-        fontFamily: "var(--font-jetbrains-mono), monospace",
+        display: "grid",
+        gridTemplateColumns: LLM_GRID,
+        gap: 12,
+        alignItems: "center",
+        fontSize: 12,
       }}
     >
-      <div
+      <span
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-          marginBottom: 5,
+          color: "var(--muted)",
+          fontFamily: "var(--font-jetbrains-mono), monospace",
+          fontSize: 11,
         }}
       >
-        <span style={{ fontSize: 11, color: "var(--muted)" }}>
-          {formatTimestamp(error.created_at)}
-        </span>
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            ...statusColor(error.status_code),
-          }}
-        >
-          {error.status_code}
-        </span>
-      </div>
-      <div
+        {formatTimestamp(error.created_at)}
+      </span>
+      <span
         style={{
-          fontSize: 12,
           color: "var(--accent)",
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
-          marginBottom: 4,
         }}
       >
-        {error.path}
-      </div>
-      {error.error_type && (
-        <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>
-          {error.error_type}
-        </div>
-      )}
-      {error.error_msg && (
-        <div
-          style={{
-            fontSize: 12,
-            color: "var(--text)",
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical" as const,
-            overflow: "hidden",
-          }}
-        >
-          {error.error_msg}
-        </div>
-      )}
+        {error.endpoint}
+      </span>
+      <span style={llmErrorCodeColor(error.error_code)}>
+        {error.error_code ?? "unclassified"}
+      </span>
+      <span
+        style={{
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          color: "var(--text)",
+        }}
+      >
+        {error.error_msg ?? "—"}
+      </span>
     </div>
   );
 }
@@ -139,9 +136,11 @@ function ErrorCard({ error }: { error: AdminRecentError }) {
 function UptimeStat({
   label,
   value,
+  hint,
 }: {
   label: string;
   value: string | number;
+  hint?: string;
 }) {
   return (
     <div
@@ -172,6 +171,18 @@ function UptimeStat({
       >
         {value}
       </div>
+      {hint && (
+        <div
+          style={{
+            fontSize: 10.5,
+            color: "var(--muted)",
+            marginTop: 4,
+            fontFamily: "var(--font-jetbrains-mono), monospace",
+          }}
+        >
+          {hint}
+        </div>
+      )}
     </div>
   );
 }
@@ -180,6 +191,86 @@ function formatUptime(seconds: number) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   return `${h}h ${m}m`;
+}
+
+// Escalation thresholds for the safety-trigger card (08 §8: "escalates to
+// the warning/danger color ... when non-trivial"). The spec doesn't pin an
+// exact number, so these are a deliberate, documented judgment call: a
+// single hard-stop in a week is plausibly the coach guardrail doing its job
+// correctly on a genuinely risky input, not yet a pattern; a handful in the
+// same week is worth an operator's attention; five or more in seven days
+// reads as a spike (FR §4.5/§4.8 — "meant to be actionable"). Tune later
+// against real usage data.
+function safetyTriggerTone(count: number): {
+  color: string;
+  label: string;
+} {
+  if (count >= 5)
+    return { color: "var(--red)", label: "Spike — review coach safety logs" };
+  if (count >= 1) return { color: "var(--amber)", label: "Worth a look" };
+  return { color: "var(--green)", label: "Nothing to review" };
+}
+
+function SafetyTriggerCard({ count }: { count: number }) {
+  const { color, label } = safetyTriggerTone(count);
+  const escalated = count >= 1;
+
+  return (
+    // This is the single highest-priority signal on the page — the only
+    // place in the admin domain surfacing the coach's hard-stop guardrail
+    // (08 §8) — so it needs more visual weight than an ordinary stat tile:
+    // a left accent bar, larger count typography, and more padding than the
+    // 4-up header grid above it (UI critique 2026-07-22: it read as "just
+    // another tile" at the original size).
+    <div
+      style={{
+        background: escalated
+          ? `color-mix(in srgb, ${color} 16%, var(--surface))`
+          : "var(--surface)",
+        border: `1px solid ${
+          escalated
+            ? `color-mix(in srgb, ${color} 45%, transparent)`
+            : "var(--border)"
+        }`,
+        borderLeft: `4px solid ${color}`,
+        borderRadius: 12,
+        padding: "20px 24px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 20,
+        marginBottom: 24,
+        flexWrap: "wrap",
+      }}
+    >
+      <div>
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--muted)",
+            textTransform: "uppercase",
+            letterSpacing: ".5px",
+            marginBottom: 5,
+            fontWeight: 600,
+          }}
+        >
+          Safety stops (7d) — AI-coach hard-stop guardrail triggers
+        </div>
+        <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{label}</div>
+      </div>
+      <div
+        style={{
+          fontFamily: "var(--font-archivo-black), sans-serif",
+          fontSize: 44,
+          color,
+          flexShrink: 0,
+          lineHeight: 1,
+        }}
+      >
+        {count}
+      </div>
+    </div>
+  );
 }
 
 interface Props {
@@ -200,28 +291,62 @@ export function HealthPanel({ health }: Props) {
 
   return (
     <div>
-      {/* Summary stats row */}
+      {/* Compact header of process facts (08 §8: api_version, uptime_seconds
+          honestly labeled, last_llm_call_at, errors_last_hour). */}
       <div
-        className="admin-health-stats"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
+          gridTemplateColumns: "repeat(4, 1fr)",
           gap: 13,
-          marginBottom: 20,
+          marginBottom: 16,
         }}
       >
+        <UptimeStat label="API version" value={health.api_version || "dev"} />
         <UptimeStat
-          label="Uptime"
+          label="Uptime (since restart)"
           value={formatUptime(health.uptime_seconds)}
+          hint="Resets on deploy — not total availability"
+        />
+        <UptimeStat
+          label="Last LLM call"
+          value={
+            health.last_llm_call_at
+              ? formatTimestamp(health.last_llm_call_at)
+              : "Never"
+          }
         />
         <UptimeStat
           label="Errors (last hour)"
           value={health.errors_last_hour}
         />
-        <UptimeStat label="API version" value={health.api_version} />
       </div>
 
-      {/* Endpoint filter row */}
+      {/* Dedicated, prominent card — the only place in the admin domain
+          surfacing the coach's hard-stop guardrail (08 §8). */}
+      <SafetyTriggerCard count={health.safety_trigger_count_7d} />
+
+      {/* Recent HTTP errors */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          marginBottom: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <h3
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: "var(--text)",
+            fontFamily: "var(--font-jetbrains-mono), monospace",
+            margin: 0,
+          }}
+        >
+          Recent HTTP errors
+        </h3>
+      </div>
       <div
         style={{
           display: "flex",
@@ -238,7 +363,7 @@ export function HealthPanel({ health }: Props) {
             fontFamily: "var(--font-jetbrains-mono), monospace",
           }}
         >
-          Endpoint filter:
+          Filter this window by endpoint:
         </span>
         <select
           value={endpointFilter}
@@ -274,7 +399,69 @@ export function HealthPanel({ health }: Props) {
         </span>
       </div>
 
-      {/* Error log table */}
+      <div
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: 16,
+          overflow: "hidden",
+          marginBottom: 28,
+        }}
+      >
+        <div
+          style={{
+            padding: "12px 20px",
+            borderBottom: "1px solid var(--border)",
+            display: "grid",
+            gridTemplateColumns: HTTP_GRID,
+            gap: 12,
+            fontSize: 10.5,
+            color: "var(--muted)",
+            textTransform: "uppercase",
+            letterSpacing: ".5px",
+          }}
+        >
+          <span>Timestamp</span>
+          <span>Endpoint</span>
+          <span>Status</span>
+          <span>Error code</span>
+          <span>Message</span>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div
+            style={{
+              padding: 44,
+              textAlign: "center",
+              color: "var(--green)",
+              fontSize: 13,
+            }}
+          >
+            No errors in the last hour.
+          </div>
+        ) : (
+          filtered.map((error, idx) => (
+            <ErrorRow
+              key={`${error.created_at}-${error.path}-${idx}`}
+              error={error}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Recent LLM errors — same row-fill treatment as HTTP errors, no
+          endpoint filter (spec only calls for the filter on recent_errors). */}
+      <h3
+        style={{
+          fontSize: 13,
+          fontWeight: 700,
+          color: "var(--text)",
+          fontFamily: "var(--font-jetbrains-mono), monospace",
+          margin: "0 0 12px",
+        }}
+      >
+        Recent LLM errors
+      </h3>
       <div
         style={{
           background: "var(--surface)",
@@ -283,52 +470,42 @@ export function HealthPanel({ health }: Props) {
           overflow: "hidden",
         }}
       >
-        {/* Desktop column headers */}
-        <div className="hidden md:block">
-          <div
-            style={{
-              padding: "12px 20px",
-              borderBottom: "1px solid var(--border)",
-              display: "grid",
-              gridTemplateColumns: GRID,
-              gap: 12,
-              fontSize: 10.5,
-              color: "var(--muted)",
-              textTransform: "uppercase",
-              letterSpacing: ".5px",
-            }}
-          >
-            <span>Timestamp</span>
-            <span>Endpoint</span>
-            <span>Status</span>
-            <span>Error code</span>
-            <span>Message</span>
-          </div>
+        <div
+          style={{
+            padding: "12px 20px",
+            borderBottom: "1px solid var(--border)",
+            display: "grid",
+            gridTemplateColumns: LLM_GRID,
+            gap: 12,
+            fontSize: 10.5,
+            color: "var(--muted)",
+            textTransform: "uppercase",
+            letterSpacing: ".5px",
+          }}
+        >
+          <span>Timestamp</span>
+          <span>Endpoint</span>
+          <span>Error code</span>
+          <span>Message</span>
         </div>
 
-        {filtered.length === 0 ? (
+        {health.recent_llm_errors.length === 0 ? (
           <div
             style={{
               padding: 44,
               textAlign: "center",
-              color: "var(--muted)",
+              color: "var(--green)",
               fontSize: 13,
             }}
           >
-            No errors recorded.
+            No errors in the last hour.
           </div>
         ) : (
-          filtered.map((error, idx) => (
-            <div key={`${error.created_at}-${error.path}-${idx}`}>
-              {/* Desktop row */}
-              <div className="hidden md:block">
-                <ErrorRow error={error} />
-              </div>
-              {/* Mobile card */}
-              <div className="md:hidden">
-                <ErrorCard error={error} />
-              </div>
-            </div>
+          health.recent_llm_errors.map((error, idx) => (
+            <LLMErrorRow
+              key={`${error.created_at}-${error.endpoint}-${idx}`}
+              error={error}
+            />
           ))
         )}
       </div>
