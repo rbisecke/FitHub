@@ -71,6 +71,10 @@ async def require_invited(
 
     Runs on every authenticated request, closing the gap where OAuth users can
     bypass the before_user_created hook that guards email/magic-link signups.
+    Also touches `profiles.last_active_at` here — this dependency already runs
+    on every authenticated request, so it's the natural place to record app
+    activity for the nightly streak-at-risk job (app/jobs/gamification.py)
+    without adding a second DB round-trip on every endpoint individually.
     """
     async with conn.cursor() as cur:
         await cur.execute(
@@ -84,4 +88,14 @@ async def require_invited(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not invited",
             )
+        # Only write when stale (NULL or >5 minutes old) — an unconditional
+        # UPDATE on every single request would be wasteful, and a 5-minute
+        # staleness window is still accurate enough for a once-a-day
+        # "did they open the app today" check.
+        await cur.execute(
+            "UPDATE public.profiles SET last_active_at = now() "
+            "WHERE id = %s "
+            "AND (last_active_at IS NULL OR last_active_at < now() - interval '5 minutes')",
+            [user.user_id],
+        )
     return user

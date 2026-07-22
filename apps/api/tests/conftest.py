@@ -170,6 +170,13 @@ async def _clean_data() -> AsyncGenerator[None]:
             "UPDATE public.profiles SET frequency_target_days = 3 WHERE id = ANY(%s::uuid[])",
             [[str(ALICE_ID), str(BOB_ID)]],
         )
+        # last_active_at is touched by every authenticated request (app/auth.py's
+        # require_invited) — reset it so a test relying on "not active today"
+        # (tests/test_gamification.py) never leaks into another file.
+        await conn.execute(
+            "UPDATE public.profiles SET last_active_at = NULL WHERE id = ANY(%s::uuid[])",
+            [[str(ALICE_ID), str(BOB_ID)]],
+        )
         await conn.execute(
             "DELETE FROM public.training_partners WHERE user_id = ANY(%s::uuid[])",
             [[str(ALICE_ID), str(BOB_ID)]],
