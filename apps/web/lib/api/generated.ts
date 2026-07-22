@@ -657,6 +657,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/integrations/apple-health": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Apple Health Detail */
+    get: operations["get_apple_health_detail_api_v1_integrations_apple_health_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/integrations/apple-health/sync": {
     parameters: {
       query?: never;
@@ -1961,9 +1978,11 @@ export interface components {
        * Sync Status
        * @enum {string}
        */
-      sync_status: "connected" | "syncing" | "idle" | "error" | "disconnected";
+      sync_status: "idle" | "syncing" | "error";
       /** Last Synced At */
       last_synced_at: string | null;
+      /** Token Prefix */
+      token_prefix: string | null;
     };
     /** ContributionPoint */
     ContributionPoint: {
@@ -2404,6 +2423,30 @@ export interface components {
       restriction_notes?: string | null;
       /** Staleness Days */
       readonly staleness_days: number;
+    };
+    /**
+     * IntegrationDetail
+     * @description Per-provider detail (Domain 07 §C) — kept off the list endpoint so
+     *     `GET /api/v1/integrations` stays cheap for the list screen.
+     */
+    IntegrationDetail: {
+      /** Provider */
+      provider: string;
+      /**
+       * Sync Status
+       * @enum {string}
+       */
+      sync_status: "idle" | "syncing" | "error";
+      /** Last Synced At */
+      last_synced_at: string | null;
+      /** Token Prefix */
+      token_prefix: string | null;
+      /** Last Sync Rows Inserted */
+      last_sync_rows_inserted: number | null;
+      /** Last Sync Recovery Computed */
+      last_sync_recovery_computed: boolean | null;
+      /** Last Sync Error */
+      last_sync_error: ("payload_too_large" | "invalid_json") | null;
     };
     /** InvitedEmail */
     InvitedEmail: {
@@ -5143,6 +5186,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ConnectionStatus"][];
+        };
+      };
+    };
+  };
+  get_apple_health_detail_api_v1_integrations_apple_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IntegrationDetail"];
         };
       };
     };
