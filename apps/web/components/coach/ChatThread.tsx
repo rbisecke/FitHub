@@ -89,8 +89,13 @@ export function ChatThread({
   );
   const [killSwitched, setKillSwitched] = useState(false);
   const [announced, setAnnounced] = useState("");
+  // Whether the one-shot session-collision quiet-retry (§9.5) has already
+  // fired. State, not a ref: the render below needs to read it (to stop
+  // suppressing the error banner if the collision recurs after the retry),
+  // and reading a ref's `.current` during render is a lint error here
+  // (react-hooks/refs) — it can silently desync from what's on screen.
+  const [retriedCollision, setRetriedCollision] = useState(false);
 
-  const retriedCollision = useRef(false);
   const lastQuestionRef = useRef("");
   const threadRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -183,11 +188,11 @@ export function ChatThread({
         } else if (
           chat.errorSubtype === "technical" &&
           chat.error === "Session not found." &&
-          !retriedCollision.current
+          !retriedCollision
         ) {
           // Quiet recovery (§9.5): never show the raw collision — start a fresh
           // thread and re-send the same question once.
-          retriedCollision.current = true;
+          setRetriedCollision(true);
           setResolvedSessionId(null);
           void chat.send(lastQuestionRef.current, undefined);
         }
@@ -206,7 +211,7 @@ export function ChatThread({
     const trimmed = question.trim();
     if (!trimmed || killSwitched) return;
     lastQuestionRef.current = trimmed;
-    retriedCollision.current = false;
+    setRetriedCollision(false);
     setLocalTurns((prev) => [
       ...prev,
       { kind: "user", id: newId(), content: trimmed },
@@ -226,11 +231,21 @@ export function ChatThread({
     chat.status === "idle";
 
   const isRateLimited = chat.status === "error" && chat.httpStatus === 429;
+  // Suppress the banner only for the ONE quiet auto-retry attempt (§9.5) — if
+  // "Session not found." recurs after that retry already fired,
+  // retriedCollision is already true, so this stops shadowing the error and
+  // the user isn't left with a disabled-looking, silently-stuck composer and
+  // no feedback at all.
+  const isRecoveringFromCollision =
+    chat.status === "error" &&
+    chat.errorSubtype === "technical" &&
+    chat.error === "Session not found." &&
+    !retriedCollision;
   const isTechnicalError =
     chat.status === "error" &&
     chat.httpStatus !== 503 &&
     !isRateLimited &&
-    !(chat.errorSubtype === "technical" && chat.error === "Session not found.");
+    !isRecoveringFromCollision;
   const isStreamingLive = chat.status === "streaming";
 
   const lastAssistantTurn = [...localTurns]
