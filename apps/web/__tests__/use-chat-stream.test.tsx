@@ -272,6 +272,29 @@ describe("useChatStream", () => {
     expect(result.current.stub).toBe(true);
   });
 
+  it("captures session_id from a STOP-tier error frame (fresh-thread escalation)", async () => {
+    const fetchImpl = vi.fn(async () =>
+      mockStreamResponse([
+        sse({
+          type: "error",
+          subtype: "stop",
+          message: "Please stop and seek medical attention.",
+          session_id: "new-session-999",
+        }),
+      ]),
+    ) as unknown as typeof fetch;
+
+    const { result } = renderHook(() =>
+      useChatStream({ ...baseOptions, fetchImpl }),
+    );
+    await act(async () => {
+      await result.current.send("I have severe chest pain");
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("stopped"));
+    expect(result.current.sessionId).toBe("new-session-999");
+  });
+
   it("treats a stream that closes with no done/error frame as a retryable error", async () => {
     const fetchImpl = vi.fn(async () =>
       mockStreamResponse([sse({ type: "token", text: "partial" })]),

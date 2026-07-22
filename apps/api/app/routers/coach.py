@@ -462,6 +462,7 @@ async def _do_stream(
                 "type": "error",
                 "message": stop_message,
                 "subtype": "stop",
+                "session_id": str(session_id),
             }
         )
         return

@@ -30,7 +30,15 @@ export type ChatSafetyTier = "coach" | "modify" | "stop";
 /** A parsed SSE frame in the app's own vocabulary. */
 export type ChatFrame =
   | { type: "token"; text: string }
-  | { type: "error"; subtype: "stop" | "technical"; message?: string }
+  | {
+      type: "error";
+      subtype: "stop" | "technical";
+      message?: string;
+      /** Only ever present on a STOP-tier error — a STOP always gets a session
+       * (existing, reused, or freshly created) even though the LLM is never
+       * called, so the client can navigate a brand-new thread to it. */
+      sessionId?: string;
+    }
   | {
       type: "done";
       sessionId?: string;
@@ -140,7 +148,9 @@ export function parseFrame(raw: string): ChatFrame | null {
     if (type === "error") {
       const subtype = obj.subtype === "stop" ? "stop" : "technical";
       const message = typeof obj.message === "string" ? obj.message : undefined;
-      return { type: "error", subtype, message };
+      const sessionId =
+        typeof obj.session_id === "string" ? obj.session_id : undefined;
+      return { type: "error", subtype, message, sessionId };
     }
     return null;
   } catch {
@@ -295,6 +305,7 @@ export function useChatStream(
               terminal = frame.subtype === "stop" ? "stopped" : "error";
               setError(frame.message ?? null);
               setErrorSubtype(frame.subtype);
+              if (frame.sessionId) setSessionId(frame.sessionId);
             }
           }
           if (terminal) break;

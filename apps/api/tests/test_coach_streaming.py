@@ -217,6 +217,27 @@ async def test_stream_done_frame_includes_citations_and_safety_tier(
 
 
 @pytest.mark.asyncio
+async def test_stream_stop_tier_error_frame_carries_session_id(
+    alice_client: AsyncClient,
+) -> None:
+    r = await alice_client.post(
+        "/api/v1/coach/chat/stream",
+        json={"question": "I have severe chest pain and can't breathe."},
+    )
+    assert r.status_code == 200
+    events = _parse_sse(r.content)
+    assert len(events) == 1
+    session_id = events[0]["session_id"]
+    assert session_id
+
+    # The escalation's session must be a real, listable session (fresh-thread
+    # STOP still needs to show up in the session list per FR §4).
+    r2 = await alice_client.get("/api/v1/coach/sessions")
+    ids = [s["id"] for s in r2.json()]
+    assert session_id in ids
+
+
+@pytest.mark.asyncio
 async def test_stream_stop_tier_error_frame_has_stop_subtype(alice_client: AsyncClient) -> None:
     r = await alice_client.post(
         "/api/v1/coach/chat/stream",
