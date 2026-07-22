@@ -131,6 +131,8 @@ export type AdminLLMError = components["schemas"]["LLMError"];
 export type AdminHealth = components["schemas"]["AdminHealth"];
 export type AdminUser = components["schemas"]["AdminUser"];
 export type AdminAccessRequest = components["schemas"]["AccessRequestRow"];
+// Real allowlist gating (Effort 10) — GET /api/v1/admin/is-admin.
+export type AdminStatus = components["schemas"]["AdminStatus"];
 
 // Infra monitoring types — from generated OpenAPI schema
 export type AdminInfraSnapshot = components["schemas"]["InfraSnapshot"];

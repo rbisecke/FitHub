@@ -5,6 +5,7 @@ import type {
   AdminHealth,
   AdminInfraSnapshot,
   AdminInfraDashboard,
+  AdminStatus,
 } from "./index";
 import type {
   Movement,
@@ -882,6 +883,10 @@ export const api = {
       }),
   },
   admin: {
+    // Real allowlist gating (Effort 10) — 200 with `is_admin: false` for a
+    // non-admin, never a 403 (answering the question is the whole point).
+    isAdmin: (token: string) =>
+      apiFetch<AdminStatus>("/api/v1/admin/is-admin", token),
     metrics: (token: string) =>
       apiFetch<AdminMetricsSummary>("/api/v1/admin/metrics", token),
     accessRequests: (token: string, status?: string) => {
