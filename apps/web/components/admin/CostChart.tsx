@@ -1,59 +1,84 @@
 import type { AdminDailyCostPoint } from "@/lib/api";
+import { formatUsd } from "@/lib/admin/cost-format";
 
 interface Props {
   data: AdminDailyCostPoint[];
   dailyAvg: number;
 }
 
-const LEFT = 34;
+const LEFT = 40;
 const TOP = 10;
 const RIGHT = 10;
 const BOTTOM = 20;
-const CHART_W = 660 - LEFT - RIGHT; // 616
-const CHART_H = 200 - TOP - BOTTOM; // 170
+const VIEW_W = 660;
+const VIEW_H = 200;
+const CHART_W = VIEW_W - LEFT - RIGHT;
+const CHART_H = VIEW_H - TOP - BOTTOM;
 
-function formatCost(n: number): string {
-  if (n >= 1) return `$${n.toFixed(2)}`;
-  if (n >= 0.01) return `${(n * 100).toFixed(1)}¢`;
-  return `$${n.toFixed(4)}`;
+/** Heckbert's "nice number" rounding — snaps to a 1/2/5×10^n step so axis
+ * labels are always round (e.g. $0.10/$0.20 steps, never $0.18/$0.35). Fixes
+ * a critique finding: naively quartering an arbitrary max produced axis
+ * labels like $0.18/$0.35/$0.53 that read as broken next to the otherwise
+ * precise monospace figures. */
+function niceNumber(range: number, round: boolean): number {
+  if (range <= 0) return 1;
+  const exponent = Math.floor(Math.log10(range));
+  const fraction = range / Math.pow(10, exponent);
+  let niceFraction: number;
+  if (round) {
+    if (fraction < 1.5) niceFraction = 1;
+    else if (fraction < 3) niceFraction = 2;
+    else if (fraction < 7) niceFraction = 5;
+    else niceFraction = 10;
+  } else {
+    if (fraction <= 1) niceFraction = 1;
+    else if (fraction <= 2) niceFraction = 2;
+    else if (fraction <= 5) niceFraction = 5;
+    else niceFraction = 10;
+  }
+  return niceFraction * Math.pow(10, exponent);
 }
 
-function niceMax(val: number): number {
-  if (val === 0) return 1;
-  const mag = Math.pow(10, Math.floor(Math.log10(val)));
-  return Math.ceil(val / mag) * mag;
+/** Evenly-stepped gridlines from 0, guaranteed to reach at least `maxRaw`. */
+function niceGridValues(maxRaw: number): number[] {
+  if (maxRaw <= 0) return [0, 0.25, 0.5, 0.75, 1];
+  const range = niceNumber(maxRaw, false); // nice ceiling >= maxRaw
+  const step = niceNumber(range / 4, true);
+  const count = Math.ceil(maxRaw / step);
+  return Array.from({ length: count + 1 }, (_, i) => i * step);
 }
 
+/**
+ * Daily cost trend — one line, one series (`08` §7, item 4; Bible §1.5). No
+ * second axis, no overlay — a single accent-colored line with sparse dashed
+ * gridlines, the same "simplest single-series view" the infra sparklines
+ * use (`InfraPanel.tsx`). Replaced the earlier bar-chart rendering, which
+ * didn't match the spec's explicit "line chart" call.
+ */
 export function CostChart({ data, dailyAvg }: Props) {
   if (data.length === 0) {
     return (
-      <div
-        style={{
-          height: 200,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--muted)",
-          fontSize: 13,
-          fontFamily: "var(--font-jetbrains-mono), monospace",
-        }}
-      >
+      <div className="flex h-[200px] items-center justify-center font-mono text-sm text-[var(--muted)]">
         No cost data yet.
       </div>
     );
   }
 
   const maxRaw = Math.max(...data.map((d) => d.cost_usd));
-  const maxVal = niceMax(maxRaw);
-
+  const gridValues = niceGridValues(maxRaw);
+  const maxVal = Math.max(...gridValues, 0.01);
   const n = data.length;
-  const gap = Math.max(2, Math.round(CHART_W / n / 8));
-  const barW = (CHART_W - gap * (n - 1)) / n;
 
-  // Grid lines at 0, 25, 50, 75, 100% of maxVal
-  const gridLevels = [0, 0.25, 0.5, 0.75, 1];
+  const points = data.map((d, i) => {
+    const x = LEFT + (n === 1 ? CHART_W / 2 : (i / (n - 1)) * CHART_W);
+    const y =
+      TOP + CHART_H - (maxVal > 0 ? (d.cost_usd / maxVal) * CHART_H : 0);
+    return { x, y, d };
+  });
+  const linePath = points
+    .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+    .join(" ");
 
-  // X-axis labels: first, middle, last-5, last
   const xLabelIndices = new Set<number>([
     0,
     Math.floor(n / 3),
@@ -63,133 +88,92 @@ export function CostChart({ data, dailyAvg }: Props) {
 
   return (
     <div>
-      {/* Card header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          marginBottom: 14,
-        }}
-      >
+      <div className="mb-3.5 flex items-start justify-between">
         <div>
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: 14,
-              color: "var(--text)",
-              fontFamily: "var(--font-jetbrains-mono), monospace",
-            }}
-          >
-            Daily cost
-          </div>
-          <div
-            style={{
-              fontSize: 11.5,
-              color: "var(--muted)",
-              marginTop: 2,
-              fontFamily: "var(--font-jetbrains-mono), monospace",
-            }}
-          >
+          <h2 className="type-h3 text-[var(--text)]">Daily cost</h2>
+          <p className="type-caption mt-0.5 text-[var(--muted)]">
             Last 30 days · USD
-          </div>
+          </p>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div
-            style={{
-              fontFamily: "var(--font-archivo-black), sans-serif",
-              fontSize: 18,
-              color: "var(--text)",
-            }}
-          >
-            {formatCost(dailyAvg)}
+        <div className="text-right">
+          <div className="font-mono text-lg font-bold tabular-nums text-[var(--text)]">
+            {formatUsd(dailyAvg)}
           </div>
-          <div
-            style={{
-              fontSize: 10.5,
-              color: "var(--muted)",
-              fontFamily: "var(--font-jetbrains-mono), monospace",
-            }}
-          >
+          <div className="font-mono text-[10.5px] text-[var(--muted)]">
             daily avg
           </div>
         </div>
       </div>
 
-      {/* SVG chart */}
       <svg
-        viewBox="0 0 660 200"
+        viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
         width="100%"
-        height="auto"
-        style={{ display: "block" }}
+        className="block h-auto"
+        role="img"
+        aria-label={`Daily cost trend over the last ${n} days, ranging up to ${formatUsd(
+          maxRaw,
+        )}`}
       >
-        {/* Grid lines */}
-        {gridLevels.map((pct, i) => {
-          const y = TOP + CHART_H - pct * CHART_H;
-          const labelVal = maxVal * pct;
+        {gridValues.map((labelVal, i) => {
+          const y =
+            TOP + CHART_H - (maxVal > 0 ? (labelVal / maxVal) * CHART_H : 0);
           return (
             <g key={i}>
               <line
                 x1={LEFT}
                 y1={y}
-                x2={660 - RIGHT}
+                x2={VIEW_W - RIGHT}
                 y2={y}
                 stroke="var(--border)"
                 strokeWidth="1"
                 strokeDasharray="3 4"
               />
               <text
-                x={LEFT - 4}
+                x={LEFT - 6}
                 y={y + 3.5}
                 fontSize="9"
-                fontFamily="JetBrains Mono, monospace"
+                fontFamily="var(--font-mono), monospace"
                 fill="var(--muted)"
                 textAnchor="end"
               >
-                {formatCost(labelVal)}
+                {formatUsd(labelVal)}
               </text>
             </g>
           );
         })}
 
-        {/* Bars */}
-        {data.map((d, i) => {
-          const isToday = i === data.length - 1;
-          const barH = maxVal > 0 ? (d.cost_usd / maxVal) * CHART_H : 0;
-          const x = LEFT + i * (barW + gap);
-          const y = TOP + CHART_H - barH;
-          return (
-            <rect
-              key={d.day}
-              x={x}
-              y={y}
-              width={barW}
-              height={Math.max(barH, 1)}
-              rx="2"
-              fill={isToday ? "var(--green)" : "#2f4055"}
-            />
-          );
-        })}
+        <path
+          d={linePath}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth="2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* No per-point tooltip — the spec is explicit this trend line is
+            "glanceable with no tooltip dependency" (`08` §7). A nested
+            SVG <title> also triggers a browser rawtext-parsing quirk that
+            produces a spurious hydration mismatch, so this is both the
+            spec-correct and the bug-free choice. */}
+        {points.map(({ x, y, d }, i) => (
+          <circle
+            key={d.day}
+            cx={x}
+            cy={y}
+            r={i === points.length - 1 ? 3.5 : 2}
+            fill="var(--accent)"
+          />
+        ))}
       </svg>
 
-      {/* X-axis labels */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          fontSize: 10,
-          color: "var(--muted)",
-          marginTop: 4,
-          paddingLeft: LEFT,
-          fontFamily: "var(--font-jetbrains-mono), monospace",
-        }}
-      >
+      <div className="mt-1 flex justify-between pl-10 font-mono text-[10px] text-[var(--muted)]">
         {data
           .map((d, i) => ({ d, i }))
           .filter(({ i }) => xLabelIndices.has(i))
           .map(({ d, i }) => (
             <span key={i}>
-              {i === data.length - 1 ? "today" : d.day.slice(5) /* MM-DD */}
+              {i === data.length - 1 ? "today" : d.day.slice(5)}
             </span>
           ))}
       </div>

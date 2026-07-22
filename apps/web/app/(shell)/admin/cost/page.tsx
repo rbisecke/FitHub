@@ -1,19 +1,50 @@
-import { PlaceholderScreen } from "@/components/shell/placeholder-screen";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { api } from "@/lib/api/client";
+import { ForcedTheme } from "@/components/shared/forced-theme";
+import { CostDashboard } from "@/components/admin/CostDashboard";
 
 /**
- * Cost / usage dashboard (`08` §7) — placeholder route stub. This is the one
- * **light** admin surface (theme map, `08` §4) — the dark infra strip/nav
- * chrome above it is unaffected; only this page body opts into light. The
- * real hero-stat + invoice + trend + per-user layout lands in a later
- * Effort 10 step; this route only needs to resolve and nav correctly under
- * the new admin shell.
+ * Cost / usage dashboard (`08` §7) — the one **light** admin surface (theme
+ * map, `08` §4). The dark infra strip/nav chrome above it (owned by
+ * `AdminLayout`) is unaffected; only this page's own body opts into light by
+ * wrapping itself in `ForcedTheme`, mirroring the `/profile` page's pattern.
+ *
+ * Fetched server-side (mirrors `/profile`'s pattern) since the whole page is
+ * a read-once report with no client-side interactivity — there's no
+ * per-source/per-model breakdown toggle to wire (the mandated
+ * `MetricsSummary` shape has no such field to opt into).
  */
-export default function AdminCostPage() {
+export default async function AdminCostPage() {
+  const supabase = await createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) redirect("/login");
+
+  const token = session.access_token;
+
+  let metrics;
+  try {
+    metrics = await api.admin.metrics(token);
+  } catch {
+    metrics = null;
+  }
+
   return (
-    <PlaceholderScreen
-      title="Cost & usage"
-      subtitle="Hero stat, cost breakdown, trend, per-user list (08 §7). Built in a later Effort 10 step."
+    <ForcedTheme
       theme="light"
-    />
+      className="min-h-full bg-background text-foreground"
+    >
+      {metrics ? (
+        <CostDashboard metrics={metrics} />
+      ) : (
+        <div className="mx-auto max-w-5xl p-6">
+          <p className="font-mono text-sm text-[var(--muted)]">
+            Couldn&apos;t load cost data. Try refreshing the page.
+          </p>
+        </div>
+      )}
+    </ForcedTheme>
   );
 }
