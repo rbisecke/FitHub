@@ -4595,6 +4595,47 @@
         ]
       }
     },
+    "/api/v1/training-partners/{partner_user_id}": {
+      "delete": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Remove Training Partner",
+        "operationId": "remove_training_partner_api_v1_training_partners__partner_user_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "partner_user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Partner User Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/wellness/checkin": {
       "post": {
         "tags": [

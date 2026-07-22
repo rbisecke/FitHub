@@ -888,3 +888,22 @@ async def add_training_partner(
             session_count=0,
             most_common_format=None,
         )
+
+
+async def remove_training_partner(
+    conn: psycopg.AsyncConnection[Any],
+    *,
+    user_id: uuid.UUID,
+    partner_id: uuid.UUID,
+) -> bool:
+    """Delete the caller's own training_partners row.
+
+    One-directional (GitHub Follow model): only ever deletes `user_id`'s row,
+    never the partner's own reverse row (which may not even exist).
+    """
+    async with conn.cursor() as cur:
+        await cur.execute(
+            "DELETE FROM public.training_partners WHERE user_id = %s AND partner_id = %s",
+            (user_id, partner_id),
+        )
+        return cur.rowcount > 0

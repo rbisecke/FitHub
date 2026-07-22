@@ -554,6 +554,23 @@ async def test_list_training_partners_guest(alice_client: AsyncClient) -> None:
     assert charlie["session_count"] == 3
 
 
+@pytest.mark.asyncio
+async def test_remove_training_partner_success(alice_client: AsyncClient) -> None:
+    """BG-08: DELETE removes the caller's own training_partners row."""
+    add_r = await alice_client.post("/api/v1/training-partners", json={"email": "bob@test.local"})
+    assert add_r.status_code == 201
+
+    r = await alice_client.delete(f"/api/v1/training-partners/{BOB_ID}")
+    assert r.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_remove_training_partner_not_found_404(alice_client: AsyncClient) -> None:
+    """Never having added the partner (or already removed) 404s."""
+    r = await alice_client.delete(f"/api/v1/training-partners/{BOB_ID}")
+    assert r.status_code == 404
+
+
 # ── Notifications ──────────────────────────────────────────────────────────────
 
 
