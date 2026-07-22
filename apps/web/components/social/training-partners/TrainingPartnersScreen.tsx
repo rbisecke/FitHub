@@ -23,9 +23,11 @@ import { AddPartnerSheet } from "./AddPartnerSheet";
 export function TrainingPartnersScreen({
   token,
   initialPartners,
+  initialLoadFailed = false,
 }: {
   token: string;
   initialPartners: TrainingPartner[];
+  initialLoadFailed?: boolean;
 }) {
   const [partners, setPartners] = useState<TrainingPartner[]>(initialPartners);
   const [addOpen, setAddOpen] = useState(false);
@@ -83,7 +85,11 @@ export function TrainingPartnersScreen({
         ← Team sessions
       </Link>
 
-      {partners.length === 0 ? (
+      {initialLoadFailed && partners.length === 0 ? (
+        <p className="type-small text-destructive">
+          Couldn&apos;t load training partners. Please try again.
+        </p>
+      ) : partners.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card px-6 py-10 text-center">
           <p className="type-small text-muted-foreground">
             No training partners yet. They&apos;ll show up here after you log a

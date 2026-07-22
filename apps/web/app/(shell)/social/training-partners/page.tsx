@@ -7,11 +7,8 @@ import { TrainingPartnersScreen } from "@/components/social/training-partners/Tr
 /**
  * Training partners roster (06 §8a/§8b, Effort 8). Light theme (F1 — seated
  * roster review), mirroring the `/profile` route's server-fetch-then-pass
- * pattern so the list has data on first paint.
- *
- * Not yet linked from the `/social` index (owned by the team-session list
- * screen in this same effort) — reachable directly at this URL today; a
- * small nav link should be added once that screen's layout lands.
+ * pattern so the list has data on first paint. Cross-linked from the
+ * team-session list screen (and links back to it).
  */
 export default async function TrainingPartnersPage() {
   const supabase = await createClient();
@@ -22,11 +19,12 @@ export default async function TrainingPartnersPage() {
 
   const token = session.access_token;
 
-  let partners;
+  let partners: Awaited<ReturnType<typeof api.trainingPartners>> = [];
+  let initialLoadFailed = false;
   try {
     partners = await api.trainingPartners(token);
   } catch {
-    redirect("/login");
+    initialLoadFailed = true;
   }
 
   return (
@@ -34,7 +32,11 @@ export default async function TrainingPartnersPage() {
       theme="light"
       className="min-h-svh bg-background text-foreground"
     >
-      <TrainingPartnersScreen token={token} initialPartners={partners} />
+      <TrainingPartnersScreen
+        token={token}
+        initialPartners={partners}
+        initialLoadFailed={initialLoadFailed}
+      />
     </ForcedTheme>
   );
 }

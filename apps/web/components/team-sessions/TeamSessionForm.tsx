@@ -10,6 +10,7 @@ import { ParticipantPicker, type StagedParticipant } from "./ParticipantPicker";
 import { SCORING_TYPE_LABELS } from "@/lib/display";
 import { inputStyle } from "./formStyles";
 import { parseTimeInput, timeTextToSeconds, formatTime } from "@/lib/time";
+import { teamScoreHeaderLabel } from "@/lib/team-sessions/leaderboard";
 import type { ScoringType, TeamSession, TeamSessionStatus } from "@/lib/api";
 
 const SCORING_TYPES = Object.keys(SCORING_TYPE_LABELS) as ScoringType[];
@@ -19,16 +20,6 @@ const TIME_TYPES = new Set<ScoringType>([
   "slowest_finisher",
 ]);
 const REPS_TYPES = new Set<ScoringType>(["amrap", "total_reps"]);
-
-/** Shared-score field label per scoring type (06 §3 "Shared-score header label"). */
-const SCORE_FIELD_LABEL: Record<ScoringType, string> = {
-  for_time: "Team time",
-  amrap: "Total reps",
-  total_reps: "Total reps",
-  max_load: "Combined max load",
-  relay: "Relay time",
-  slowest_finisher: "Slowest time",
-};
 
 function toLocalDatetimeInputValue(date: Date): string {
   const y = date.getFullYear();
@@ -330,7 +321,7 @@ export function TeamSessionForm({
           )}
 
           <Field
-            label={scoringType ? SCORE_FIELD_LABEL[scoringType] : "Team score"}
+            label={teamScoreHeaderLabel(scoringType) ?? "Team score"}
             hint="The shared number for the whole session — each person's own result comes from their linked workout below."
           >
             <div className="flex flex-col gap-3">

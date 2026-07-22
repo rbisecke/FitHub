@@ -160,9 +160,15 @@ export function NotificationBell({ mode }: NotificationBellProps) {
       {open &&
         createPortal(
           <>
-            {/* Scrim */}
-            <div
-              className="fixed inset-0 z-40 bg-black/50"
+            {/* Scrim — a real button (not a bare div) per the accessible
+                pattern already established in SheetOverlay.tsx: keyboard-
+                reachable in principle, but tabIndex={-1} since Escape/the
+                sheet's own controls are the intended close path. */}
+            <button
+              type="button"
+              aria-label="Close"
+              tabIndex={-1}
+              className="fixed inset-0 z-40 cursor-default bg-black/50"
               onClick={() => setOpen(false)}
             />
             {/* Sheet — portaled to <body> so it escapes the header's
