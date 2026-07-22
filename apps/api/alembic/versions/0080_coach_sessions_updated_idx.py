@@ -21,9 +21,12 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Includes `id DESC` so the index fully covers list_sessions' keyset
+    # tiebreak (`ORDER BY updated_at DESC, id DESC`), not just its leading sort
+    # column.
     op.execute("""
         CREATE INDEX IF NOT EXISTS coach_sessions_user_updated_idx
-            ON public.coach_sessions (user_id, updated_at DESC)
+            ON public.coach_sessions (user_id, updated_at DESC, id DESC)
     """)
 
 

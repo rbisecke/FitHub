@@ -106,6 +106,7 @@ class CoachSession(BaseModel):
     id: UUID
     title: str
     created_at: datetime
+    updated_at: datetime
 
 
 class SessionMessagesResponse(BaseModel):

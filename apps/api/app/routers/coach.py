@@ -248,14 +248,23 @@ async def chat(
         )
 
     if tier == SafetyTier.STOP:
+        stop_message = (
+            "Please stop your workout and consult a medical professional immediately. "
+            "This situation is beyond the scope of AI coaching."
+        )
         await coach_repo.write_message(
             db, session_id, user.user_id, "user", body.question, safety_tier="stop"
         )
+        await coach_repo.write_message(
+            db,
+            session_id,
+            user.user_id,
+            "assistant",
+            stop_message,
+            safety_tier="stop",
+        )
         return ChatResponse(
-            answer=(
-                "Please stop your workout and consult a medical professional immediately. "
-                "This situation is beyond the scope of AI coaching."
-            ),
+            answer=stop_message,
             citations=[],
             stub=False,
             safety_tier="stop",

@@ -5798,13 +5798,19 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
           }
         },
         "type": "object",
         "required": [
           "id",
           "title",
-          "created_at"
+          "created_at",
+          "updated_at"
         ],
         "title": "CoachSession"
       },

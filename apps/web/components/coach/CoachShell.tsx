@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 import { createApiClient } from "@/lib/api/client";
 import { useCoachSessions } from "@/hooks/use-coach-sessions";
 import { SessionListBody } from "@/components/coach/SessionListBody";
@@ -75,8 +76,11 @@ export function CoachShell({
         sessionsApi.removeSession(id);
         if (id === sessionId) router.push("/coach");
       } catch {
-        // Best-effort — the row simply stays if the delete call fails; the
-        // user can retry from the overflow menu again.
+        // The confirmation dialog has already closed by the time this
+        // settles (fire-and-forget from SessionListBody), so a failure here
+        // would otherwise be silent — the row stays, but the user needs to
+        // be told the delete didn't happen so they know to retry.
+        toast.error("Couldn't delete this conversation. Please try again.");
       }
     },
     [accessToken, sessionId, sessionsApi, router],
@@ -88,6 +92,7 @@ export function CoachShell({
         id: newId,
         title: "",
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       });
       sessionsApi.refresh();
       if (sessionId === null) router.replace(`/coach/${newId}`);

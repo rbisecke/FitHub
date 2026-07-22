@@ -172,6 +172,42 @@ async def test_stop_tier_does_not_fetch_history(alice_client: AsyncClient) -> No
     assert data["stub"] is False
 
 
+@pytest.mark.asyncio
+async def test_stop_tier_persists_assistant_reply_on_non_streaming_chat(
+    alice_client: AsyncClient,
+) -> None:
+    """Reopening a STOP-tier /chat exchange must show a real reply, not silence.
+
+    Mirrors the streaming path's fix: /chat's STOP branch previously persisted
+    only the user's message and returned the escalation copy in the HTTP
+    response body without ever writing an assistant turn — so resuming the
+    session showed the emergency message with no reply at all.
+    """
+    r = await alice_client.post(
+        "/api/v1/coach/chat",
+        json={"question": "I have severe chest pain and can't breathe."},
+    )
+    assert r.status_code == 200
+    live_answer = r.json()["answer"]
+    session_id = None
+    # /chat's ChatResponse doesn't carry the session_id it created, so look it
+    # up via list_sessions (there's exactly one, just created).
+    sessions_resp = await alice_client.get("/api/v1/coach/sessions")
+    assert sessions_resp.status_code == 200
+    sessions = sessions_resp.json()
+    assert len(sessions) == 1
+    session_id = sessions[0]["id"]
+
+    messages_resp = await alice_client.get(f"/api/v1/coach/sessions/{session_id}/messages")
+    assert messages_resp.status_code == 200
+    messages = messages_resp.json()["messages"]
+    assert len(messages) == 2
+    assert messages[0]["role"] == "user"
+    assert messages[1]["role"] == "assistant"
+    assert messages[1]["content"] == live_answer
+    assert messages[1]["safety_tier"] == "stop"
+
+
 # ── Unit tests ─────────────────────────────────────────────────────────────────
 
 

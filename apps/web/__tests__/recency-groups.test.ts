@@ -31,10 +31,10 @@ describe("bucketForDate", () => {
 describe("groupSessionsByRecency", () => {
   it("groups and preserves server order within each bucket", () => {
     const sessions = [
-      { id: "a", created_at: "2026-07-15T10:00:00Z" },
-      { id: "b", created_at: "2026-07-15T08:00:00Z" },
-      { id: "c", created_at: "2026-07-14T10:00:00Z" },
-      { id: "d", created_at: "2026-06-01T10:00:00Z" },
+      { id: "a", updated_at: "2026-07-15T10:00:00Z" },
+      { id: "b", updated_at: "2026-07-15T08:00:00Z" },
+      { id: "c", updated_at: "2026-07-14T10:00:00Z" },
+      { id: "d", updated_at: "2026-06-01T10:00:00Z" },
     ];
     const groups = groupSessionsByRecency(sessions, NOW);
     expect(groups.map((g) => g.bucket)).toEqual([
@@ -47,8 +47,24 @@ describe("groupSessionsByRecency", () => {
     expect(groups[2]?.sessions.map((s) => s.id)).toEqual(["d"]);
   });
 
+  it("buckets a session by its updated_at, not its (older) created_at", () => {
+    // A session created weeks ago that just got a new reply must resurface
+    // into "Today" — this is the entire point of the server's updated_at
+    // ordering, and would silently regress if bucketing ever keyed off
+    // created_at instead.
+    const sessions = [
+      {
+        id: "a",
+        created_at: "2026-06-01T10:00:00Z",
+        updated_at: "2026-07-15T10:00:00Z",
+      },
+    ];
+    const groups = groupSessionsByRecency(sessions, NOW);
+    expect(groups).toEqual([{ bucket: "Today", sessions }]);
+  });
+
   it("omits empty buckets entirely", () => {
-    const sessions = [{ id: "a", created_at: "2026-07-15T10:00:00Z" }];
+    const sessions = [{ id: "a", updated_at: "2026-07-15T10:00:00Z" }];
     const groups = groupSessionsByRecency(sessions, NOW);
     expect(groups).toEqual([{ bucket: "Today", sessions: sessions }]);
   });

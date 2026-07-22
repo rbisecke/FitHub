@@ -101,7 +101,7 @@ async def list_sessions(
         if before_id is not None:
             await cur.execute(
                 """
-                SELECT id, title, created_at
+                SELECT id, title, created_at, updated_at
                 FROM public.coach_sessions
                 WHERE user_id = %s
                   AND (updated_at, id) < (
@@ -115,7 +115,7 @@ async def list_sessions(
         else:
             await cur.execute(
                 """
-                SELECT id, title, created_at
+                SELECT id, title, created_at, updated_at
                 FROM public.coach_sessions
                 WHERE user_id = %s
                 ORDER BY updated_at DESC, id DESC LIMIT %s
