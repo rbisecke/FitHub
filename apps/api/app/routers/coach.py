@@ -16,7 +16,7 @@ import anthropic
 import openai
 import psycopg
 import psycopg.rows
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from psycopg.errors import UniqueViolation
 
@@ -371,6 +371,20 @@ async def list_sessions(
     return await coach_repo.list_sessions(db, user.user_id, limit=limit, before_id=before_id)
 
 
+@router.delete("/sessions/{session_id}", status_code=204)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
+async def delete_session_route(
+    request: Request,
+    session_id: uuid.UUID,
+    user: Auth,
+    db: DBConn,
+) -> Response:
+    deleted = await coach_repo.delete_session(db, session_id, user.user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    return Response(status_code=204)
+
+
 @router.get("/sessions/{session_id}/messages", response_model=SessionMessagesResponse)
 async def get_session_messages(
     session_id: uuid.UUID,
@@ -591,6 +605,7 @@ async def _do_stream(
             "session_id": str(session_id),
             "citations": citations,
             "safety_tier": tier.value,
+            "stub": stub,
         }
     )
 

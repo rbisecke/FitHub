@@ -609,6 +609,15 @@ export const api = {
           token,
           options?.signal ? { signal: options.signal } : undefined,
         ),
+      del: (
+        token: string,
+        sessionId: string,
+        options?: { signal?: AbortSignal },
+      ) =>
+        apiFetch<void>(`/api/v1/coach/sessions/${sessionId}`, token, {
+          method: "DELETE",
+          signal: options?.signal,
+        }),
     },
     modifyWorkout: (
       token: string,
@@ -1022,6 +1031,8 @@ export function createApiClient(token: string) {
           sessionId: string,
           options?: { limit?: number; signal?: AbortSignal },
         ) => api.coach.sessions.messages(token, sessionId, options),
+        del: (sessionId: string, options?: { signal?: AbortSignal }) =>
+          api.coach.sessions.del(token, sessionId, options),
       },
       modifyWorkout: (sessionId: string, options?: { signal?: AbortSignal }) =>
         api.coach.modifyWorkout(token, sessionId, options),

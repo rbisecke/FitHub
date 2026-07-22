@@ -246,6 +246,108 @@ async def test_stream_invalid_session_id_error_frame_has_technical_subtype(
 
 
 @pytest.mark.asyncio
+async def test_stream_done_frame_includes_stub_flag(alice_client: AsyncClient) -> None:
+    r = await alice_client.post(
+        "/api/v1/coach/chat/stream",
+        json={"question": "What is the best warm-up?"},
+    )
+    assert r.status_code == 200
+    events = _parse_sse(r.content)
+    done = events[-1]
+    assert done["type"] == "done"
+    assert "stub" in done
+    assert isinstance(done["stub"], bool)
+
+
+# ── session list ordering (updated_at, not created_at) ───────────────────────
+
+
+@pytest.mark.asyncio
+async def test_list_sessions_orders_by_updated_at_not_created_at(
+    alice_client: AsyncClient,
+) -> None:
+    # Create session A, then B — A is older by created_at.
+    r_a = await alice_client.post(
+        "/api/v1/coach/chat/stream",
+        json={"question": "Tell me about the clean and jerk."},
+    )
+    session_a = _parse_sse(r_a.content)[-1]["session_id"]
+
+    r_b = await alice_client.post(
+        "/api/v1/coach/chat/stream",
+        json={"question": "Tell me about the snatch."},
+    )
+    session_b = _parse_sse(r_b.content)[-1]["session_id"]
+
+    # Bump A's updated_at by sending a second message into it.
+    await alice_client.post(
+        "/api/v1/coach/chat/stream",
+        json={"question": "How do I fix my catch position?", "session_id": session_a},
+    )
+
+    r = await alice_client.get("/api/v1/coach/sessions")
+    assert r.status_code == 200
+    ids = [s["id"] for s in r.json()]
+    # A was created first but touched most recently — it must lead the list.
+    assert ids.index(session_a) < ids.index(session_b)
+
+
+# ── DELETE /sessions/{id} ─────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_delete_session_requires_auth(anon_client: AsyncClient) -> None:
+    r = await anon_client.delete(f"/api/v1/coach/sessions/{uuid.uuid4()}")
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_delete_session_unknown_returns_404(alice_client: AsyncClient) -> None:
+    r = await alice_client.delete(f"/api/v1/coach/sessions/{uuid.uuid4()}")
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_session_other_users_session_returns_404(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    r = await alice_client.post(
+        "/api/v1/coach/chat/stream",
+        json={"question": "Talk me through Grace."},
+    )
+    session_id = _parse_sse(r.content)[-1]["session_id"]
+
+    r2 = await bob_client.delete(f"/api/v1/coach/sessions/{session_id}")
+    assert r2.status_code == 404
+
+    # Alice's session must be untouched.
+    r3 = await alice_client.get(f"/api/v1/coach/sessions/{session_id}/messages")
+    assert len(r3.json()["messages"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_delete_session_removes_it_and_cascades_messages(
+    alice_client: AsyncClient,
+) -> None:
+    r = await alice_client.post(
+        "/api/v1/coach/chat/stream",
+        json={"question": "Talk me through Cindy."},
+    )
+    session_id = _parse_sse(r.content)[-1]["session_id"]
+
+    r2 = await alice_client.delete(f"/api/v1/coach/sessions/{session_id}")
+    assert r2.status_code == 204
+
+    r3 = await alice_client.get("/api/v1/coach/sessions")
+    ids = [s["id"] for s in r3.json()]
+    assert session_id not in ids
+
+    # Messages are gone too (cascade), not merely orphaned.
+    r4 = await alice_client.get(f"/api/v1/coach/sessions/{session_id}/messages")
+    assert r4.json()["messages"] == []
+
+
+@pytest.mark.asyncio
 async def test_session_messages_include_safety_tier_and_stop_copy_matches_live(
     alice_client: AsyncClient,
 ) -> None:

@@ -1363,6 +1363,47 @@
         }
       }
     },
+    "/api/v1/coach/sessions/{session_id}": {
+      "delete": {
+        "tags": [
+          "coach"
+        ],
+        "summary": "Delete Session Route",
+        "operationId": "delete_session_route_api_v1_coach_sessions__session_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/coach/sessions/{session_id}/messages": {
       "get": {
         "tags": [
