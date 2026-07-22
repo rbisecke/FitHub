@@ -2809,6 +2809,19 @@ export interface components {
        */
       parsing_notes: string;
     };
+    /**
+     * ParticipantPreview
+     * @description A small, list-row-sized participant preview (06 §1's avatar cluster +
+     *     derived-name fallback) — not the full TeamSessionParticipant shape.
+     */
+    ParticipantPreview: {
+      /** User Id */
+      user_id: string | null;
+      /** Guest Name */
+      guest_name: string | null;
+      /** Display Name */
+      display_name?: string | null;
+    };
     /** PatchParticipantRequest */
     PatchParticipantRequest: {
       /** Workout Id */
@@ -3663,6 +3676,8 @@ export interface components {
       participant_count: number;
       /** Logged Count */
       logged_count: number;
+      /** Participants Preview */
+      participants_preview?: components["schemas"]["ParticipantPreview"][];
     };
     /** TodayCheckInResponse */
     TodayCheckInResponse: {

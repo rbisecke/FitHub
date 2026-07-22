@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Users, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AvatarMonogram } from "@/components/shared/avatar-monogram";
 import { api } from "@/lib/api/client";
 import { relativeDate, scoringTypeLabel } from "@/lib/display";
 import { localDateKey } from "@/lib/units";
@@ -12,48 +13,66 @@ import { TeamSessionForm } from "./TeamSessionForm";
 import type { TeamSessionSummary } from "@/lib/api";
 
 /**
- * Derived fallback title when `name` is null (06 §1 "Unnamed session").
- *
- * The spec's ideal fallback is "{scoring_type} with {first two display
- * names} +N", but `TeamSessionSummary` (the list endpoint's row shape)
- * carries only aggregate counts — no participant identities — so the
- * per-name half of that string isn't available at this query level. This
- * degrades to a scoring-type + headcount label rather than fabricating
- * names; upgrading to real display names would need the list endpoint to
- * additionally return a small participant-name preview per row.
+ * Derived fallback title when `name` is null (06 §1 "Unnamed session"):
+ * "{scoring_type} with {first two display names} +N". `participants_preview`
+ * (up to 3, joined_at order) backs this; falls back to a headcount-only
+ * label on the rare row where the preview is empty (a session with only the
+ * creator and no other participants yet).
  */
 function sessionDisplayName(ts: TeamSessionSummary): string {
   if (ts.name) return ts.name;
   const label = scoringTypeLabel(ts.scoring_type);
-  const people = `${ts.participant_count} ${
-    ts.participant_count === 1 ? "person" : "people"
-  }`;
-  return label ? `${label} — ${people}` : `Team session — ${people}`;
+  const names = (ts.participants_preview ?? [])
+    .slice(0, 2)
+    .map((p) => p.display_name)
+    .filter((n): n is string => Boolean(n));
+
+  if (names.length === 0) {
+    const people = `${ts.participant_count} ${
+      ts.participant_count === 1 ? "person" : "people"
+    }`;
+    return label ? `${label} — ${people}` : `Team session — ${people}`;
+  }
+
+  const extra = ts.participant_count - names.length;
+  const withNames = `with ${names.join(" & ")}${extra > 0 ? ` +${extra}` : ""}`;
+  return label ? `${label} ${withNames}` : withNames;
 }
 
 /**
- * Row-leading anchor (06 §1 "anchor every row to a circular avatar first").
- * The list endpoint (`TeamSessionSummary`) has no participant identities —
- * only aggregate counts — so this deliberately does NOT render fake
- * stacked avatar circles: a gray silhouette-per-person implies real
- * per-participant data that isn't there and reads as "unknown/broken"
- * rather than "not fetched." A plain count badge is the honest anchor
- * until the list endpoint can return a small per-row identity preview.
+ * Row-leading anchor (06 §1 "anchor every row to a circular avatar first" /
+ * F2's multi-person identity-color exception): a stacked cluster of up to 3
+ * participant monograms + "+N" for the rest.
  */
-function AvatarCluster({ count }: { count: number }) {
+function AvatarCluster({ ts }: { ts: TeamSessionSummary }) {
+  const preview = ts.participants_preview ?? [];
+  const extra = ts.participant_count - preview.length;
+
   return (
-    <div
-      className="flex size-8 shrink-0 items-center justify-center gap-1 rounded-full ring-1 ring-[var(--border)]"
-      style={{ background: "var(--surface-2)" }}
-      aria-hidden="true"
-    >
-      <Users className="size-3.5" style={{ color: "var(--muted)" }} />
-      <span
-        className="font-mono text-[10px] tabular-nums"
-        style={{ color: "var(--muted)" }}
-      >
-        {count}
-      </span>
+    <div className="flex shrink-0 items-center" aria-hidden="true">
+      <div className="flex -space-x-2">
+        {preview.slice(0, 3).map((p, i) => (
+          <div
+            key={p.user_id ?? p.guest_name ?? i}
+            className="rounded-full ring-2 ring-[var(--surface)]"
+          >
+            <AvatarMonogram
+              name={p.display_name ?? p.guest_name ?? "?"}
+              seed={p.user_id ?? p.guest_name ?? undefined}
+              isGuest={!p.user_id}
+              size="sm"
+            />
+          </div>
+        ))}
+      </div>
+      {extra > 0 && (
+        <span
+          className="ml-1 font-mono text-[10px] tabular-nums"
+          style={{ color: "var(--muted)" }}
+        >
+          +{extra}
+        </span>
+      )}
     </div>
   );
 }
@@ -96,7 +115,7 @@ function Row({ ts }: { ts: TeamSessionSummary }) {
       href={`/social/team-sessions/${ts.id}`}
       className={`flex items-center gap-3 rounded-r-[8px] px-4 py-3 transition-colors hover:bg-[--surface-2] ${rowTint}`}
     >
-      <AvatarCluster count={ts.participant_count} />
+      <AvatarCluster ts={ts} />
       <div className="min-w-0 flex-1">
         <p
           className="truncate font-sans text-[14px] font-medium"

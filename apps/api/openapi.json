@@ -8644,6 +8644,51 @@
         "type": "object",
         "title": "ParsedLogEntry"
       },
+      "ParticipantPreview": {
+        "properties": {
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "guest_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guest Name"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "guest_name"
+        ],
+        "title": "ParticipantPreview",
+        "description": "A small, list-row-sized participant preview (06 \u00a71's avatar cluster +\nderived-name fallback) \u2014 not the full TeamSessionParticipant shape."
+      },
       "PatchParticipantRequest": {
         "properties": {
           "workout_id": {
@@ -11232,6 +11277,13 @@
           "logged_count": {
             "type": "integer",
             "title": "Logged Count"
+          },
+          "participants_preview": {
+            "items": {
+              "$ref": "#/components/schemas/ParticipantPreview"
+            },
+            "type": "array",
+            "title": "Participants Preview"
           }
         },
         "type": "object",

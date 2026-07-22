@@ -464,59 +464,96 @@ async def list_team_sessions(
     before_id: uuid.UUID | None = None,
     limit: int = 20,
 ) -> list[TeamSessionSummary]:
+    # Small per-row participant preview (up to 3, joined_at order) for the list
+    # row's avatar cluster + derived-name fallback (06 §1). Joined AFTER the
+    # counts are grouped (not inside the same GROUP BY) — a json value has no
+    # equality operator, so it can't sit in a GROUP BY clause alongside it.
+    _preview_join = """
+        LEFT JOIN LATERAL (
+            SELECT json_agg(
+                       json_build_object(
+                           'user_id', prev.user_id,
+                           'guest_name', prev.guest_name,
+                           'display_name', COALESCE(pp.display_name, prev.guest_name)
+                       ) ORDER BY prev.joined_at
+                   ) AS preview
+            FROM (
+                SELECT * FROM public.team_session_participants
+                WHERE team_session_id = counts.id
+                ORDER BY joined_at
+                LIMIT 3
+            ) prev
+            LEFT JOIN public.profiles pp ON pp.id = prev.user_id
+        ) preview_agg ON true
+    """
     async with conn.cursor(row_factory=dict_row) as cur:
         if before_id is not None:
             await cur.execute(
-                """
-                SELECT ts.id, ts.created_by, ts.name, ts.team_size, ts.scoring_type,
-                       ts.team_score, ts.team_score_s, ts.team_score_reps,
-                       ts.status, ts.performed_at,
-                       COUNT(tsp.id) AS participant_count,
-                       COUNT(tsp.id) FILTER (WHERE tsp.workout_id IS NOT NULL) AS logged_count
-                FROM   public.team_sessions ts
-                LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
-                WHERE  (ts.created_by = %s OR ts.id IN (
-                           SELECT team_session_id FROM public.team_session_participants
-                           WHERE user_id = %s
-                        ))
-                  AND  (ts.performed_at, ts.id) < (
-                           SELECT performed_at, id FROM public.team_sessions
-                           WHERE id = %s
-                             AND (
-                                 created_by = %s
-                                 OR id IN (
-                                     SELECT team_session_id FROM public.team_session_participants
-                                     WHERE user_id = %s
+                f"""
+                WITH counts AS (
+                    SELECT ts.id, ts.created_by, ts.name, ts.team_size, ts.scoring_type,
+                           ts.team_score, ts.team_score_s, ts.team_score_reps,
+                           ts.status, ts.performed_at,
+                           COUNT(tsp.id) AS participant_count,
+                           COUNT(tsp.id) FILTER (WHERE tsp.workout_id IS NOT NULL) AS logged_count
+                    FROM   public.team_sessions ts
+                    LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
+                    WHERE  (ts.created_by = %s OR ts.id IN (
+                               SELECT team_session_id FROM public.team_session_participants
+                               WHERE user_id = %s
+                            ))
+                      AND  (ts.performed_at, ts.id) < (
+                               SELECT performed_at, id FROM public.team_sessions
+                               WHERE id = %s
+                                 AND (
+                                     created_by = %s
+                                     OR id IN (
+                                         SELECT team_session_id
+                                         FROM   public.team_session_participants
+                                         WHERE  user_id = %s
+                                     )
                                  )
-                             )
-                       )
-                GROUP  BY ts.id
-                ORDER  BY ts.performed_at DESC, ts.id DESC
+                           )
+                    GROUP  BY ts.id
+                )
+                SELECT counts.*, COALESCE(preview_agg.preview, '[]'::json) AS participants_preview
+                FROM   counts
+                {_preview_join}
+                ORDER  BY counts.performed_at DESC, counts.id DESC
                 LIMIT  %s
                 """,
                 [user_id, user_id, str(before_id), user_id, user_id, limit],
             )
         else:
             await cur.execute(
-                """
-                SELECT ts.id, ts.created_by, ts.name, ts.team_size, ts.scoring_type,
-                       ts.team_score, ts.team_score_s, ts.team_score_reps,
-                       ts.status, ts.performed_at,
-                       COUNT(tsp.id) AS participant_count,
-                       COUNT(tsp.id) FILTER (WHERE tsp.workout_id IS NOT NULL) AS logged_count
-                FROM   public.team_sessions ts
-                LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
-                WHERE  (ts.created_by = %s OR ts.id IN (
-                           SELECT team_session_id FROM public.team_session_participants
-                           WHERE user_id = %s
-                        ))
-                GROUP  BY ts.id
-                ORDER  BY ts.performed_at DESC, ts.id DESC
+                f"""
+                WITH counts AS (
+                    SELECT ts.id, ts.created_by, ts.name, ts.team_size, ts.scoring_type,
+                           ts.team_score, ts.team_score_s, ts.team_score_reps,
+                           ts.status, ts.performed_at,
+                           COUNT(tsp.id) AS participant_count,
+                           COUNT(tsp.id) FILTER (WHERE tsp.workout_id IS NOT NULL) AS logged_count
+                    FROM   public.team_sessions ts
+                    LEFT JOIN public.team_session_participants tsp ON tsp.team_session_id = ts.id
+                    WHERE  (ts.created_by = %s OR ts.id IN (
+                               SELECT team_session_id FROM public.team_session_participants
+                               WHERE user_id = %s
+                            ))
+                    GROUP  BY ts.id
+                )
+                SELECT counts.*, COALESCE(preview_agg.preview, '[]'::json) AS participants_preview
+                FROM   counts
+                {_preview_join}
+                ORDER  BY counts.performed_at DESC, counts.id DESC
                 LIMIT  %s
                 """,
                 [user_id, user_id, limit],
             )
         rows = await cur.fetchall()
+        for r in rows:
+            preview = r.get("participants_preview")
+            if isinstance(preview, str):
+                r["participants_preview"] = json.loads(preview)
         return [TeamSessionSummary(**r) for r in rows]
 
 

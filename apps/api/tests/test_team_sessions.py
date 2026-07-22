@@ -230,6 +230,29 @@ async def test_list_logged_count(alice_client: AsyncClient, bob_client: AsyncCli
     assert item["logged_count"] == 2
 
 
+@pytest.mark.asyncio
+async def test_list_participants_preview(
+    alice_client: AsyncClient, bob_client: AsyncClient
+) -> None:
+    """The list endpoint returns a small (<=3) participant preview per row —
+    needed for the row's avatar cluster and the derived-name fallback when
+    `name` is null (06 §1), which the aggregate counts alone can't back."""
+    alice_name = await _display_name(alice_client)
+    payload = {
+        **_TS_BASE,
+        "participants": [{"user_id": str(BOB_ID)}, {"guest_name": "Charlie"}],
+    }
+    await alice_client.post("/api/v1/team-sessions", json=payload)
+
+    r = await alice_client.get("/api/v1/team-sessions")
+    assert r.status_code == 200
+    preview = r.json()["items"][0]["participants_preview"]
+    assert len(preview) == 3
+    display_names = {p["display_name"] for p in preview}
+    assert alice_name in display_names
+    assert "charlie" in display_names  # guest names are normalised lower().strip()
+
+
 # ── Get ────────────────────────────────────────────────────────────────────────
 
 

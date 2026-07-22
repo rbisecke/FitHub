@@ -85,6 +85,15 @@ class TeamSession(BaseModel):
     participants: list[TeamSessionParticipant] = Field(default_factory=list)
 
 
+class ParticipantPreview(BaseModel):
+    """A small, list-row-sized participant preview (06 §1's avatar cluster +
+    derived-name fallback) — not the full TeamSessionParticipant shape."""
+
+    user_id: uuid.UUID | None
+    guest_name: str | None
+    display_name: str | None = None
+
+
 class TeamSessionSummary(BaseModel):
     id: uuid.UUID
     created_by: uuid.UUID
@@ -98,6 +107,7 @@ class TeamSessionSummary(BaseModel):
     performed_at: datetime
     participant_count: int
     logged_count: int
+    participants_preview: list[ParticipantPreview] = Field(default_factory=list)
 
 
 class CreateTeamSessionRequest(BaseModel):
