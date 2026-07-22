@@ -84,6 +84,7 @@ function FreezeRevealInner({
     prefersReducedMotion ? "static" : "beat1",
   );
   const gotItRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (prefersReducedMotion) return;
@@ -102,6 +103,49 @@ function FreezeRevealInner({
       gotItRef.current?.focus();
     }
   }, [beat]);
+
+  // Focus management + body scroll lock, mirroring SheetOverlay's modal
+  // pattern: move focus into the dialog on mount (the panel itself, since
+  // Beats 1-3 have no focusable control yet — "Got it" claims focus once it
+  // arrives via the effect above), trap Tab inside it, allow Escape to
+  // dismiss at any beat, and restore focus/scroll on unmount.
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const focusId = requestAnimationFrame(() => panelRef.current?.focus());
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onDismiss();
+        return;
+      }
+      if (e.key !== "Tab" || !panelRef.current) return;
+      const focusable = panelRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])',
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) {
+        e.preventDefault(); // no focusable control yet — keep focus pinned to the panel
+        return;
+      }
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      cancelAnimationFrame(focusId);
+      document.body.style.overflow = prevOverflow;
+      previouslyFocused?.focus?.();
+    };
+  }, [onDismiss]);
 
   const resolved = beat === "beat3" || beat === "beat4" || beat === "static";
   const showIceShell = beat === "beat1" || beat === "beat2";
@@ -124,7 +168,9 @@ function FreezeRevealInner({
       className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg)]/90 px-5 backdrop-blur-sm"
     >
       <div
-        className="flex w-full max-w-sm flex-col items-center gap-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-6 py-8"
+        ref={panelRef}
+        tabIndex={-1}
+        className="flex w-full max-w-sm flex-col items-center gap-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-6 py-8 outline-none"
         style={{ boxShadow: "var(--shadow-overlay)" }}
       >
         <div className="relative flex size-24 items-center justify-center">
@@ -230,7 +276,11 @@ function FreezeRevealInner({
                     key={i}
                     className="flex size-5 items-center justify-center rounded-[2px]"
                     style={{
-                      background: isCovered ? "var(--frost)" : "var(--green)",
+                      // Matches ContributionGraph's "logged" cell token
+                      // exactly (--cyan) — the two surfaces render the same
+                      // semantic and a 2026-07-18 spec correction requires
+                      // an exact match, not merely a similar hue.
+                      background: isCovered ? "var(--frost)" : "var(--cyan)",
                     }}
                     title={isCovered ? weekLabel : undefined}
                   >

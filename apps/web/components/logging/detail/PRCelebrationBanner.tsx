@@ -42,7 +42,15 @@ export function PRCelebrationBanner({
   client: ApiClient;
   weightUnit: WeightUnit;
 }) {
-  const [records, setRecords] = useState<PersonalRecord[] | null>(null);
+  // The dedup decision (which lines are new vs. already shown this session)
+  // is made exactly once per mount, from inside the fetch's `.then()` —
+  // never synchronously in the render body or the effect body itself.
+  // Reading AND writing sessionStorage during render meant any unrelated
+  // re-render of this component (e.g. a sibling state change on the page)
+  // re-ran the same "already in storage from render #1? strip it" check
+  // against render #1's own write, silently vanishing a banner the user was
+  // already looking at.
+  const [displayLines, setDisplayLines] = useState<PrLine[] | null>(null);
 
   // `prGroups` starts empty on first render (the parent's strict-PR match
   // depends on its own async `personalRecordsBatch` fetch resolving first)
@@ -56,14 +64,60 @@ export function PRCelebrationBanner({
     const controller = new AbortController();
     let cancelled = false;
 
+    function applyRecords(records: PersonalRecord[]) {
+      const lines: PrLine[] = [];
+      for (const group of prGroups) {
+        const record = records.find((r) => r.movement_id === group.movementId);
+        if (!record || record.workout_id !== workoutId) continue;
+        if (record.load_kg == null || record.delta_kg == null) {
+          // No weight-bearing PR data to form an honest delta from — skip
+          // rather than invent one (e.g. a bodyweight/reps-only movement).
+          if (record.prev_best_1rm_kg == null) {
+            lines.push({
+              key: group.movementId,
+              text: `First PR — ${group.movementName}, your benchmark is set`,
+            });
+          }
+          continue;
+        }
+        const isFirstEver = record.prev_best_1rm_kg == null;
+        const text = isFirstEver
+          ? `First PR — ${group.movementName}, your benchmark is set`
+          : `New PR — ${group.movementName} +${formatWeightDelta(
+              record.delta_kg,
+              weightUnit,
+            )} from your previous best`;
+        lines.push({ key: group.movementId, text });
+      }
+
+      // Decide dedup once per mount: on the very first successful
+      // computation (displayLines still null), check sessionStorage and
+      // record which lines are genuinely new. Once decided for this mount,
+      // the displayed set never gets re-filtered against storage again.
+      setDisplayLines((prev) => {
+        if (prev !== null) return prev;
+        const kept: PrLine[] = [];
+        for (const line of lines) {
+          const sessionKey = `${SESSION_KEY_PREFIX}${line.key}`;
+          const alreadyShown =
+            window.sessionStorage.getItem(sessionKey) === line.text;
+          if (!alreadyShown) {
+            window.sessionStorage.setItem(sessionKey, line.text);
+            kept.push(line);
+          }
+        }
+        return kept;
+      });
+    }
+
     client.analytics
       .personalRecords({ signal: controller.signal })
       .then((res) => {
-        if (!cancelled) setRecords(res);
+        if (!cancelled) applyRecords(res);
       })
       .catch(() => {
         if (cancelled || controller.signal.aborted) return;
-        setRecords([]); // fail quiet — the banner is a celebration, not critical
+        applyRecords([]); // fail quiet — the banner is a celebration, not critical
       });
 
     return () => {
@@ -73,46 +127,8 @@ export function PRCelebrationBanner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, workoutId, movementIdsKey]);
 
-  if (prGroups.length === 0 || records === null) return null;
-
-  const lines: PrLine[] = [];
-  for (const group of prGroups) {
-    const record = records.find((r) => r.movement_id === group.movementId);
-    if (!record || record.workout_id !== workoutId) continue;
-    if (record.load_kg == null || record.delta_kg == null) {
-      // No weight-bearing PR data to form an honest delta from — skip rather
-      // than invent one (e.g. a bodyweight/reps-only movement).
-      if (record.prev_best_1rm_kg == null) {
-        lines.push({
-          key: group.movementId,
-          text: `First PR — ${group.movementName}, your benchmark is set`,
-        });
-      }
-      continue;
-    }
-    const isFirstEver = record.prev_best_1rm_kg == null;
-    const text = isFirstEver
-      ? `First PR — ${group.movementName}, your benchmark is set`
-      : `New PR — ${group.movementName} +${formatWeightDelta(
-          record.delta_kg,
-          weightUnit,
-        )} from your previous best`;
-    lines.push({ key: group.movementId, text });
-  }
-
-  if (typeof window !== "undefined") {
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const line = lines[i]!;
-      const sessionKey = `${SESSION_KEY_PREFIX}${line.key}`;
-      if (window.sessionStorage.getItem(sessionKey) === line.text) {
-        lines.splice(i, 1); // dedupe: same movement + same PR value already shown
-      } else {
-        window.sessionStorage.setItem(sessionKey, line.text);
-      }
-    }
-  }
-
-  if (lines.length === 0) return null;
+  if (displayLines === null || displayLines.length === 0) return null;
+  const lines = displayLines;
 
   return (
     <div

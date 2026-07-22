@@ -180,6 +180,9 @@ const KIND_STYLE: Record<
   { className: string; icon: "snowflake" | "moon" | null }
 > = {
   future: { className: "opacity-0", icon: null },
+  // Kept in sync with FreezeReveal's mini-graph strip (both render the same
+  // "logged" semantic) — a 2026-07-18 spec correction explicitly requires
+  // these two surfaces use the identical token, not merely similar hues.
   logged: { className: "bg-[var(--cyan)]", icon: null },
   freeze: {
     className: "bg-[var(--frost)]/30 text-[var(--frost)]",
