@@ -1,156 +1,187 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
-import { api } from "@/lib/api/client";
-import type { CoachSession } from "@/lib/api";
-import { SessionList } from "./SessionList";
-import { SessionDrawer } from "./SessionDrawer";
-import { ChatPanel } from "./ChatPanel";
-import { CoachHeader } from "./CoachHeader";
-import { WodCheckPanel } from "./WodCheckPanel";
+import { createApiClient } from "@/lib/api/client";
+import { useCoachSessions } from "@/hooks/use-coach-sessions";
+import { SessionListBody } from "@/components/coach/SessionListBody";
+import { ChatThread } from "@/components/coach/ChatThread";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-interface CoachShellProps {
-  token: string;
-  userEmail: string;
-  initialSessionId?: string;
-}
-
+/**
+ * Responsive chat shell (design-spec 03 §1, §5) — the domain's one `md:`
+ * breakpoint switch: a persistent ~280px left session-list rail alongside a
+ * ~680px-capped, centered thread on desktop; stacked full-screen list ↔
+ * thread views on mobile. Owns routing between `/coach` and
+ * `/coach/[sessionId]` and the session list shared by both layouts.
+ */
 export function CoachShell({
-  token,
-  userEmail,
-  initialSessionId,
-}: CoachShellProps) {
+  accessToken,
+  sessionId,
+  initialPrompt,
+  modifyDeepLinkHref,
+}: {
+  accessToken: string;
+  sessionId: string | null;
+  initialPrompt?: string;
+  modifyDeepLinkHref?: string;
+}) {
   const router = useRouter();
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(
-    initialSessionId ?? null,
-  );
-  const [sessions, setSessions] = useState<CoachSession[]>([]);
-  const [sessionsLoading, setSessionsLoading] = useState(true);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const sessionsApi = useCoachSessions(accessToken);
+  const [mobileShowThread, setMobileShowThread] = useState(sessionId !== null);
+  const consumedPrompt = useRef(false);
 
-  const mountedRef = useRef(true);
-  useEffect(
-    () => () => {
-      mountedRef.current = false;
-    },
-    [],
-  );
-
-  // Silent refresh — called after session creation, no loading spinner
-  const refreshSessions = useCallback(() => {
-    api.coach.sessions
-      .list(token, { limit: 20 })
-      .then((data) => {
-        if (mountedRef.current) setSessions(data);
-      })
-      .catch(() => toast.error("Failed to refresh sessions"));
-  }, [token]);
-
-  // Initial load — AbortController + cancelled guard prevent stale setState after unmount
+  // /coach?prompt=… seeds the composer once, then the param is cleared (§6.4) —
+  // the ChatThread below already captured it into its own state at mount time,
+  // so clearing the URL here is safe and doesn't affect that copy.
   useEffect(() => {
-    const controller = new AbortController();
+    if (initialPrompt && !consumedPrompt.current) {
+      consumedPrompt.current = true;
+      router.replace("/coach");
+    }
+  }, [initialPrompt, router]);
+
+  useEffect(() => {
     let cancelled = false;
-    api.coach.sessions
-      .list(token, { limit: 20 }, { signal: controller.signal })
-      .then((data) => {
-        if (!cancelled) setSessions(data);
-      })
-      .catch((err) => {
-        if (cancelled || controller.signal.aborted) return;
-        console.warn("Sessions load failed", err);
-      })
-      .finally(() => {
-        if (!cancelled) setSessionsLoading(false);
-      });
+    // Deferred to a microtask — satisfies react-hooks/set-state-in-effect.
+    void Promise.resolve().then(() => {
+      if (!cancelled) setMobileShowThread(sessionId !== null);
+    });
     return () => {
       cancelled = true;
-      controller.abort();
     };
-  }, [token]);
+  }, [sessionId]);
 
-  function handleSelectSession(id: string) {
-    setActiveSessionId(id);
-    router.push(`/coach/${id}`, { scroll: false });
-  }
+  const handleSelect = useCallback(
+    (id: string) => {
+      setMobileShowThread(true);
+      router.push(`/coach/${id}`);
+    },
+    [router],
+  );
 
-  function handleNewSession() {
-    setActiveSessionId(null);
-    router.push("/coach", { scroll: false });
-  }
+  const handleNew = useCallback(() => {
+    setMobileShowThread(true);
+    if (sessionId !== null) router.push("/coach");
+  }, [router, sessionId]);
 
-  function handleSessionCreated(id: string) {
-    setActiveSessionId(id);
-    router.replace(`/coach/${id}`, { scroll: false });
-    refreshSessions();
+  const handleDelete = useCallback(
+    async (id: string) => {
+      try {
+        const client = createApiClient(accessToken);
+        await client.coach.sessions.del(id);
+        sessionsApi.removeSession(id);
+        if (id === sessionId) router.push("/coach");
+      } catch {
+        // The confirmation dialog has already closed by the time this
+        // settles (fire-and-forget from SessionListBody), so a failure here
+        // would otherwise be silent — the row stays, but the user needs to
+        // be told the delete didn't happen so they know to retry.
+        toast.error("Couldn't delete this conversation. Please try again.");
+      }
+    },
+    [accessToken, sessionId, sessionsApi, router],
+  );
+
+  const handleSessionResolved = useCallback(
+    (newId: string) => {
+      sessionsApi.prependNewSession({
+        id: newId,
+        title: "",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      sessionsApi.refresh();
+      if (sessionId === null) router.replace(`/coach/${newId}`);
+    },
+    [sessionsApi, sessionId, router],
+  );
+
+  const isBrandNewUser =
+    !sessionsApi.loading && sessionsApi.sessions.length === 0;
+
+  const listBody = (
+    <SessionListBody
+      sessions={sessionsApi.sessions}
+      activeId={sessionId}
+      loading={sessionsApi.loading}
+      error={sessionsApi.error}
+      hasMore={sessionsApi.hasMore}
+      loadingMore={sessionsApi.loadingMore}
+      onLoadMore={sessionsApi.loadMore}
+      onSelect={handleSelect}
+      onNew={handleNew}
+      onDelete={(id) => void handleDelete(id)}
+    />
+  );
+
+  const thread = (
+    <ChatThread
+      key={sessionId ?? "new"}
+      accessToken={accessToken}
+      sessionId={sessionId}
+      initialComposerValue={initialPrompt ?? ""}
+      isBrandNewUser={isBrandNewUser}
+      onSessionResolved={handleSessionResolved}
+      onTurnSettled={sessionsApi.refresh}
+      modifyDeepLinkHref={modifyDeepLinkHref}
+    />
+  );
+
+  if (isMobile) {
+    return (
+      // Bounded to the viewport minus the shell's own chrome so the composer
+      // stays pinned and the thread scrolls internally instead of the page:
+      // mobile top bar (mobile-top-bar.tsx, h-12/48px) + bottom tab bar
+      // (mobile-bottom-nav.tsx, h-16/64px) + the pb-nav-safe breathing room
+      // (globals.css, 16px) + the safe-area inset.
+      <div className="flex h-[calc(100svh-48px-64px-16px-env(safe-area-inset-bottom))] flex-col">
+        {mobileShowThread ? (
+          <>
+            <div
+              className="flex items-center gap-2 border-b px-4 py-2"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileShowThread(false);
+                  router.push("/coach");
+                }}
+                aria-label="Back to conversations"
+                data-testid="coach-back-to-list"
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)]"
+              >
+                <ArrowLeft size={18} aria-hidden="true" />
+              </button>
+              <span className="font-sans text-sm font-medium text-[var(--text)]">
+                Coach
+              </span>
+            </div>
+            <div className="min-h-0 flex-1">{thread}</div>
+          </>
+        ) : (
+          <div className="min-h-0 flex-1 px-4 py-4">{listBody}</div>
+        )}
+      </div>
+    );
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
-      {/* Desktop session list panel */}
-      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--background)] h-full">
-        <div className="flex items-center justify-between px-3 py-3 border-b border-[var(--border)] shrink-0">
-          <span className="font-mono text-xs text-[var(--muted-foreground)]">
-            $ git coach --sessions
-          </span>
-        </div>
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <SessionList
-            sessions={sessions}
-            activeSessionId={activeSessionId}
-            onSelectSession={handleSelectSession}
-            onNewSession={handleNewSession}
-            isLoading={sessionsLoading}
-          />
-        </div>
-      </aside>
-
-      {/* Main chat area */}
-      <div className="flex flex-1 flex-col min-w-0 h-full">
-        {/* Coach identity header — always visible */}
-        <CoachHeader />
-
-        {/* Desktop session bar */}
-        <div className="hidden md:flex items-center justify-between px-6 py-3 border-b border-[var(--border)] bg-[var(--background)] shrink-0">
-          <p className="font-mono text-sm text-[var(--foreground)]">
-            {activeSessionId
-              ? sessions.find((s) => s.id === activeSessionId)?.title ?? "Coach"
-              : "New session"}
-          </p>
-          <button
-            onClick={handleNewSession}
-            className="flex items-center gap-1.5 font-mono text-xs text-[var(--blue)] border border-[var(--border)] rounded-md px-3 py-1.5 hover:bg-[var(--card)] transition-colors"
-          >
-            <Plus size={12} aria-hidden />
-            new session
-          </button>
-        </div>
-
-        <WodCheckPanel accessToken={token} />
-
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <ChatPanel
-            key={activeSessionId ?? "new"}
-            token={token}
-            sessionId={activeSessionId}
-            userEmail={userEmail}
-            onSessionCreated={handleSessionCreated}
-          />
-        </div>
+    // Desktop: only the h-12/48px shell-top-bar to subtract — no bottom nav.
+    <div className="flex h-[calc(100svh-48px)]">
+      <div
+        className="w-[280px] shrink-0 border-r px-3 py-4"
+        style={{ borderColor: "var(--border)" }}
+      >
+        {listBody}
       </div>
-
-      {/* Mobile session drawer */}
-      <SessionDrawer
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        sessions={sessions}
-        activeSessionId={activeSessionId}
-        onSelectSession={handleSelectSession}
-        onNewSession={handleNewSession}
-        isLoading={sessionsLoading}
-      />
+      <div className="flex flex-1 justify-center overflow-hidden">
+        <div className="min-h-0 w-full max-w-[680px]">{thread}</div>
+      </div>
     </div>
   );
 }

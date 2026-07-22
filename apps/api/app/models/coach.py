@@ -94,6 +94,7 @@ class HistoryMessage(BaseModel):
     role: Literal["user", "assistant"]
     content: str
     created_at: datetime
+    safety_tier: Literal["coach", "modify", "stop"] | None = None
 
 
 class ChatStreamRequest(BaseModel):
@@ -105,6 +106,7 @@ class CoachSession(BaseModel):
     id: UUID
     title: str
     created_at: datetime
+    updated_at: datetime
 
 
 class SessionMessagesResponse(BaseModel):

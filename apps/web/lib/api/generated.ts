@@ -518,6 +518,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/coach/sessions/{session_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete Session Route */
+    delete: operations["delete_session_route_api_v1_coach_sessions__session_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/coach/sessions/{session_id}/messages": {
     parameters: {
       query?: never;
@@ -1873,6 +1890,11 @@ export interface components {
        * Format: date-time
        */
       created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
     };
     /** CompleteSessionRequest */
     CompleteSessionRequest: {
@@ -2248,6 +2270,8 @@ export interface components {
        * Format: date-time
        */
       created_at: string;
+      /** Safety Tier */
+      safety_tier?: ("coach" | "modify" | "stop") | null;
     };
     /** InfraDashboard */
     InfraDashboard: {
@@ -4804,6 +4828,35 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["CoachSession"][];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_session_route_api_v1_coach_sessions__session_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {

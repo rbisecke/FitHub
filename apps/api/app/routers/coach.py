@@ -16,7 +16,7 @@ import anthropic
 import openai
 import psycopg
 import psycopg.rows
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from psycopg.errors import UniqueViolation
 
@@ -201,7 +201,7 @@ async def get_history(
 ) -> list[HistoryMessage]:
     async with db.cursor(row_factory=psycopg.rows.dict_row) as cur:
         await cur.execute(
-            """SELECT cm.role, cm.content, cm.created_at
+            """SELECT cm.role, cm.content, cm.created_at, cm.safety_tier
                FROM public.coach_messages cm
                JOIN public.coach_sessions cs ON cs.id = cm.session_id
                WHERE cm.session_id = %s AND cs.user_id = %s
@@ -248,14 +248,23 @@ async def chat(
         )
 
     if tier == SafetyTier.STOP:
+        stop_message = (
+            "Please stop your workout and consult a medical professional immediately. "
+            "This situation is beyond the scope of AI coaching."
+        )
         await coach_repo.write_message(
             db, session_id, user.user_id, "user", body.question, safety_tier="stop"
         )
+        await coach_repo.write_message(
+            db,
+            session_id,
+            user.user_id,
+            "assistant",
+            stop_message,
+            safety_tier="stop",
+        )
         return ChatResponse(
-            answer=(
-                "Please stop your workout and consult a medical professional immediately. "
-                "This situation is beyond the scope of AI coaching."
-            ),
+            answer=stop_message,
             citations=[],
             stub=False,
             safety_tier="stop",
@@ -371,6 +380,20 @@ async def list_sessions(
     return await coach_repo.list_sessions(db, user.user_id, limit=limit, before_id=before_id)
 
 
+@router.delete("/sessions/{session_id}", status_code=204)
+@limiter.limit("30/minute", key_func=user_or_ip_key)
+async def delete_session_route(
+    request: Request,
+    session_id: uuid.UUID,
+    user: Auth,
+    db: DBConn,
+) -> Response:
+    deleted = await coach_repo.delete_session(db, session_id, user.user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    return Response(status_code=204)
+
+
 @router.get("/sessions/{session_id}/messages", response_model=SessionMessagesResponse)
 async def get_session_messages(
     session_id: uuid.UUID,
@@ -416,12 +439,22 @@ async def _do_stream(
                     db, user_id=user_id, title=question[:200]
                 )
             else:
-                yield sse_event({"type": "error", "message": "Session not found."})
+                yield sse_event(
+                    {
+                        "type": "error",
+                        "message": "Session not found.",
+                        "subtype": "technical",
+                    }
+                )
                 return
     else:
         session_id = await coach_repo.create_session(db, user_id=user_id, title=question[:200])
 
     if tier == SafetyTier.STOP:
+        stop_message = (
+            "Please stop your workout and consult a medical professional immediately. "
+            "This situation is beyond the scope of AI coaching."
+        )
         await coach_repo.write_message(
             db, session_id, user_id, "user", question, safety_tier="stop"
         )
@@ -430,16 +463,15 @@ async def _do_stream(
             session_id,
             user_id,
             "assistant",
-            "I can't assist with that request.",
+            stop_message,
             safety_tier="stop",
         )
         yield sse_event(
             {
                 "type": "error",
-                "message": (
-                    "Please stop your workout and consult a medical professional immediately. "
-                    "This situation is beyond the scope of AI coaching."
-                ),
+                "message": stop_message,
+                "subtype": "stop",
+                "session_id": str(session_id),
             }
         )
         return
@@ -520,6 +552,7 @@ async def _do_stream(
                     {
                         "type": "error",
                         "message": "Coach is temporarily unavailable. Please try again.",
+                        "subtype": "technical",
                     }
                 )
                 return
@@ -536,6 +569,7 @@ async def _do_stream(
                     {
                         "type": "error",
                         "message": "Coach is temporarily unavailable. Please try again.",
+                        "subtype": "technical",
                     }
                 )
                 return
@@ -575,7 +609,15 @@ async def _do_stream(
             duration_ms=usage_duration_ms,
         )
 
-    yield sse_event({"type": "done", "session_id": str(session_id)})
+    yield sse_event(
+        {
+            "type": "done",
+            "session_id": str(session_id),
+            "citations": citations,
+            "safety_tier": tier.value,
+            "stub": stub,
+        }
+    )
 
 
 # ── Shared helpers ────────────────────────────────────────────────────────────

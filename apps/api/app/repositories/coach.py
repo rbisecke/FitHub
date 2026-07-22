@@ -93,33 +93,58 @@ async def list_sessions(
     limit: int = 20,
     before_id: uuid.UUID | None = None,
 ) -> list[CoachSession]:
+    """Return sessions most-recent-first by `updated_at` (bumped on every write by
+    `write_message`), not `created_at` — a session that gets a new reply should
+    resurface at the top of the list, matching FR §5 and the resumable-session UX
+    (03-coach-ai-chat design spec §5)."""
     async with db.cursor(row_factory=dict_row) as cur:
         if before_id is not None:
             await cur.execute(
                 """
-                SELECT id, title, created_at
+                SELECT id, title, created_at, updated_at
                 FROM public.coach_sessions
                 WHERE user_id = %s
-                  AND (created_at, id) < (
-                      SELECT created_at, id FROM public.coach_sessions
+                  AND (updated_at, id) < (
+                      SELECT updated_at, id FROM public.coach_sessions
                       WHERE id = %s AND user_id = %s
                   )
-                ORDER BY created_at DESC, id DESC LIMIT %s
+                ORDER BY updated_at DESC, id DESC LIMIT %s
                 """,
                 [user_id, before_id, user_id, limit],
             )
         else:
             await cur.execute(
                 """
-                SELECT id, title, created_at
+                SELECT id, title, created_at, updated_at
                 FROM public.coach_sessions
                 WHERE user_id = %s
-                ORDER BY created_at DESC LIMIT %s
+                ORDER BY updated_at DESC, id DESC LIMIT %s
                 """,
                 [user_id, limit],
             )
         rows = await cur.fetchall()
     return [CoachSession(**r) for r in rows]
+
+
+async def delete_session(
+    db: psycopg.AsyncConnection[Any],
+    session_id: uuid.UUID,
+    user_id: uuid.UUID,
+) -> bool:
+    """Delete a coach session owned by `user_id`. Messages cascade (FK ON DELETE
+    CASCADE, migration 0034). Returns True if a row was deleted, False if the
+    session didn't exist or belonged to another user."""
+    async with db.cursor(row_factory=dict_row) as cur:
+        await cur.execute(
+            """
+            DELETE FROM public.coach_sessions
+            WHERE id = %s AND user_id = %s
+            RETURNING id
+            """,
+            [session_id, user_id],
+        )
+        row = await cur.fetchone()
+    return row is not None
 
 
 async def write_message(
@@ -164,13 +189,20 @@ async def list_messages(
     if row is None:
         return SessionMessagesResponse(messages=[], has_more=False)
 
+    # Fetch the MOST RECENT `limit` messages (not the oldest) — a resumed
+    # session must show where the athlete left off, not the start of a long
+    # conversation. Ordered DESC to get the newest rows under LIMIT, then
+    # reversed back to ascending (oldest-first) for display. The client's
+    # "load earlier messages" affordance re-requests with a larger `limit`,
+    # which under this DESC-then-reverse query correctly reaches further back
+    # in history each time.
     async with db.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
-            SELECT role, content, created_at
+            SELECT role, content, created_at, safety_tier
             FROM public.coach_messages
             WHERE session_id = %s
-            ORDER BY created_at ASC
+            ORDER BY created_at DESC
             LIMIT %s
             """,
             [session_id, limit + 1],
@@ -178,7 +210,7 @@ async def list_messages(
         rows = await cur.fetchall()
 
     has_more = len(rows) > limit
-    messages = [HistoryMessage(**r) for r in rows[:limit]]
+    messages = [HistoryMessage(**r) for r in reversed(rows[:limit])]
     return SessionMessagesResponse(messages=messages, has_more=has_more)
 
 

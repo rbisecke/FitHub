@@ -18,3 +18,6 @@ overrides:
   # GHSA-4c8g-83qw-93j6 (host-confusion via failed IDN canonicalization),
   # via shadcn's dotenvx/conf/ajv chain — same pattern as above.
   "fast-uri@>=3.0.0 <3.1.3": ">=3.1.3"
+  # GHSA-f88m-g3jw-g9cj (libvips CVE-2026-33327/33328/35590/35591), via
+  # next's bundled sharp — same pattern as above.
+  "sharp@<0.35.0": ">=0.35.0"
