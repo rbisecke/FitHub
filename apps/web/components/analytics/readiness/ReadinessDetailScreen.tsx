@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { MessageSquare } from "lucide-react";
 import { createApiClient } from "@/lib/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ReadinessExpanded } from "@/components/analytics/readiness/ReadinessExpanded";
@@ -108,6 +109,22 @@ export function ReadinessDetailScreen({ accessToken }: Props) {
               {readinessVerdict(data.label)}
             </p>
           </div>
+
+          {/* Contextual coach entry point (design-spec 03 §6.4) — one example
+              integration for this pass; the injury banner and an ACWR-spike
+              card are good candidates for the same pattern later. */}
+          <Link
+            href={`/coach?prompt=${encodeURIComponent(
+              `Why is my readiness "${readinessVerdict(data.label)}" today?`,
+            )}`}
+            data-testid="readiness-ask-the-coach"
+            className="mx-auto flex min-h-11 w-fit items-center gap-2 rounded-full border px-4 py-2 font-sans text-[13px] text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <MessageSquare size={14} aria-hidden="true" />
+            Ask the coach about this
+          </Link>
+
           <ReadinessExpanded data={data} />
         </>
       )}
