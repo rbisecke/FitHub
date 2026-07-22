@@ -8522,7 +8522,10 @@
         "enum": [
           "team_session_linked",
           "team_session_updated",
-          "workout_link_pending"
+          "workout_link_pending",
+          "streak_at_risk",
+          "freeze_consumed",
+          "streak_milestone"
         ],
         "title": "NotificationType"
       },

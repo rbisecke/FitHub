@@ -27,6 +27,13 @@ class NotificationType(StrEnum):
     team_session_linked = "team_session_linked"
     team_session_updated = "team_session_updated"
     workout_link_pending = "workout_link_pending"
+    # Domain 07 (gamification) — streak_at_risk is not fired by any code yet
+    # (it depends on a scheduled-trigger notification system that doesn't
+    # exist today); freeze_consumed and streak_milestone are fired
+    # transactionally by app/repositories/streak.py's lazy reconciliation.
+    streak_at_risk = "streak_at_risk"
+    freeze_consumed = "freeze_consumed"
+    streak_milestone = "streak_milestone"
 
 
 class TeamSessionParticipant(BaseModel):
