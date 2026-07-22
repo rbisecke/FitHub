@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PRIMARY_NAV, navHref } from "./nav-items";
-import { isSegmentActive } from "./active-segment";
+import { isSegmentActive, isAdminRoute } from "./active-segment";
 import { QuickLogFab } from "./quick-log-fab";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,10 @@ import { cn } from "@/lib/utils";
  */
 export function MobileBottomNav() {
   const pathname = usePathname();
+  // The admin console is desktop-only and builds its own mobile treatment
+  // (the desktop-only gate's notice) — this bar (plus its quick-log FAB)
+  // would otherwise float on top of that notice. See `isAdminRoute`.
+  if (isAdminRoute(pathname)) return null;
 
   return (
     <nav

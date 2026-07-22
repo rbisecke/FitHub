@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { NAV_ITEMS } from "./nav-items";
-import { activeSegment } from "./active-segment";
+import { activeSegment, isAdminRoute } from "./active-segment";
 
 /**
  * Desktop content-area top bar (Effort 1, step 1.4).
@@ -19,6 +19,12 @@ import { activeSegment } from "./active-segment";
  */
 export function ShellTopBar() {
   const pathname = usePathname();
+  // The admin console builds its own header (`AdminConsoleHeader`) — this
+  // bar's own SidebarTrigger targets the member sidebar, which doesn't
+  // render on admin routes either, so showing this here would be a dead
+  // control plus a stale breadcrumb. See `isAdminRoute`.
+  if (isAdminRoute(pathname)) return null;
+
   const segment = activeSegment(pathname);
   const label = NAV_ITEMS.find((i) => i.segment === segment)?.label;
 

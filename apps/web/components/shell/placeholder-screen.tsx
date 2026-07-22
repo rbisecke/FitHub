@@ -27,10 +27,17 @@ export function PlaceholderScreen({
 }) {
   const body = (
     <div className="flex min-h-svh flex-col gap-2 bg-background p-6 text-foreground">
-      <h1 className="type-h1">{title}</h1>
-      {subtitle ? (
-        <p className="type-small text-muted-foreground">{subtitle}</p>
-      ) : null}
+      {/* Constrained to a readable column even on a wide desktop viewport —
+          the title/subtitle shouldn't float untethered across a 1280px+
+          canvas. `children` (where a real screen's actual content lands)
+          stays outside this constraint so a future full build isn't forced
+          into it. */}
+      <div className="max-w-2xl">
+        <h1 className="type-h1">{title}</h1>
+        {subtitle ? (
+          <p className="type-small text-muted-foreground">{subtitle}</p>
+        ) : null}
+      </div>
       {children}
     </div>
   );
