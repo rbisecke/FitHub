@@ -286,8 +286,9 @@ export function AppleHealthScreen({
         <div>
           <h1 className="type-h2 text-foreground">Apple Health</h1>
           <p className="type-small text-muted-foreground">
-            Connect via Health Auto Export — a bearer token you paste into a
-            third-party app, not an OAuth sign-in.
+            Connect via Health Auto Export — a bearer token, like a git personal
+            access token, that you paste into a third-party app, not an OAuth
+            sign-in.
           </p>
         </div>
         <p className="font-sans text-[13px]" style={{ color: "var(--text)" }}>
