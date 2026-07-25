@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { api } from "@/lib/api/client";
+import { api, ApiError } from "@/lib/api/client";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 
 interface Props {
@@ -26,7 +26,16 @@ export default async function OnboardingStepPage({ params }: Props) {
   let profile;
   try {
     profile = await api.profile.get(token);
-  } catch {
+  } catch (err) {
+    // A 403 here means `require_invited` (apps/api/app/auth.py) rejected an
+    // otherwise-valid session — the user's email left the invite allowlist
+    // after they signed in. That is not "logged out": bouncing them to
+    // /login would dump a signed-in user back on the sign-in form. Send
+    // them to the dedicated "access paused" state instead; only a genuine
+    // auth failure goes to /login.
+    if (err instanceof ApiError && err.status === 403) {
+      redirect("/access-paused");
+    }
     redirect("/login");
   }
 
