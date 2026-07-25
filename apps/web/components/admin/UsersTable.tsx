@@ -76,12 +76,14 @@ function SortButton({
   active,
   dir,
   onSort,
+  align = "left",
 }: {
   label: string;
   sortKey: SortKey;
   active: SortKey;
   dir: SortDir;
   onSort: (key: SortKey) => void;
+  align?: "left" | "right";
 }) {
   const isActive = active === sortKey;
   return (
@@ -90,6 +92,8 @@ function SortButton({
       onClick={() => onSort(sortKey)}
       aria-pressed={isActive}
       className={`type-caption flex items-center gap-1 uppercase tracking-wide transition-colors ${
+        align === "right" ? "w-full justify-end" : ""
+      } ${
         isActive
           ? "text-foreground"
           : "text-muted-foreground hover:text-foreground"
@@ -103,7 +107,10 @@ function SortButton({
   );
 }
 
-const GRID = "minmax(0,2fr) 1fr 1fr 3.25rem";
+// Sessions (30d) gets a fixed width, not 1fr, so the numeric column lines up
+// cleanly above the row-action "···" menu instead of stretching with the
+// row's available width (UI review — numeric-surface right-align rule).
+const GRID = "minmax(0,2fr) 1fr 6.5rem 3.25rem";
 
 interface RowActionsProps {
   user: AdminUser;
@@ -346,6 +353,7 @@ export function UsersTable({ token, initialUsers, initialLoadFailed }: Props) {
             active={sortKey}
             dir={sortDir}
             onSort={handleSort}
+            align="right"
           />
           <span />
         </div>
@@ -363,7 +371,7 @@ export function UsersTable({ token, initialUsers, initialLoadFailed }: Props) {
                   <Skeleton className="h-4 w-32 rounded-sm" />
                 </div>
                 <Skeleton className="h-4 w-16 rounded-sm" />
-                <Skeleton className="h-4 w-10 rounded-sm" />
+                <Skeleton className="ml-auto h-4 w-10 rounded-sm" />
                 <span />
               </div>
             ))}
@@ -458,7 +466,7 @@ export function UsersTable({ token, initialUsers, initialLoadFailed }: Props) {
                 <span className="type-num-inline text-muted-foreground">
                   {formatDate(user.created_at)}
                 </span>
-                <span className="type-num-inline text-muted-foreground">
+                <span className="type-num-inline text-right text-muted-foreground">
                   {user.interactions_30d.toLocaleString()}
                 </span>
                 <RowActions
