@@ -197,20 +197,38 @@ export function LoadChart({
             />
             Fitness (CTL)
           </span>
+          {/* ATL/TSB dots render hollow (outline only) when their series is
+           * off, filled when on — a real filled-vs-outline state change,
+           * not just a text-opacity dim, so the toggle can't be misread as
+           * a static 3-series legend where two lines silently failed to
+           * render (the exact confusion a "why is the chart missing two
+           * series" bug report would raise). CTL stays a plain non-toggle
+           * dot since it's the always-on resting-state series. */}
+          {/* `rounded-full border` pill (not just bare text) on the two
+           * toggles — a plain filled/hollow dot next to text still read as
+           * three static legend entries at a glance, especially at the ~8px
+           * dot size on desktop, since nothing about the row's shape told
+           * the user two of the three items were buttons. The pill outline
+           * gives ATL/TSB a distinct, hoverable, button-shaped affordance
+           * that CTL (a real static legend key, not a toggle) intentionally
+           * doesn't get. */}
           <button
             type="button"
             onClick={onToggleAtl}
             aria-pressed={showAtl}
             aria-label="Toggle Fatigue (ATL) line"
-            className="flex items-center gap-1 font-sans text-[11px] transition-opacity"
+            className="flex items-center gap-1 rounded-full border px-2 py-0.5 font-sans text-[11px] transition-colors hover:bg-[var(--secondary)]"
             style={{
               color: showAtl ? "var(--foreground)" : "var(--muted-foreground)",
-              opacity: showAtl ? 1 : 0.55,
+              borderColor: showAtl ? ATL_COLOR : "var(--border)",
             }}
           >
             <span
-              className="h-2 w-2 rounded-full"
-              style={{ background: ATL_COLOR }}
+              className="h-2 w-2 rounded-full border"
+              style={{
+                background: showAtl ? ATL_COLOR : "transparent",
+                borderColor: ATL_COLOR,
+              }}
               aria-hidden="true"
             />
             Fatigue (ATL)
@@ -220,15 +238,18 @@ export function LoadChart({
             onClick={onToggleTsb}
             aria-pressed={showTsb}
             aria-label="Toggle Form (TSB) panel"
-            className="flex items-center gap-1 font-sans text-[11px] transition-opacity"
+            className="flex items-center gap-1 rounded-full border px-2 py-0.5 font-sans text-[11px] transition-colors hover:bg-[var(--secondary)]"
             style={{
               color: showTsb ? "var(--foreground)" : "var(--muted-foreground)",
-              opacity: showTsb ? 1 : 0.55,
+              borderColor: showTsb ? TSB_COLOR : "var(--border)",
             }}
           >
             <span
-              className="h-2 w-2 rounded-full"
-              style={{ background: TSB_COLOR }}
+              className="h-2 w-2 rounded-full border"
+              style={{
+                background: showTsb ? TSB_COLOR : "transparent",
+                borderColor: TSB_COLOR,
+              }}
               aria-hidden="true"
             />
             Form (TSB)
