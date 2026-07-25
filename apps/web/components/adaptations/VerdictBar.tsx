@@ -88,7 +88,7 @@ function VerdictForm({
 
       <fieldset
         disabled={!allViewed || submitting}
-        className="flex flex-col gap-2 disabled:opacity-50"
+        className="flex flex-col gap-2"
       >
         <legend className="sr-only">Verdict</legend>
         <RadioGroup
@@ -105,9 +105,23 @@ function VerdictForm({
             // otherwise all three read as identical neutral outlines until
             // one is picked. Adjust stays a neutral outline either way; it
             // only gains its amber tint once selected.
+            //
+            // Gated (not all sessions viewed yet, or submitting): an explicit
+            // neutral style, not a blanket opacity fade on the fieldset — at
+            // 50% opacity the permanently-filled green Merge button dropped
+            // text-on-fill contrast well under WCAG AA and read as a dimmed
+            // *active* button rather than a disabled one.
+            const gated = !allViewed || submitting;
             const selected = verdict === v;
             let labelStyle: CSSProperties;
-            if (v === "merge") {
+            if (gated) {
+              labelStyle = {
+                borderColor: "var(--border)",
+                background: "var(--surface)",
+                color: "var(--muted)",
+                cursor: "not-allowed",
+              };
+            } else if (v === "merge") {
               labelStyle = selected
                 ? {
                     borderColor: "var(--green)",
