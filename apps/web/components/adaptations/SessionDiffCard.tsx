@@ -127,8 +127,8 @@ export function SessionDiffCard({
         </div>
 
         {!readOnly && (
-          <div className="flex shrink-0 items-center gap-3">
-            <label className="flex min-h-11 cursor-pointer items-center gap-2 px-1">
+          <div className="flex shrink-0 items-center gap-1">
+            <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-2 px-2">
               <input
                 type="checkbox"
                 checked={viewed}
@@ -144,15 +144,19 @@ export function SessionDiffCard({
               </span>
             </label>
             {isSkip ? null : (
-              <ChevronDown
-                size={16}
+              <span
+                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center"
                 aria-hidden="true"
-                className="transition-transform"
-                style={{
-                  color: "var(--muted)",
-                  transform: viewed ? "rotate(-90deg)" : "rotate(0deg)",
-                }}
-              />
+              >
+                <ChevronDown
+                  size={16}
+                  className="transition-transform"
+                  style={{
+                    color: "var(--muted)",
+                    transform: viewed ? "rotate(-90deg)" : "rotate(0deg)",
+                  }}
+                />
+              </span>
             )}
           </div>
         )}
