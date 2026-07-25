@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { api } from "@/lib/api/client";
@@ -37,11 +38,29 @@ export default async function PlanRevisePage({
       theme="light"
       className="min-h-svh bg-background text-foreground"
     >
-      <ManualRevisionComposer
-        token={token}
-        planId={planId}
-        initialPlanDetail={initialPlanDetail}
-      />
+      <div className="mx-auto flex max-w-2xl flex-col gap-6 px-5 py-8">
+        <div>
+          <Link
+            href={`/plan/${planId}`}
+            className="font-mono text-xs text-[var(--muted)] hover:text-[var(--text)]"
+          >
+            ← plan overview
+          </Link>
+          <h1 className="mt-2 font-sans text-xl font-bold text-[var(--text)]">
+            Revise your plan
+          </h1>
+          <p className="mt-1 font-sans text-sm text-[var(--muted)]">
+            Describe a change in plain language — FitHub applies it straight to
+            your upcoming sessions. There&apos;s no review step, unlike an
+            AI-proposed adaptation.
+          </p>
+        </div>
+        <ManualRevisionComposer
+          token={token}
+          planId={planId}
+          initialPlanDetail={initialPlanDetail}
+        />
+      </div>
     </ForcedTheme>
   );
 }
