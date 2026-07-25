@@ -8,7 +8,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-![FitHub Dashboard](screenshots/readme/revamp-dashboard.png)
+![FitHub Today](screenshots/readme/today.png)
 
 FitHub is a training tracker built on a git mental model: every workout is a commit with a short hash ID, the history page is `git log --all`, and every page has a `$ git command` subtitle above its Archivo Black heading. Under the surface it applies the sports-science models that most fitness apps skip — sRPE-based load, ACWR, and Hooper readiness — plus a deterministic AI layer that generates plans and coaching prose without ever being the source of safety decisions.
 
@@ -26,7 +26,7 @@ The app is invite-only and in active development. Use the "Request access" form 
 | **Personal records**      | `git tag --list` — gold hero numbers at 42px, category pills, timeline rail; named-benchmark progress (e.g. Fran 4:47 → 3:48)                                                                                                                                                                   |
 | **AI coach & planning**   | SSE streaming chat with session history; hybrid RAG (BM25 + pgvector RRF fusion); adaptive plan generator with deterministic ACWR/readiness triggers; injury train-around; 5-step plan wizard (archetype, equipment, schedule, target movement, training age) with scaffold-first AI generation |
 | **Session execution**     | Live exercise logging during planned sessions — per-set reps and weight inputs, rest timer, AI-suggested exercise swaps from a curated substitutes catalog                                                                                                                                      |
-| **Admin & observability** | LLM cost dashboard; per-user token and cost breakdown by model/endpoint; error event log; API health metrics; access-request queue with approve/reject workflow from the login page                                                                                                             |
+| **Admin & observability** | LLM cost dashboard; per-user token and cost breakdown by model/endpoint; error event log; API health metrics; access-request queue with approve/reject workflow (requests submitted from the login page)                                                                                        |
 | **Data model depth**      | Poliquin 4-digit tempo notation; Epley e1RM cached at write time; VBT fields; wearable-ready schema; IDOR-safe team session consent model                                                                                                                                                       |
 | **Engineering**           | Invite-only multi-user from day one; deterministic safety logic; 1,467 tests across four suites; openapi-typescript contract check in CI                                                                                                                                                        |
 
@@ -36,54 +36,72 @@ The app is invite-only and in active development. Use the "Request access" form 
 
 <p align="center"><em>1280 × 900 · dark git-developer aesthetic · Archivo Black headings · JetBrains Mono data</em></p>
 
+<p align="center"><em>Want to see every page? Run <code>apps/web/e2e/take-redesign-screenshots.ts</code> to generate a full local gallery at <code>screenshots/full/index.html</code> (gitignored — not shipped in the repo, desktop + mobile for every route).</em></p>
+
 <table>
   <tr>
-    <td><img src="screenshots/readme/revamp-dashboard.png" alt="Dashboard"></td>
-    <td><img src="screenshots/readme/revamp-history.png" alt="History"></td>
+    <td><img src="screenshots/readme/today.png" alt="Today"></td>
+    <td><img src="screenshots/readme/log-history.png" alt="Log history"></td>
   </tr>
   <tr>
-    <td align="center"><sub><strong>Dashboard</strong></sub></td>
-    <td align="center"><sub><strong>History</strong> &mdash; <code>git log --all</code></sub></td>
+    <td align="center"><sub><strong>Today</strong> &mdash; streak, readiness, today's session</sub></td>
+    <td align="center"><sub><strong>Log</strong> &mdash; <code>git log</code></sub></td>
   </tr>
   <tr>
-    <td><img src="screenshots/readme/revamp-log-result.png" alt="Log Result"></td>
-    <td><img src="screenshots/readme/revamp-coach.png" alt="AI Coach"></td>
+    <td><img src="screenshots/readme/plan-wizard.png" alt="Plan wizard"></td>
+    <td><img src="screenshots/readme/plan-detail.png" alt="Plan detail"></td>
   </tr>
   <tr>
-    <td align="center"><sub><strong>Log Result</strong> &mdash; <code>git commit -m</code></sub></td>
-    <td align="center"><sub><strong>AI Coach</strong> &mdash; streaming RAG chat</sub></td>
+    <td align="center"><sub><strong>Plan Wizard</strong> &mdash; <code>git checkout -b plan/new</code></sub></td>
+    <td align="center"><sub><strong>Plan Detail</strong> &mdash; phases, session list</sub></td>
   </tr>
   <tr>
-    <td><img src="screenshots/readme/revamp-plans.png" alt="Plans"></td>
-    <td><img src="screenshots/readme/revamp-analytics.png" alt="Analytics"></td>
+    <td><img src="screenshots/readme/plan-adaptations.png" alt="Plan adaptations"></td>
+    <td><img src="screenshots/readme/progress-load.png" alt="Load / ACWR"></td>
   </tr>
   <tr>
-    <td align="center"><sub><strong>Plans</strong> &mdash; <code>git branch --list</code></sub></td>
-    <td align="center"><sub><strong>Analytics</strong> &mdash; CTL / ATL / TSB</sub></td>
+    <td align="center"><sub><strong>Adaptations</strong> &mdash; <code>git diff --plan</code>, merge/adjust/reject</sub></td>
+    <td align="center"><sub><strong>Load</strong> &mdash; ACWR, CTL / ATL / TSB</sub></td>
   </tr>
   <tr>
-    <td><img src="screenshots/readme/revamp-records.png" alt="Records"></td>
-    <td><img src="screenshots/readme/revamp-profile.png" alt="Profile"></td>
+    <td><img src="screenshots/readme/progress-records.png" alt="Personal records"></td>
+    <td><img src="screenshots/readme/progress-streak.png" alt="Streak"></td>
   </tr>
   <tr>
-    <td align="center"><sub><strong>Records</strong> &mdash; <code>git tag --list</code></sub></td>
-    <td align="center"><sub><strong>Profile</strong></sub></td>
+    <td align="center"><sub><strong>Records</strong> &mdash; all-time bests</sub></td>
+    <td align="center"><sub><strong>Streak</strong> &mdash; <code>git log --graph --all</code></sub></td>
   </tr>
   <tr>
-    <td><img src="screenshots/readme/revamp-plan-wizard.png" alt="Plan Wizard"></td>
-    <td><img src="screenshots/readme/revamp-plan-detail.png" alt="Plan Detail"></td>
+    <td><img src="screenshots/readme/movement-detail.png" alt="Movement detail"></td>
+    <td><img src="screenshots/readme/coach-chat.png" alt="AI coach"></td>
   </tr>
   <tr>
-    <td align="center"><sub><strong>Plan Wizard</strong> &mdash; 5-step AI plan generator</sub></td>
-    <td align="center"><sub><strong>Plan Detail</strong> &mdash; timeline, volume, session list</sub></td>
+    <td align="center"><sub><strong>Movement Detail</strong> &mdash; per-lift history</sub></td>
+    <td align="center"><sub><strong>AI Coach</strong> &mdash; chat with session history</sub></td>
   </tr>
   <tr>
-    <td><img src="screenshots/readme/revamp-session-execute.png" alt="Session Execution"></td>
-    <td></td>
+    <td><img src="screenshots/readme/injuries.png" alt="Injuries"></td>
+    <td><img src="screenshots/readme/team-session.png" alt="Team session"></td>
   </tr>
   <tr>
-    <td align="center"><sub><strong>Session Execution</strong> &mdash; live set logging + exercise swap</sub></td>
-    <td></td>
+    <td align="center"><sub><strong>Injuries</strong> &mdash; train-around engine</sub></td>
+    <td align="center"><sub><strong>Team Session</strong> &mdash; shared partner WOD</sub></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/readme/admin-users.png" alt="Admin users"></td>
+    <td><img src="screenshots/readme/admin-cost.png" alt="Admin cost dashboard"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><strong>Admin</strong> &mdash; user management</sub></td>
+    <td align="center"><sub><strong>Admin</strong> &mdash; LLM cost dashboard</sub></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/readme/onboarding.png" alt="Onboarding"></td>
+    <td><img src="screenshots/readme/login.png" alt="Login"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><strong>Onboarding</strong></sub></td>
+    <td align="center"><sub><strong>Login</strong> &mdash; magic-link + OAuth</sub></td>
   </tr>
 </table>
 
@@ -209,7 +227,7 @@ Open [http://localhost:3000](http://localhost:3000). The app is invite-only; add
 
 **`STUB_LLM=true` is mandatory for the test suite** — with it set, all LLM calls return deterministic fixture responses and no API key is required. Without it the AI tests will attempt real API calls and fail or accumulate cost.
 
-**Admin portal requires two env vars** — the `/admin` routes are gated on two independent environment variables: `ADMIN_USER_IDS` (comma-separated UUIDs in `apps/web/.env.local`) controls the Next.js layout gate, and `ADMIN_USER_IDS_CSV` (same format) must be set in the FastAPI process environment. Your Supabase user ID can be found in the local Supabase Studio at `http://localhost:54323` under the Users table.
+**Admin portal requires an API env var** — the `/admin` routes are gated by `ADMIN_USER_IDS_CSV` (comma-separated UUIDs) in the FastAPI process environment; the Next.js admin layout re-verifies server-side by calling `GET /api/v1/admin/is-admin` rather than reading an env var of its own. Your Supabase user ID can be found in the local Supabase Studio at `http://localhost:54323` under the Users table.
 
 ---
 
