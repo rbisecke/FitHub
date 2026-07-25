@@ -28,13 +28,21 @@ export function CostDashboard({ metrics }: { metrics: AdminMetricsSummary }) {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="type-h1 text-[var(--text)]">Cost &amp; usage</h1>
+        <p className="type-small text-[var(--muted)]">
+          LLM spend tracking and budget projection.
+        </p>
+      </div>
+
       <CostHero
         projectedMonthEndUsd={metrics.projected_month_end_usd}
         budgetUsd={metrics.budget_usd}
       />
 
-      {/* Two explicit rows (4 + 3), each its own even grid — a single
-          7-item grid on a 4-column track left a dead cell in row 2
+      {/* Two explicit rows (4 + 3) sharing the same 4-column track so tile
+          widths match between rows — row 2's 3rd cell is a hidden filler
+          rather than letting that row's tiles stretch wider than row 1's
           (frontend-architect critique). */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <MetricsCard
@@ -54,7 +62,7 @@ export function CostDashboard({ metrics }: { metrics: AdminMetricsSummary }) {
           value={formatPercent(metrics.cache_hit_rate)}
         />
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <MetricsCard
           label="Interactions (30d)"
           value={formatCount(metrics.interactions_30d)}
@@ -70,6 +78,7 @@ export function CostDashboard({ metrics }: { metrics: AdminMetricsSummary }) {
           label="Error rate (7d)"
           value={formatPercent(metrics.error_rate_7d)}
         />
+        <div aria-hidden="true" className="hidden md:block" />
       </div>
 
       <TokenGrid breakdown={metrics.token_breakdown} />
