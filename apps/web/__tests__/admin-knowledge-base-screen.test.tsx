@@ -57,8 +57,14 @@ describe("KnowledgeBaseScreen", () => {
         initialLoadFailed={false}
       />,
     );
+    // This caveat moved from the main page description into an info-icon
+    // tooltip (UI review — it read like an internal dev note leaking into
+    // product copy) — it's still surfaced, just behind the icon's
+    // accessible name instead of always-visible body text.
     expect(
-      screen.getByText(/Indexing time isn't tracked for any source\./),
+      screen.getByRole("button", {
+        name: "Indexing time isn't tracked for any source",
+      }),
     ).toBeTruthy();
   });
 

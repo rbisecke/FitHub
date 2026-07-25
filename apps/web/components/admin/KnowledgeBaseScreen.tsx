@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCw, Copy, Check } from "lucide-react";
+import { RefreshCw, Copy, Check, Database, Info } from "lucide-react";
 import { api } from "@/lib/api/client";
 import type { AdminKBEntry, AdminReindexJob } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // The manual command an operator must run themselves — the backend's
 // trigger-reindex response also states this in its `message`, but rendering
@@ -192,15 +197,33 @@ export function KnowledgeBaseScreen({
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="type-h1 text-[var(--text)]">Knowledge base</h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="type-h1 text-[var(--text)]">Knowledge base</h1>
+            <Tooltip>
+              <TooltipTrigger
+                aria-label="Indexing time isn't tracked for any source"
+                className="inline-flex size-5 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              >
+                <Info size={14} aria-hidden="true" />
+              </TooltipTrigger>
+              <TooltipContent>
+                Indexing time isn&apos;t tracked for any source.
+              </TooltipContent>
+            </Tooltip>
+          </div>
           <p className="type-small text-[var(--muted)]">
-            RAG corpus backing the AI coach, grouped by source. Indexing time
-            isn&apos;t tracked for any source.
+            RAG corpus backing the AI coach, grouped by source.
           </p>
         </div>
-        <Button type="button" onClick={openDialog} className="shrink-0">
-          Reindex
-        </Button>
+        {/* Hidden once the corpus is confirmed empty — the empty-state box
+            below carries its own "Reindex now" action, and a second
+            same-purpose button with a different label in the header read as
+            "are these different actions?" (frontend-architect critique). */}
+        {!(!loading && !error && entries.length === 0) ? (
+          <Button type="button" onClick={openDialog} className="shrink-0">
+            Reindex
+          </Button>
+        ) : null}
       </div>
 
       {loading ? (
@@ -220,8 +243,32 @@ export function KnowledgeBaseScreen({
           </Button>
         </div>
       ) : entries.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-10 text-center text-sm text-[var(--muted)]">
-          No indexed sources yet.
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-16 text-center">
+          <Database
+            size={32}
+            className="text-[var(--muted)]"
+            aria-hidden="true"
+          />
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-medium text-[var(--text)]">
+              No indexed sources yet.
+            </p>
+            <p className="max-w-sm text-xs text-[var(--muted)]">
+              Sources are the documents ingested into the RAG corpus behind the
+              AI coach — movement library entries, programming notes, and
+              reference material pulled from the database and static content.
+              Trigger a reindex below to populate it.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={openDialog}
+          >
+            <RefreshCw size={14} aria-hidden="true" />
+            Reindex now
+          </Button>
         </div>
       ) : (
         <ul className="flex flex-col gap-2">
