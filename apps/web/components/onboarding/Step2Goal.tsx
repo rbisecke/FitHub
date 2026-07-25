@@ -79,7 +79,11 @@ export function Step2Goal({ defaultValue = null, onNext }: Props) {
       <button
         onClick={() => selected && onNext(selected)}
         disabled={!selected}
-        className="min-h-[48px] w-full rounded-[13px] bg-[var(--accent)] py-[15px] text-[15px] font-extrabold text-[var(--bg)] transition-opacity hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+        className="min-h-[48px] w-full rounded-[13px] py-[15px] text-[15px] font-extrabold transition-colors hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:hover:opacity-100"
+        style={{
+          background: selected ? "var(--accent)" : "var(--border)",
+          color: selected ? "var(--bg)" : "var(--muted)",
+        }}
       >
         Continue
       </button>

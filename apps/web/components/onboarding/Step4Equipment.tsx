@@ -65,7 +65,9 @@ export function Step4Equipment({ defaultValue = [], onNext }: Props) {
               type="button"
               aria-pressed={active}
               onClick={() => toggle(value)}
-              className="relative flex min-h-[68px] w-full items-center rounded-[14px] border px-[16px] py-[14px] text-left transition-colors hover:border-[var(--accent)]"
+              className={`relative flex min-h-[68px] w-full items-center rounded-[14px] border px-[16px] py-[14px] text-left transition-colors hover:border-[var(--accent)] ${
+                value === "none" ? "col-span-2" : ""
+              }`}
               style={{
                 background: active
                   ? "color-mix(in srgb, var(--accent) 10%, transparent)"
@@ -109,7 +111,11 @@ export function Step4Equipment({ defaultValue = [], onNext }: Props) {
       <button
         onClick={() => onNext(selected)}
         disabled={selected.length === 0}
-        className="min-h-[48px] w-full rounded-[13px] bg-[var(--accent)] py-[15px] text-[15px] font-extrabold text-[var(--bg)] transition-opacity hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+        className="min-h-[48px] w-full rounded-[13px] py-[15px] text-[15px] font-extrabold transition-colors hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:hover:opacity-100"
+        style={{
+          background: selected.length === 0 ? "var(--border)" : "var(--accent)",
+          color: selected.length === 0 ? "var(--muted)" : "var(--bg)",
+        }}
       >
         Continue
       </button>

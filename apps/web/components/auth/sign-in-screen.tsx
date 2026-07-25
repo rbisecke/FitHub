@@ -204,14 +204,25 @@ export function SignInScreen({
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center bg-background px-5 py-10 text-foreground">
+    <main
+      className="flex min-h-svh flex-col items-center justify-center bg-background px-5 py-10 text-foreground"
+      style={{
+        backgroundImage:
+          "radial-gradient(900px 480px at 50% -10%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 60%)",
+      }}
+    >
       <div className="flex w-full max-w-sm flex-col gap-6">
         {/* Brand lockup — small, quiet */}
-        <div className="flex items-center justify-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <GitBranch className="size-5" aria-hidden />
-          </span>
-          <span className="type-h3">FitHub</span>
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex items-center justify-center gap-2.5">
+            <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <GitBranch className="size-5" aria-hidden />
+            </span>
+            <span className="type-h3">FitHub</span>
+          </div>
+          <p className="type-small text-muted-foreground">
+            Your training, version-controlled.
+          </p>
         </div>
 
         {view === "signin" ? (
@@ -339,7 +350,7 @@ export function SignInScreen({
                 <Button
                   type="button"
                   variant="link"
-                  className="h-11 text-muted-foreground"
+                  className="h-11 text-[color:var(--accent)] underline-offset-4 hover:underline focus-visible:underline"
                   onClick={() => setView("request")}
                 >
                   Not invited yet? Request access.

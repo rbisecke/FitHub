@@ -12,7 +12,7 @@ export function Step1Welcome({ onStart, onSkipAll }: Props) {
 
   return (
     <motion.div
-      className="flex flex-1 flex-col"
+      className="flex flex-1 flex-col justify-center"
       initial={reduced ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
@@ -146,7 +146,7 @@ export function Step1Welcome({ onStart, onSkipAll }: Props) {
       </div>
 
       {/* CTAs */}
-      <div className="mt-auto flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
         <button
           onClick={onStart}
           className="min-h-[48px] w-full rounded-[13px] bg-[var(--accent)] py-[15px] text-[15px] font-extrabold text-[var(--bg)] transition-opacity hover:opacity-90 active:scale-[0.98]"
@@ -161,6 +161,9 @@ export function Step1Welcome({ onStart, onSkipAll }: Props) {
             Skip setup — take me to the app
           </button>
         </div>
+        <p className="font-data text-center text-[12px] text-[var(--muted)]">
+          7 quick questions, about 2 minutes
+        </p>
       </div>
     </motion.div>
   );

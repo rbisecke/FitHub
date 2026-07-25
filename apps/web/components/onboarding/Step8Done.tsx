@@ -78,6 +78,10 @@ export function Step8Done({
         </svg>
       </div>
 
+      <p className="font-data mb-2 text-[13px] text-[var(--accent)]">
+        $ git push origin main
+      </p>
+
       <h2
         className="font-heading mb-3 text-[32px] text-[var(--foreground)]"
         style={{ letterSpacing: "-0.8px" }}
@@ -92,7 +96,7 @@ export function Step8Done({
 
       {/* Terminal summary */}
       <div
-        className="font-data mb-10 w-full rounded-xl border p-4 text-left text-[12px] text-[var(--muted)]"
+        className="font-data mb-3 w-full rounded-xl border p-4 text-left text-[12px] text-[var(--muted)]"
         style={{ background: "var(--card)", borderColor: "var(--border)" }}
       >
         {lines.map((line) => (
@@ -101,6 +105,10 @@ export function Step8Done({
           </p>
         ))}
       </div>
+
+      <p className="mb-10 text-[12px] text-[var(--muted)]">
+        You can change these anytime in Settings.
+      </p>
 
       <button
         onClick={onFinish}
