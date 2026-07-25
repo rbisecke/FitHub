@@ -59,12 +59,15 @@ export function ProgressTabsNav() {
         })}
       </div>
       {/* Right-edge fade — signals "more tabs, scroll" rather than a cut-off
-          layout bug when the segmented set overflows a narrow viewport. */}
+          layout bug when the segmented set overflows a narrow viewport.
+          Reaches full --bg opacity by the 65% mark (not just at the very
+          edge) so the last partial tab label visibly dissolves into the
+          fade instead of hard-clipping mid-word right up to the edge. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 right-0 w-8 md:hidden"
+        className="pointer-events-none absolute inset-y-0 right-0 w-12 md:hidden"
         style={{
-          background: "linear-gradient(to right, transparent, var(--bg))",
+          background: "linear-gradient(to right, transparent, var(--bg) 65%)",
         }}
       />
     </nav>

@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createApiClient } from "@/lib/api/client";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { VolumeTrendChart } from "@/components/analytics/volume/VolumeTrendChart";
 import {
@@ -197,6 +199,9 @@ export function VolumeTrendScreen({ accessToken }: Props) {
           </select>
         </label>
 
+        {/* `relative` + `after:` gives each pill a ≥44px touch target
+            (apps/web/CLAUDE.md) via an invisible expanded hit area, without
+            growing the compact visual pill itself. */}
         <button
           type="button"
           aria-pressed={metric === "workout_count"}
@@ -206,29 +211,49 @@ export function VolumeTrendScreen({ accessToken }: Props) {
               m === "total_load" ? "workout_count" : "total_load",
             )
           }
-          className="rounded border px-2 py-1 text-xs text-[var(--text)]"
+          className="relative rounded border px-2 py-1 text-xs text-[var(--text)] after:absolute after:-inset-y-[9px] after:inset-x-0 after:content-['']"
           style={{ borderColor: "var(--border)" }}
         >
           {metric === "total_load" ? "Total load" : "Workout count"}
         </button>
 
-        <button
-          type="button"
-          aria-pressed={stacked}
-          aria-label="Toggle stacked-by-type view"
-          onClick={() => setStacked((s) => !s)}
-          className="rounded border px-2 py-1 text-xs text-[var(--text)]"
-          style={{ borderColor: "var(--border)" }}
-        >
-          {stacked ? "Stacked by type: on" : "Stacked by type: off"}
-        </button>
+        <div className="flex items-center gap-2 text-xs text-[var(--text)]">
+          <Label
+            htmlFor="volume-stacked-toggle"
+            className="text-xs font-normal"
+          >
+            Stacked by type
+          </Label>
+          {/* `data-unchecked:bg-[var(--muted-foreground)]` — the shared
+              Switch's default unchecked track (`bg-input`, #d0d7de in light
+              mode) sits at ~1.5:1 contrast against this page's white/near-
+              white background, well under WCAG 1.4.11's 3:1 non-text
+              minimum. This page is the Switch's first light-theme usage;
+              overridden locally rather than in the shared component since
+              its other (dark-theme) call sites aren't affected. */}
+          <Switch
+            id="volume-stacked-toggle"
+            size="sm"
+            checked={stacked}
+            onCheckedChange={setStacked}
+            className="data-unchecked:bg-[var(--muted-foreground)]"
+            aria-label="Toggle stacked-by-type view"
+          />
+        </div>
       </div>
 
       {!stacked && (
         <Tabs value={view} onValueChange={(v) => v && setView(v as VolumeView)}>
           <TabsList aria-label="Session type">
             {views.map((v) => (
-              <TabsTrigger key={v} value={v}>
+              <TabsTrigger
+                key={v}
+                value={v}
+                // `before:` (not `after:`) — TabsTrigger's own `after:`
+                // pseudo-element already renders the active-tab underline;
+                // reusing it here for hit-area expansion would clobber it.
+                className="before:absolute before:-inset-y-[9px] before:inset-x-0 before:content-['']"
+              >
                 {SESSION_TYPE_LABEL[v]}
               </TabsTrigger>
             ))}

@@ -11,10 +11,17 @@ import { VariantC } from "@/components/records/detail/VariantC";
 
 export type SummaryVariant = "a" | "b" | "c";
 
+// Plain, user-facing labels — these used to read as internal
+// variant/experiment naming ("A · Deferred projection", "B · Single-scale
+// cluster", "C · Fact vs. forecast") with no in-page explanation of what
+// A/B/C meant. Each label now names what that composition actually shows:
+// A leads with peak + trend and defers the projection behind a tap; B puts
+// best/now/next on one shared scale; C splits a record (fact) block from a
+// trajectory (forecast) block.
 const VARIANT_LABEL: Record<SummaryVariant, string> = {
-  a: "A · Deferred projection",
-  b: "B · Single-scale cluster",
-  c: "C · Fact vs. forecast",
+  a: "Trend",
+  b: "Combined scale",
+  c: "Actual vs. forecast",
 };
 
 /**
@@ -41,10 +48,15 @@ export function SummaryTab({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* `max-w-full overflow-x-auto` — a safety net, not the expected path:
+          the three labels fit exactly at 375px with the current copy, but
+          `w-fit` has no fallback if a label grows (longer locale string,
+          browser text-zoom), so this lets the switcher scroll horizontally
+          rather than clip or overflow the page if that ever happens. */}
       <div
         role="group"
         aria-label="Display style"
-        className="flex w-fit gap-1 rounded-[8px] border border-[var(--border)] bg-[var(--card)] p-1"
+        className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-[8px] border border-[var(--border)] bg-[var(--card)] p-1"
       >
         {(["a", "b", "c"] as const).map((v) => (
           <button

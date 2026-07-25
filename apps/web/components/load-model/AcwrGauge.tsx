@@ -94,7 +94,7 @@ export function AcwrGauge({
         {ACWR_ZONE_BANDS.map((band) => (
           <span
             key={band.key}
-            className="font-sans text-[9px] text-[var(--muted-foreground)] leading-tight"
+            className="font-sans text-[12px] text-[var(--muted-foreground)] leading-tight"
           >
             {band.label}
           </span>

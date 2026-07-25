@@ -3,6 +3,8 @@ import {
   sortByVolumePctDesc,
   isZeroLoadBreakdown,
   categoryLabel,
+  fillMissingCategories,
+  ALL_TRAINING_BALANCE_CATEGORIES,
 } from "@/lib/analytics/training-balance";
 import type { TrainingBalanceBreakdown } from "@/lib/api";
 
@@ -49,5 +51,26 @@ describe("categoryLabel", () => {
   it("capitalizes and de-underscores a free-form category tag", () => {
     expect(categoryLabel("push")).toBe("Push");
     expect(categoryLabel("lower_back")).toBe("Lower back");
+  });
+});
+
+describe("fillMissingCategories", () => {
+  it("adds a zero-value row for every canonical category missing from breakdown", () => {
+    const filled = fillMissingCategories([cat("legs", 1, 500)]);
+    expect(filled).toHaveLength(ALL_TRAINING_BALANCE_CATEGORIES.length);
+    const legs = filled.find((c) => c.category === "legs");
+    expect(legs).toEqual({ category: "legs", volume_pct: 1, load_au: 500 });
+    for (const c of filled) {
+      if (c.category !== "legs") {
+        expect(c).toEqual({ category: c.category, volume_pct: 0, load_au: 0 });
+      }
+    }
+  });
+
+  it("leaves a breakdown that already has every category untouched", () => {
+    const full = ALL_TRAINING_BALANCE_CATEGORIES.map((category, i) =>
+      cat(category, 0.2 * (i + 1), 100 * (i + 1)),
+    );
+    expect(fillMissingCategories(full)).toHaveLength(full.length);
   });
 });

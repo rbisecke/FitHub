@@ -93,7 +93,10 @@ export function RecordsHomeScreen({
     <div className="min-h-svh bg-[var(--bg)] text-[var(--text)] px-4 py-6 md:px-8 md:py-8">
       <div className="mx-auto max-w-2xl space-y-5">
         <div>
-          <h1 className="font-sans text-[20px] font-bold text-[var(--text)]">
+          <p className="font-mono text-[11px] text-[var(--muted)]">
+            $ git tag --list
+          </p>
+          <h1 className="font-sans text-[20px] font-bold text-[var(--text)] mt-1">
             Records
           </h1>
           <p className="font-sans text-[13px] text-[var(--muted)] mt-1">

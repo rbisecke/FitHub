@@ -1,6 +1,7 @@
 import { ChartDataTable } from "@/components/shared/chart-data-table";
 import {
   categoryLabel,
+  fillMissingCategories,
   isZeroLoadBreakdown,
   sortByVolumePctDesc,
 } from "@/lib/analytics/training-balance";
@@ -50,7 +51,12 @@ export function TrainingBalanceBars({ data }: Props) {
     );
   }
 
-  const sorted = sortByVolumePctDesc(breakdown);
+  // Fill in any tracked category with zero tagged volume this period so the
+  // page shows the full push/pull/legs/core/conditioning taxonomy for
+  // context, rather than only whichever categories happened to have logged
+  // volume (04 §Screen 8) — applied only here, after the true-empty-state
+  // checks above have already run against the real `breakdown`.
+  const sorted = sortByVolumePctDesc(fillMissingCategories(breakdown));
   const maxPct = Math.max(...sorted.map((b) => b.volume_pct));
 
   const tableRows: Array<Array<string | number>> = sorted.map((b) => [

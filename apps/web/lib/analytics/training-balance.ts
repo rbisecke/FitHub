@@ -30,3 +30,37 @@ export function categoryLabel(category: string): string {
     category.charAt(0).toUpperCase() + category.slice(1).replace(/_/g, " ")
   );
 }
+
+/**
+ * The closed, DB-CHECK-constrained set of `primary_muscle_group` values
+ * (`ck_movements_primary_muscle_group`, migration 0037) — a fixed taxonomy
+ * that can't silently grow without its own migration, so it's safe to
+ * mirror here rather than plumb a new "list all categories" endpoint just
+ * to render context rows for untagged-this-period categories.
+ */
+export const ALL_TRAINING_BALANCE_CATEGORIES = [
+  "push",
+  "pull",
+  "legs",
+  "core",
+  "conditioning",
+] as const;
+
+/**
+ * Fills in any canonical category missing from `breakdown` (i.e. tracked by
+ * the app but with zero tagged volume in the current window) as an explicit
+ * 0%/0 load_au row, so the screen shows the full taxonomy for context
+ * instead of only whichever categories happened to have logged volume.
+ * Only meaningful once the caller has already ruled out the true empty
+ * states (`breakdown.length === 0`, `isZeroLoadBreakdown`) — this always
+ * returns a full-taxonomy list, so it must not be used to decide those.
+ */
+export function fillMissingCategories(
+  breakdown: TrainingBalanceBreakdown[],
+): TrainingBalanceBreakdown[] {
+  const present = new Set(breakdown.map((b) => b.category));
+  const filled = ALL_TRAINING_BALANCE_CATEGORIES.filter(
+    (c) => !present.has(c),
+  ).map((category) => ({ category, volume_pct: 0, load_au: 0 }));
+  return [...breakdown, ...filled];
+}
