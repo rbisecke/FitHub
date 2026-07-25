@@ -152,10 +152,20 @@ export function WorkoutDetail({
   const benchmark = isBenchmark(workout.title);
   const isPartner =
     workout.workout_format === "partner" || workout.workout_format === "team";
+  // A single result row doesn't fill the wide `1fr` results pane the
+  // side-by-side split reserves for it — stack the metadata and results
+  // panes instead of forcing an artificially wide, mostly-empty column.
+  const singleResult = results.length === 1;
 
   return (
     <div className="mx-auto w-full max-w-[900px] px-4 py-4">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-[280px_1fr]">
+      <div
+        className={
+          singleResult
+            ? "grid grid-cols-1 gap-6"
+            : "grid grid-cols-1 gap-6 md:grid-cols-[280px_1fr]"
+        }
+      >
         {/* Metadata pane */}
         <aside className="flex flex-col gap-4">
           <div>
@@ -250,7 +260,20 @@ export function WorkoutDetail({
               No results logged — this was a rest day.
             </p>
           ) : (
-            <div className="flex flex-col gap-5">
+            <div
+              className="flex flex-col gap-5 rounded-[10px] p-4"
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <div
+                className="flex items-baseline justify-between gap-3 font-data text-[10px] uppercase tracking-wide"
+                style={{ color: "var(--muted)" }}
+              >
+                <span>Movement</span>
+                <span>Result</span>
+              </div>
               {groups.map((group) => (
                 <section key={group.movementId ?? group.movementName}>
                   {group.results.map((r) => (

@@ -140,7 +140,7 @@ export function TemplatesStart({
                   className="font-mono tabular-nums text-[11px]"
                   style={{ color: "var(--muted)" }}
                 >
-                  {w.result_count} sets
+                  {w.result_count} {w.result_count === 1 ? "set" : "sets"}
                 </span>
               </div>
             ))}

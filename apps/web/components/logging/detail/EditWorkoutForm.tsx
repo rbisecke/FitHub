@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Lock } from "lucide-react";
 import type { SessionType, WorkoutFormat, Workout } from "@/lib/api";
 import { ApiError, createApiClient } from "@/lib/api/client";
 import { SESSION_LABELS, FORMAT_LABELS } from "@/lib/display";
@@ -232,9 +233,12 @@ export function EditWorkoutForm({
       {results.length > 0 && (
         <div className="mt-5">
           <div className="flex items-center gap-2">
-            <span aria-hidden style={{ color: "var(--muted)" }}>
-              🔒
-            </span>
+            <Lock
+              size={14}
+              strokeWidth={1.75}
+              aria-hidden="true"
+              style={{ color: "var(--muted)" }}
+            />
             <h2
               className="font-sans text-[13px] font-semibold"
               style={{ color: "var(--text)" }}

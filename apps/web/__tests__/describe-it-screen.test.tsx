@@ -39,7 +39,7 @@ async function typeAndParse(text: string) {
   fireEvent.change(screen.getByPlaceholderText(/back squat 100kg/i), {
     target: { value: text },
   });
-  fireEvent.click(screen.getByText("Parse"));
+  fireEvent.click(screen.getByText("Parse commit"));
 }
 
 describe("DescribeItScreen parse states", () => {

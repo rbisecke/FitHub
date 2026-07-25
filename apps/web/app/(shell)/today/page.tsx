@@ -38,7 +38,7 @@ export default async function TodayPage() {
       theme="dark"
       className="min-h-svh bg-background text-foreground"
     >
-      <div className="mx-auto flex max-w-2xl flex-col gap-4 px-5 py-6">
+      <div className="pb-nav-safe-fab mx-auto flex max-w-2xl flex-col gap-4 px-5 pt-6 md:pb-6">
         <h1 className="font-mono text-lg font-bold text-[var(--text)]">
           $ fithub today
         </h1>

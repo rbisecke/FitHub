@@ -169,57 +169,65 @@ export function DescribeItScreen({
 
   return (
     <div className="mx-auto w-full max-w-[640px] px-4 py-4">
-      <h1
-        className="mb-1 font-sans text-[18px] font-semibold"
-        style={{ color: "var(--text)" }}
-      >
-        Describe it
-      </h1>
-      <p
-        className="mb-3 font-sans text-[13px]"
-        style={{ color: "var(--muted)" }}
-      >
-        Type your workout in a sentence or two and let AI break it into
-        structured results.
-      </p>
-
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        maxLength={2000}
-        rows={3}
-        placeholder="e.g. 3×5 back squat 100kg, then 3 rounds Fran, 2k row in 7:42"
-        className="w-full rounded-[8px] px-3 py-2 font-sans text-[14px]"
+      <div
+        className="rounded-[10px] p-4"
         style={{
           background: "var(--surface)",
-          color: "var(--text)",
           border: "1px solid var(--border)",
         }}
-      />
-      <div className="mt-2 flex justify-end">
-        <button
-          type="button"
-          onClick={handleParse}
-          disabled={parsing || text.trim() === ""}
-          className="rounded-[8px] px-4 py-2 font-sans text-[13px] font-semibold"
-          style={{
-            background: "var(--accent)",
-            color: "var(--bg)",
-            opacity: parsing || text.trim() === "" ? 0.6 : 1,
-          }}
+      >
+        <h1
+          className="mb-1 font-sans text-[18px] font-semibold"
+          style={{ color: "var(--text)" }}
         >
-          {parsing ? "Parsing…" : "Parse"}
-        </button>
-      </div>
-
-      {error && (
+          Describe it
+        </h1>
         <p
-          className="mt-3 font-sans text-[13px]"
-          style={{ color: "var(--red)" }}
+          className="mb-3 font-sans text-[13px]"
+          style={{ color: "var(--muted)" }}
         >
-          {error}
+          Write it like a commit message — AI will parse it into structured
+          results.
         </p>
-      )}
+
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          maxLength={2000}
+          rows={3}
+          placeholder="e.g. 3×5 back squat 100kg, then 3 rounds Fran, 2k row in 7:42"
+          className="w-full rounded-[8px] px-3 py-2 font-sans text-[14px]"
+          style={{
+            background: "var(--bg)",
+            color: "var(--text)",
+            border: "1px solid var(--border)",
+          }}
+        />
+        <div className="mt-2 flex justify-end">
+          <button
+            type="button"
+            onClick={handleParse}
+            disabled={parsing || text.trim() === ""}
+            className="rounded-[8px] px-4 py-2 font-sans text-[13px] font-semibold"
+            style={{
+              background: "var(--accent)",
+              color: "var(--bg)",
+              opacity: parsing || text.trim() === "" ? 0.6 : 1,
+            }}
+          >
+            {parsing ? "Parsing…" : "Parse commit"}
+          </button>
+        </div>
+
+        {error && (
+          <p
+            className="mt-3 font-sans text-[13px]"
+            style={{ color: "var(--red)" }}
+          >
+            {error}
+          </p>
+        )}
+      </div>
 
       {parsed && (
         <div className="mt-5 flex flex-col gap-4">

@@ -215,7 +215,7 @@ export function HistoryFeed({
   const emptyButMore = !busy && visible.length === 0 && hasMore;
 
   return (
-    <div className="mx-auto w-full max-w-[900px] px-4 py-4">
+    <div className="pb-nav-safe-fab mx-auto w-full max-w-[900px] px-4 pt-4 md:pb-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h1
           className="font-data text-[18px] font-semibold"

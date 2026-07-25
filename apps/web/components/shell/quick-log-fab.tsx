@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { Plus } from "lucide-react";
 import {
   Sheet,
@@ -12,6 +13,22 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
+ * Routes where "log a new workout" doesn't apply — an edit form already has its
+ * own primary action (its own "Save changes" button) pinned near the same
+ * bottom-right corner the FAB perches over on mobile, and a *new*-entry action
+ * makes no sense while editing an existing one. Unlike `/admin/*` (which opts
+ * out of the whole shell by living outside the `(shell)` route group,
+ * `app/admin/layout.tsx`), these routes still need the tab bar for navigation —
+ * only the FAB itself is out of place — so the suppression is scoped to just
+ * this component instead of the shell chrome as a whole.
+ */
+const FAB_SUPPRESSED_ROUTES = [/^\/workouts\/[^/]+\/edit$/];
+
+function isFabSuppressed(pathname: string): boolean {
+  return FAB_SUPPRESSED_ROUTES.some((pattern) => pattern.test(pathname));
+}
+
+/**
  * Quick-log FAB (Effort 1, `00` Part 4 "Mobile FAB").
  *
  * The single most frequent action — log something now — stays one thumb-tap away
@@ -19,9 +36,13 @@ import { cn } from "@/lib/utils";
  * surface is built in Effort 3, so this stubs the target with a bottom sheet.
  *
  * Rendered inset into the mobile bottom-tab bar (its parent positions it); it is
- * mobile-only, matching the tab bar it belongs to.
+ * mobile-only, matching the tab bar it belongs to. Renders nothing on routes in
+ * `FAB_SUPPRESSED_ROUTES` above.
  */
 export function QuickLogFab({ className }: { className?: string }) {
+  const pathname = usePathname();
+  if (isFabSuppressed(pathname)) return null;
+
   return (
     <Sheet>
       <SheetTrigger
