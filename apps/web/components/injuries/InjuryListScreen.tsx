@@ -114,8 +114,8 @@ export function InjuryListScreen({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4 px-4 py-4">
-      <div className="flex items-start justify-between gap-3">
+    <div className="pb-nav-safe-fab mx-auto flex w-full max-w-[720px] flex-col gap-4 px-4 pt-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1
             className="font-sans text-[20px] font-semibold"

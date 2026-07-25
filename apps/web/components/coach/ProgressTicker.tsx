@@ -76,7 +76,7 @@ export function ProgressTicker({ phase }: { phase: "thinking" | "settled" }) {
         onClick={() => setExpanded((e) => !e)}
         aria-expanded={expanded}
         aria-label="Toggle what the coach checked for this answer"
-        className="flex min-h-6 items-center gap-1 font-mono text-[11px] text-[var(--muted)] transition-colors hover:text-[var(--text)]"
+        className="-mx-2 flex min-h-11 items-center gap-1 rounded-md px-2 font-mono text-[11px] text-[var(--muted)] transition-colors hover:text-[var(--text)]"
       >
         {expanded ? (
           <ChevronDown size={12} aria-hidden="true" />

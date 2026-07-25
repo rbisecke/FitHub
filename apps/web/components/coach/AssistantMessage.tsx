@@ -8,6 +8,7 @@ import {
 import { FollowUpChips } from "@/components/coach/FollowUpChips";
 import type { ChatCitation } from "@/hooks/use-chat-stream";
 import type { FollowUpChip } from "@/lib/coach/follow-up-chips";
+import { formatMessageTime } from "@/lib/coach/format-message-time";
 
 export type AssistantPhase = "thinking" | "streaming" | "settled";
 
@@ -26,6 +27,7 @@ export function AssistantMessage({
   stub = false,
   followUpChips = [],
   onSelectChip,
+  createdAt,
 }: {
   phase: AssistantPhase;
   text: string;
@@ -34,6 +36,8 @@ export function AssistantMessage({
   stub?: boolean;
   followUpChips?: (FollowUpChip & { href?: string })[];
   onSelectChip?: (label: string) => void;
+  /** ISO timestamp, when known — omitted while a turn hasn't settled yet. */
+  createdAt?: string;
 }) {
   const isModify = safetyTier === "modify";
 
@@ -76,7 +80,18 @@ export function AssistantMessage({
         <ProgressTicker phase="thinking" />
       ) : (
         <>
-          <CoachIdentityMark />
+          <div className="flex items-center gap-2">
+            <CoachIdentityMark />
+            {phase === "settled" && createdAt && (
+              <span
+                className="font-mono text-[11px] tabular-nums"
+                style={{ color: "var(--muted)" }}
+                data-testid="coach-assistant-turn-time"
+              >
+                {formatMessageTime(createdAt)}
+              </span>
+            )}
+          </div>
           {phase === "streaming" ? (
             <p
               className="font-sans text-[15px] leading-relaxed whitespace-pre-wrap text-[var(--text)]"
@@ -106,7 +121,12 @@ export function AssistantMessage({
       {phase === "settled" && <CitationsRow citations={citations} />}
 
       {phase === "settled" && followUpChips.length > 0 && onSelectChip && (
-        <FollowUpChips chips={followUpChips} onSelect={onSelectChip} />
+        // Extra top margin beyond the parent's gap-2 — otherwise this reads
+        // as one more entry inside "Sources" rather than a distinct
+        // next-action affordance below it (design-review finding).
+        <div className="mt-2">
+          <FollowUpChips chips={followUpChips} onSelect={onSelectChip} />
+        </div>
       )}
     </div>
   );

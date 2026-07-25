@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, PenLine } from "lucide-react";
 import { CoachIdentityMark } from "@/components/coach/CoachIdentityMark";
 import {
   STARTER_GREETING,
@@ -9,8 +9,10 @@ import {
 /**
  * Empty-state starter prompts (design-spec 03 §8.1). "self-contained" cards
  * send immediately on tap and show a trailing arrow; the "template" card (with
- * an implied blank) populates the composer for editing instead and shows no
- * arrow — its absence IS the signal that this one needs input first.
+ * an implied blank) populates the composer for editing instead and shows a
+ * trailing pencil icon in `--accent` (vs. the muted arrow) — both a distinct
+ * shape and a distinct color so the different behavior reads as intentional,
+ * legible at a skim, rather than an inconsistency.
  */
 export function StarterPrompts({
   onSend,
@@ -46,11 +48,17 @@ export function StarterPrompts({
             style={{ borderColor: "var(--border)" }}
           >
             <span>{prompt.text}</span>
-            {prompt.tag === "self-contained" && (
+            {prompt.tag === "self-contained" ? (
               <ArrowRight
                 size={16}
                 aria-hidden="true"
                 className="shrink-0 text-[var(--muted)]"
+              />
+            ) : (
+              <PenLine
+                size={16}
+                aria-hidden="true"
+                className="shrink-0 text-[var(--accent)]"
               />
             )}
           </button>

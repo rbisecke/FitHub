@@ -26,7 +26,7 @@ import { stripMarkdownForAnnouncement } from "@/lib/coach/strip-markdown";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Turn =
-  | { kind: "user"; id: string; content: string }
+  | { kind: "user"; id: string; content: string; createdAt: string }
   | {
       kind: "assistant";
       id: string;
@@ -36,6 +36,7 @@ type Turn =
        * entry instead (see the commit-turn effect below). */
       safetyTier: "coach" | "modify" | null;
       stub: boolean;
+      createdAt: string;
     }
   | { kind: "stop"; id: string };
 
@@ -173,6 +174,7 @@ export function ChatThread({
             citations: chat.citations,
             safetyTier: chat.safetyTier === "modify" ? "modify" : null,
             stub: chat.stub,
+            createdAt: new Date().toISOString(),
           },
         ]);
         setAnnounced(stripMarkdownForAnnouncement(chat.text));
@@ -206,6 +208,7 @@ export function ChatThread({
               citations: [],
               safetyTier: null,
               stub: chat.stub,
+              createdAt: new Date().toISOString(),
             },
           ]);
         }
@@ -241,7 +244,12 @@ export function ChatThread({
     setRetriedCollision(false);
     setLocalTurns((prev) => [
       ...prev,
-      { kind: "user", id: newId(), content: trimmed },
+      {
+        kind: "user",
+        id: newId(),
+        content: trimmed,
+        createdAt: new Date().toISOString(),
+      },
     ]);
     setComposerValue("");
     void chat.send(trimmed, resolvedSessionId ?? undefined);
@@ -362,7 +370,11 @@ export function ChatThread({
               // an expanded "Show reasoning" toggle, to a different message).
               const key = `${m.created_at}-${m.role}`;
               return m.role === "user" ? (
-                <UserBubble key={key} content={m.content} />
+                <UserBubble
+                  key={key}
+                  content={m.content}
+                  createdAt={m.created_at}
+                />
               ) : m.safety_tier === "stop" ? (
                 <SafetyStopNotice key={key} />
               ) : (
@@ -371,13 +383,20 @@ export function ChatThread({
                   phase="settled"
                   text={m.content}
                   safetyTier={m.safety_tier === "modify" ? "modify" : null}
+                  createdAt={m.created_at}
                 />
               );
             })}
 
             {localTurns.map((turn) => {
               if (turn.kind === "user") {
-                return <UserBubble key={turn.id} content={turn.content} />;
+                return (
+                  <UserBubble
+                    key={turn.id}
+                    content={turn.content}
+                    createdAt={turn.createdAt}
+                  />
+                );
               }
               if (turn.kind === "stop") {
                 return <SafetyStopNotice key={turn.id} />;
@@ -397,6 +416,7 @@ export function ChatThread({
                   citations={turn.citations}
                   safetyTier={turn.safetyTier}
                   stub={turn.stub}
+                  createdAt={turn.createdAt}
                   followUpChips={isLast && showFollowUps ? chips : []}
                   onSelectChip={isLast ? doSend : undefined}
                 />

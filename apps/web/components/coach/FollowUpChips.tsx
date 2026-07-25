@@ -24,7 +24,7 @@ export function FollowUpChips({
           <Link
             key={chip.id}
             href={chip.href}
-            className="rounded-full border px-3 py-1.5 font-sans text-[13px] text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+            className="inline-flex min-h-11 items-center rounded-full border px-3 font-sans text-[13px] text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
             style={{ borderColor: "var(--border)" }}
           >
             {chip.label}
@@ -34,7 +34,7 @@ export function FollowUpChips({
             key={chip.id}
             type="button"
             onClick={() => onSelect(chip.label)}
-            className="rounded-full border px-3 py-1.5 font-sans text-[13px] text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+            className="inline-flex min-h-11 items-center rounded-full border px-3 font-sans text-[13px] text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
             style={{ borderColor: "var(--border)" }}
           >
             {chip.label}
