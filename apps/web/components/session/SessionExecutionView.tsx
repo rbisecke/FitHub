@@ -709,7 +709,7 @@ export function SessionExecutionView({
             {session.title}
           </h1>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-4 shrink-0">
           {/* Overview button */}
           <button
             onClick={() => setOverviewOpen(true)}
@@ -770,15 +770,12 @@ export function SessionExecutionView({
               animate={{ opacity: 1, y: 0 }}
               exit={prefersReducedMotion ? {} : { opacity: 0, y: -8 }}
               transition={transition}
-              className="flex flex-col items-center justify-center flex-1 gap-8 py-12"
+              className="flex flex-col items-center gap-6 py-4"
             >
-              <div className="text-center flex flex-col gap-3">
+              <div className="text-center flex flex-col gap-2">
                 <p className="font-data text-[11px] text-[var(--accent)]">
                   $ git checkout session/{session.id.slice(0, 7)}
                 </p>
-                <h2 className="font-heading text-[32px] text-[var(--text)]">
-                  {session.title}
-                </h2>
                 <p className="font-sans text-[14px] text-[var(--muted)]">
                   <span className="font-data tabular-nums text-[var(--text)]">
                     {totalItems}
