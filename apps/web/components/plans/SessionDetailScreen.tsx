@@ -207,7 +207,7 @@ function SessionDetailBody({
            */}
           <Link
             href={`/plan/${planId}/sessions/${session.id}/modify`}
-            className="rounded font-sans text-sm font-semibold"
+            className="rounded font-mono text-sm font-semibold"
             style={{
               background: "var(--surface)",
               color: "var(--text)",
@@ -218,7 +218,7 @@ function SessionDetailBody({
               alignItems: "center",
             }}
           >
-            Injury-adapt this session
+            injury-adapt this session
           </Link>
         </div>
       )}
