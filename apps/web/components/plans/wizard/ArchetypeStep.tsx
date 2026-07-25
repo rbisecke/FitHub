@@ -77,7 +77,7 @@ export function ArchetypeStep({ state, onSelect, headingRef }: Props) {
       <h2
         ref={headingRef}
         tabIndex={-1}
-        className="mb-1 font-mono text-sm font-semibold text-[var(--text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        className="mb-1 font-mono text-sm font-semibold text-[var(--text)] focus:outline-none"
       >
         step 1 — choose archetype
       </h2>
