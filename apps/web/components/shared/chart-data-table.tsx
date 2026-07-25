@@ -23,8 +23,22 @@ export function ChartDataTable({
   className?: string;
 }) {
   return (
-    <table className={cn("sr-only", className)}>
-      <caption>{caption}</caption>
+    // `table-fixed` (not just `sr-only`'s `width: 1px`) — `<table>` uses
+    // `table-layout: auto` by default, which sizes the table to its content's
+    // min-content width and ignores an explicit `width` entirely. With wide
+    // content (long chart rows, many columns) that intrinsic width can reach
+    // several hundred px even though the table is visually hidden, which
+    // then contributes to the PAGE's scrollable width on mobile (a real,
+    // measurable horizontal-scroll bug — not just a screen-reader-only
+    // concern). `table-fixed` makes the table actually honor `width: 1px`.
+    <table className={cn("sr-only table-fixed", className)}>
+      {/* `whitespace-normal` overrides the `white-space: nowrap` this
+          `<caption>` otherwise inherits from `.sr-only` on the parent
+          `<table>`. A long, unwrappable caption forces the whole table's
+          rendered box to grow to the caption's full text width to contain
+          it — even with `table-fixed` — which alone reproduced the exact
+          mobile horizontal-overflow bug this table exists to avoid causing. */}
+      <caption className="whitespace-normal">{caption}</caption>
       <thead>
         <tr>
           {columns.map((col) => (
