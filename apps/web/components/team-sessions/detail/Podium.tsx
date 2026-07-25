@@ -213,7 +213,7 @@ export function Podium({
 export function PodiumEmptyPlaceholder() {
   return (
     <p
-      className="py-6 text-center font-sans text-[13px]"
+      className="py-3 text-center font-sans text-[13px]"
       style={{ color: "var(--muted)" }}
     >
       No results yet — be the first to log.

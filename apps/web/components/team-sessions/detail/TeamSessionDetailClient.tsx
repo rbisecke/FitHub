@@ -142,7 +142,7 @@ export function TeamSessionDetailClient({
         onDeleteSession={() => setOverlay({ type: "delete" })}
       />
 
-      <TeamScoreHeadline session={session} />
+      <TeamScoreHeadline session={session} loggedCount={loggedCount} />
 
       {loggedCount === 0 ? (
         <PodiumEmptyPlaceholder />
