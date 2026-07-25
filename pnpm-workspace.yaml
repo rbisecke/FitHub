@@ -21,3 +21,7 @@ overrides:
   # GHSA-f88m-g3jw-g9cj (libvips CVE-2026-33327/33328/35590/35591), via
   # next's bundled sharp — same pattern as above.
   "sharp@<0.35.0": ">=0.35.0"
+  # GHSA-6g55-p6wh-862q (sourceMappingURL info disclosure) + GHSA-r28c-9q8g-f849
+  # (path traversal via source-map auto-loading), via next's and shadcn's
+  # postcss chains — same pattern as above.
+  "postcss@<8.5.18": ">=8.5.18"
