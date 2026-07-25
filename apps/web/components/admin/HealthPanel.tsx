@@ -20,7 +20,14 @@ function statusColor(code: number): React.CSSProperties {
   return { color: "var(--muted)" };
 }
 
-const HTTP_GRID = "150px 1.4fr 60px 130px minmax(0,2fr)";
+// Only 3 columns: `error_type`/`error_msg` are never written by
+// `RequestLoggingMiddleware`'s `error_events` INSERT (it only sets user_id,
+// path, method, status_code, request_id, duration_ms) — every row in this
+// table has always rendered "—" for both, so those two permanently-empty
+// columns are dropped rather than kept as dead weight (UI review). LLM
+// errors below are unaffected — `error_code`/`error_msg` there are real,
+// written by `app/ai/usage.py`.
+const HTTP_GRID = "150px 1fr 80px";
 const LLM_GRID = "150px 1.6fr 140px minmax(0,2fr)";
 
 function ErrorRow({ error }: { error: AdminRecentError }) {
@@ -56,17 +63,6 @@ function ErrorRow({ error }: { error: AdminRecentError }) {
         {error.path}
       </span>
       <span style={statusColor(error.status_code)}>{error.status_code}</span>
-      <span style={{ color: "var(--muted)" }}>{error.error_type ?? "—"}</span>
-      <span
-        style={{
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-          color: "var(--text)",
-        }}
-      >
-        {error.error_msg ?? "—"}
-      </span>
     </div>
   );
 }
@@ -247,7 +243,13 @@ function SafetyTriggerCard({ count }: { count: number }) {
         <div
           style={{
             fontSize: 12,
-            color: "var(--muted)",
+            // --muted is tuned for AA contrast against plain --surface, not
+            // against this warmer amber-tinted card background (measured
+            // ≈4.2:1 when escalated, under the 4.5:1 AA minimum for small
+            // text) — --muted-strong is this codebase's existing
+            // higher-contrast muted token for text on tinted/elevated
+            // surfaces (see CostHero, TopUsersTable, MetricsCard).
+            color: "var(--muted-strong)",
             textTransform: "uppercase",
             letterSpacing: ".5px",
             marginBottom: 5,
@@ -256,7 +258,9 @@ function SafetyTriggerCard({ count }: { count: number }) {
         >
           Safety stops (7d) — AI-coach hard-stop guardrail triggers
         </div>
-        <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{label}</div>
+        <div style={{ fontSize: 12.5, color: "var(--muted-strong)" }}>
+          {label}
+        </div>
       </div>
       <div
         style={{
@@ -424,8 +428,6 @@ export function HealthPanel({ health }: Props) {
           <span>Timestamp</span>
           <span>Endpoint</span>
           <span>Status</span>
-          <span>Error code</span>
-          <span>Message</span>
         </div>
 
         {filtered.length === 0 ? (

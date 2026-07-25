@@ -81,9 +81,35 @@ export default async function AdminInfraPage() {
         >
           System health + Supabase / Railway / Vercel detail — as of {asOf}
         </p>
+        {/* Both zones exist below, but "Zone A" alone at the top of a long
+            scroll read as an orphaned label with no visible "Zone B" (UI
+            review) — this jump-nav makes both zones discoverable without
+            scrolling first. */}
+        <nav
+          aria-label="Jump to section"
+          className="mt-3 flex items-center gap-2 text-[11px]"
+          style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}
+        >
+          <span className="text-[var(--muted)]">Jump to:</span>
+          <a
+            href="#zone-a-system-health"
+            className="text-[var(--accent)] underline-offset-2 hover:underline"
+          >
+            Zone A — System health
+          </a>
+          <span className="text-[var(--muted)]" aria-hidden="true">
+            ·
+          </span>
+          <a
+            href="#zone-b-infrastructure"
+            className="text-[var(--accent)] underline-offset-2 hover:underline"
+          >
+            Zone B — Infrastructure
+          </a>
+        </nav>
       </header>
 
-      <section className="mb-14">
+      <section id="zone-a-system-health" className="mb-14 scroll-mt-6">
         <ZoneHeading eyebrow="Zone A">System health</ZoneHeading>
         {health ? (
           <HealthPanel health={health} />
@@ -97,7 +123,7 @@ export default async function AdminInfraPage() {
         )}
       </section>
 
-      <section>
+      <section id="zone-b-infrastructure" className="scroll-mt-6">
         <ZoneHeading eyebrow="Zone B">Infrastructure</ZoneHeading>
         <InfraPanel dashboard={dashboard} />
       </section>
