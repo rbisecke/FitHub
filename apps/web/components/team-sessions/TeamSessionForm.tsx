@@ -224,6 +224,51 @@ export function TeamSessionForm({
       <SheetOverlay
         title={mode === "create" ? "New team session" : "Edit team session"}
         onClose={onClose}
+        footer={
+          <div className="flex flex-col gap-3">
+            {error && (
+              <p
+                className="font-sans text-[13px]"
+                style={{ color: "var(--red)" }}
+              >
+                {error}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={() => void handleSubmit()}
+              disabled={submitting}
+              className="w-full rounded-[8px] py-3 font-sans text-[14px] font-semibold transition-colors disabled:opacity-50"
+              style={{ background: "var(--accent)", color: "var(--bg)" }}
+            >
+              {submitting
+                ? "Saving…"
+                : mode === "create"
+                  ? "Create session"
+                  : "Save changes"}
+            </button>
+
+            {mode === "edit" && existing && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirmingDelete) void handleDelete();
+                  else setConfirmingDelete(true);
+                }}
+                disabled={submitting}
+                className="w-full rounded-[8px] py-2.5 font-sans text-[13px] font-semibold transition-colors disabled:opacity-50"
+                style={{
+                  background: confirmingDelete ? "var(--red)" : "transparent",
+                  color: confirmingDelete ? "var(--bg)" : "var(--red)",
+                  border: confirmingDelete ? "none" : "1px solid var(--red)",
+                }}
+              >
+                {confirmingDelete ? "Confirm delete session" : "Delete session"}
+              </button>
+            )}
+          </div>
+        }
       >
         <div className="flex flex-col gap-5">
           {seedWorkout && mode === "create" && (
@@ -529,48 +574,6 @@ export function TeamSessionForm({
               style={inputStyle}
             />
           </Field>
-
-          {error && (
-            <p
-              className="font-sans text-[13px]"
-              style={{ color: "var(--red)" }}
-            >
-              {error}
-            </p>
-          )}
-
-          <button
-            type="button"
-            onClick={() => void handleSubmit()}
-            disabled={submitting}
-            className="w-full rounded-[8px] py-3 font-sans text-[14px] font-semibold transition-colors disabled:opacity-50"
-            style={{ background: "var(--accent)", color: "var(--bg)" }}
-          >
-            {submitting
-              ? "Saving…"
-              : mode === "create"
-                ? "Create session"
-                : "Save changes"}
-          </button>
-
-          {mode === "edit" && existing && (
-            <button
-              type="button"
-              onClick={() => {
-                if (confirmingDelete) void handleDelete();
-                else setConfirmingDelete(true);
-              }}
-              disabled={submitting}
-              className="w-full rounded-[8px] py-2.5 font-sans text-[13px] font-semibold transition-colors disabled:opacity-50"
-              style={{
-                background: confirmingDelete ? "var(--red)" : "transparent",
-                color: confirmingDelete ? "var(--bg)" : "var(--red)",
-                border: confirmingDelete ? "none" : "1px solid var(--red)",
-              }}
-            >
-              {confirmingDelete ? "Confirm delete session" : "Delete session"}
-            </button>
-          )}
         </div>
       </SheetOverlay>
 

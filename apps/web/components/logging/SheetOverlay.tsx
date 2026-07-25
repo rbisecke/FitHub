@@ -31,12 +31,22 @@ export function SheetOverlay({
   title,
   onClose,
   children,
+  footer,
   maxHeight = "82dvh",
   backdropOpacity = 0.55,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  /** Optional pinned action row (e.g. Save/Delete) rendered below the
+   * scrollable body, outside its `overflow-y-auto` region — stays visible
+   * regardless of scroll position instead of getting lost in tall content
+   * (found live on the team-session edit form: without this, the Save button
+   * was clipped below the viewport on desktop and unreachable on mobile with
+   * no scroll affordance at all, since it was a normal flow child of the
+   * scrollable body but the body's height could still exceed the panel's
+   * own `maxHeight`). */
+  footer?: ReactNode;
   maxHeight?: string;
   /** Backdrop darkness, 0-1. Lower this for a sheet nested on top of another
    * open `SheetOverlay` — two full-opacity scrims stacked read as "double
@@ -129,7 +139,7 @@ export function SheetOverlay({
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="relative w-full rounded-t-[16px] outline-none md:mx-4 md:w-[520px] md:rounded-[16px]"
+        className="relative flex w-full flex-col rounded-t-[16px] outline-none md:mx-4 md:w-[520px] md:rounded-[16px]"
         style={{
           background: "var(--bg)",
           border: "1px solid var(--border)",
@@ -139,17 +149,19 @@ export function SheetOverlay({
           transition: prefersReducedMotion
             ? "none"
             : "transform 200ms cubic-bezier(0.2,0,0,1), opacity 200ms",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          paddingBottom: footer
+            ? undefined
+            : "env(safe-area-inset-bottom, 0px)",
         }}
       >
-        <div className="flex justify-center pt-3 md:hidden">
+        <div className="flex shrink-0 justify-center pt-3 md:hidden">
           <div
             className="h-1 w-9 rounded-full"
             style={{ background: "var(--border)" }}
           />
         </div>
         <div
-          className="flex items-center justify-between px-5 py-3"
+          className="flex shrink-0 items-center justify-between px-5 py-3"
           style={{ borderBottom: "1px solid var(--border)" }}
         >
           <span
@@ -168,12 +180,23 @@ export function SheetOverlay({
             ×
           </button>
         </div>
-        <div
-          className="overflow-y-auto px-5 py-4"
-          style={{ maxHeight: "70dvh" }}
-        >
+        {/* min-h-0 is required for a flex child to actually shrink below its
+            content size — without it this region ignores the panel's own
+            maxHeight cap and pushes the footer (and itself) off-screen. */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {children}
         </div>
+        {footer && (
+          <div
+            className="shrink-0 px-5 py-4"
+            style={{
+              borderTop: "1px solid var(--border)",
+              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+            }}
+          >
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );
