@@ -37,7 +37,12 @@ const SERVICE_ROLE_KEY =
 
 const API_URL = process.env.SEED_API_URL ?? "http://127.0.0.1:8000";
 const BASE_URL = "http://localhost:3000";
-const FULL_DIR = path.join(__dirname, "../../..", "screenshots", "full");
+const FULL_DIR = path.join(
+  import.meta.dirname,
+  "../../..",
+  "screenshots",
+  "full",
+);
 const UUID_FILE = path.join(FULL_DIR, ".primary-user-id");
 
 const PASSWORD = "DemoFitHub!2026";
