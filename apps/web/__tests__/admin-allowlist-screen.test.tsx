@@ -62,7 +62,13 @@ describe("AllowlistScreen — remove confirmation dialog", () => {
         initialLoadFailed={false}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    // Remove now lives behind the "···" overflow menu, matching UsersTable's
+    // row-action pattern — open it first, same as UsersTable.test.tsx does
+    // for its Delete action.
+    fireEvent.click(
+      screen.getByRole("button", { name: `Actions for ${unused.email}` }),
+    );
+    fireEvent.click(screen.getByText("Remove"));
     expect(screen.getByText(DIALOG_TITLE)).toBeTruthy();
     expect(screen.getByText(DIALOG_BODY)).toBeTruthy();
   });
@@ -79,7 +85,10 @@ describe("AllowlistScreen — remove confirmation dialog", () => {
         initialLoadFailed={false}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: `Actions for ${used.email}` }),
+    );
+    fireEvent.click(screen.getByText("Remove"));
     expect(screen.getByText(DIALOG_TITLE)).toBeTruthy();
     expect(screen.getByText(DIALOG_BODY)).toBeTruthy();
   });

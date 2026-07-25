@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { MoreHorizontal, RefreshCw } from "lucide-react";
 import { api, ApiError } from "@/lib/api/client";
 import type { AdminInvitedEmail } from "@/lib/api";
 import { Input } from "@/components/ui/input";
@@ -17,11 +17,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const MAX_ITEMS = 500;
 // How long the "just added" success fill stays on a fresh row before it
 // settles into its normal (unused) treatment.
 const ADD_HIGHLIGHT_MS = 1600;
+
+// Same dense-table shape as `UsersTable` (Email, Invited, Status, row
+// action) — this data is structurally identical (one row per email +
+// metadata + action), so it reuses that pattern instead of a bespoke
+// bordered-card-per-row layout (UI review).
+const ALLOWLIST_GRID = "minmax(0,2fr) 1fr 6rem 3.25rem";
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
@@ -31,6 +43,34 @@ function formatDateTime(iso: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+// Row action lives behind a "···" overflow menu, matching `UsersTable`'s
+// `RowActions` — a solid-red "Remove" button on every single row (at up to
+// 500 entries) diluted the app's danger-color semantics. The confirm dialog
+// below keeps the solid-red treatment for the actual destructive step.
+function RowActions({
+  email,
+  onRemove,
+}: {
+  email: string;
+  onRemove: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={`Actions for ${email}`}
+        className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+      >
+        <MoreHorizontal className="size-4" aria-hidden="true" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem variant="destructive" onClick={onRemove}>
+          Remove
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 /**
@@ -210,84 +250,113 @@ export function AllowlistScreen({
         </Button>
       </form>
 
-      {loading ? (
-        <div className="flex flex-col gap-3">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-[64px] w-full rounded-lg" />
-          ))}
+      <div className="overflow-hidden rounded-2xl border border-border bg-[var(--surface)]">
+        <div
+          className="grid items-center gap-3 border-b border-border px-5 py-3"
+          style={{ gridTemplateColumns: ALLOWLIST_GRID }}
+        >
+          <span className="type-caption uppercase tracking-wide text-muted-foreground">
+            Email
+          </span>
+          <span className="type-caption uppercase tracking-wide text-muted-foreground">
+            Invited
+          </span>
+          <span className="type-caption uppercase tracking-wide text-muted-foreground">
+            Status
+          </span>
+          <span />
         </div>
-      ) : error ? (
-        <div className="flex flex-col items-start gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-4">
-          <p className="text-sm text-[var(--red)]">
-            Couldn&apos;t load the allowlist. Please try again.
-          </p>
-          <Button variant="outline" onClick={handleRetry}>
-            <RefreshCw size={14} aria-hidden="true" />
-            Retry
-          </Button>
-        </div>
-      ) : emails.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-10 text-center text-sm text-[var(--muted)]">
-          No invites yet.
-        </div>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {emails.map((row) => {
+
+        {loading ? (
+          <div className="flex flex-col gap-0">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="grid min-h-[80px] items-center gap-3 border-b border-border px-5 py-3.5 last:border-b-0"
+                style={{ gridTemplateColumns: ALLOWLIST_GRID }}
+              >
+                <Skeleton className="h-4 w-44 rounded-sm" />
+                <Skeleton className="h-4 w-28 rounded-sm" />
+                <Skeleton className="h-4 w-16 rounded-sm" />
+                <span />
+              </div>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-start gap-2 px-5 py-8">
+            <p className="type-small text-[var(--red)]">
+              Couldn&apos;t load the allowlist. Please try again.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleRetry}
+            >
+              <RefreshCw size={14} aria-hidden="true" />
+              Retry
+            </Button>
+          </div>
+        ) : emails.length === 0 ? (
+          <div className="flex flex-col items-center gap-1 px-5 py-11 text-center">
+            <p className="type-small text-muted-foreground">No invites yet.</p>
+          </div>
+        ) : (
+          emails.map((row) => {
             const consumed = row.used_at !== null;
             const justAdded = row.id === justAddedId;
             return (
-              <li
+              <div
                 key={row.id}
-                // Steady-state rows share one plain surface regardless of
-                // used/unused — a full-row color fill for "consumed"
-                // double-encoded the status (badge + row) and borrowed
-                // --green, the reserved positive/achievement token, for what
-                // is really just closed, inert metadata. The transient
-                // "just added" success fill (a real success event) is the
-                // only fill left.
-                className={`flex items-center justify-between gap-3 rounded-lg border px-4 py-3 transition-colors duration-700 ${
-                  justAdded
-                    ? "border-[var(--green)]/50 bg-[var(--green)]/15"
-                    : "border-[var(--border)] bg-[var(--surface)]"
+                // The transient "just added" success fill is the only
+                // full-row fill left — steady-state rows (used or unused)
+                // share one plain surface so "consumed" doesn't
+                // double-encode status (badge + row fill) or borrow
+                // --green, the reserved positive/achievement token, for
+                // what is really just closed, inert metadata.
+                // Fixed min-height so a consumed row's extra "used ..." line
+                // doesn't make it taller than an unused row — items-center
+                // vertically centers shorter rows instead of the table's
+                // rhythm shifting row to row (frontend-architect critique).
+                className={`grid min-h-[80px] items-center gap-3 border-b border-border px-5 py-3 transition-colors duration-700 last:border-b-0 ${
+                  justAdded ? "bg-[var(--green)]/15" : ""
                 }`}
+                style={{ gridTemplateColumns: ALLOWLIST_GRID }}
               >
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="truncate font-mono text-sm text-[var(--text)]">
-                    {row.email}
+                <span className="truncate font-mono text-sm text-[var(--text)]">
+                  {row.email}
+                </span>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="type-num-inline text-muted-foreground">
+                    {formatDateTime(row.invited_at)}
                   </span>
-                  <span className="font-mono text-xs tabular-nums text-[var(--muted)]">
-                    invited {formatDateTime(row.invited_at)}
-                    {consumed &&
-                      ` · used ${formatDateTime(row.used_at as string)}`}
-                  </span>
+                  {consumed ? (
+                    <span className="type-caption text-muted-foreground/70">
+                      used {formatDateTime(row.used_at as string)}
+                    </span>
+                  ) : null}
                 </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  {/* Unused (still open, operator-relevant) carries the
-                      visual weight; consumed is closed/inert and stays
-                      quiet — the inverse of a success-badge reading. */}
-                  <span
-                    className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.5px] ${
-                      consumed
-                        ? "border-[var(--border)] text-[var(--muted)]"
-                        : "border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)]"
-                    }`}
-                  >
-                    {consumed ? "Consumed" : "Unused"}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => openRemoveDialog(row)}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              </li>
+                {/* Unused (still open, operator-relevant) carries the
+                    visual weight; consumed is closed/inert and stays
+                    quiet — the inverse of a success-badge reading. */}
+                <span
+                  className={`w-fit rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.5px] ${
+                    consumed
+                      ? "border-[var(--border)] text-[var(--muted)]"
+                      : "border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)]"
+                  }`}
+                >
+                  {consumed ? "Consumed" : "Unused"}
+                </span>
+                <RowActions
+                  email={row.email}
+                  onRemove={() => openRemoveDialog(row)}
+                />
+              </div>
             );
-          })}
-        </ul>
-      )}
+          })
+        )}
+      </div>
 
       <AlertDialog
         open={removeTarget !== null}
